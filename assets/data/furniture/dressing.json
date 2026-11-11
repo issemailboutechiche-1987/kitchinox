@@ -1,0 +1,560 @@
+{
+  "database": "morocco_wardrobe_dressing_system",
+  "unit": "mm",
+  "currency": "MAD",
+  "standard_parameters": {
+    "T_carcass": 18,
+    "T_back": 6,
+    "plinth_height": [
+      60,
+      80,
+      100
+    ],
+    "standard_depths": {
+      "open_or_hinged_doors": 600,
+      "sliding_doors_total": 660,
+      "sliding_track_deduction": 90,
+      "shallow_linen_shoes": 400
+    },
+    "standard_heights": [
+      2000,
+      2200,
+      2400,
+      2600,
+      2750
+    ]
+  },
+  "modules": [
+    {
+      "id": "wardrobe_long_hanging",
+      "name": "Colonne Penderie Longue (Robes / Manteaux)",
+      "available_widths": [
+        500,
+        600,
+        800,
+        900,
+        1000
+      ],
+      "heights": [
+        2200,
+        2400,
+        2600
+      ],
+      "depth": 600,
+      "hanging_clearance_height_min": 1400,
+      "internal_composition": [
+        "1_top_shelf",
+        "1_hanging_rod",
+        "1_bottom_shoe_shelf"
+      ]
+    },
+    {
+      "id": "wardrobe_double_hanging",
+      "name": "Colonne Double Penderie (Chemises / Vestes / Pantalons)",
+      "available_widths": [
+        600,
+        800,
+        900,
+        1000
+      ],
+      "heights": [
+        2200,
+        2400,
+        2600
+      ],
+      "depth": 600,
+      "section_heights": {
+        "upper_hanging": 1000,
+        "lower_hanging": 1000,
+        "top_luggage_shelf": 350
+      },
+      "internal_composition": [
+        "2_hanging_rods",
+        "1_fixed_mid_shelf",
+        "1_top_shelf"
+      ]
+    },
+    {
+      "id": "wardrobe_linen_drawers_tower",
+      "name": "Colonne Lingère & Bloc Tiroirs",
+      "available_widths": [
+        450,
+        500,
+        600,
+        800,
+        900
+      ],
+      "heights": [
+        2200,
+        2400,
+        2600
+      ],
+      "depth": 600,
+      "drawer_counts": [
+        3,
+        4,
+        5
+      ],
+      "drawer_front_heights": [
+        160,
+        200,
+        240
+      ],
+      "internal_composition": [
+        "bottom_or_mid_drawers_stack",
+        "4_adjustable_shelves"
+      ]
+    },
+    {
+      "id": "wardrobe_corner_L_90",
+      "name": "Dressing d'Angle en L (90°)",
+      "code_4_params_variants": [
+        "900/900/2400/580",
+        "1000/1000/2400/580",
+        "1100/1100/2400/580"
+      ],
+      "door_type": "bifold_hinged_or_open_walk_in",
+      "internal_composition": [
+        "L_shaped_shelves",
+        "2_perpendicular_hanging_rods"
+      ]
+    },
+    {
+      "id": "wardrobe_corner_diagonal_45",
+      "name": "Dressing d'Angle Pan Coupé (Pentagonal)",
+      "code_4_params_variants": [
+        "950/950/2400/580",
+        "1050/1050/2400/580"
+      ],
+      "door_type": "single_diagonal_door",
+      "internal_composition": [
+        "deep_pentagonal_shelves",
+        "central_hanging_rod"
+      ]
+    },
+    {
+      "id": "wardrobe_island_central",
+      "name": "Îlot Central de Dressing (Tiroirs à bijoux & Montres)",
+      "available_widths": [
+        800,
+        1000,
+        1200,
+        1600
+      ],
+      "height": 900,
+      "depths": [
+        600,
+        900
+      ],
+      "features": [
+        "top_glass_display_8mm",
+        "velvet_organizer_drawers",
+        "double_sided_drawers"
+      ]
+    },
+    {
+      "id": "wardrobe_shelves_column",
+      "name": "Colonne Étagères (Pliage / Linge)",
+      "available_widths": [
+        400,
+        450,
+        500,
+        600,
+        800
+      ],
+      "heights": [
+        2000,
+        2200,
+        2400,
+        2600
+      ],
+      "depth": 600,
+      "composition": {
+        "doors": 1,
+        "shelves": 6
+      }
+    },
+    {
+      "id": "wardrobe_hanging_drawers",
+      "name": "Colonne Penderie + 3 Tiroirs Intérieurs",
+      "available_widths": [
+        600,
+        800,
+        900,
+        1000
+      ],
+      "heights": [
+        2200,
+        2400,
+        2600
+      ],
+      "depth": 600,
+      "composition": {
+        "doors": 2,
+        "drawers": 3,
+        "drawer_front": 200,
+        "shelves": 1,
+        "rods": 1
+      }
+    },
+    {
+      "id": "wardrobe_shoe_column",
+      "name": "Colonne Chaussures (Étagères Inclinées à Butée)",
+      "available_widths": [
+        450,
+        600,
+        800
+      ],
+      "heights": [
+        2000,
+        2200,
+        2400
+      ],
+      "depths": [
+        400,
+        600
+      ],
+      "composition": {
+        "doors": 1,
+        "shelves": 9
+      }
+    },
+    {
+      "id": "wardrobe_pantograph_column",
+      "name": "Colonne Haute avec Pantographe (Penderie Rabattable en Hauteur)",
+      "available_widths": [
+        600,
+        800,
+        900,
+        1000
+      ],
+      "heights": [
+        2400,
+        2600,
+        2750
+      ],
+      "depth": 600,
+      "composition": {
+        "doors": 2,
+        "shelves": 1,
+        "rods": 2
+      }
+    },
+    {
+      "id": "wardrobe_mirror_door_column",
+      "name": "Colonne Penderie Porte Miroir Toute Hauteur",
+      "available_widths": [
+        450,
+        500,
+        600
+      ],
+      "heights": [
+        2000,
+        2200,
+        2400
+      ],
+      "depth": 600,
+      "composition": {
+        "doors": 1,
+        "mirror": true,
+        "shelves": 2,
+        "rods": 1
+      }
+    },
+    {
+      "id": "wardrobe_top_box",
+      "name": "Surmeuble / Coffre Haut (Valises, Couettes)",
+      "available_widths": [
+        500,
+        600,
+        800,
+        900,
+        1000
+      ],
+      "available_heights": [
+        250,
+        300,
+        350,
+        400,
+        500,
+        600
+      ],
+      "depth": 600,
+      "composition": {
+        "doors": 2,
+        "wall_hung": true,
+        "z": 2200
+      }
+    },
+    {
+      "id": "wardrobe_open_end_shelf",
+      "name": "Étagère d’Extrémité Ouverte (Décor / Sacs)",
+      "available_widths": [
+        300,
+        350,
+        400
+      ],
+      "heights": [
+        2000,
+        2200,
+        2400
+      ],
+      "depths": [
+        300,
+        400
+      ],
+      "composition": {
+        "open": true,
+        "shelves": 6
+      }
+    },
+    {
+      "id": "wardrobe_laundry_column",
+      "name": "Colonne Linge Sale (Panier Basculant + Étagères)",
+      "available_widths": [
+        450,
+        500,
+        600
+      ],
+      "heights": [
+        2000,
+        2200,
+        2400
+      ],
+      "depth": 600,
+      "composition": {
+        "doors": 1,
+        "drawers": 1,
+        "drawer_front": 450,
+        "shelves": 3
+      }
+    }
+  ],
+  "door_systems": [
+    {
+      "id": "door_hinged_full_height",
+      "name": "Porte Battante Toute Hauteur (MDF ou Cadre Alu Vitré)",
+      "max_width_per_door": 600,
+      "max_height": 2600,
+      "hinges_required": 5,
+      "straightener_rod_required_above_height": 2100
+    },
+    {
+      "id": "door_sliding_aluminium_track",
+      "name": "Système Portes Coulissantes sur Rails Aluminium (2 ou 3 vantaux)",
+      "panel_widths": [
+        700,
+        800,
+        900,
+        1000,
+        1200
+      ],
+      "max_height": 2750,
+      "overlap_width_mm": 35
+    }
+  ],
+  "accessories": [
+    {
+      "id": "acc_wardrobe_lift_pantograph",
+      "name": "Élévateur de Penderie Rabattable (Pantographe)",
+      "brands": [
+        "Hafele",
+        "Sige",
+        "Starax",
+        "Samet",
+        "Import"
+      ],
+      "adjustable_widths_mm": [
+        [
+          450,
+          600
+        ],
+        [
+          600,
+          830
+        ],
+        [
+          830,
+          1150
+        ]
+      ],
+      "load_capacity_kg": [
+        10,
+        12,
+        15
+      ],
+      "price_mad": {
+        "min": 280,
+        "max": 850
+      }
+    },
+    {
+      "id": "acc_pullout_trouser_rack",
+      "name": "Porte-Pantalons Coulissant (Sur coulisses freinées)",
+      "compatible_cabinet_widths": [
+        600,
+        700,
+        800,
+        900
+      ],
+      "depth_required": 500,
+      "price_mad": {
+        "min": 320,
+        "max": 950
+      }
+    },
+    {
+      "id": "acc_pullout_shoe_rack",
+      "name": "Range-Chaussures Coulissant ou Rotatif Multi-niveaux",
+      "compatible_cabinet_widths": [
+        600,
+        800,
+        900
+      ],
+      "price_mad": {
+        "min": 290,
+        "max": 1400
+      }
+    },
+    {
+      "id": "acc_jewelry_velvet_tray",
+      "name": "Tiroir Organiseur à Bijoux / Montres en Velours ou Cuir",
+      "compatible_cabinet_widths": [
+        600,
+        800,
+        900
+      ],
+      "height": 80,
+      "price_mad": {
+        "min": 450,
+        "max": 1200
+      }
+    },
+    {
+      "id": "acc_pullout_wire_laundry_basket",
+      "name": "Panier à Linge ou Corbeille Fil / Rattan Coulissante",
+      "compatible_cabinet_widths": [
+        450,
+        600,
+        800,
+        900
+      ],
+      "heights": [
+        150,
+        200,
+        450
+      ],
+      "price_mad": {
+        "min": 180,
+        "max": 580
+      }
+    },
+    {
+      "id": "acc_tie_belt_rack_side",
+      "name": "Porte-Cravates et Ceintures Coulissant Latéral",
+      "length_mm": 450,
+      "price_mad": {
+        "min": 140,
+        "max": 350
+      }
+    },
+    {
+      "id": "acc_pullout_swivel_mirror",
+      "name": "Miroir Coulissant et Pivotant Encastré (Faible encombrement)",
+      "dimensions_mm": {
+        "height": 1000,
+        "width": 350,
+        "folded_thickness": 60
+      },
+      "price_mad": {
+        "min": 550,
+        "max": 1100
+      }
+    },
+    {
+      "id": "acc_pullout_ironing_board",
+      "name": "Planche à Repasser Pliante et Coulissante (Intégrée dans tiroir)",
+      "min_cabinet_width": 450,
+      "min_depth": 500,
+      "price_mad": {
+        "min": 650,
+        "max": 1350
+      }
+    },
+    {
+      "id": "acc_hanging_rod_oval_or_led",
+      "name": "Barre de Penderie Ovale (Chromée / Noir Mat) ou avec Ruban LED Détecteur IR",
+      "bar_length": 3000,
+      "price_mad": {
+        "standard_3m": 65,
+        "led_integrated_per_meter": 180
+      }
+    },
+    {
+      "id": "acc_sliding_door_kit_complete",
+      "name": "Kit Complet Rail Coulissant Aluminium + Roulettes Amorties + Poignées Profils Verticaux",
+      "track_lengths_mm": [
+        2000,
+        3000,
+        4000
+      ],
+      "finishes": [
+        "Noir Mat",
+        "Anodisé Argent",
+        "Champagne",
+        "Bronze"
+      ],
+      "price_mad_per_2_doors_kit": {
+        "min": 550,
+        "max": 1450
+      }
+    },
+    {
+      "id": "acc_glass_frame_door_profile",
+      "name": "Profilé Aluminium Cadre Fin pour Porte de Dressing Vitrée (Verre Fumé / Stopsol)",
+      "bar_length": 3000,
+      "special_hinge_required": "Charnière spéciale cadre alu (Blum / Samet)",
+      "price_mad_per_door_assembled": {
+        "min": 850,
+        "max": 1800
+      }
+    }
+  ],
+  "ergonomics_mm": {
+    "hanging_rod_height_single": 1750,
+    "hanging_rod_height_double_upper": 1950,
+    "hanging_rod_height_double_lower": 950,
+    "hanging_depth_min": 550,
+    "hanging_rod_below_shelf": 50,
+    "long_dress_clearance": 1500,
+    "shirt_clearance": 950,
+    "shelf_spacing_folded": [
+      300,
+      350
+    ],
+    "shelf_spacing_shoes": [
+      180,
+      200
+    ],
+    "max_shelf_span_18mm": 800,
+    "max_shelf_span_22mm": 1000,
+    "drawer_front_heights": [
+      160,
+      200,
+      240,
+      300
+    ],
+    "pantograph_min_width": 450
+  },
+  "interior_options": [
+    "penderie",
+    "étagères fixes",
+    "étagères réglables (taquets 5 mm)",
+    "tiroirs à l’anglaise",
+    "porte-pantalons",
+    "range-chaussures incliné",
+    "panier à linge",
+    "pantographe",
+    "éclairage LED à détecteur"
+  ]
+}

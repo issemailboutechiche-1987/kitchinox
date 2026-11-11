@@ -1,0 +1,233 @@
+{
+  "database": "morocco_kitchen_handles_catalog",
+  "currency": "MAD",
+  "unit": "mm",
+  "standard_screws": {
+    "thread": "M4",
+    "lengths_mm": [22, 25, 30, 35, 40],
+    "panel_thickness_reference": 18
+  },
+  "handle_families": [
+    {
+      "family_id": "bar_and_pull_handles",
+      "family_name": "Poignées Barres, Étriers et Arceaux",
+      "mounting_type": "rear_screw_through_door",
+      "drilling_hole_diameter_mm": 4.5,
+      "items": [
+        {
+          "id": "handle_tubular_t_bar",
+          "name": "Poignée Barre en T (Tubulaire cylindrique)",
+          "standard_center_to_center_mm": [96, 128, 160, 192, 224, 256, 320, 448, 640],
+          "diameter_mm": [10, 12, 14],
+          "projection_depth_mm": 32,
+          "materials": ["Inox 304", "Aluminium", "Zamak"],
+          "finishes": ["Noir mat", "Inox brossé", "Doré / Laiton brossé", "Chrome poli"],
+          "pricing_mad_per_unit": { "min": 18, "max": 75 },
+          "door_drilling": { "holes_count": 2, "hole_type": "through_hole" }
+        },
+        {
+          "id": "handle_d_pull_flat",
+          "name": "Poignée Étrier Plate / Carrée (Design minimaliste)",
+          "standard_center_to_center_mm": [128, 160, 192, 256, 320],
+          "section_mm": "10x10 ou 12x12",
+          "projection_depth_mm": 28,
+          "finishes": ["Noir mat", "Anthracite gunmetal", "Or brossé", "Blanc mat"],
+          "pricing_mad_per_unit": { "min": 25, "max": 90 },
+          "door_drilling": { "holes_count": 2, "hole_type": "through_hole" }
+        },
+        {
+          "id": "handle_knurled_industrial",
+          "name": "Poignée Moletée / Ciselée (Style industriel haut de gamme)",
+          "standard_center_to_center_mm": [160, 224, 320],
+          "diameter_mm": 16,
+          "finishes": ["Laiton moleté", "Noir carbone", "Bronze vieilli"],
+          "pricing_mad_per_unit": { "min": 65, "max": 180 },
+          "door_drilling": { "holes_count": 2, "hole_type": "through_hole" }
+        },
+        {
+          "id": "handle_recessed_bridge",
+          "name": "Poignée Pont Évasée (Arceau classique)",
+          "standard_center_to_center_mm": [96, 128, 160],
+          "finishes": ["Chrome brillant", "Nickel satiné", "Alu naturel"],
+          "pricing_mad_per_unit": { "min": 15, "max": 45 },
+          "door_drilling": { "holes_count": 2, "hole_type": "through_hole" }
+        }
+      ]
+    },
+    {
+      "family_id": "knobs",
+      "family_name": "Boutons de Meuble (Monopoint)",
+      "mounting_type": "single_rear_screw",
+      "drilling_hole_diameter_mm": 4.5,
+      "door_drilling": { "holes_count": 1, "hole_type": "through_hole" },
+      "items": [
+        {
+          "id": "knob_round_mushroom",
+          "name": "Bouton Rond Champignon",
+          "diameters_mm": [25, 29, 32],
+          "projection_depth_mm": 24,
+          "finishes": ["Noir mat", "Laiton brossé", "Inox satiné", "Chrome"],
+          "pricing_mad_per_unit": { "min": 10, "max": 35 }
+        },
+        {
+          "id": "knob_cylinder_knurled",
+          "name": "Bouton Cylindrique Moleté / Lisse",
+          "diameters_mm": [18, 20, 25],
+          "height_mm": 30,
+          "finishes": ["Noir mat", "Or mat", "Gunmetal"],
+          "pricing_mad_per_unit": { "min": 18, "max": 45 }
+        },
+        {
+          "id": "knob_square_cube",
+          "name": "Bouton Carré / Cubique",
+          "dimensions_mm": ["20x20", "25x25"],
+          "projection_depth_mm": 22,
+          "anti_rotation_pin": true,
+          "finishes": ["Noir mat", "Nickel brossé", "Laiton"],
+          "pricing_mad_per_unit": { "min": 15, "max": 40 }
+        },
+        {
+          "id": "knob_conical_tapered",
+          "name": "Bouton Conique Évasé",
+          "diameters_mm": [20, 28],
+          "finishes": ["Or brossé", "Noir", "Chêne massif / Noyer"],
+          "pricing_mad_per_unit": { "min": 15, "max": 50 }
+        }
+      ]
+    },
+    {
+      "family_id": "edge_pull_profile_handles",
+      "family_name": "Poignées Profilées sur Chant (Profil Lèvre & J-Profile)",
+      "mounting_type": "rear_mounted_on_door_edge",
+      "requires_panel_clearance_gap_mm": 2.5,
+      "screw_type": "wood_screw_3x15mm_countersunk",
+      "items": [
+        {
+          "id": "edge_pull_individual_cut",
+          "name": "Poignée sur Chant Individuelle (Profil Lèvre / Onglet)",
+          "available_lengths_mm": [50, 100, 150, 200, 300, 400, 600, 800],
+          "thickness_mm": 1.5,
+          "overlap_front_mm": 12,
+          "finishes": ["Noir mat anodisé", "Or brossé", "Gris anthracite", "Alu argent"],
+          "pricing_mad_per_unit": { "min": 20, "max": 75 },
+          "door_drilling": { "holes_count": 2, "hole_type": "wood_screw_pilot_hole" }
+        },
+        {
+          "id": "edge_pull_full_width_bar",
+          "name": "Profil Poignée Continu (Découpé à la largeur exacte de la porte)",
+          "bar_stock_length_mm": 3000,
+          "compatible_door_widths_mm": [300, 400, 450, 600, 800, 900, 1200],
+          "finishes": ["Noir mat", "Alu anodisé brossé", "Champagne"],
+          "pricing_mad_per_bar_3m": { "min": 120, "max": 240 }
+        },
+        {
+          "id": "edge_wrap_j_profile_edge",
+          "name": "Profil Poignée Coiffant en J (Pincé sur la tranche 18 mm)",
+          "applicable_panel_thickness_mm": 18,
+          "available_lengths_mm": [146, 296, 396, 446, 596, 796, 896],
+          "finishes": ["Noir mat", "Inox brossé", "Laiton brossé"],
+          "pricing_mad_per_unit": { "min": 35, "max": 110 }
+        }
+      ]
+    },
+    {
+      "family_id": "recessed_and_flush_handles",
+      "family_name": "Poignées Encastrées et Cuvettes",
+      "mounting_type": "cnc_routed_pocket_and_glue_or_screws",
+      "requires_cnc_pocket_milling": true,
+      "items": [
+        {
+          "id": "flush_pull_rectangular_box",
+          "name": "Poignée Cuvette Rectangulaire Encastrée",
+          "overall_dimensions_mm": { "width": 120, "height": 40, "depth": 14 },
+          "routing_cutout_mm": { "width": 112, "height": 33, "depth": 12 },
+          "finishes": ["Noir mat", "Gris titane", "Inox brossé", "Doré"],
+          "pricing_mad_per_unit": { "min": 35, "max": 80 }
+        },
+        {
+          "id": "flush_pull_circular_ring",
+          "name": "Cuvette Ronde Encastrée (Affleurante)",
+          "diameter_overall_mm": 50,
+          "routing_bore_diameter_mm": 40,
+          "routing_depth_mm": 11,
+          "finishes": ["Noir mat", "Laiton satiné", "Chrome mat"],
+          "pricing_mad_per_unit": { "min": 25, "max": 65 }
+        }
+      ]
+    },
+    {
+      "family_id": "integrated_milled_handles",
+      "family_name": "Prises de Main Usinées dans la Façade (Sans Poignée Rapportée)",
+      "mounting_type": "cnc_profile_milled_directly_in_mdf",
+      "applicable_substrates": ["MDF brut laqué", "MDF plaqué bois avec vernis"],
+      "hardware_cost_mad": 0,
+      "items": [
+        {
+          "id": "milled_j_pull_finger_groove",
+          "name": "Gorge Usinée en J (J-Pull CNC)",
+          "milling_profile": "Gorge arrondie ergonomique sur chant supérieur (bas) ou inférieur (haut)",
+          "groove_depth_mm": 14,
+          "groove_height_mm": 28,
+          "milling_cost_mad_per_door": { "min": 30, "max": 60 }
+        },
+        {
+          "id": "milled_45_degree_chamfer",
+          "name": "Chant Biseauté à 45° (Prise de main d'onglet)",
+          "milling_profile": "Chanfrein arrière à 45 degrés sur la tranche",
+          "chamfer_depth_mm": 12,
+          "milling_cost_mad_per_door": { "min": 20, "max": 45 }
+        },
+        {
+          "id": "milled_geometric_finger_pocket",
+          "name": "Défonçage Niche / Encoche Prise de Main Intégrée",
+          "milling_profile": "Poche ovale ou rectangle usinée sur la face",
+          "dimensions_mm": "120x30",
+          "milling_cost_mad_per_door": { "min": 35, "max": 70 }
+        }
+      ]
+    },
+    {
+      "family_id": "cup_and_vintage_handles",
+      "family_name": "Poignées Coquilles et Style Rustique / Campagne Chic",
+      "mounting_type": "front_or_rear_screw",
+      "items": [
+        {
+          "id": "cup_handle_shell_shaker",
+          "name": "Poignée Coquille Shaker Traditionnelle",
+          "standard_center_to_center_mm": [64, 76, 96],
+          "width_mm": 95,
+          "height_mm": 40,
+          "finishes": ["Noir vieilli", "Laiton antique", "Étain brossé", "Cuivre rose"],
+          "pricing_mad_per_unit": { "min": 22, "max": 60 },
+          "door_drilling": { "holes_count": 2, "hole_type": "through_or_front_wood_screw" }
+        },
+        {
+          "id": "leather_loop_pull",
+          "name": "Languette Cuir Naturel avec Rivet Métallique",
+          "strap_length_mm": 70,
+          "strap_width_mm": 25,
+          "leather_colors": ["Camel naturel", "Noir", "Cognac", "Chocolat"],
+          "fastener_rivet_finishes": ["Laiton", "Noir mat"],
+          "pricing_mad_per_unit": { "min": 25, "max": 65 },
+          "door_drilling": { "holes_count": 1, "hole_type": "through_hole" }
+        }
+      ]
+    },
+    {
+      "family_id": "appliance_and_oversized_pulls",
+      "family_name": "Poignées XXL pour Réfrigérateur Encastré & Colonnes",
+      "mounting_type": "heavy_duty_through_screw_reinforcement",
+      "items": [
+        {
+          "id": "pull_extra_long_wardrobe_fridge",
+          "name": "Barre Pleine Hauteur Verticale XXL",
+          "available_lengths_mm": [800, 1000, 1200, 1600],
+          "center_to_center_mm": [700, 900, 1100, 1500],
+          "diameter_or_section_mm": 18,
+          "finishes": ["Noir mat anodisé", "Or brossé", "Gris anthracite"],
+          "pricing_mad_per_unit": { "min": 140, "max": 380 }
+        }
+      ]
+    }
+  ]
+}

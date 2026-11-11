@@ -1,0 +1,258 @@
+{
+  "database": "architectural_doors_windows_system",
+  "unit": "mm",
+  "doors": [
+    {
+      "id": "door_interior_flush",
+      "name": "Porte Isoplane Lisse (Standard Intérieur)",
+      "style": "Moderne Minimaliste",
+      "opening_mechanism": "hinged_single",
+      "standard_dimensions": { "heights": [2040, 2140], "widths": [630, 730, 830, 930], "thickness": 40 },
+      "composition": {
+        "frame": "Bois massif ou MDF enrobé (Dormant)",
+        "core": "Alvéolaire (Nid d'abeille) ou Tubulaire (Acoustique)",
+        "finish": "MDF brut à peindre, Mélaminé, ou Plaqué bois"
+      },
+      "hardware": ["3 paumelles ou charnières invisibles", "Serrure à pêne dormant/magnétique", "Rosace et béquille"]
+    },
+    {
+      "id": "door_solid_wood_panel",
+      "name": "Porte en Bois Massif à Panneaux",
+      "style": "Traditionnel / Classique",
+      "opening_mechanism": "hinged_single",
+      "standard_dimensions": { "heights": [2040, 2140], "widths": [730, 830, 930], "thickness": 45 },
+      "composition": {
+        "frame": "Bois massif (Chêne, Hêtre, Acajou)",
+        "core": "Traverses, montants et panneaux massifs emboîtés",
+        "finish": "Vernis, Teinté ou Laqué"
+      },
+      "hardware": ["4 paumelles picardes", "Serrure 3 points (si entrée)", "Béquille sur plaque"]
+    },
+    {
+      "id": "door_sliding_pocket",
+      "name": "Porte Coulissante à Galandage",
+      "style": "Gain de place / Contemporain",
+      "opening_mechanism": "sliding_pocket_wall",
+      "standard_dimensions": { "heights": [2040], "widths": [730, 830, 930, 1030], "thickness": 40 },
+      "composition": {
+        "frame": "Châssis métallique encastré (type Scrigno/Eclisse)",
+        "core": "Âme pleine ou alvéolaire",
+        "finish": "MDF laqué ou Placage bois"
+      },
+      "hardware": ["Rail supérieur aluminium", "Chariots à roulettes", "Poignée cuvette encastrée", "Serrure à crochet"]
+    },
+    {
+      "id": "door_hidden_flush_wall",
+      "name": "Porte Sous Tenture (Invisible / Affleurante)",
+      "style": "Architectural / Ultra-Moderne",
+      "opening_mechanism": "hinged_flush_push_pull",
+      "standard_dimensions": { "heights": [2040, 2400, 2600], "widths": [730, 830, 930], "thickness": 45 },
+      "composition": {
+        "frame": "Dormant aluminium invisible scellé dans le mur",
+        "core": "Âme tubulaire haute densité",
+        "finish": "Primaire à peindre (même finition que le mur)"
+      },
+      "hardware": ["Charnières 3D invisibles", "Serrure magnétique", "Béquille sans rosace"]
+    },
+    {
+      "id": "door_french_double",
+      "name": "Porte Double Vitrée (Type Verrière ou Haussmannienne)",
+      "style": "Industriel ou Classique chic",
+      "opening_mechanism": "hinged_double",
+      "standard_dimensions": { "heights": [2040, 2140], "widths": [1260, 1460, 1660], "thickness": 40 },
+      "composition": {
+        "frame": "Acier, Aluminium ou Bois",
+        "core": "Grille de petits bois + Vitrage",
+        "finish": "Verre trempé 6mm ou 8mm, thermolaquage noir mat (si acier)"
+      },
+      "hardware": ["Verrous baïonnette (vantail semi-fixe)", "Serrure à rouleau", "Poignée béquille ou tirant"]
+    },
+    {
+      "id": "door_pivot_large",
+      "name": "Porte d'Entrée sur Pivot Désaxé",
+      "style": "Monumental / Villa de luxe",
+      "opening_mechanism": "pivot_offset",
+      "standard_dimensions": { "heights": [2200, 2500, 3000], "widths": [1200, 1500, 1800], "thickness": 60 },
+      "composition": {
+        "frame": "Structure acier renforcée",
+        "core": "Isolation thermique/acoustique + Habillage massif ou métal",
+        "finish": "Céramique, Bois massif texturé ou Aluminium"
+      },
+      "hardware": ["Pivot hydraulique encastré (sol/plafond)", "Serrure motorisée multipoints", "Barre de tirage XXL"]
+    },
+    {
+      "id": "door_security_armored",
+      "name": "Porte Palière Blindée",
+      "style": "Haute Sécurité (Appartement)",
+      "opening_mechanism": "hinged_single_heavy",
+      "standard_dimensions": { "heights": [2040], "widths": [800, 900], "thickness": 65 },
+      "composition": {
+        "frame": "Bâti acier 20/10ème scellé",
+        "core": "Blindage acier central + Laine de roche",
+        "finish": "Panneaux MDF décoratifs interchangeables"
+      },
+      "hardware": ["Serrure A2P 3, 5 ou 7 points", "Cylindre haute sécurité", "Microviseur (judas)", "Pions anti-dégondage"]
+    },
+    {
+      "id": "door_sliding_barn",
+      "name": "Porte Coulissante en Applique (Type Grange)",
+      "style": "Rustique / Loft Industriel",
+      "opening_mechanism": "sliding_surface_mounted",
+      "standard_dimensions": { "heights": [2100], "widths": [830, 930, 1000], "thickness": 40 },
+      "composition": {
+        "frame": "Aucun (En applique sur l'ouverture)",
+        "core": "Planches de bois massif ou MDF strié",
+        "finish": "Bois brossé ou Peinture"
+      },
+      "hardware": ["Rail acier brut apparent", "Roulettes suspendues", "Poignée tirant fer forgé"]
+    },
+    {
+      "id": "door_bi_fold_closet",
+      "name": "Porte Pliante (Accordéon)",
+      "style": "Rangement / Buanderie",
+      "opening_mechanism": "folding_bifold",
+      "standard_dimensions": { "heights": [2040, 2400], "widths": [600, 800, 1000, 1200], "thickness": 22 },
+      "composition": {
+        "frame": "Rail supérieur dissimulé",
+        "core": "Panneaux MDF ou persiennes",
+        "finish": "Laqué ou mélaminé"
+      },
+      "hardware": ["Charnières centrales 60°", "Pivots haut/bas", "Roulettes de guidage supérieures"]
+    },
+    {
+      "id": "door_aluminium_exterior",
+      "name": "Porte Extérieure Aluminium Vitrée",
+      "style": "Commercial / Patio",
+      "opening_mechanism": "hinged_single_or_double",
+      "standard_dimensions": { "heights": [2100, 2200], "widths": [900, 1800], "thickness": 50 },
+      "composition": {
+        "frame": "Profilés aluminium à rupture de pont thermique (RPT)",
+        "core": "Double vitrage feuilleté (ex: 44.2/16/4)",
+        "finish": "Thermolaquage Qualicoat"
+      },
+      "hardware": ["Charnières 3 lames haute résistance", "Ferme-porte hydraulique", "Serrure 3 points à crochets"]
+    }
+  ],
+  "windows": [
+    {
+      "id": "window_casement_french",
+      "name": "Fenêtre à la Française (Ouvrant à la française)",
+      "style": "Standard / Classique",
+      "opening_mechanism": "casement_inward",
+      "standard_dimensions": { "heights": [1050, 1150, 1250, 1350], "widths": [1000, 1200] },
+      "composition": {
+        "profile": "PVC, Bois ou Alu RPT (Dormant + Ouvrant)",
+        "glazing": "Double vitrage standard (4/16/4)"
+      },
+      "hardware": ["Fiches / Paumelles", "Crémone à poignée", "Gâche"]
+    },
+    {
+      "id": "window_sliding",
+      "name": "Baie Coulissante (2 ou 3 Vantaux)",
+      "style": "Moderne / Baie Vitrée",
+      "opening_mechanism": "sliding_horizontal",
+      "standard_dimensions": { "heights": [2000, 2150], "widths": [1800, 2400, 3000] },
+      "composition": {
+        "profile": "Aluminium RPT (Dormant tubulaire, Ouvrant fin)",
+        "glazing": "Double vitrage (6/12/6 ou 4/16/4)"
+      },
+      "hardware": ["Chariots doubles réglables", "Fermeture multipoints à cuvette", "Rail inox ou alu"]
+    },
+    {
+      "id": "window_tilt_and_turn",
+      "name": "Fenêtre Oscillo-Battante",
+      "style": "Pratique / Ventilation Sécurisée",
+      "opening_mechanism": "tilt_and_turn_inward",
+      "standard_dimensions": { "heights": [950, 1150, 1350], "widths": [600, 800, 1000] },
+      "composition": {
+        "profile": "PVC ou Alu RPT",
+        "glazing": "Double vitrage"
+      },
+      "hardware": ["Ferrure oscillo-battante (OB) périphérique", "Poignée à 3 positions (Fermé, Battant, Soufflet)"]
+    },
+    {
+      "id": "window_awning_hopper",
+      "name": "Fenêtre à Soufflet (Abattant)",
+      "style": "Salle de bain / Sous-sol",
+      "opening_mechanism": "tilt_inward_bottom_hinged",
+      "standard_dimensions": { "heights": [400, 500, 600], "widths": [600, 800, 1000] },
+      "composition": {
+        "profile": "PVC ou Alu",
+        "glazing": "Vitrage dépoli ou opaque"
+      },
+      "hardware": ["Charnières basses", "Compas d'arrêt latéraux", "Loqueteau central"]
+    },
+    {
+      "id": "window_fixed_picture",
+      "name": "Châssis Fixe (Picture Window)",
+      "style": "Vue Panoramique",
+      "opening_mechanism": "none_fixed",
+      "standard_dimensions": { "heights": [1000, 1500, 2000], "widths": [1000, 2000, 3000] },
+      "composition": {
+        "profile": "Profilé minimaliste (Alu ou Bois) - Uniquement dormant",
+        "glazing": "Double ou Triple vitrage retardateur d'effraction"
+      },
+      "hardware": ["Parcloses (Aucune quincaillerie d'ouverture)"]
+    },
+    {
+      "id": "window_sash_guillotine",
+      "name": "Fenêtre à Guillotine",
+      "style": "Anglosaxon / Rétro",
+      "opening_mechanism": "sliding_vertical",
+      "standard_dimensions": { "heights": [1200, 1400, 1600], "widths": [800, 1000] },
+      "composition": {
+        "profile": "Bois ou PVC",
+        "glazing": "Simple ou Double vitrage avec croisillons intégrés"
+      },
+      "hardware": ["Contrepoids ou ressorts de compensation", "Loquet à came central", "Poignées de tirage"]
+    },
+    {
+      "id": "window_louvered_jalousie",
+      "name": "Fenêtre à Lames Orientables (Jalousie / Naco)",
+      "style": "Tropical / Aération permanente",
+      "opening_mechanism": "louver_pivoting",
+      "standard_dimensions": { "heights": [800, 1000, 1200], "widths": [600, 800] },
+      "composition": {
+        "profile": "Montants latéraux aluminium (pas d'ouvrant classique)",
+        "glazing": "Lames de verre 6mm bords polis, ou lames aluminium"
+      },
+      "hardware": ["Mécanisme à levier ou molette pour inclinaison simultanée"]
+    },
+    {
+      "id": "window_skylight_roof",
+      "name": "Fenêtre de Toit (Type Velux)",
+      "style": "Combles / Mansarde",
+      "opening_mechanism": "pivot_center_horizontal",
+      "standard_dimensions": { "heights": [980, 1180, 1400], "widths": [780, 1140] },
+      "composition": {
+        "profile": "Bois laqué polyuréthane ou Alu, Raccord d'étanchéité extérieur",
+        "glazing": "Vitrage de sécurité feuilleté (anti-grêle)"
+      },
+      "hardware": ["Barre de manœuvre en haut", "Pivot central de basculement à 180°", "Store occultant intérieur"]
+    },
+    {
+      "id": "window_bay_bow",
+      "name": "Bow Window / Fenêtre en Saillie",
+      "style": "Architecture Classique",
+      "opening_mechanism": "mixed_casement_and_fixed",
+      "standard_dimensions": { "heights": [1200, 1500], "widths": [1500, 2000, 2500] },
+      "composition": {
+        "profile": "Assemblage de 3 à 5 châssis polygonaux (Bois ou PVC)",
+        "glazing": "Double vitrage standard"
+      },
+      "hardware": ["Profils de liaison d'angle (135° ou 90°)", "Crémones sur les ouvrants latéraux"]
+    },
+    {
+      "id": "window_arch_custom",
+      "name": "Fenêtre Plein Cintre / Cintrée",
+      "style": "Arcade Traditionnelle / Méditerranéenne",
+      "opening_mechanism": "casement_inward_arch",
+      "standard_dimensions": { "heights": [1200, 1500, 1800], "widths": [800, 1000, 1200] },
+      "composition": {
+        "profile": "Bois cintré à la vapeur ou Alu/PVC cintré à chaud",
+        "glazing": "Double vitrage découpé en arc de cercle"
+      },
+      "hardware": ["Verrous haut/bas adaptés à la courbure", "Paumelles standards"]
+    }
+  ]
+}

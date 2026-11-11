@@ -1,0 +1,25 @@
+Modèles 3D Poly Haven (https://polyhaven.com), licence CC0 1.0 (domaine public).
+Auteurs :
+- sofa_02 : Kirill Sannikov
+- sofa_03 : Fran Calvente
+- Sofa_01 : Kirill Sannikov
+- modern_arm_chair_01 : Vibrant Nordic
+- mid_century_lounge_chair : Kuutti Siitonen
+- ArmChair_01 : Kirill Sannikov
+- Ottoman_01 : Caspian Fortune
+- modern_coffee_table_01 : Amin
+- modern_coffee_table_02 : Amin
+- coffee_table_round_01 : Ulan Cabanilla
+- side_table_01 : James Ray Cock
+- side_table_tall_01 : James Ray Cock
+- gallinera_table : Ulan Cabanilla
+- gallinera_chair : Ulan Cabanilla
+- dining_chair_02 : James Ray Cock
+- round_wooden_table_01 : Ulan Cabanilla
+- bar_chair_round_01 : Dairon Sanchez
+- potted_plant_02 : Rico Cilliers
+- potted_plant_04 : James Ray Cock
+- modern_ceiling_lamp_01 : James Ray Cock
+- modern_wooden_cabinet : Patrik Pangerl
+- ceramic_vase_01 : James Ray Cock
+- throw_pillows_01 : Serhii Khromov

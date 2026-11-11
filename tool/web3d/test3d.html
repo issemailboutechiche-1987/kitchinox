@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>kitchinox 3D</title>
+<style>html,body{margin:0;height:100%}#v{width:100%;height:100%}</style>
+<script type="importmap">{ "imports": { "three": "../vendor/three.module.min.js" } }</script>
+<script src="scene.js"></script>
+</head><body><div id="v"></div>
+<div id="st" style="position:fixed;left:8px;top:8px;font:14px sans-serif;background:#fff8;padding:4px">chargement…</div>
+<script type="module">
+  const st = (t) => { document.getElementById('st').textContent = t; document.title = t; };
+  window.onerror = (m) => st('ERR ' + m);
+  window.addEventListener('unhandledrejection', (e) => st('ERR ' + e.reason));
+  window.kitchen3dPreserve = true;
+  await import('../three_view.js');
+  const k = window.kitchen3d;
+  window.kitchen3dHandlers = { pick: (u) => console.log('pick', u), dbl: (u) => console.log('dbl', u), dragStart: () => {}, drag: (u, s, z) => console.log('drag', u, s, z), dragEnd: () => {} };
+  k.mount(document.getElementById('v'));
+  st('scène…');
+  const data = window.SCENE;
+  let n = 0;
+  for (const im of data.images) {
+    st('image ' + (++n) + ' / ' + data.images.length);
+    const img = new Image();
+    img.src = 'data:image/png;base64,' + im.png;
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = im.w; c.height = im.h;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    k.addImage(im.key, im.w, im.h, g.getImageData(0, 0, im.w, im.h).data);
+  }
+  k.setScene(JSON.stringify(data.scene));
+  window.loaded = true;
+  st('ok : ' + data.scene.solids.length + ' volumes, ' + data.scene.fronts.length + ' façades');
+</script></body></html>

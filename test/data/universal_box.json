@@ -1,0 +1,109 @@
+{
+  "model": "universal_parametric_box",
+  "version": "1.0",
+  "global_parameters": {
+    "W": "Largeur hors-tout",
+    "H": "Hauteur hors-tout (sans pieds)",
+    "D": "Profondeur hors-tout (sans façade)",
+    "T_carcass": "Épaisseur structure (ex: 18mm)",
+    "T_back": "Épaisseur fond (ex: 6mm ou 18mm)",
+    "T_front": "Épaisseur façade (ex: 18mm)"
+  },
+  "structure_envelope": {
+    "description": "L'enveloppe extérieure du volume (Les 6 faces de la boîte)",
+    "left_side": { "active": true, "type": "full_panel" },
+    "right_side": { "active": true, "type": "full_panel" },
+    "bottom": { "active": true, "type": "full_panel" },
+    "top": { 
+      "active": true, 
+      "type": "full_panel_or_stretchers", 
+      "stretcher_width": 100, 
+      "note": "Traverses (stretchers) pour caisson bas de cuisine, Panneau plein pour haut/dressing"
+    },
+    "back": { 
+      "active": true, 
+      "assembly_type": "grooved_recessed", 
+      "recess_mm": 16,
+      "groove_depth_mm": 9 
+    },
+    "front": { "active": false, "note": "La face avant est une zone virtuelle qui recevra l'habillage" }
+  },
+  "internal_grid_subdivision": {
+    "description": "Système de division récursive du volume interne (Squelette)",
+    "divisions": [
+      {
+        "axis": "vertical",
+        "partitions": [
+          { "id": "sep_V1", "thickness": "T_carcass", "position_X_from_left": 600 }
+        ],
+        "note": "Crée des colonnes (ex: séparations verticales d'un dressing)"
+      },
+      {
+        "axis": "horizontal",
+        "partitions": [
+          { "id": "shelf_H1", "type": "fixed", "thickness": "T_carcass", "position_Y_from_bottom": 400 },
+          { "id": "shelf_H2", "type": "adjustable", "thickness": "T_carcass", "position_Y_from_bottom": 800 }
+        ],
+        "note": "Divise les colonnes en niches (ex: étagères fixes ou mobiles)"
+      }
+    ]
+  },
+  "front_layout_zones": {
+    "description": "Attribution des façades sur la grille interne",
+    "zones": [
+      {
+        "target_niche_id": "zone_1",
+        "cover_type": "door",
+        "opening_mechanism": "hinged_left",
+        "clearance_gaps": { "top": 2, "bottom": 2, "left": 2, "right": 2 }
+      },
+      {
+        "target_niche_id": "zone_2",
+        "cover_type": "drawer_stack",
+        "count": 3,
+        "drawer_box_type": "metal_double_wall",
+        "clearance_gaps": { "top": 2, "bottom": 2, "left": 2, "right": 2 }
+      },
+      {
+        "target_niche_id": "zone_3",
+        "cover_type": "open",
+        "note": "Niche ouverte (ex: pour micro-ondes ou bibelots)"
+      }
+    ]
+  },
+  "external_additions": {
+    "description": "Éléments rapportés à l'extérieur de la boîte",
+    "base_support": {
+      "type": "adjustable_legs", 
+      "height_mm": 100, 
+      "plinth_attached": true,
+      "alternative": "socle_bois_massif"
+    },
+    "cover_panels_cheeks": {
+      "left_active": false,
+      "right_active": true,
+      "thickness_mm": 18,
+      "overlap_front": true,
+      "note": "Joue de finition latérale (qui vient cacher le côté du caisson et affleurer la porte)"
+    },
+    "fillers": {
+      "left_width_mm": 0,
+      "right_width_mm": 50,
+      "note": "Fileur mural pour ajustement"
+    },
+    "cornice_or_pelmet": {
+      "top_cornice_active": false,
+      "bottom_light_valance_active": false
+    }
+  },
+  "hardware_and_accessories": {
+    "description": "Composants fonctionnels attachés aux zones",
+    "hinges": { "model": "soft_close_110", "quantity_calculated_by_door_height": true },
+    "drawer_slides": { "model": "undermount_soft_close_500mm", "quantity": 3 },
+    "handles": { "type": "profile_gola_horizontal", "recess_cutout_required_on_carcass": true },
+    "internal_accessories": [
+      { "id": "hanging_rod", "target_niche": "zone_1" },
+      { "id": "pullout_spice_rack", "target_niche": "zone_2" }
+    ]
+  }
+}

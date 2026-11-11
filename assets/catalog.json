@@ -1,0 +1,984 @@
+{
+  "system": "modular_kitchen_planner",
+  "unit_metric": "mm",
+  "categories": [
+    {
+      "id": "base_cabinets",
+      "name": "Caissons Bas",
+      "depth_nominal": 600,
+      "height_nominal": 800,
+      "plinth_height_standard": 100,
+      "items": [
+        {
+          "id": "base_standard_single_door",
+          "name": "Bas 1 porte",
+          "available_widths": [
+            300,
+            400,
+            500,
+            600
+          ],
+          "height": 800,
+          "depth": 600,
+          "internal_config": [
+            "shelves"
+          ],
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "base_standard_double_door",
+          "name": "Bas 2 portes",
+          "available_widths": [
+            800,
+            1000
+          ],
+          "height": 800,
+          "depth": 600,
+          "internal_config": [
+            "shelves"
+          ],
+          "opening_options": [
+            "double_hinged"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "base_drawers_multi",
+          "name": "Bas casserolier et tiroirs",
+          "available_widths": [
+            400,
+            600,
+            800
+          ],
+          "height": 800,
+          "depth": 600,
+          "drawer_variants": [
+            "2_deep_drawers",
+            "3_drawers_equal",
+            "1_low_2_deep",
+            "4_drawers"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "base_pullout_spice",
+          "name": "Bas épicier coulissant",
+          "available_widths": [
+            150,
+            200,
+            300
+          ],
+          "height": 800,
+          "depth": 600,
+          "internal_config": [
+            "wire_basket_pullout"
+          ],
+          "opening_options": [
+            "pullout"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "base_sink",
+          "name": "Bas sous-évier",
+          "available_widths": [
+            600,
+            800,
+            1000
+          ],
+          "height": 800,
+          "depth": 600,
+          "back_panel": "recessed_plumbing",
+          "internal_config": [
+            "open_plumbing",
+            "waste_sorter"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "base_cooktop_oven",
+          "name": "Bas pour four encastré et table de cuisson",
+          "available_widths": [
+            600
+          ],
+          "height": 800,
+          "depth": 600,
+          "internal_config": [
+            "recessed_appliance_niche",
+            "bottom_low_drawer"
+          ],
+          "ventilation_gap_required": true,
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "base_integrated_dishwasher_door",
+          "name": "Façade lave-vaisselle tout intégrable",
+          "available_widths": [
+            450,
+            600
+          ],
+          "height": 800,
+          "depth": 600,
+          "is_carcass": false,
+          "description": "Porte et plinthe montées directement sur l'appareil électroménager",
+          "snapping": {
+            "requires_appliance": "integrated_dishwasher"
+          }
+        },
+        {
+          "id": "base_door_drawer",
+          "name": "Bas 1 tiroir + 1 porte",
+          "available_widths": [
+            300,
+            400,
+            450,
+            500,
+            600
+          ],
+          "height": 800,
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "front_layout": [
+            {
+              "k": "drawer",
+              "h": 150
+            },
+            {
+              "k": "door",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "base_door_drawer_double",
+          "name": "Bas 1 tiroir + 2 portes",
+          "available_widths": [
+            800,
+            900,
+            1000,
+            1200
+          ],
+          "height": 800,
+          "front_layout": [
+            {
+              "k": "drawer",
+              "h": 150
+            },
+            {
+              "k": "door2",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "base_wide_drawers",
+          "name": "Bas grands tiroirs (1 + 2 casseroliers)",
+          "available_widths": [
+            900,
+            1000,
+            1200
+          ],
+          "height": 800,
+          "front_layout": [
+            {
+              "k": "drawer",
+              "h": 150
+            },
+            {
+              "k": "drawer",
+              "h": 0
+            },
+            {
+              "k": "drawer",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "base_bin_pullout",
+          "name": "Bas poubelle coulissante (tri sélectif)",
+          "available_widths": [
+            300,
+            400,
+            450,
+            600
+          ],
+          "height": 800,
+          "internal_config": [
+            "waste_sorter"
+          ],
+          "front_layout": [
+            {
+              "k": "drawer",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "base_open_niche",
+          "name": "Bas niche ouverte (étagères)",
+          "available_widths": [
+            150,
+            200,
+            300,
+            400,
+            600
+          ],
+          "height": 800,
+          "doors": false,
+          "front_layout": [
+            {
+              "k": "niche",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "base_wine_rack",
+          "name": "Bas casier à bouteilles",
+          "available_widths": [
+            150,
+            200,
+            300
+          ],
+          "height": 800,
+          "doors": false,
+          "front_layout": [
+            {
+              "k": "niche",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "base_washing_machine",
+          "name": "Niche lave-linge sous plan",
+          "available_widths": [
+            600
+          ],
+          "height": 800,
+          "doors": false,
+          "is_carcass": false,
+          "description": "Emplacement d'un lave-linge pose libre sous le plan de travail (prévoir 850 mm sous plan)",
+          "appliances": [
+            "washing_machine_60"
+          ],
+          "front_layout": [
+            {
+              "k": "appliance",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "base_oven_only",
+          "name": "Bas four encastré (sans plaque)",
+          "available_widths": [
+            600
+          ],
+          "height": 800,
+          "appliances": [
+            "oven_standard_60"
+          ],
+          "front_layout": [
+            {
+              "k": "appliance",
+              "h": 0
+            },
+            {
+              "k": "drawer",
+              "h": 180
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wall_cabinets",
+      "name": "Caissons Hauts",
+      "depth_nominal": 370,
+      "clearance_from_worktop_min": 450,
+      "items": [
+        {
+          "id": "wall_standard_single_door",
+          "name": "Haut 1 porte",
+          "available_widths": [
+            300,
+            400,
+            500,
+            600
+          ],
+          "available_heights": [
+            400,
+            600,
+            750,
+            800,
+            1000
+          ],
+          "depth": 370,
+          "internal_config": [
+            "adjustable_shelves"
+          ],
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
+        },
+        {
+          "id": "wall_standard_double_door",
+          "name": "Haut 2 portes",
+          "available_widths": [
+            800,
+            1000
+          ],
+          "available_heights": [
+            400,
+            600,
+            750,
+            800,
+            1000
+          ],
+          "depth": 370,
+          "internal_config": [
+            "adjustable_shelves"
+          ],
+          "opening_options": [
+            "double_hinged"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
+        },
+        {
+          "id": "wall_lift_up",
+          "name": "Haut relevable (Lift-up)",
+          "available_widths": [
+            600,
+            800
+          ],
+          "available_heights": [
+            400,
+            450
+          ],
+          "depth": 370,
+          "opening_options": [
+            "gas_strut_lift",
+            "bifold_lift"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
+        },
+        {
+          "id": "wall_integrated_hood",
+          "name": "Haut pour hotte intégrée",
+          "available_widths": [
+            600,
+            800
+          ],
+          "available_heights": [
+            600,
+            750,
+            800
+          ],
+          "depth": 370,
+          "internal_config": [
+            "duct_recess",
+            "shallow_shelves"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
+        },
+        {
+          "id": "wall_open_shelf",
+          "name": "Niche murale ouverte",
+          "available_widths": [
+            200,
+            300,
+            400
+          ],
+          "available_heights": [
+            400,
+            600,
+            750,
+            800
+          ],
+          "depth": 370,
+          "doors": false,
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
+        },
+        {
+          "id": "wall_glass_door",
+          "name": "Haut vitrine (porte vitrée)",
+          "available_widths": [
+            300,
+            400,
+            500,
+            600,
+            800,
+            1000
+          ],
+          "available_heights": [
+            600,
+            750,
+            800,
+            1000
+          ],
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "front_layout": [
+            {
+              "k": "glass",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "wall_door_niche",
+          "name": "Haut porte + niche basse",
+          "available_widths": [
+            400,
+            500,
+            600,
+            800,
+            1000
+          ],
+          "available_heights": [
+            750,
+            800,
+            1000
+          ],
+          "front_layout": [
+            {
+              "k": "door",
+              "h": 0
+            },
+            {
+              "k": "niche",
+              "h": 300
+            }
+          ]
+        },
+        {
+          "id": "wall_open_niche_wide",
+          "name": "Niche haute ouverte large",
+          "available_widths": [
+            600,
+            800,
+            1000,
+            1200
+          ],
+          "available_heights": [
+            300,
+            400,
+            600,
+            750
+          ],
+          "doors": false,
+          "front_layout": [
+            {
+              "k": "niche",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "wall_double_flap",
+          "name": "Haut 2 abattants superposés",
+          "available_widths": [
+            600,
+            800,
+            1000,
+            1200
+          ],
+          "available_heights": [
+            750,
+            800,
+            1000
+          ],
+          "front_layout": [
+            {
+              "k": "flap",
+              "h": 0
+            },
+            {
+              "k": "flap",
+              "h": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tall_cabinets",
+      "name": "Colonnes / Armoires",
+      "depth_nominal": 600,
+      "items": [
+        {
+          "id": "tall_pantry",
+          "name": "Colonne garde-manger",
+          "available_widths": [
+            400,
+            600
+          ],
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "depth": 600,
+          "internal_config": [
+            "full_shelves",
+            "internal_drawers",
+            "tandem_pullout_baskets"
+          ],
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "tall_cleaning",
+          "name": "Colonne ménage (balai, aspirateur, produits)",
+          "available_widths": [
+            400,
+            600
+          ],
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "depth": 600,
+          "internal_config": [
+            "top_shelf_and_broom_space"
+          ],
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "tall_oven_microwave",
+          "name": "Colonne four encastré et micro-ondes",
+          "available_widths": [
+            600
+          ],
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "depth": 600,
+          "internal_config": [
+            "lower_drawers",
+            "single_or_double_appliance_niche",
+            "upper_cabinet_lift_or_door"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "tall_integrated_fridge",
+          "name": "Colonne réfrigérateur/congélateur intégrable",
+          "available_widths": [
+            600
+          ],
+          "available_heights": [
+            2000,
+            2200
+          ],
+          "depth": 600,
+          "door_splits": [
+            "50_50",
+            "70_30",
+            "single_door"
+          ],
+          "ventilation_gap_required": true,
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "tall_pantry_double",
+          "name": "Colonne garde-manger 2 portes",
+          "available_widths": [
+            800,
+            1000
+          ],
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "front_layout": [
+            {
+              "k": "door2",
+              "h": 0
+            },
+            {
+              "k": "door2",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "tall_pullout",
+          "name": "Colonne coulissante (tandem)",
+          "available_widths": [
+            150,
+            200,
+            300,
+            400
+          ],
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "internal_config": [
+            "tandem_pullout_baskets"
+          ],
+          "front_layout": [
+            {
+              "k": "drawer",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "tall_oven_single",
+          "name": "Colonne four seul",
+          "available_widths": [
+            600
+          ],
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "appliances": [
+            "oven_standard_60"
+          ],
+          "front_layout": [
+            {
+              "k": "door",
+              "h": 0
+            },
+            {
+              "k": "appliance",
+              "h": 595
+            },
+            {
+              "k": "drawer",
+              "h": 300
+            },
+            {
+              "k": "drawer",
+              "h": 300
+            }
+          ]
+        },
+        {
+          "id": "tall_open_niche",
+          "name": "Colonne avec niche centrale",
+          "available_widths": [
+            400,
+            500,
+            600
+          ],
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "front_layout": [
+            {
+              "k": "door",
+              "h": 0
+            },
+            {
+              "k": "niche",
+              "h": 450
+            },
+            {
+              "k": "door",
+              "h": 0
+            }
+          ]
+        },
+        {
+          "id": "tall_glass",
+          "name": "Colonne vitrine",
+          "available_widths": [
+            400,
+            500,
+            600
+          ],
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "front_layout": [
+            {
+              "k": "glass",
+              "h": 0
+            },
+            {
+              "k": "door",
+              "h": 800
+            }
+          ]
+        },
+        {
+          "id": "tall_fridge_niche",
+          "name": "Niche réfrigérateur pose libre",
+          "available_widths": [
+            700,
+            900,
+            1000
+          ],
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "zone": "cool",
+          "appliances": [
+            "fridge_freestanding_combi_70"
+          ],
+          "front_layout": [
+            {
+              "k": "door2",
+              "h": 350
+            },
+            {
+              "k": "appliance",
+              "h": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corner_base_cabinets",
+      "name": "Caissons d'Angle Bas",
+      "depth_nominal": 600,
+      "items": [
+        {
+          "id": "corner_base_l_shaped",
+          "name": "Angle bas en L (90°)",
+          "width_left": 900,
+          "width_right": 900,
+          "height": 800,
+          "depth": 600,
+          "door_type": "bifold_corner_door",
+          "internal_config": [
+            "carousel_360",
+            "fixed_corner_shelf"
+          ],
+          "snapping": {
+            "corner_anchor": "inner_90"
+          }
+        },
+        {
+          "id": "corner_base_blind",
+          "name": "Angle bas droit avec fileur (angle mort)",
+          "width": 1200,
+          "height": 800,
+          "depth": 600,
+          "blind_overlap": 600,
+          "accessible_door_width": 400,
+          "door_type": "single_door",
+          "internal_config": [
+            "lemans_pullout_shelves",
+            "magic_corner"
+          ],
+          "snapping": {
+            "corner_anchor": "blind_overlap"
+          }
+        },
+        {
+          "id": "corner_base_diagonal",
+          "name": "Angle bas à pan coupé (diagonal)",
+          "footprint": "1050x1050",
+          "height": 800,
+          "depth": 600,
+          "door_type": "diagonal_single_door",
+          "internal_config": [
+            "rotating_tray"
+          ],
+          "snapping": {
+            "corner_anchor": "inner_diagonal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "corner_wall_cabinets",
+      "name": "Caissons d'Angle Haut",
+      "depth_nominal": 370,
+      "items": [
+        {
+          "id": "corner_wall_l_shaped",
+          "name": "Angle haut en L (90°)",
+          "width_left": 680,
+          "width_right": 680,
+          "height_variants": [
+            600,
+            750,
+            800,
+            1000
+          ],
+          "depth": 370,
+          "door_type": "bifold_corner_door",
+          "internal_config": [
+            "corner_shelves"
+          ],
+          "snapping": {
+            "corner_anchor": "inner_90"
+          }
+        },
+        {
+          "id": "corner_wall_blind",
+          "name": "Angle haut droit avec fileur",
+          "width": 1000,
+          "height_variants": [
+            600,
+            750,
+            800,
+            1000
+          ],
+          "depth": 370,
+          "blind_overlap": 370,
+          "accessible_door_width": 400,
+          "door_type": "single_door",
+          "internal_config": [
+            "corner_shelves"
+          ],
+          "snapping": {
+            "corner_anchor": "blind_overlap"
+          }
+        },
+        {
+          "id": "corner_wall_diagonal",
+          "name": "Angle haut à pan coupé",
+          "footprint": "680x680",
+          "height_variants": [
+            600,
+            750,
+            800,
+            1000
+          ],
+          "depth": 370,
+          "door_type": "diagonal_single_door",
+          "internal_config": [
+            "angled_shelves"
+          ],
+          "snapping": {
+            "corner_anchor": "inner_diagonal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "finishing_and_accessories",
+      "name": "Fileurs, Joues et Accessoires",
+      "items": [
+        {
+          "id": "filler_panel_base",
+          "name": "Fileur d'ajustement bas",
+          "width_min": 50,
+          "width_max": 200,
+          "height": 800,
+          "role": "wall_gap_filler"
+        },
+        {
+          "id": "filler_panel_wall",
+          "name": "Fileur d'ajustement haut",
+          "width_min": 50,
+          "width_max": 200,
+          "height_variants": [
+            600,
+            750,
+            800,
+            1000
+          ],
+          "role": "wall_gap_filler"
+        },
+        {
+          "id": "cover_panel_side",
+          "name": "Joue de finition latérale",
+          "thickness": [
+            16,
+            18,
+            19
+          ],
+          "variants": [
+            "base",
+            "wall",
+            "tall"
+          ],
+          "role": "end_of_run_cladding"
+        },
+        {
+          "id": "island_back_panel",
+          "name": "Panneau d'habillage arrière d'îlot",
+          "thickness": 18,
+          "height": 800,
+          "length_custom": true,
+          "role": "island_finishing"
+        }
+      ]
+    }
+  ]
+}

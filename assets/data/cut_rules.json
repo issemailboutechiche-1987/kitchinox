@@ -1,0 +1,272 @@
+{
+  "system": "kitchen_parametric_cutlist_engine",
+  "unit_metric": "mm",
+  "global_parameters": {
+    "T": 18,
+    "T_back": 6,
+    "saw_kerf": 3.2,
+    "back_groove": {
+      "groove_depth": 9,
+      "groove_width": 7,
+      "recess_from_rear": 16
+    },
+    "edge_banding": {
+      "front_facing_thickness": 1.0,
+      "hidden_facing_thickness": 0.4,
+      "door_thickness": 2.0
+    },
+    "door_clearances": {
+      "gap_horizontal_total": 4,
+      "gap_vertical_total": 4,
+      "gap_between_double_doors": 3,
+      "gola_top_recess_deduction": 35,
+      "gola_mid_recess_deduction": 30
+    }
+  },
+  "cabinet_types": [
+    {
+      "type_id": "base_cabinet_standard",
+      "description": "Caisson bas standard (côtés posés au sol sur pieds, fond pris en sandwich entre les côtés, 2 traverses hautes)",
+      "variables_input": ["W", "H", "D", "door_type", "has_gola"],
+      "parts": [
+        {
+          "part_name": "side_panel",
+          "label": "Côtés (Montants)",
+          "quantity": 2,
+          "thickness": "T",
+          "length_formula": "H",
+          "width_formula": "D",
+          "grain_direction": "length",
+          "edge_banding": {
+            "front": true,
+            "back": false,
+            "top": true,
+            "bottom": false
+          },
+          "edge_banding_formula_mm": "2 * (H + D)",
+          "machining": [
+            { "operation": "groove", "face": "inner", "offset": "global_parameters.back_groove.recess_from_rear", "depth": "global_parameters.back_groove.groove_depth", "width": "global_parameters.back_groove.groove_width" },
+            { "operation": "drilling_system_32", "pitch": 32 }
+          ]
+        },
+        {
+          "part_name": "bottom_panel",
+          "label": "Dessous (Fond structurel)",
+          "quantity": 1,
+          "thickness": "T",
+          "length_formula": "W - (2 * T)",
+          "width_formula": "D",
+          "grain_direction": "length",
+          "edge_banding": {
+            "front": true,
+            "back": false,
+            "left": false,
+            "right": false
+          },
+          "edge_banding_formula_mm": "W - (2 * T)",
+          "machining": [
+            { "operation": "groove", "face": "top", "offset": "global_parameters.back_groove.recess_from_rear", "depth": "global_parameters.back_groove.groove_depth", "width": "global_parameters.back_groove.groove_width" }
+          ]
+        },
+        {
+          "part_name": "top_stretchers",
+          "label": "Traverses supérieures (Fixation plan de travail)",
+          "quantity": 2,
+          "thickness": "T",
+          "length_formula": "W - (2 * T)",
+          "width_formula": 100,
+          "grain_direction": "length",
+          "edge_banding": {
+            "front": true,
+            "back": false,
+            "left": false,
+            "right": false
+          },
+          "edge_banding_formula_mm": "2 * (W - (2 * T))"
+        },
+        {
+          "part_name": "back_panel_6mm",
+          "label": "Fond arrière 6mm (Emboîté dans rainures)",
+          "quantity": 1,
+          "thickness": "T_back",
+          "length_formula": "H - T + global_parameters.back_groove.groove_depth",
+          "width_formula": "W - (2 * T) + (2 * global_parameters.back_groove.groove_depth)",
+          "grain_direction": "length",
+          "edge_banding": null,
+          "edge_banding_formula_mm": "0"
+        },
+        {
+          "part_name": "shelf_adjustable",
+          "label": "Étagère intérieure réglable (optionnelle)",
+          "quantity": 1,
+          "thickness": "T",
+          "length_formula": "W - (2 * T) - 2",
+          "width_formula": "D - global_parameters.back_groove.recess_from_rear - global_parameters.back_groove.groove_depth - 15",
+          "grain_direction": "length",
+          "edge_banding": {
+            "front": true,
+            "back": false,
+            "left": false,
+            "right": false
+          },
+          "edge_banding_formula_mm": "W - (2 * T) - 2"
+        }
+      ],
+      "fronts": {
+        "single_door": {
+          "quantity": 1,
+          "thickness": "T",
+          "height_formula": "has_gola ? (H - global_parameters.door_clearances.gola_top_recess_deduction) : (H - global_parameters.door_clearances.gap_vertical_total)",
+          "width_formula": "W - global_parameters.door_clearances.gap_horizontal_total",
+          "edge_banding_formula_mm": "2 * (height + width)"
+        },
+        "double_door": {
+          "quantity": 2,
+          "thickness": "T",
+          "height_formula": "has_gola ? (H - global_parameters.door_clearances.gola_top_recess_deduction) : (H - global_parameters.door_clearances.gap_vertical_total)",
+          "width_formula": "(W - global_parameters.door_clearances.gap_horizontal_total - global_parameters.door_clearances.gap_between_double_doors) / 2",
+          "edge_banding_formula_mm": "4 * (height + width)"
+        },
+        "drawers_3_equal": {
+          "quantity": 3,
+          "thickness": "T",
+          "height_formula": "(H - (4 * global_parameters.door_clearances.gap_vertical_total)) / 3",
+          "width_formula": "W - global_parameters.door_clearances.gap_horizontal_total",
+          "edge_banding_formula_mm": "6 * (height + width)"
+        }
+      }
+    },
+    {
+      "type_id": "wall_cabinet_standard",
+      "description": "Caisson haut suspendu (côtés assemblés sur fond et plafond complets)",
+      "variables_input": ["W", "H", "D", "door_type"],
+      "parts": [
+        {
+          "part_name": "side_panel",
+          "label": "Côtés (Montants)",
+          "quantity": 2,
+          "thickness": "T",
+          "length_formula": "H",
+          "width_formula": "D",
+          "grain_direction": "length",
+          "edge_banding": { "front": true, "back": false, "top": true, "bottom": true },
+          "edge_banding_formula_mm": "2 * (H + 2 * D)"
+        },
+        {
+          "part_name": "top_and_bottom_panels",
+          "label": "Dessus et Dessous (Plafond et Fond)",
+          "quantity": 2,
+          "thickness": "T",
+          "length_formula": "W - (2 * T)",
+          "width_formula": "D",
+          "grain_direction": "length",
+          "edge_banding": { "front": true, "back": false, "left": false, "right": false },
+          "edge_banding_formula_mm": "2 * (W - (2 * T))"
+        },
+        {
+          "part_name": "back_panel_6mm",
+          "label": "Fond arrière 6mm",
+          "quantity": 1,
+          "thickness": "T_back",
+          "length_formula": "H - (2 * T) + (2 * global_parameters.back_groove.groove_depth)",
+          "width_formula": "W - (2 * T) + (2 * global_parameters.back_groove.groove_depth)",
+          "edge_banding": null,
+          "edge_banding_formula_mm": "0"
+        },
+        {
+          "part_name": "shelves_adjustable",
+          "label": "Étagères intérieures",
+          "quantity": 2,
+          "thickness": "T",
+          "length_formula": "W - (2 * T) - 2",
+          "width_formula": "D - global_parameters.back_groove.recess_from_rear - global_parameters.back_groove.groove_depth - 10",
+          "edge_banding_formula_mm": "2 * (W - (2 * T) - 2)"
+        }
+      ],
+      "fronts": {
+        "single_door": {
+          "quantity": 1,
+          "thickness": "T",
+          "height_formula": "H - global_parameters.door_clearances.gap_vertical_total",
+          "width_formula": "W - global_parameters.door_clearances.gap_horizontal_total",
+          "edge_banding_formula_mm": "2 * (height + width)"
+        },
+        "double_door": {
+          "quantity": 2,
+          "thickness": "T",
+          "height_formula": "H - global_parameters.door_clearances.gap_vertical_total",
+          "width_formula": "(W - global_parameters.door_clearances.gap_horizontal_total - global_parameters.door_clearances.gap_between_double_doors) / 2",
+          "edge_banding_formula_mm": "4 * (height + width)"
+        }
+      }
+    },
+    {
+      "type_id": "tall_pantry_cabinet",
+      "description": "Colonne / Armoire toute hauteur (Côtés intégraux, fond, plafond, traverse médiane)",
+      "variables_input": ["W", "H", "D"],
+      "parts": [
+        {
+          "part_name": "side_panel",
+          "label": "Côtés intégraux",
+          "quantity": 2,
+          "thickness": "T",
+          "length_formula": "H",
+          "width_formula": "D",
+          "edge_banding_formula_mm": "2 * (H + D)"
+        },
+        {
+          "part_name": "fixed_horizontal_panels",
+          "label": "Planches fixes (Fond, Plafond, Tablette fixe médiane)",
+          "quantity": 3,
+          "thickness": "T",
+          "length_formula": "W - (2 * T)",
+          "width_formula": "D",
+          "edge_banding_formula_mm": "3 * (W - (2 * T))"
+        },
+        {
+          "part_name": "adjustable_shelves",
+          "label": "Tablettes réglables",
+          "quantity": 4,
+          "thickness": "T",
+          "length_formula": "W - (2 * T) - 2",
+          "width_formula": "D - 25",
+          "edge_banding_formula_mm": "4 * (W - (2 * T) - 2)"
+        },
+        {
+          "part_name": "back_panel_6mm",
+          "label": "Fond arrière 6mm (Souvent en 2 parties avec profil H de jonction)",
+          "quantity": 1,
+          "thickness": "T_back",
+          "length_formula": "H - (2 * T) + (2 * global_parameters.back_groove.groove_depth)",
+          "width_formula": "W - (2 * T) + (2 * global_parameters.back_groove.groove_depth)",
+          "edge_banding_formula_mm": "0"
+        }
+      ]
+    },
+    {
+      "type_id": "tandembox_metal_drawer_internal_parts",
+      "description": "Débit bois 16mm requis pour tiroir métallique à côtés fins (type Blum Tandembox / Merivobox)",
+      "variables_input": ["W", "drawer_nominal_length", "back_height_nominal"],
+      "parts": [
+        {
+          "part_name": "drawer_bottom_wood",
+          "label": "Fond de tiroir bois (16 mm)",
+          "thickness": 16,
+          "quantity": 1,
+          "length_formula": "drawer_nominal_length - 10",
+          "width_formula": "W - (2 * T) - 75",
+          "edge_banding_formula_mm": "0"
+        },
+        {
+          "part_name": "drawer_back_wood",
+          "label": "Dos de tiroir bois (16 mm)",
+          "thickness": 16,
+          "quantity": 1,
+          "length_formula": "back_height_nominal",
+          "width_formula": "W - (2 * T) - 87",
+          "edge_banding_formula_mm": "W - (2 * T) - 87"
+        }
+      ]
+    }
+  ]
+}

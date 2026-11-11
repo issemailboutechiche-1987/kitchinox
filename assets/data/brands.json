@@ -1,0 +1,309 @@
+{
+  "database": "morocco_brands_and_pricing_master_catalog",
+  "currency": "MAD",
+  "last_updated": "2026",
+  "categories": {
+    "mdf_and_wood_panels": {
+      "description": "Panneaux MDF, Mélaminés, Stratifiés HPL, Acryliques et Panneaux Lattés (Prix par panneau standard 2800x2070 ou 2440x1220 en 18mm)",
+      "local_distributors_morocco": ["Robelbois", "Cema Bois de l'Atlas", "Strati Décor", "MDF Med", "Scierie de l'Atlas", "Krono Maroc"],
+      "brands": [
+        {
+          "brand": "Egger",
+          "origin": "Autriche",
+          "tier": "Premium",
+          "specialties": ["Mélaminé pore synchronisé (Feelwood)", "Stratifié HPL", "Plans de travail hydrofuges"],
+          "pricing_mad": {
+            "melamine_18mm_blanc_hydro": { "min": 680, "max": 820 },
+            "melamine_18mm_decor_bois_synchronise": { "min": 950, "max": 1350 },
+            "chant_abs_2mm_rouleau_75m": { "min": 450, "max": 750 }
+          }
+        },
+        {
+          "brand": "Finsa",
+          "origin": "Espagne",
+          "tier": "Milieu / Haut de gamme",
+          "specialties": ["MDF Hydrofuge (Fibrapan Hydro)", "Mélaminé Gama Duo", "Placage bois naturel"],
+          "pricing_mad": {
+            "mdf_brut_hydrofuge_18mm": { "min": 480, "max": 620 },
+            "melamine_hydrofuge_decor_18mm": { "min": 780, "max": 1150 },
+            "mdf_plaque_noyer_ou_chene_19mm": { "min": 1100, "max": 1550 }
+          }
+        },
+        {
+          "brand": "Alvic",
+          "origin": "Espagne",
+          "tier": "Premium / Luxe",
+          "specialties": ["Luxe (High Gloss Miroir)", "Zenit (Supermat Anti-traces)", "Syncron (Structuré)"],
+          "pricing_mad": {
+            "panneau_luxe_high_gloss_2750x1220_18mm": { "min": 1250, "max": 1650 },
+            "panneau_zenit_supermat_anti_traces_18mm": { "min": 1300, "max": 1750 },
+            "panneau_syncron_18mm": { "min": 950, "max": 1300 }
+          }
+        },
+        {
+          "brand": "AGT / Gizir / Kastamonu",
+          "origin": "Turquie",
+          "tier": "Milieu de gamme (Excellent rapport qualité/prix)",
+          "specialties": ["Panneaux Supramat Soft-Touch", "Panneaux Acryliques PET", "Profils tasseaux MDF"],
+          "pricing_mad": {
+            "panneau_supramat_soft_touch_18mm": { "min": 850, "max": 1150 },
+            "panneau_acrylique_brillant_18mm": { "min": 800, "max": 1100 },
+            "panneau_tasseaux_decoratifs_18mm": { "min": 650, "max": 950 }
+          }
+        },
+        {
+          "brand": "Kronospan / Sonae Arauco",
+          "origin": "Europe / Portugal",
+          "tier": "Standard / Milieu de gamme",
+          "specialties": ["Caissons mélaminés blancs", "MDF à laquer", "Décors tendances"],
+          "pricing_mad": {
+            "melamine_blanc_caisson_18mm": { "min": 520, "max": 680 },
+            "melamine_decor_18mm": { "min": 680, "max": 950 }
+          }
+        },
+        {
+          "brand": "Cema Bois de l'Atlas",
+          "origin": "Maroc",
+          "tier": "Standard Industriel",
+          "specialties": ["Contreplaqué Okoumé / Marine", "Panneau Latté", "Mélaminé local"],
+          "pricing_mad": {
+            "panneau_latte_18mm_2440x1220": { "min": 680, "max": 920 },
+            "contreplaque_okoume_marine_18mm": { "min": 780, "max": 1100 }
+          }
+        }
+      ]
+    },
+    "kitchen_internal_accessories": {
+      "description": "Accessoires de rangement intérieur de cuisine (Épiciers, Angles LeMans/Magic Corner, Égouttoirs, Poubelles, Chariots Gaz)",
+      "brands": [
+        {
+          "brand": "Kesseböhmer / Vauth-Sagel / Peka",
+          "origin": "Allemagne / Suisse",
+          "tier": "Ultra-Premium",
+          "pricing_mad": {
+            "plateau_angle_lemans_ii_anthracite": { "min": 2800, "max": 4200 },
+            "magic_corner_sortie_totale_amorti": { "min": 3500, "max": 5200 },
+            "colonne_dispensa_coulissante_haute": { "min": 4500, "max": 7500 },
+            "epicier_coulissant_150_300mm_fond_plein": { "min": 950, "max": 1600 }
+          }
+        },
+        {
+          "brand": "Inoxa / Sige / Vibo",
+          "origin": "Italie",
+          "tier": "Haut de gamme",
+          "pricing_mad": {
+            "epicier_coulissant_anthracite_soft_close": { "min": 650, "max": 1150 },
+            "haricot_angle_extractible": { "min": 1800, "max": 2900 },
+            "egouttoir_vaisselle_inox_304_800mm": { "min": 450, "max": 780 },
+            "poubelle_coulissante_double_bac_40L": { "min": 750, "max": 1400 }
+          }
+        },
+        {
+          "brand": "Starax / Samet / Mesan",
+          "origin": "Turquie",
+          "tier": "Milieu de gamme (Très répandu au Maroc)",
+          "pricing_mad": {
+            "epicier_coulissant_fil_chrome_ou_anthracite": { "min": 380, "max": 680 },
+            "magic_corner_turc_amorti": { "min": 1500, "max": 2400 },
+            "tourniquet_angle_270_ou_360_deg": { "min": 480, "max": 850 },
+            "chariot_bouteille_gaz_12kg_renforce": { "min": 350, "max": 600 },
+            "egouttoir_inox_600_900mm": { "min": 220, "max": 420 }
+          }
+        },
+        {
+          "brand": "Klaus System / Intercocina / Générique Import",
+          "origin": "Maroc (Marques distributeurs) / Chine",
+          "tier": "Économique / Standard",
+          "pricing_mad": {
+            "epicier_coulissant_standard": { "min": 220, "max": 380 },
+            "chariot_porte_bouteille_gaz_fil_chrome": { "min": 180, "max": 320 },
+            "range_couverts_pvc_ou_bois_600mm": { "min": 60, "max": 350 },
+            "poubelle_porte_automatique_15L": { "min": 120, "max": 250 }
+          }
+        }
+      ]
+    },
+    "sanitary_ware_and_faucets": {
+      "description": "Sanitaires (WC, Lavabos, Bâtis-supports), Robinetterie (Cuisine & SDB) et Douches",
+      "brands": [
+        {
+          "brand": "Grohe / Hansgrohe",
+          "origin": "Allemagne",
+          "tier": "Haut de gamme",
+          "pricing_mad": {
+            "bati_support_wc_suspendu_complet_rapid_sl": { "min": 1650, "max": 2400 },
+            "mitigeur_lavabo_sdb": { "min": 750, "max": 1800 },
+            "mitigeur_evier_cuisine_douchette": { "min": 1200, "max": 2800 },
+            "colonne_douche_thermostatique": { "min": 2400, "max": 5500 },
+            "systeme_douche_encastre_smartcontrol": { "min": 4500, "max": 9500 }
+          }
+        },
+        {
+          "brand": "Geberit",
+          "origin": "Suisse",
+          "tier": "Premium (Référence Bâti-support)",
+          "pricing_mad": {
+            "bati_support_duofix_up320_avec_plaque_sigma": { "min": 2200, "max": 3600 },
+            "siphon_gain_de_place_meuble_vasque": { "min": 150, "max": 280 },
+            "caniveau_douche_italienne_inox": { "min": 1200, "max": 2500 }
+          }
+        },
+        {
+          "brand": "Roca",
+          "origin": "Espagne / Maroc (Usine à Settat)",
+          "tier": "Standard à Haut de gamme (Leader au Maroc)",
+          "pricing_mad": {
+            "wc_monobloc_au_sol_victoria_ou_gap": { "min": 1100, "max": 2600 },
+            "cuvette_wc_suspendue_the_gap_ou_inspira": { "min": 1400, "max": 3200 },
+            "vasque_a_poser_ceramique": { "min": 550, "max": 1600 },
+            "mitigeur_lavabo_ou_cuisine": { "min": 550, "max": 1400 },
+            "receveur_douche_resine_extra_plat_stoney": { "min": 1800, "max": 3500 }
+          }
+        },
+        {
+          "brand": "Jacob Delafon / Villeroy & Boch / Duravit",
+          "origin": "France / Allemagne",
+          "tier": "Premium / Luxe",
+          "pricing_mad": {
+            "cuvette_wc_suspendue_sans_bride": { "min": 2200, "max": 4800 },
+            "vasque_design_ceramique_fine": { "min": 1400, "max": 3500 },
+            "baignoire_ilot_acrylique": { "min": 8500, "max": 18000 }
+          }
+        },
+        {
+          "brand": "Vitra / Creavit",
+          "origin": "Turquie",
+          "tier": "Milieu de gamme Design",
+          "pricing_mad": {
+            "cuvette_wc_suspendue_noir_mat_ou_blanc": { "min": 1200, "max": 2500 },
+            "pack_wc_suspendu_bati_plus_cuvette": { "min": 2400, "max": 3800 },
+            "vasque_a_poser_couleur": { "min": 650, "max": 1400 }
+          }
+        },
+        {
+          "brand": "Franke / Blanco / Teka",
+          "origin": "Suisse / Allemagne / Espagne",
+          "tier": "Spécialistes Éviers & Mitigeurs Cuisine",
+          "pricing_mad": {
+            "evier_granit_fragranit_1_ou_2_bacs": { "min": 1800, "max": 4500 },
+            "evier_inox_304_sous_plan_cuve_carree": { "min": 1200, "max": 3200 },
+            "mitigeur_cuisine_noir_mat_ou_or_brosse": { "min": 950, "max": 2600 }
+          }
+        }
+      ]
+    },
+    "wardrobe_dressing_accessories": {
+      "description": "Accessoires de dressing (Pantographes, Porte-pantalons, Tiroirs à bijoux, Systèmes coulissants)",
+      "brands": [
+        {
+          "brand": "Häfele / Hettich",
+          "origin": "Allemagne",
+          "tier": "Premium",
+          "pricing_mad": {
+            "elevateur_penderie_pantographe_amorti_12kg": { "min": 650, "max": 1150 },
+            "porte_pantalons_coulissant_anthracite_800mm": { "min": 680, "max": 1200 },
+            "tiroir_organiseur_bijoux_cuir_velours": { "min": 850, "max": 1600 },
+            "planche_a_repasser_pliante_encastrable": { "min": 1100, "max": 1850 },
+            "systeme_rail_porte_coulissante_amorti_complet": { "min": 1100, "max": 2200 }
+          }
+        },
+        {
+          "brand": "Starax / Samet / Albatur",
+          "origin": "Turquie",
+          "tier": "Milieu de gamme",
+          "pricing_mad": {
+            "pantographe_penderie_rabattable": { "min": 380, "max": 620 },
+            "porte_pantalons_coulissant_double": { "min": 380, "max": 650 },
+            "panier_linge_ou_chaussures_coulissant": { "min": 250, "max": 480 },
+            "miroir_coulissant_pivotant": { "min": 650, "max": 1100 },
+            "kit_rail_aluminium_portes_coulissantes_3m": { "min": 650, "max": 1200 }
+          }
+        },
+        {
+          "brand": "Klaus / Emuca / Générique Moka & Cuir",
+          "origin": "Espagne / Chine",
+          "tier": "Économique à Milieu de gamme (Gamme Cuir/Moka très populaire)",
+          "pricing_mad": {
+            "pantographe_standard": { "min": 250, "max": 380 },
+            "tiroir_bijoux_velours_ou_similicuir_moka": { "min": 420, "max": 750 },
+            "panier_coulissant_rotin_ou_cuir": { "min": 280, "max": 520 },
+            "etagere_chaussures_rotative_360_12_niveaux": { "min": 1200, "max": 2200 },
+            "barre_penderie_led_avec_detecteur_mouvement": { "min": 180, "max": 350 }
+          }
+        }
+      ]
+    },
+    "furniture_hardware": {
+      "description": "Quincaillerie fonctionnelle de meubles (Charnières, Coulisses, Relevables, Assemblage)",
+      "brands": [
+        {
+          "brand": "Blum",
+          "origin": "Autriche",
+          "tier": "Leader Mondial / Premium",
+          "pricing_mad": {
+            "charniere_clip_top_blumotion_110_avec_embase": { "min": 34, "max": 48 },
+            "tiroir_tandembox_antaro_ou_merivobox_M": { "min": 420, "max": 580 },
+            "casserolier_tandembox_antaro_D_haut": { "min": 540, "max": 720 },
+            "coulisse_invisible_tandem_plus_500mm_paire": { "min": 250, "max": 350 },
+            "relevable_aventos_hf_bi_fold_complet": { "min": 980, "max": 1450 },
+            "relevable_aventos_hk_top_paire": { "min": 450, "max": 780 }
+          }
+        },
+        {
+          "brand": "Hettich",
+          "origin": "Allemagne",
+          "tier": "Premium",
+          "pricing_mad": {
+            "charniere_sensys_110_amortie": { "min": 26, "max": 38 },
+            "tiroir_innotech_atira_ou_avantech_you_bas": { "min": 330, "max": 490 },
+            "casserolier_innotech_atira_haut": { "min": 420, "max": 580 },
+            "coulisse_invisible_quadro_v6_500mm": { "min": 170, "max": 240 }
+          }
+        },
+        {
+          "brand": "Grass / Salice",
+          "origin": "Autriche / Italie",
+          "tier": "Premium",
+          "pricing_mad": {
+            "charniere_amortie_salice_silentia": { "min": 28, "max": 42 },
+            "tiroir_double_paroi_grass_nova_pro_scala": { "min": 380, "max": 560 }
+          }
+        },
+        {
+          "brand": "Samet",
+          "origin": "Turquie",
+          "tier": "Milieu de gamme (Standard professionnel au Maroc)",
+          "pricing_mad": {
+            "charniere_master_soft_close_clipsable": { "min": 12, "max": 18 },
+            "tiroir_alphabox_ou_smartbox_bas": { "min": 180, "max": 250 },
+            "casserolier_alphabox_haut": { "min": 230, "max": 310 },
+            "coulisse_invisible_smart_slide_sortie_totale": { "min": 95, "max": 140 },
+            "relevable_multi_mech_pliant": { "min": 520, "max": 750 }
+          }
+        },
+        {
+          "brand": "Emuca / Amig / Indaux",
+          "origin": "Espagne",
+          "tier": "Milieu de gamme",
+          "pricing_mad": {
+            "charniere_amortie_clipsable": { "min": 10, "max": 16 },
+            "tiroir_slim_double_paroi_vertex": { "min": 165, "max": 240 },
+            "boitiers_suspension_meuble_haut_paire": { "min": 25, "max": 55 }
+          }
+        },
+        {
+          "brand": "DTC / Klaus / Générique",
+          "origin": "Chine",
+          "tier": "Économique (Promotion immobilière / Entrée de gamme)",
+          "pricing_mad": {
+            "charniere_hydraulique_inox_304": { "min": 6, "max": 10 },
+            "tiroir_slimbox_paroi_fine_anthracite_bas": { "min": 125, "max": 165 },
+            "casserolier_slimbox_haut": { "min": 155, "max": 210 },
+            "coulisse_a_billes_45mm_soft_close_paire": { "min": 40, "max": 65 },
+            "verin_a_gaz_100N": { "min": 12, "max": 22 }
+          }
+        }
+      ]
+    }
+  }
+}

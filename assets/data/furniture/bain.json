@@ -1,0 +1,343 @@
+{
+  "database": "morocco_bathroom_vanities_system",
+  "unit": "mm",
+  "currency": "MAD",
+  "mandatory_materials": [
+    "MDF Hydrofuge 18mm",
+    "Contreplaqué Marine CTBX",
+    "Compact HPL 12mm"
+  ],
+  "standard_depths": [
+    450,
+    500,
+    520
+  ],
+  "mounting_types": [
+    "wall_hung_floating",
+    "floor_standing_legs"
+  ],
+  "modules": [
+    {
+      "id": "bath_vanity_single_basin_wall_hung",
+      "name": "Meuble Sous-Vasque Suspendu Simple (1 ou 2 Tiroirs)",
+      "available_widths": [
+        600,
+        700,
+        800,
+        900,
+        1000
+      ],
+      "available_heights": [
+        500,
+        550,
+        600
+      ],
+      "depth": 500,
+      "top_drawer_siphon_cutout": true,
+      "basin_types": [
+        "countertop_vessel_bowl",
+        "integrated_ceramic_sink",
+        "undermount_solid_surface"
+      ]
+    },
+    {
+      "id": "bath_vanity_double_basin_wall_hung",
+      "name": "Meuble Sous-Vasque Double (2 ou 4 Tiroirs + Niche centrale)",
+      "available_widths": [
+        1200,
+        1400,
+        1500,
+        1600,
+        1800
+      ],
+      "available_heights": [
+        500,
+        550,
+        600
+      ],
+      "depth": 500,
+      "top_drawer_siphon_cutouts_count": 2
+    },
+    {
+      "id": "bath_vanity_floor_standing",
+      "name": "Meuble Sous-Vasque sur Pieds (2 Portes ou 3 Tiroirs)",
+      "available_widths": [
+        600,
+        800,
+        1000,
+        1200
+      ],
+      "carcass_height": 750,
+      "legs_height": 100,
+      "depth": 500
+    },
+    {
+      "id": "bath_tall_linen_column",
+      "name": "Colonne de Salle de Bain Suspendue (Rangement Serviettes / Produits)",
+      "available_widths": [
+        300,
+        350,
+        400
+      ],
+      "available_heights": [
+        1200,
+        1400,
+        1600,
+        1800
+      ],
+      "depths": [
+        300,
+        350
+      ],
+      "internal_composition": [
+        "glass_or_wood_shelves",
+        "optional_tilt_out_laundry_hamper"
+      ]
+    },
+    {
+      "id": "bath_mirror_medicine_cabinet",
+      "name": "Armoire de Toilette Miroir (1, 2 ou 3 Portes Miroir)",
+      "available_widths": [
+        600,
+        800,
+        1000,
+        1200
+      ],
+      "heights": [
+        650,
+        700,
+        800
+      ],
+      "depths": [
+        150,
+        180
+      ],
+      "features": [
+        "double_sided_mirror_doors",
+        "internal_shaver_socket_ip44",
+        "led_lighting"
+      ]
+    },
+    {
+      "id": "bath_wc_over_cabinet",
+      "name": "Meuble Haut Dessus WC ou Habillage Bâti-Support Suspendu (Geberit)",
+      "available_widths": [
+        600,
+        650
+      ],
+      "heights": [
+        1150,
+        2400
+      ],
+      "depths": [
+        200,
+        250
+      ]
+    },
+    {
+      "id": "bath_vanity_compact_hand_basin",
+      "name": "Meuble Lave-Mains WC (Faible Profondeur)",
+      "available_widths": [
+        400,
+        450,
+        500
+      ],
+      "available_heights": [
+        400,
+        450
+      ],
+      "depths": [
+        250,
+        300
+      ],
+      "composition": {
+        "doors": 1,
+        "wall_hung": true,
+        "z": 450
+      }
+    },
+    {
+      "id": "bath_semi_column",
+      "name": "Demi-Colonne Suspendue (1 Porte + Niche Ouverte)",
+      "available_widths": [
+        300,
+        350,
+        400
+      ],
+      "available_heights": [
+        900,
+        1000,
+        1200
+      ],
+      "depths": [
+        300,
+        350
+      ],
+      "composition": {
+        "doors": 1,
+        "shelves": 3,
+        "wall_hung": true,
+        "z": 900
+      }
+    },
+    {
+      "id": "bath_washing_machine_column",
+      "name": "Colonne Lave-Linge + Sèche-Linge Superposés (Niche 650)",
+      "available_widths": [
+        650,
+        700
+      ],
+      "heights": [
+        2000,
+        2200
+      ],
+      "depth": 650,
+      "composition": {
+        "open": true,
+        "shelves": 1
+      }
+    },
+    {
+      "id": "bath_open_shelf_wall",
+      "name": "Étagère Murale Ouverte Hydrofuge (Serviettes)",
+      "available_widths": [
+        400,
+        600,
+        800,
+        1000
+      ],
+      "available_heights": [
+        300,
+        400
+      ],
+      "depths": [
+        200,
+        250
+      ],
+      "composition": {
+        "open": true,
+        "shelves": 1,
+        "wall_hung": true,
+        "z": 1500
+      }
+    },
+    {
+      "id": "bath_vanity_drawers_3",
+      "name": "Meuble Vasque Suspendu 3 Tiroirs (Grande Capacité)",
+      "available_widths": [
+        800,
+        1000,
+        1200
+      ],
+      "available_heights": [
+        600,
+        700
+      ],
+      "depth": 500,
+      "composition": {
+        "drawers": 3,
+        "drawer_front": 200,
+        "wall_hung": true,
+        "z": 250
+      }
+    }
+  ],
+  "accessories": [
+    {
+      "id": "acc_bath_siphon_u_trim",
+      "name": "Cache-Découpe Siphon en U (Plastique ABS Gris/Anthracite pour tiroir supérieur)",
+      "cutout_dimensions_mm": {
+        "width": 150,
+        "depth": 220
+      },
+      "price_mad": {
+        "min": 35,
+        "max": 85
+      }
+    },
+    {
+      "id": "acc_bath_space_saving_siphon",
+      "name": "Siphon Gain de Place Extra-Plat (Permet d'éviter la découpe du tiroir)",
+      "brands": [
+        "Wirquin",
+        "Valentin",
+        "Geberit",
+        "Viega"
+      ],
+      "price_mad": {
+        "min": 85,
+        "max": 220
+      }
+    },
+    {
+      "id": "acc_bath_heavy_duty_wall_hangers",
+      "name": "Paire de Boîtiers de Suspension Haute Charge Anti-Décrochement (Spécial meuble vasque lourd)",
+      "load_capacity_kg": 240,
+      "brands": [
+        "Camar 807",
+        "Hettich SAH 216",
+        "Indaux Scarpi-4"
+      ],
+      "price_mad_per_pair": {
+        "min": 65,
+        "max": 140
+      }
+    },
+    {
+      "id": "acc_bath_tilt_out_laundry_basket",
+      "name": "Panier à Linge Basculant à 45° (Mécanisme à compas pour colonne SDB)",
+      "compatible_widths": [
+        300,
+        350,
+        400
+      ],
+      "price_mad": {
+        "min": 160,
+        "max": 380
+      }
+    },
+    {
+      "id": "acc_bath_led_touch_defogger_mirror",
+      "name": "Miroir Rétroéclairé LED Sur-Mesure (Capteur Touch + Film Anti-Buée Chauffant)",
+      "price_mad_by_size": {
+        "600x800": 450,
+        "1000x800": 750,
+        "1400x800": 1150
+      }
+    },
+    {
+      "id": "acc_bath_ip44_power_socket",
+      "name": "Bloc Prise Étanche IP44 + Port USB (Sèche-cheveux / Rasoir)",
+      "price_mad": {
+        "min": 90,
+        "max": 240
+      }
+    }
+  ],
+  "ergonomics_mm": {
+    "basin_top_height_from_floor": [
+      850,
+      900
+    ],
+    "vanity_bottom_from_floor_wall_hung": [
+      300,
+      400
+    ],
+    "mirror_bottom_above_basin": 200,
+    "mirror_center_eye_height": 1600,
+    "wc_over_cabinet_bottom": 1100,
+    "siphon_cutout_mm": {
+      "width": 150,
+      "depth": 220
+    },
+    "ip_zones_note": "Zones 1 et 2 : appareillage IP44 minimum ; prises à 600 mm de la baignoire / douche"
+  },
+  "interior_options": [
+    "tiroir découpé siphon en U",
+    "siphon gain de place (sans découpe)",
+    "séparateurs de tiroir",
+    "panier à linge basculant",
+    "éclairage LED sous vasque",
+    "poignée gorge ou push-to-open (anti-humidité)"
+  ]
+}

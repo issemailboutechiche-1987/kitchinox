@@ -1,0 +1,238 @@
+{
+  "database": "global_room_dimensions_and_ergonomic_standards",
+  "unit": "mm",
+  "normative_references": [
+    "Neufert (Les Éléments des Projets de Construction)",
+    "NKBA (National Kitchen & Bath Association Guidelines)",
+    "NF P 99-611 / ISO 21542 (Accessibilité PMR)",
+    "NF C 15-100 / NM 06.6.001 (Normes électriques Maroc/Europe)"
+  ],
+  "rooms": {
+    "kitchen": {
+      "standard_ceiling_heights": [2500, 2600, 2800, 3000],
+      "most_common_room_presets": [
+        {
+          "id": "kitchen_single_wall_studio",
+          "name": "Cuisine Linéaire (I-Shape / Studio & Appartement compact)",
+          "layout_type": "I_shape",
+          "room_width_X": 3000,
+          "room_depth_Y": 2100,
+          "area_m2": 6.3,
+          "min_viable_ dimensions": { "width": 2400, "depth": 1800 }
+        },
+        {
+          "id": "kitchen_galley_double",
+          "name": "Cuisine en Couloir / Parallèle (Double I / Galley)",
+          "layout_type": "parallel_galley",
+          "room_width_X": 3600,
+          "room_depth_Y": 2400,
+          "area_m2": 8.64,
+          "corridor_clearance_between_runs": 1200,
+          "min_viable_dimensions": { "width": 2400, "depth": 2100, "min_corridor": 900 }
+        },
+        {
+          "id": "kitchen_L_standard",
+          "name": "Cuisine en L Standard (Appartement Moyen Standing)",
+          "layout_type": "L_shape",
+          "room_width_X": 3600,
+          "room_depth_Y": 3000,
+          "area_m2": 10.8,
+          "min_viable_dimensions": { "width": 2700, "depth": 2400 }
+        },
+        {
+          "id": "kitchen_U_family",
+          "name": "Cuisine en U Familiale",
+          "layout_type": "U_shape",
+          "room_width_X": 3600,
+          "room_depth_Y": 3200,
+          "area_m2": 11.52,
+          "central_clearance_width": 2400,
+          "min_viable_dimensions": { "width": 2400, "depth": 2400, "min_center_clearance": 1200 }
+        },
+        {
+          "id": "kitchen_open_island_villa",
+          "name": "Grande Cuisine Américaine avec Îlot Central",
+          "layout_type": "L_or_I_with_island",
+          "room_width_X": 4800,
+          "room_depth_Y": 4200,
+          "area_m2": 20.16,
+          "island_recommended_dims": { "length": 2400, "depth": 900 },
+          "min_viable_dimensions": { "width": 3800, "depth": 3600 }
+        }
+      ],
+      "ergonomic_and_normative_rules": {
+        "work_triangle_nkba": {
+          "description": "Triangle d'activité entre Réfrigérateur (Froid), Évier (Lavage) et Plaque (Cuisson)",
+          "min_side_distance": 1200,
+          "max_side_distance": 2700,
+          "max_total_perimeter": 7900,
+          "optimal_sink_to_cooktop": { "min": 600, "max": 1800 }
+        },
+        "circulation_and_clearances": {
+          "walkway_single_cook_min": 900,
+          "work_aisle_two_cooks_optimal": 1200,
+          "clearance_in_front_of_dishwasher_or_oven": 1000,
+          "clearance_behind_seated_diner_bar": 900,
+          "pmr_wheelchair_turning_circle_diameter": 1500
+        },
+        "vertical_heights": {
+          "worktop_standard_height_from_floor": { "min": 880, "standard": 910, "max": 950 },
+          "bar_counter_snack_height": 1100,
+          "dining_table_extension_height": 750,
+          "credence_backsplash_gap_to_wall_cabinet": { "min": 450, "standard": 550, "max": 600 },
+          "hood_height_above_electric_induction": 650,
+          "hood_height_above_gas_burners": 750
+        },
+        "safety_landing_zones": {
+          "min_distance_sink_to_cooktop": 600,
+          "min_distance_cooktop_to_tall_cabinet": 300,
+          "min_counter_space_each_side_of_sink": 400,
+          "min_counter_space_each_side_of_cooktop": 400,
+          "min_distance_sink_to_electrical_socket": 600
+        }
+      }
+    },
+    "bathroom": {
+      "standard_ceiling_heights": [2400, 2500, 2600],
+      "most_common_room_presets": [
+        {
+          "id": "wc_powder_room_guest",
+          "name": "Salle d'Eau Invités / WC Séparé avec Lave-mains",
+          "room_width_X": 1500,
+          "room_depth_Y": 1000,
+          "area_m2": 1.5,
+          "min_viable_dimensions": { "width": 1300, "depth": 900 }
+        },
+        {
+          "id": "bathroom_compact_3m2",
+          "name": "Salle de Bain Compacte Standard (Douche + Vasque + WC)",
+          "room_width_X": 2200,
+          "room_depth_Y": 1600,
+          "area_m2": 3.52,
+          "typical_morocco_apartment": true,
+          "min_viable_dimensions": { "width": 2000, "depth": 1500 }
+        },
+        {
+          "id": "bathroom_standard_family_5m2",
+          "name": "Salle de Bain Familiale Standard (Grande Douche Italienne ou Baignoire + Vasque 80-100 + WC)",
+          "room_width_X": 2600,
+          "room_depth_Y": 2000,
+          "area_m2": 5.2
+        },
+        {
+          "id": "bathroom_master_suite_double_8m2",
+          "name": "Salle de Bain Suite Parentale (Double Vasque 120-140 + Douche Italienne + Baignoire + WC)",
+          "room_width_X": 3200,
+          "room_depth_Y": 2500,
+          "area_m2": 8.0
+        },
+        {
+          "id": "bathroom_pmr_accessible",
+          "name": "Salle de Bain Norme PMR (Fauteuil Roulant)",
+          "room_width_X": 2400,
+          "room_depth_Y": 2200,
+          "area_m2": 5.28,
+          "turning_circle_free_zone": 1500
+        }
+      ],
+      "ergonomic_and_normative_rules": {
+        "sanitary_clearances": {
+          "wc_min_total_width_niche": 800,
+          "wc_side_clearance_from_centerline": 400,
+          "wc_side_gap_from_bowl_edge_min": 200,
+          "wc_front_legroom_clearance_min": 600,
+          "vanity_front_clearance_min": 700,
+          "shower_entry_front_clearance_min": 700,
+          "bathtub_side_access_clearance_min": 600
+        },
+        "standard_fixture_heights": {
+          "vanity_countertop_height_from_floor": 850,
+          "vessel_basin_top_rim_height": 900,
+          "wc_seat_height_standard": 410,
+          "wc_seat_height_pmr_comfort": 460,
+          "mirror_center_eye_level": 1600,
+          "shower_mixer_valve_height": 1100,
+          "shower_rain_head_height": 2100,
+          "shower_floor_drainage_slope_percent": 2.0
+        },
+        "electrical_safety_volumes_nfc15100": {
+          "volume_0": { "zone": "Intérieur baignoire ou receveur de douche", "allowed_devices": "Aucun appareil 220V (IPX7 très basse tension 12V uniquement)" },
+          "volume_1": { "zone": "Au-dessus du receveur/baignoire jusqu'à H = 2250 mm", "allowed_devices": "Chauffe-eau classe I/II IPX4 protégé par différentiel 30mA" },
+          "volume_2": { "zone": "Rayon de 600 mm autour du Volume 1", "allowed_devices": "Luminaires et sèche-serviettes Classe II IPX4, Prise rasoir à transformateur de séparation" },
+          "hors_volume": { "zone": "Au-delà de 600 mm du Volume 1", "allowed_devices": "Prises 220V + Terre IP44 et interrupteurs autorisés" }
+        }
+      }
+    },
+    "dressing_wardrobe": {
+      "standard_ceiling_heights": [2500, 2600, 2800],
+      "most_common_room_presets": [
+        {
+          "id": "dressing_reach_in_closet",
+          "name": "Placard Mur-à-Mur Encastré (Reach-In Closet)",
+          "layout_type": "linear_niche",
+          "room_width_X": 2400,
+          "room_depth_Y": 650,
+          "area_m2": 1.56
+        },
+        {
+          "id": "dressing_walk_in_single_side",
+          "name": "Dressing Traversant / Couloir 1 Côté",
+          "layout_type": "single_wall_walk_in",
+          "room_width_X": 2600,
+          "room_depth_Y": 1500,
+          "area_m2": 3.9,
+          "note": "600mm de meuble + 900mm de recul/habillage"
+        },
+        {
+          "id": "dressing_walk_in_galley_double",
+          "name": "Dressing Walk-In Parallèle (Face-à-Face)",
+          "layout_type": "double_wall_galley",
+          "room_width_X": 2800,
+          "room_depth_Y": 2100,
+          "area_m2": 5.88,
+          "note": "600mm gauche + 900mm passage central + 600mm droite"
+        },
+        {
+          "id": "dressing_walk_in_U_shape",
+          "name": "Dressing en U Complet (Suite Parentale)",
+          "layout_type": "U_shape",
+          "room_width_X": 2800,
+          "room_depth_Y": 2400,
+          "area_m2": 6.72,
+          "note": "Nécessite minimum 2200mm de largeur pour laisser 1000mm au centre entre les deux penderies de 600mm"
+        },
+        {
+          "id": "dressing_luxury_with_island",
+          "name": "Grand Dressing avec Îlot Central à Bijoux",
+          "layout_type": "U_with_central_island",
+          "room_width_X": 4000,
+          "room_depth_Y": 3600,
+          "area_m2": 14.4,
+          "island_dims": { "width": 1400, "depth": 600 }
+        }
+      ],
+      "ergonomic_and_normative_rules": {
+        "module_depths": {
+          "hanging_clothes_open_or_hinged_door": 600,
+          "hanging_clothes_with_sliding_doors": 660,
+          "folded_clothes_shelves_optimal": 450,
+          "shoes_flat_shelf": 350,
+          "shoes_inclined_shelf": 300
+        },
+        "circulation_and_clearances": {
+          "passage_in_front_of_open_or_sliding_wardrobe_min": 800,
+          "comfortable_dressing_area_to_try_clothes": 1000,
+          "clearance_to_pull_out_500mm_drawer": 900
+        },
+        "internal_vertical_ergonomics": {
+          "long_hanging_dresses_coats_height": { "min": 1400, "max": 1700 },
+          "short_hanging_shirts_jackets_height": { "min": 950, "max": 1100 },
+          "folded_trousers_on_hanger_height": 750,
+          "max_drawer_height_from_floor_for_visibility": 1300,
+          "shelf_vertical_spacing_folded_clothes": { "min": 280, "optimal": 350, "max": 400 },
+          "top_luggage_bedding_shelf_height_from_floor": 2000
+        }
+      }
+    }
+  }
+}

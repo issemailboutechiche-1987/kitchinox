@@ -1,0 +1,1522 @@
+== méthode 1
+feuilles 23 refusées 0
+#1 MDF 4 19016
+  MDF|Porte|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|1096|596|true|2|2|0|0 136 4 4 1096x596 false
+  MDF|Porte|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|1096|596|true|2|2|0|0 136 1104 4 1096x596 false
+  MDF|Façade tiroir|Rep. 28 - Bas casserolier et tiroirs|596|371|true|2|2|0|0 116 2204 4 371x596 true
+  MDF|Façade tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|596|206|true|2|2|0|0 109 2579 4 206x596 true
+  MDF|Côté|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2200|582|true|1|0|1|0 132 4 604 2200x582 false
+  MDF|Dessus / dessous|Rep. 1 - Bas 1 porte|582|564|true|0|1|0|1 2 2208 604 564x582 true
+  MDF|Traverse haute|Rep. 14 - Angle bas en L (90°)|864|100|true|1|0|0|0 54 4 1190 864x100 false
+  MDF|Traverse haute|Rep. 14 - Angle bas en L (90°)|864|100|true|1|0|0|0 54 872 1190 864x100 false
+  MDF|Traverse haute|Rep. 48 - Angle bas en L (90°)|864|100|true|1|0|0|0 198 1740 1190 864x100 false
+  MDF|Dos porteur mur 1|Rep. 24 - Angle haut en L (90°)|800|662|true|0|0|0|0 92 4 1294 662x800 true
+  MDF|Dos porteur mur 1|Rep. 57 - Angle haut en L (90°)|800|662|true|0|0|0|0 232 670 1294 662x800 true
+  MDF|Dos porteur mur 2|Rep. 24 - Angle haut en L (90°)|800|644|true|0|0|0|0 93 1336 1294 644x800 true
+  MDF|Dos porteur mur 2|Rep. 57 - Angle haut en L (90°)|800|644|true|0|0|0|0 233 1984 1294 644x800 true
+  MDF|Fileur|Rep. 23 - Fileur d'ajustement haut|800|140|true|2|0|0|0 90 2632 1294 140x800 true
+#2 MDF 4 19819
+  MDF|Côté|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2200|582|true|1|0|1|0 132 4 4 2200x582 false
+  MDF|Dessus / dessous|Rep. 1 - Bas 1 porte|582|564|true|0|1|0|1 2 2208 4 564x582 true
+  MDF|Porte|Rep. 15 - Haut 1 porte|796|596|true|2|2|0|0 61 4 590 796x596 false
+  MDF|Porte|Rep. 16 - Haut 1 porte|796|596|true|2|2|0|0 65 804 590 796x596 false
+  MDF|Porte|Rep. 17 - Haut 1 porte|796|596|true|2|2|0|0 69 1604 590 796x596 false
+  MDF|Façade tiroir|Rep. 28 - Bas casserolier et tiroirs|596|371|true|2|2|0|0 116 2404 590 371x596 true
+  MDF|Porte maître (pliante)|Rep. 24 - Angle haut en L (90°)|796|305|true|2|2|0|0 96 4 1190 796x305 false
+  MDF|Porte maître (pliante)|Rep. 57 - Angle haut en L (90°)|796|305|true|2|2|0|0 236 804 1190 796x305 false
+  MDF|Porte|Rep. 22 - Haut 1 porte|796|296|true|2|2|0|0 89 1604 1190 796x296 false
+  MDF|Dessus / dessous|Rep. 22 - Haut 1 porte|352|264|true|0|1|0|1 87 2404 1190 352x264 false
+  MDF|Porte|Rep. 18 - Haut 1 porte|796|596|true|2|2|0|0 73 4 1499 796x596 false
+  MDF|Porte|Rep. 19 - Haut 1 porte|796|596|true|2|2|0|0 77 804 1499 796x596 false
+  MDF|Porte|Rep. 20 - Haut 1 porte|796|596|true|2|2|0|0 81 1604 1499 796x596 false
+  MDF|Dessus / dessous|Rep. 15 - Haut 1 porte|564|352|true|1|0|1|0 59 2404 1499 352x564 true
+#3 MDF 5 23744
+  MDF|Porte|Rep. 7 - Bas 1 porte|746|496|true|2|2|0|0 28 4 4 746x496 false
+  MDF|Porte|Rep. 12 - Bas 1 porte|746|496|true|2|2|0|0 45 754 4 746x496 false
+  MDF|Porte|Rep. 25 - Bas 1 porte|746|496|true|2|2|0|0 101 1504 4 746x496 false
+  MDF|Fond tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|466|true|0|0|0|0 112 2254 4 502x466 false
+  MDF|Fond tiroir|Rep. 28 - Bas casserolier et tiroirs|502|466|true|0|0|0|0 119 4 504 502x466 false
+  MDF|Fond tiroir|Rep. 28 - Bas casserolier et tiroirs|502|466|true|0|0|0|0 119 510 504 502x466 false
+  MDF|Dessus / dessous|Rep. 7 - Bas 1 porte|582|464|true|0|1|0|1 26 1016 504 582x464 false
+  MDF|Dessus / dessous|Rep. 7 - Bas 1 porte|582|464|true|0|1|0|1 26 1602 504 582x464 false
+  MDF|Dessus / dessous|Rep. 12 - Bas 1 porte|582|464|true|0|1|0|1 43 2188 504 582x464 false
+  MDF|Dessus / dessous|Rep. 9 - Bas sous-évier|764|582|true|1|0|1|0 34 4 974 764x582 false
+  MDF|Dessus / dessous|Rep. 9 - Bas sous-évier|764|582|true|1|0|1|0 34 772 974 764x582 false
+  MDF|Côté|Rep. 1 - Bas 1 porte|750|582|true|1|0|1|0 1 1540 974 750x582 false
+  MDF|Dessus / dessous|Rep. 12 - Bas 1 porte|582|464|true|0|1|0|1 43 2294 974 464x582 true
+  MDF|Dessus / dessous|Rep. 5 - Bas 1 porte|582|264|true|0|1|0|1 18 4 1560 582x264 false
+  MDF|Dessus / dessous|Rep. 5 - Bas 1 porte|582|264|true|0|1|0|1 18 590 1560 582x264 false
+  MDF|Dessus / dessous|Rep. 8 - Bas 1 porte|582|264|true|0|1|0|1 30 1176 1560 582x264 false
+  MDF|Dessus / dessous|Rep. 8 - Bas 1 porte|582|264|true|0|1|0|1 30 1762 1560 582x264 false
+  MDF|Dessus / dessous|Rep. 22 - Haut 1 porte|352|264|true|0|1|0|1 87 2348 1560 352x264 false
+  MDF|Dessus / dessous|Rep. 13 - Bas 1 porte|582|264|true|0|1|0|1 47 4 1828 582x264 false
+  MDF|Dessus / dessous|Rep. 13 - Bas 1 porte|582|264|true|0|1|0|1 47 590 1828 582x264 false
+  MDF|Dessus / dessous|Rep. 26 - Bas 1 porte|582|264|true|0|1|0|1 103 1176 1828 582x264 false
+  MDF|Dessus / dessous|Rep. 26 - Bas 1 porte|582|264|true|0|1|0|1 103 1762 1828 582x264 false
+  MDF|Dessus / dessous|Rep. 34 - Haut 1 porte|352|264|true|0|1|0|1 142 2348 1828 352x264 false
+#4 MDF 4 25000
+  MDF|Fileur|Rep. 35 - Fileur d'ajustement haut|800|120|true|2|0|0|0 145 4 4 800x120 false
+  MDF|Fileur|Rep. 56 - Fileur d'ajustement haut|800|120|true|2|0|0|0 230 808 4 800x120 false
+  MDF|Traverse haute|Rep. 48 - Angle bas en L (90°)|864|100|true|1|0|0|0 198 1612 4 864x100 false
+  MDF|Côté|Rep. 15 - Haut 1 porte|800|352|true|1|0|1|0 58 4 128 352x800 true
+  MDF|Côté|Rep. 15 - Haut 1 porte|800|352|true|1|0|1|0 58 360 128 352x800 true
+  MDF|Côté|Rep. 16 - Haut 1 porte|800|352|true|1|0|1|0 62 716 128 352x800 true
+  MDF|Côté|Rep. 16 - Haut 1 porte|800|352|true|1|0|1|0 62 1072 128 352x800 true
+  MDF|Côté|Rep. 17 - Haut 1 porte|800|352|true|1|0|1|0 66 1428 128 352x800 true
+  MDF|Côté|Rep. 17 - Haut 1 porte|800|352|true|1|0|1|0 66 1784 128 352x800 true
+  MDF|Côté|Rep. 18 - Haut 1 porte|800|352|true|1|0|1|0 70 2140 128 352x800 true
+  MDF|Porte|Rep. 34 - Haut 1 porte|796|296|true|2|2|0|0 144 2496 128 296x796 true
+  MDF|Côté|Rep. 18 - Haut 1 porte|800|352|true|1|0|1|0 70 4 932 352x800 true
+  MDF|Côté|Rep. 19 - Haut 1 porte|800|352|true|1|0|1|0 74 360 932 352x800 true
+  MDF|Côté|Rep. 19 - Haut 1 porte|800|352|true|1|0|1|0 74 716 932 352x800 true
+  MDF|Côté|Rep. 20 - Haut 1 porte|800|352|true|1|0|1|0 78 1072 932 352x800 true
+  MDF|Côté|Rep. 20 - Haut 1 porte|800|352|true|1|0|1|0 78 1428 932 352x800 true
+  MDF|Côté|Rep. 21 - Haut 1 porte|800|352|true|1|0|1|0 82 1784 932 352x800 true
+  MDF|Côté|Rep. 21 - Haut 1 porte|800|352|true|1|0|1|0 82 2140 932 352x800 true
+  MDF|Porte|Rep. 40 - Haut 1 porte|796|296|true|2|2|0|0 165 2496 932 296x796 true
+  MDF|Côté|Rep. 22 - Haut 1 porte|800|352|true|1|0|1|0 86 4 1736 800x352 false
+  MDF|Côté|Rep. 22 - Haut 1 porte|800|352|true|1|0|1|0 86 808 1736 800x352 false
+  MDF|Côté|Rep. 33 - Haut 1 porte|800|352|true|1|0|1|0 137 1612 1736 800x352 false
+  MDF|Dessus / dessous|Rep. 34 - Haut 1 porte|352|264|true|0|1|0|1 142 2416 1736 264x352 true
+#5 MDF 4 21622
+  MDF|Porte|Rep. 21 - Haut 1 porte|796|596|true|2|2|0|0 85 4 4 796x596 false
+  MDF|Porte|Rep. 33 - Haut 1 porte|796|596|true|2|2|0|0 140 804 4 796x596 false
+  MDF|Porte|Rep. 37 - Haut 1 porte|796|596|true|2|2|0|0 153 1604 4 796x596 false
+  MDF|Dessus / dessous|Rep. 15 - Haut 1 porte|564|352|true|1|0|1|0 59 2404 4 352x564 true
+  MDF|Porte|Rep. 38 - Haut 1 porte|796|596|true|2|2|0|0 157 4 604 796x596 false
+  MDF|Porte|Rep. 39 - Haut 1 porte|796|596|true|2|2|0|0 161 804 604 796x596 false
+  MDF|Porte|Rep. 49 - Haut 1 porte|796|596|true|2|2|0|0 205 1604 604 796x596 false
+  MDF|Dessus / dessous|Rep. 16 - Haut 1 porte|564|352|true|1|0|1|0 63 2404 604 352x564 true
+  MDF|Porte|Rep. 50 - Haut 1 porte|796|596|true|2|2|0|0 209 4 1204 796x596 false
+  MDF|Porte|Rep. 51 - Haut 1 porte|796|596|true|2|2|0|0 213 804 1204 796x596 false
+  MDF|Porte|Rep. 52 - Haut 1 porte|796|596|true|2|2|0|0 217 1604 1204 796x596 false
+  MDF|Dessus / dessous|Rep. 16 - Haut 1 porte|564|352|true|1|0|1|0 63 2404 1204 352x564 true
+  MDF|Porte esclave (pliante, poignée)|Rep. 24 - Angle haut en L (90°)|796|287|true|2|2|0|0 97 4 1804 796x287 false
+  MDF|Porte esclave (pliante, poignée)|Rep. 57 - Angle haut en L (90°)|796|287|true|2|2|0|0 237 804 1804 796x287 false
+  MDF|Porte esclave (pliante, poignée)|Rep. 14 - Angle bas en L (90°)|746|277|true|2|2|0|0 57 1604 1804 746x277 false
+  MDF|Dessus / dessous|Rep. 40 - Haut 1 porte|352|264|true|0|1|0|1 163 2354 1804 352x264 false
+#6 MDF 4 20052
+  MDF|Côté|Rep. 33 - Haut 1 porte|800|352|true|1|0|1|0 137 4 4 800x352 false
+  MDF|Côté|Rep. 34 - Haut 1 porte|800|352|true|1|0|1|0 141 808 4 800x352 false
+  MDF|Côté|Rep. 34 - Haut 1 porte|800|352|true|1|0|1|0 141 1612 4 800x352 false
+  MDF|Dessus / dessous|Rep. 40 - Haut 1 porte|352|264|true|0|1|0|1 163 2416 4 264x352 true
+  MDF|Côté|Rep. 1 - Bas 1 porte|750|582|true|1|0|1|0 1 4 360 750x582 false
+  MDF|Côté|Rep. 2 - Bas 1 porte|750|582|true|1|0|1|0 5 758 360 750x582 false
+  MDF|Côté|Rep. 2 - Bas 1 porte|750|582|true|1|0|1|0 5 1512 360 750x582 false
+  MDF|Dessus / dessous|Rep. 25 - Bas 1 porte|582|464|true|0|1|0|1 99 2266 360 464x582 true
+  MDF|Côté|Rep. 3 - Bas 1 porte|750|582|true|1|0|1|0 9 4 946 750x582 false
+  MDF|Côté|Rep. 3 - Bas 1 porte|750|582|true|1|0|1|0 9 758 946 750x582 false
+  MDF|Côté|Rep. 4 - Bas 1 porte|750|582|true|1|0|1|0 13 1512 946 750x582 false
+  MDF|Dessus / dessous|Rep. 25 - Bas 1 porte|582|464|true|0|1|0|1 99 2266 946 464x582 true
+  MDF|Dessus / dessous|Rep. 2 - Bas 1 porte|582|564|true|0|1|0|1 6 4 1532 582x564 false
+  MDF|Dessus / dessous|Rep. 2 - Bas 1 porte|582|564|true|0|1|0|1 6 590 1532 582x564 false
+  MDF|Dessus / dessous|Rep. 3 - Bas 1 porte|582|564|true|0|1|0|1 10 1176 1532 582x564 false
+  MDF|Dessus / dessous|Rep. 3 - Bas 1 porte|582|564|true|0|1|0|1 10 1762 1532 582x564 false
+  MDF|Dessus / dessous|Rep. 17 - Haut 1 porte|564|352|true|1|0|1|0 67 2348 1532 352x564 true
+#7 MDF 3 17794
+  MDF|Côté (flanc)|Rep. 14 - Angle bas en L (90°)|750|580|true|2|2|0|0 50 4 4 750x580 false
+  MDF|Côté (flanc)|Rep. 14 - Angle bas en L (90°)|750|580|true|2|2|0|0 50 758 4 750x580 false
+  MDF|Côté (flanc)|Rep. 48 - Angle bas en L (90°)|750|580|true|2|2|0|0 194 1512 4 750x580 false
+  MDF|Dessus / dessous|Rep. 17 - Haut 1 porte|564|352|true|1|0|1|0 67 2266 4 352x564 true
+  MDF|Côté tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 110 2622 4 150x502 true
+  MDF|Dos porteur mur 1|Rep. 14 - Angle bas en L (90°)|882|750|true|0|0|0|0 51 4 588 882x750 false
+  MDF|Dos porteur mur 1|Rep. 48 - Angle bas en L (90°)|882|750|true|0|0|0|0 195 890 588 882x750 false
+  MDF|Dos porteur mur 2|Rep. 14 - Angle bas en L (90°)|864|750|true|0|0|0|0 52 1776 588 864x750 false
+  MDF|Côté tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 110 2644 588 150x502 true
+  MDF|Dos porteur mur 2|Rep. 48 - Angle bas en L (90°)|864|750|true|0|0|0|0 196 4 1342 864x750 false
+  MDF|Côté|Rep. 4 - Bas 1 porte|750|582|true|1|0|1|0 13 872 1342 582x750 true
+  MDF|Côté|Rep. 5 - Bas 1 porte|750|582|true|1|0|1|0 17 1458 1342 582x750 true
+  MDF|Côté|Rep. 5 - Bas 1 porte|750|582|true|1|0|1|0 17 2044 1342 582x750 true
+  MDF|Avant / arrière tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 111 2630 1342 150x502 true
+#8 MDF 4 20135
+  MDF|Porte|Rep. 53 - Haut 1 porte|796|596|true|2|2|0|0 221 4 4 796x596 false
+  MDF|Porte|Rep. 54 - Haut 1 porte|796|596|true|2|2|0|0 225 804 4 796x596 false
+  MDF|Porte|Rep. 55 - Haut 1 porte|796|596|true|2|2|0|0 229 1604 4 796x596 false
+  MDF|Dessus / dessous|Rep. 18 - Haut 1 porte|564|352|true|1|0|1|0 71 2404 4 352x564 true
+  MDF|Côté|Rep. 6 - Bas 1 porte|750|582|true|1|0|1|0 21 4 604 750x582 false
+  MDF|Côté|Rep. 6 - Bas 1 porte|750|582|true|1|0|1|0 21 758 604 750x582 false
+  MDF|Côté|Rep. 7 - Bas 1 porte|750|582|true|1|0|1|0 25 1512 604 750x582 false
+  MDF|Dessus / dessous|Rep. 47 - Bas 1 porte|582|464|true|0|1|0|1 191 2266 604 464x582 true
+  MDF|Côté|Rep. 7 - Bas 1 porte|750|582|true|1|0|1|0 25 4 1190 750x582 false
+  MDF|Côté|Rep. 8 - Bas 1 porte|750|582|true|1|0|1|0 29 758 1190 750x582 false
+  MDF|Côté|Rep. 8 - Bas 1 porte|750|582|true|1|0|1|0 29 1512 1190 750x582 false
+  MDF|Dessus / dessous|Rep. 47 - Bas 1 porte|582|464|true|0|1|0|1 191 2266 1190 464x582 true
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 4 1776 502x315 false
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 510 1776 502x315 false
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 1016 1776 502x315 false
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 1522 1776 502x315 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 2028 1776 502x315 false
+#9 MDF 3 21154
+  MDF|Porte|Rep. 1 - Bas 1 porte|746|596|true|2|2|0|0 4 4 4 746x596 false
+  MDF|Porte|Rep. 2 - Bas 1 porte|746|596|true|2|2|0|0 8 754 4 746x596 false
+  MDF|Porte|Rep. 3 - Bas 1 porte|746|596|true|2|2|0|0 12 1504 4 746x596 false
+  MDF|Dessus / dessous|Rep. 31 - Bas 1 porte|582|264|true|0|1|0|1 129 2254 4 264x582 true
+  MDF|Dessus / dessous|Rep. 31 - Bas 1 porte|582|264|true|0|1|0|1 129 2522 4 264x582 true
+  MDF|Côté|Rep. 37 - Haut 1 porte|800|352|true|1|0|1|0 150 4 604 352x800 true
+  MDF|Côté|Rep. 37 - Haut 1 porte|800|352|true|1|0|1|0 150 360 604 352x800 true
+  MDF|Côté|Rep. 38 - Haut 1 porte|800|352|true|1|0|1|0 154 716 604 352x800 true
+  MDF|Côté|Rep. 38 - Haut 1 porte|800|352|true|1|0|1|0 154 1072 604 352x800 true
+  MDF|Côté|Rep. 39 - Haut 1 porte|800|352|true|1|0|1|0 158 1428 604 352x800 true
+  MDF|Côté|Rep. 39 - Haut 1 porte|800|352|true|1|0|1|0 158 1784 604 352x800 true
+  MDF|Côté|Rep. 40 - Haut 1 porte|800|352|true|1|0|1|0 162 2140 604 352x800 true
+  MDF|Porte|Rep. 5 - Bas 1 porte|746|296|true|2|2|0|0 20 2496 604 296x746 true
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|644|644|true|1|0|0|0 94 4 1408 644x644 false
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|644|644|true|1|0|0|0 94 652 1408 644x644 false
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|644|644|true|1|0|0|0 234 1300 1408 644x644 false
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|644|644|true|1|0|0|0 234 1948 1408 644x644 false
+  MDF|Avant / arrière tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 111 2596 1408 150x502 true
+#10 MDF 3 18696
+  MDF|Dessus / dessous|Rep. 4 - Bas 1 porte|582|564|true|0|1|0|1 14 4 4 582x564 false
+  MDF|Dessus / dessous|Rep. 4 - Bas 1 porte|582|564|true|0|1|0|1 14 590 4 582x564 false
+  MDF|Dessus / dessous|Rep. 6 - Bas 1 porte|582|564|true|0|1|0|1 22 1176 4 582x564 false
+  MDF|Dessus / dessous|Rep. 6 - Bas 1 porte|582|564|true|0|1|0|1 22 1762 4 582x564 false
+  MDF|Dessus / dessous|Rep. 18 - Haut 1 porte|564|352|true|1|0|1|0 71 2348 4 352x564 true
+  MDF|Côté|Rep. 9 - Bas sous-évier|750|582|true|1|0|1|0 33 4 572 582x750 true
+  MDF|Côté|Rep. 9 - Bas sous-évier|750|582|true|1|0|1|0 33 590 572 582x750 true
+  MDF|Côté|Rep. 11 - Bas 1 porte|750|582|true|1|0|1|0 38 1176 572 582x750 true
+  MDF|Côté|Rep. 11 - Bas 1 porte|750|582|true|1|0|1|0 38 1762 572 582x750 true
+  MDF|Côté|Rep. 36 - Haut pour hotte intégrée|750|352|true|1|0|1|0 146 2348 572 352x750 true
+  MDF|Côté|Rep. 12 - Bas 1 porte|750|582|true|1|0|1|0 42 4 1326 582x750 true
+  MDF|Côté|Rep. 12 - Bas 1 porte|750|582|true|1|0|1|0 42 590 1326 582x750 true
+  MDF|Côté|Rep. 13 - Bas 1 porte|750|582|true|1|0|1|0 46 1176 1326 582x750 true
+  MDF|Côté|Rep. 13 - Bas 1 porte|750|582|true|1|0|1|0 46 1762 1326 582x750 true
+  MDF|Côté|Rep. 36 - Haut pour hotte intégrée|750|352|true|1|0|1|0 146 2348 1326 352x750 true
+#11 MDF 3 18696
+  MDF|Côté|Rep. 25 - Bas 1 porte|750|582|true|1|0|1|0 98 4 4 582x750 true
+  MDF|Côté|Rep. 25 - Bas 1 porte|750|582|true|1|0|1|0 98 590 4 582x750 true
+  MDF|Côté|Rep. 26 - Bas 1 porte|750|582|true|1|0|1|0 102 1176 4 582x750 true
+  MDF|Côté|Rep. 26 - Bas 1 porte|750|582|true|1|0|1|0 102 1762 4 582x750 true
+  MDF|Porte (x2)|Rep. 9 - Bas sous-évier|746|396|true|2|2|0|0 36 2348 4 396x746 true
+  MDF|Côté|Rep. 27 - Bas pour four encastré et table de cuisson|750|582|true|1|0|1|0 106 4 758 582x750 true
+  MDF|Côté|Rep. 27 - Bas pour four encastré et table de cuisson|750|582|true|1|0|1|0 106 590 758 582x750 true
+  MDF|Côté|Rep. 28 - Bas casserolier et tiroirs|750|582|true|1|0|1|0 113 1176 758 582x750 true
+  MDF|Côté|Rep. 28 - Bas casserolier et tiroirs|750|582|true|1|0|1|0 113 1762 758 582x750 true
+  MDF|Porte (x2)|Rep. 9 - Bas sous-évier|746|396|true|2|2|0|0 36 2348 758 396x746 true
+  MDF|Dessus / dessous|Rep. 11 - Bas 1 porte|582|564|true|0|1|0|1 39 4 1512 582x564 false
+  MDF|Dessus / dessous|Rep. 11 - Bas 1 porte|582|564|true|0|1|0|1 39 590 1512 582x564 false
+  MDF|Dessus / dessous|Rep. 27 - Bas pour four encastré et table de cuisson|582|564|true|0|1|0|1 107 1176 1512 582x564 false
+  MDF|Dessus / dessous|Rep. 27 - Bas pour four encastré et table de cuisson|582|564|true|0|1|0|1 107 1762 1512 582x564 false
+  MDF|Dessus / dessous|Rep. 19 - Haut 1 porte|564|352|true|1|0|1|0 75 2348 1512 352x564 true
+#12 MDF 3 18656
+  MDF|Dessus / dessous|Rep. 28 - Bas casserolier et tiroirs|582|564|true|0|1|0|1 114 4 4 582x564 false
+  MDF|Dessus / dessous|Rep. 28 - Bas casserolier et tiroirs|582|564|true|0|1|0|1 114 590 4 582x564 false
+  MDF|Dessus / dessous|Rep. 29 - Bas 1 porte|582|564|true|0|1|0|1 121 1176 4 582x564 false
+  MDF|Dessus / dessous|Rep. 29 - Bas 1 porte|582|564|true|0|1|0|1 121 1762 4 582x564 false
+  MDF|Dessus / dessous|Rep. 19 - Haut 1 porte|564|352|true|1|0|1|0 75 2348 4 352x564 true
+  MDF|Porte|Rep. 4 - Bas 1 porte|746|596|true|2|2|0|0 16 4 572 596x746 true
+  MDF|Porte|Rep. 6 - Bas 1 porte|746|596|true|2|2|0|0 24 604 572 596x746 true
+  MDF|Porte|Rep. 10 - Façade lave-vaisselle tout intégrable|746|596|true|2|2|0|0 37 1204 572 596x746 true
+  MDF|Porte|Rep. 11 - Bas 1 porte|746|596|true|2|2|0|0 41 1804 572 596x746 true
+  MDF|Porte|Rep. 8 - Bas 1 porte|746|296|true|2|2|0|0 32 2404 572 296x746 true
+  MDF|Porte|Rep. 29 - Bas 1 porte|746|596|true|2|2|0|0 123 4 1322 596x746 true
+  MDF|Porte|Rep. 30 - Bas 1 porte|746|596|true|2|2|0|0 127 604 1322 596x746 true
+  MDF|Porte|Rep. 41 - Bas 1 porte|746|596|true|2|2|0|0 169 1204 1322 596x746 true
+  MDF|Porte|Rep. 42 - Bas 1 porte|746|596|true|2|2|0|0 173 1804 1322 596x746 true
+  MDF|Porte|Rep. 13 - Bas 1 porte|746|296|true|2|2|0|0 49 2404 1322 296x746 true
+#13 MDF 3 20646
+  MDF|Côté|Rep. 40 - Haut 1 porte|800|352|true|1|0|1|0 162 4 4 352x800 true
+  MDF|Côté|Rep. 49 - Haut 1 porte|800|352|true|1|0|1|0 202 360 4 352x800 true
+  MDF|Côté|Rep. 49 - Haut 1 porte|800|352|true|1|0|1|0 202 716 4 352x800 true
+  MDF|Côté|Rep. 50 - Haut 1 porte|800|352|true|1|0|1|0 206 1072 4 352x800 true
+  MDF|Côté|Rep. 50 - Haut 1 porte|800|352|true|1|0|1|0 206 1428 4 352x800 true
+  MDF|Côté|Rep. 51 - Haut 1 porte|800|352|true|1|0|1|0 210 1784 4 352x800 true
+  MDF|Côté|Rep. 51 - Haut 1 porte|800|352|true|1|0|1|0 210 2140 4 352x800 true
+  MDF|Porte|Rep. 26 - Bas 1 porte|746|296|true|2|2|0|0 105 2496 4 296x746 true
+  MDF|Étagère en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|642|642|true|1|0|0|0 95 4 808 642x642 false
+  MDF|Étagère en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|642|642|true|1|0|0|0 235 650 808 642x642 false
+  MDF|Porte|Rep. 43 - Bas 1 porte|746|596|true|2|2|0|0 177 1296 808 746x596 false
+  MDF|Porte|Rep. 44 - Bas 1 porte|746|596|true|2|2|0|0 181 2046 808 746x596 false
+  MDF|Porte|Rep. 45 - Bas 1 porte|746|596|true|2|2|0|0 185 4 1454 746x596 false
+  MDF|Porte|Rep. 46 - Bas 1 porte|746|596|true|2|2|0|0 189 754 1454 746x596 false
+  MDF|Porte|Rep. 36 - Haut pour hotte intégrée|596|596|true|2|2|0|0 149 1504 1454 596x596 false
+  MDF|Dessus / dessous|Rep. 30 - Bas 1 porte|582|564|true|0|1|0|1 125 2104 1454 564x582 true
+#14 MDF 4 23539
+  MDF|Côté|Rep. 52 - Haut 1 porte|800|352|true|1|0|1|0 214 4 4 352x800 true
+  MDF|Côté|Rep. 52 - Haut 1 porte|800|352|true|1|0|1|0 214 360 4 352x800 true
+  MDF|Côté|Rep. 53 - Haut 1 porte|800|352|true|1|0|1|0 218 716 4 352x800 true
+  MDF|Côté|Rep. 53 - Haut 1 porte|800|352|true|1|0|1|0 218 1072 4 352x800 true
+  MDF|Côté|Rep. 54 - Haut 1 porte|800|352|true|1|0|1|0 222 1428 4 352x800 true
+  MDF|Côté|Rep. 54 - Haut 1 porte|800|352|true|1|0|1|0 222 1784 4 352x800 true
+  MDF|Côté|Rep. 55 - Haut 1 porte|800|352|true|1|0|1|0 226 2140 4 352x800 true
+  MDF|Porte|Rep. 31 - Bas 1 porte|746|296|true|2|2|0|0 131 2496 4 296x746 true
+  MDF|Côté|Rep. 55 - Haut 1 porte|800|352|true|1|0|1|0 226 4 808 800x352 false
+  MDF|Dessus / dessous|Rep. 20 - Haut 1 porte|564|352|true|1|0|1|0 79 808 808 564x352 false
+  MDF|Dessus / dessous|Rep. 20 - Haut 1 porte|564|352|true|1|0|1|0 79 1376 808 564x352 false
+  MDF|Dessus / dessous|Rep. 21 - Haut 1 porte|564|352|true|1|0|1|0 83 1944 808 564x352 false
+  MDF|Dessus / dessous|Rep. 21 - Haut 1 porte|564|352|true|1|0|1|0 83 4 1164 564x352 false
+  MDF|Dessus / dessous|Rep. 33 - Haut 1 porte|564|352|true|1|0|1|0 138 572 1164 564x352 false
+  MDF|Dessus / dessous|Rep. 33 - Haut 1 porte|564|352|true|1|0|1|0 138 1140 1164 564x352 false
+  MDF|Dessus / dessous|Rep. 36 - Haut pour hotte intégrée|564|352|true|1|0|1|0 147 1708 1164 564x352 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 2276 1164 502x315 false
+  MDF|Dessus / dessous|Rep. 30 - Bas 1 porte|582|564|true|0|1|0|1 125 4 1520 582x564 false
+  MDF|Dessus / dessous|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|582|564|true|0|1|0|1 133 590 1520 582x564 false
+  MDF|Dessus / dessous|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|582|564|true|0|1|0|1 133 1176 1520 582x564 false
+  MDF|Dessus / dessous|Rep. 41 - Bas 1 porte|582|564|true|0|1|0|1 167 1762 1520 582x564 false
+  MDF|Dessus / dessous|Rep. 36 - Haut pour hotte intégrée|564|352|true|1|0|1|0 147 2348 1520 352x564 true
+#15 MDF 3 18988
+  MDF|Dessus / dessous|Rep. 52 - Haut 1 porte|564|352|true|1|0|1|0 215 4 4 564x352 false
+  MDF|Fond en L (découpe CNC)|Rep. 48 - Angle bas en L (90°)|864|864|true|1|0|0|0 197 4 360 864x864 false
+  MDF|Étagère en L (découpe CNC)|Rep. 14 - Angle bas en L (90°)|862|862|true|1|0|0|0 55 872 360 862x862 false
+  MDF|Étagère en L (découpe CNC)|Rep. 48 - Angle bas en L (90°)|862|862|true|1|0|0|0 199 1738 360 862x862 false
+  MDF|Côté (flanc)|Rep. 24 - Angle haut en L (90°)|800|350|true|2|2|0|0 91 572 4 800x350 false
+  MDF|Côté (flanc)|Rep. 24 - Angle haut en L (90°)|800|350|true|2|2|0|0 91 1376 4 800x350 false
+  MDF|Fond en L (découpe CNC)|Rep. 14 - Angle bas en L (90°)|864|864|true|1|0|0|0 53 4 1228 864x864 false
+  MDF|Côté (flanc)|Rep. 57 - Angle haut en L (90°)|800|350|true|2|2|0|0 231 872 1228 800x350 false
+  MDF|Côté|Rep. 29 - Bas 1 porte|750|582|true|1|0|1|0 120 1676 1228 750x582 false
+  MDF|Côté (flanc)|Rep. 57 - Angle haut en L (90°)|800|350|true|2|2|0|0 231 2430 1228 350x800 true
+  MDF|Porte|Rep. 47 - Bas 1 porte|746|496|true|2|2|0|0 193 872 1582 746x496 false
+  MDF|Porte esclave (pliante, poignée)|Rep. 48 - Angle bas en L (90°)|746|277|true|2|2|0|0 201 1676 1814 746x277 false
+  MDF|Dessus / dessous|Rep. 37 - Haut 1 porte|564|352|true|1|0|1|0 151 2180 4 564x352 false
+#16 MDF 4 21731
+  MDF|Dessus / dessous|Rep. 37 - Haut 1 porte|564|352|true|1|0|1|0 151 4 4 564x352 false
+  MDF|Dessus / dessous|Rep. 38 - Haut 1 porte|564|352|true|1|0|1|0 155 572 4 564x352 false
+  MDF|Dessus / dessous|Rep. 38 - Haut 1 porte|564|352|true|1|0|1|0 155 1140 4 564x352 false
+  MDF|Dessus / dessous|Rep. 39 - Haut 1 porte|564|352|true|1|0|1|0 159 1708 4 564x352 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 2276 4 502x315 false
+  MDF|Dessus / dessous|Rep. 41 - Bas 1 porte|582|564|true|0|1|0|1 167 4 360 582x564 false
+  MDF|Dessus / dessous|Rep. 42 - Bas 1 porte|582|564|true|0|1|0|1 171 590 360 582x564 false
+  MDF|Dessus / dessous|Rep. 42 - Bas 1 porte|582|564|true|0|1|0|1 171 1176 360 582x564 false
+  MDF|Dessus / dessous|Rep. 43 - Bas 1 porte|582|564|true|0|1|0|1 175 1762 360 582x564 false
+  MDF|Dessus / dessous|Rep. 39 - Haut 1 porte|564|352|true|1|0|1|0 159 2348 360 352x564 true
+  MDF|Dessus / dessous|Rep. 43 - Bas 1 porte|582|564|true|0|1|0|1 175 4 928 582x564 false
+  MDF|Dessus / dessous|Rep. 44 - Bas 1 porte|582|564|true|0|1|0|1 179 590 928 582x564 false
+  MDF|Dessus / dessous|Rep. 44 - Bas 1 porte|582|564|true|0|1|0|1 179 1176 928 582x564 false
+  MDF|Dessus / dessous|Rep. 45 - Bas 1 porte|582|564|true|0|1|0|1 183 1762 928 582x564 false
+  MDF|Dessus / dessous|Rep. 49 - Haut 1 porte|564|352|true|1|0|1|0 203 2348 928 352x564 true
+  MDF|Côté|Rep. 29 - Bas 1 porte|750|582|true|1|0|1|0 120 4 1496 750x582 false
+  MDF|Côté|Rep. 30 - Bas 1 porte|750|582|true|1|0|1|0 124 758 1496 750x582 false
+  MDF|Côté|Rep. 30 - Bas 1 porte|750|582|true|1|0|1|0 124 1512 1496 750x582 false
+  MDF|Dessus / dessous|Rep. 49 - Haut 1 porte|564|352|true|1|0|1|0 203 2266 1496 352x564 true
+#17 MDF 4 21591
+  MDF|Dessus / dessous|Rep. 46 - Bas 1 porte|582|564|true|0|1|0|1 187 4 4 582x564 false
+  MDF|Côté|Rep. 31 - Bas 1 porte|750|582|true|1|0|1|0 128 4 572 750x582 false
+  MDF|Côté|Rep. 31 - Bas 1 porte|750|582|true|1|0|1|0 128 758 572 750x582 false
+  MDF|Côté|Rep. 41 - Bas 1 porte|750|582|true|1|0|1|0 166 1512 572 750x582 false
+  MDF|Côté|Rep. 42 - Bas 1 porte|750|582|true|1|0|1|0 170 4 1158 750x582 false
+  MDF|Côté|Rep. 42 - Bas 1 porte|750|582|true|1|0|1|0 170 758 1158 750x582 false
+  MDF|Côté|Rep. 43 - Bas 1 porte|750|582|true|1|0|1|0 174 1512 1158 750x582 false
+  MDF|Dessus / dessous|Rep. 45 - Bas 1 porte|582|564|true|0|1|0|1 183 590 4 582x564 false
+  MDF|Dessus / dessous|Rep. 46 - Bas 1 porte|582|564|true|0|1|0|1 187 1176 4 582x564 false
+  MDF|Tablette fixe médiane|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|564|560|true|1|0|0|0 135 1762 4 560x564 true
+  MDF|Dessus / dessous|Rep. 50 - Haut 1 porte|564|352|true|1|0|1|0 207 2326 4 352x564 true
+  MDF|Dessus / dessous|Rep. 50 - Haut 1 porte|564|352|true|1|0|1|0 207 2266 572 352x564 true
+  MDF|Dessus / dessous|Rep. 51 - Haut 1 porte|564|352|true|1|0|1|0 211 2266 1158 352x564 true
+  MDF|Dessus / dessous|Rep. 52 - Haut 1 porte|564|352|true|1|0|1|0 215 4 1744 564x352 false
+  MDF|Dessus / dessous|Rep. 53 - Haut 1 porte|564|352|true|1|0|1|0 219 572 1744 564x352 false
+  MDF|Dessus / dessous|Rep. 53 - Haut 1 porte|564|352|true|1|0|1|0 219 1140 1744 564x352 false
+  MDF|Dessus / dessous|Rep. 54 - Haut 1 porte|564|352|true|1|0|1|0 223 1708 1744 564x352 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 2276 1744 502x315 false
+#18 MDF 3 18556
+  MDF|Côté (flanc)|Rep. 48 - Angle bas en L (90°)|750|580|true|2|2|0|0 194 4 4 580x750 true
+  MDF|Côté|Rep. 41 - Bas 1 porte|750|582|true|1|0|1|0 166 588 4 582x750 true
+  MDF|Côté|Rep. 44 - Bas 1 porte|750|582|true|1|0|1|0 178 1174 4 582x750 true
+  MDF|Côté|Rep. 43 - Bas 1 porte|750|582|true|1|0|1|0 174 1760 4 582x750 true
+  MDF|Côté|Rep. 44 - Bas 1 porte|750|582|true|1|0|1|0 178 4 758 582x750 true
+  MDF|Côté|Rep. 45 - Bas 1 porte|750|582|true|1|0|1|0 182 590 758 582x750 true
+  MDF|Côté|Rep. 45 - Bas 1 porte|750|582|true|1|0|1|0 182 1176 758 582x750 true
+  MDF|Côté|Rep. 46 - Bas 1 porte|750|582|true|1|0|1|0 186 1762 758 582x750 true
+  MDF|Côté|Rep. 46 - Bas 1 porte|750|582|true|1|0|1|0 186 4 1512 750x582 false
+  MDF|Côté|Rep. 47 - Bas 1 porte|750|582|true|1|0|1|0 190 758 1512 750x582 false
+  MDF|Côté|Rep. 47 - Bas 1 porte|750|582|true|1|0|1|0 190 1512 1512 750x582 false
+  MDF|Porte maître (pliante)|Rep. 48 - Angle bas en L (90°)|746|295|true|2|2|0|0 200 2346 4 295x746 true
+  MDF|Porte maître (pliante)|Rep. 14 - Angle bas en L (90°)|746|295|true|2|2|0|0 56 2348 758 295x746 true
+  MDF|Dessus / dessous|Rep. 51 - Haut 1 porte|564|352|true|1|0|1|0 211 2266 1512 352x564 true
+#19 MDF 1 3848
+  MDF|Dessus / dessous|Rep. 54 - Haut 1 porte|564|352|true|1|0|1|0 223 4 4 564x352 false
+  MDF|Dessus / dessous|Rep. 55 - Haut 1 porte|564|352|true|1|0|1|0 227 572 4 564x352 false
+  MDF|Dessus / dessous|Rep. 55 - Haut 1 porte|564|352|true|1|0|1|0 227 1140 4 564x352 false
+#20 HDF 6 mm 3 17642
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 9 - Bas sous-évier|782|741|true|0|0|0|0 35 4 4 741x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 15 - Haut 1 porte|782|582|true|0|0|0|0 60 749 4 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 16 - Haut 1 porte|782|582|true|0|0|0|0 64 1335 4 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 17 - Haut 1 porte|782|582|true|0|0|0|0 68 1921 4 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 22 - Haut 1 porte|782|282|true|0|0|0|0 88 2507 4 282x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 18 - Haut 1 porte|782|582|true|0|0|0|0 72 4 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 19 - Haut 1 porte|782|582|true|0|0|0|0 76 590 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 20 - Haut 1 porte|782|582|true|0|0|0|0 80 1176 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 21 - Haut 1 porte|782|582|true|0|0|0|0 84 1762 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 34 - Haut 1 porte|782|282|true|0|0|0|0 143 2348 790 282x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 7 - Bas 1 porte|741|482|true|0|0|0|0 27 4 1576 741x482 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 12 - Bas 1 porte|741|482|true|0|0|0|0 44 749 1576 741x482 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 25 - Bas 1 porte|741|482|true|0|0|0|0 100 1494 1576 741x482 false
+#21 HDF 6 mm 3 16368
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 1 - Bas 1 porte|741|582|true|0|0|0|0 3 4 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 2 - Bas 1 porte|741|582|true|0|0|0|0 7 590 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 3 - Bas 1 porte|741|582|true|0|0|0|0 11 1176 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 4 - Bas 1 porte|741|582|true|0|0|0|0 15 1762 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 5 - Bas 1 porte|741|282|true|0|0|0|0 19 2348 4 282x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 6 - Bas 1 porte|741|582|true|0|0|0|0 23 4 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 11 - Bas 1 porte|741|582|true|0|0|0|0 40 590 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 27 - Bas pour four encastré et table de cuisson|741|582|true|0|0|0|0 108 1176 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 28 - Bas casserolier et tiroirs|741|582|true|0|0|0|0 115 1762 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 8 - Bas 1 porte|741|282|true|0|0|0|0 31 2348 749 282x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2182|582|true|0|0|0|0 134 4 1494 2182x582 false
+#22 HDF 6 mm 3 17532
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 29 - Bas 1 porte|741|582|true|0|0|0|0 122 4 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 30 - Bas 1 porte|741|582|true|0|0|0|0 126 590 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 41 - Bas 1 porte|741|582|true|0|0|0|0 168 1176 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 42 - Bas 1 porte|741|582|true|0|0|0|0 172 1762 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 13 - Bas 1 porte|741|282|true|0|0|0|0 48 2348 4 282x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 43 - Bas 1 porte|741|582|true|0|0|0|0 176 4 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 44 - Bas 1 porte|741|582|true|0|0|0|0 180 590 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 45 - Bas 1 porte|741|582|true|0|0|0|0 184 1176 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 46 - Bas 1 porte|741|582|true|0|0|0|0 188 1762 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 26 - Bas 1 porte|741|282|true|0|0|0|0 104 2348 749 282x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 33 - Haut 1 porte|782|582|true|0|0|0|0 139 4 1494 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 37 - Haut 1 porte|782|582|true|0|0|0|0 152 790 1494 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 38 - Haut 1 porte|782|582|true|0|0|0|0 156 1576 1494 782x582 false
+#23 HDF 6 mm 3 17838
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 39 - Haut 1 porte|782|582|true|0|0|0|0 160 4 4 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 49 - Haut 1 porte|782|582|true|0|0|0|0 204 790 4 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 50 - Haut 1 porte|782|582|true|0|0|0|0 208 1576 4 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 51 - Haut 1 porte|782|582|true|0|0|0|0 212 4 590 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 52 - Haut 1 porte|782|582|true|0|0|0|0 216 790 590 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 53 - Haut 1 porte|782|582|true|0|0|0|0 220 1576 590 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 54 - Haut 1 porte|782|582|true|0|0|0|0 224 4 1176 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 55 - Haut 1 porte|782|582|true|0|0|0|0 228 590 1176 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 40 - Haut 1 porte|782|282|true|0|0|0|0 164 1176 1176 282x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 36 - Haut pour hotte intégrée|732|582|true|0|0|0|0 148 1462 1176 582x732 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 47 - Bas 1 porte|741|482|true|0|0|0|0 192 2048 1176 741x482 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 31 - Bas 1 porte|741|282|true|0|0|0|0 130 2048 1662 741x282 false
+== méthode 2
+feuilles 23 refusées 0
+#1 MDF 5 21088
+  MDF|Porte esclave (pliante, poignée)|Rep. 14 - Angle bas en L (90°)|746|277|true|2|2|0|0 57 4 4 277x746 false
+  MDF|Porte esclave (pliante, poignée)|Rep. 48 - Angle bas en L (90°)|746|277|true|2|2|0|0 201 4 754 277x746 false
+  MDF|Dessus / dessous|Rep. 5 - Bas 1 porte|582|264|true|0|1|0|1 18 4 1504 264x582 false
+  MDF|Côté tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 110 285 4 150x502 false
+  MDF|Côté tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 110 285 510 150x502 false
+  MDF|Avant / arrière tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 111 285 1016 150x502 false
+  MDF|Avant / arrière tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 111 285 1522 150x502 false
+  MDF|Porte|Rep. 15 - Haut 1 porte|796|596|true|2|2|0|0 61 439 4 796x596 true
+  MDF|Porte|Rep. 16 - Haut 1 porte|796|596|true|2|2|0|0 65 439 604 796x596 true
+  MDF|Porte|Rep. 17 - Haut 1 porte|796|596|true|2|2|0|0 69 439 1204 796x596 true
+  MDF|Porte esclave (pliante, poignée)|Rep. 24 - Angle haut en L (90°)|796|287|true|2|2|0|0 97 439 1804 796x287 true
+  MDF|Porte|Rep. 18 - Haut 1 porte|796|596|true|2|2|0|0 73 1239 4 796x596 true
+  MDF|Porte|Rep. 19 - Haut 1 porte|796|596|true|2|2|0|0 77 1239 604 796x596 true
+  MDF|Porte|Rep. 20 - Haut 1 porte|796|596|true|2|2|0|0 81 1239 1204 796x596 true
+  MDF|Porte esclave (pliante, poignée)|Rep. 57 - Angle haut en L (90°)|796|287|true|2|2|0|0 237 1239 1804 796x287 true
+  MDF|Dos porteur mur 1|Rep. 14 - Angle bas en L (90°)|882|750|true|0|0|0|0 51 2039 4 750x882 false
+  MDF|Dos porteur mur 1|Rep. 48 - Angle bas en L (90°)|882|750|true|0|0|0|0 195 2039 890 750x882 false
+  MDF|Porte|Rep. 5 - Bas 1 porte|746|296|true|2|2|0|0 20 2039 1776 746x296 true
+#2 MDF 4 16240
+  MDF|Dos porteur mur 2|Rep. 14 - Angle bas en L (90°)|864|750|true|0|0|0|0 52 4 4 750x864 false
+  MDF|Dos porteur mur 2|Rep. 48 - Angle bas en L (90°)|864|750|true|0|0|0|0 196 4 872 750x864 false
+  MDF|Côté|Rep. 36 - Haut pour hotte intégrée|750|352|true|1|0|1|0 146 4 1740 750x352 true
+  MDF|Côté (flanc)|Rep. 14 - Angle bas en L (90°)|750|580|true|2|2|0|0 50 758 4 580x750 false
+  MDF|Côté (flanc)|Rep. 14 - Angle bas en L (90°)|750|580|true|2|2|0|0 50 758 758 580x750 false
+  MDF|Dessus / dessous|Rep. 1 - Bas 1 porte|582|564|true|0|1|0|1 2 758 1512 564x582 false
+  MDF|Côté (flanc)|Rep. 48 - Angle bas en L (90°)|750|580|true|2|2|0|0 194 1342 4 580x750 false
+  MDF|Côté (flanc)|Rep. 48 - Angle bas en L (90°)|750|580|true|2|2|0|0 194 1342 758 580x750 false
+  MDF|Dessus / dessous|Rep. 1 - Bas 1 porte|582|564|true|0|1|0|1 2 1342 1512 564x582 false
+  MDF|Étagère en L (découpe CNC)|Rep. 14 - Angle bas en L (90°)|862|862|true|1|0|0|0 55 1926 4 862x862 true
+  MDF|Étagère en L (découpe CNC)|Rep. 48 - Angle bas en L (90°)|862|862|true|1|0|0|0 199 1926 870 862x862 true
+  MDF|Côté|Rep. 15 - Haut 1 porte|800|352|true|1|0|1|0 58 1926 1736 800x352 true
+#3 MDF 4 19712
+  MDF|Fond en L (découpe CNC)|Rep. 14 - Angle bas en L (90°)|864|864|true|1|0|0|0 53 4 4 864x864 true
+  MDF|Fond en L (découpe CNC)|Rep. 48 - Angle bas en L (90°)|864|864|true|1|0|0|0 197 4 872 864x864 true
+  MDF|Dos porteur mur 1|Rep. 24 - Angle haut en L (90°)|800|662|true|0|0|0|0 92 872 4 800x662 true
+  MDF|Dos porteur mur 1|Rep. 57 - Angle haut en L (90°)|800|662|true|0|0|0|0 232 872 670 662x800 false
+  MDF|Dos porteur mur 2|Rep. 24 - Angle haut en L (90°)|800|644|true|0|0|0|0 93 1676 4 800x644 true
+  MDF|Dos porteur mur 2|Rep. 57 - Angle haut en L (90°)|800|644|true|0|0|0|0 233 1676 652 644x800 false
+  MDF|Porte|Rep. 21 - Haut 1 porte|796|596|true|2|2|0|0 85 872 1474 796x596 true
+  MDF|Porte|Rep. 33 - Haut 1 porte|796|596|true|2|2|0|0 140 1676 1456 796x596 true
+  MDF|Côté|Rep. 15 - Haut 1 porte|800|352|true|1|0|1|0 58 4 1740 800x352 true
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 2480 4 315x502 false
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 2480 510 315x502 false
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 2480 1016 315x502 false
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 2480 1522 315x502 false
+  MDF|Fileur|Rep. 23 - Fileur d'ajustement haut|800|140|true|2|0|0|0 90 2324 652 140x800 false
+  MDF|Fileur|Rep. 35 - Fileur d'ajustement haut|800|120|true|2|0|0|0 145 1538 670 120x800 false
+#4 MDF 2 16823
+  MDF|Côté|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2200|582|true|1|0|1|0 132 4 4 2200x582 true
+  MDF|Côté|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2200|582|true|1|0|1|0 132 4 590 2200x582 true
+  MDF|Porte|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|1096|596|true|2|2|0|0 136 4 1176 1096x596 true
+  MDF|Porte|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|1096|596|true|2|2|0|0 136 1104 1176 1096x596 true
+  MDF|Dessus / dessous|Rep. 9 - Bas sous-évier|764|582|true|1|0|1|0 34 2208 4 582x764 false
+  MDF|Dessus / dessous|Rep. 9 - Bas sous-évier|764|582|true|1|0|1|0 34 2208 772 582x764 false
+  MDF|Dessus / dessous|Rep. 7 - Bas 1 porte|582|464|true|0|1|0|1 26 2208 1540 582x464 true
+  MDF|Porte maître (pliante)|Rep. 24 - Angle haut en L (90°)|796|305|true|2|2|0|0 96 4 1776 796x305 true
+  MDF|Porte maître (pliante)|Rep. 57 - Angle haut en L (90°)|796|305|true|2|2|0|0 236 804 1776 796x305 true
+  MDF|Dessus / dessous|Rep. 5 - Bas 1 porte|582|264|true|0|1|0|1 18 1604 1776 582x264 true
+#5 MDF 6 22846
+  MDF|Côté|Rep. 1 - Bas 1 porte|750|582|true|1|0|1|0 1 4 4 582x750 false
+  MDF|Côté|Rep. 1 - Bas 1 porte|750|582|true|1|0|1|0 1 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 2 - Bas 1 porte|582|564|true|0|1|0|1 6 4 1512 582x564 true
+  MDF|Côté|Rep. 2 - Bas 1 porte|750|582|true|1|0|1|0 5 590 4 582x750 false
+  MDF|Côté|Rep. 2 - Bas 1 porte|750|582|true|1|0|1|0 5 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 2 - Bas 1 porte|582|564|true|0|1|0|1 6 590 1512 582x564 true
+  MDF|Porte maître (pliante)|Rep. 14 - Angle bas en L (90°)|746|295|true|2|2|0|0 56 1176 4 295x746 false
+  MDF|Porte maître (pliante)|Rep. 48 - Angle bas en L (90°)|746|295|true|2|2|0|0 200 1176 754 295x746 false
+  MDF|Dessus / dessous|Rep. 8 - Bas 1 porte|582|264|true|0|1|0|1 30 1176 1504 264x582 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 1475 4 315x502 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 1475 510 315x502 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 1475 1016 315x502 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 1475 1522 315x502 false
+  MDF|Porte|Rep. 7 - Bas 1 porte|746|496|true|2|2|0|0 28 1794 4 496x746 false
+  MDF|Porte|Rep. 12 - Bas 1 porte|746|496|true|2|2|0|0 45 1794 754 496x746 false
+  MDF|Dessus / dessous|Rep. 7 - Bas 1 porte|582|464|true|0|1|0|1 26 1794 1504 464x582 false
+  MDF|Porte|Rep. 25 - Bas 1 porte|746|496|true|2|2|0|0 101 2294 4 496x746 false
+  MDF|Porte|Rep. 47 - Bas 1 porte|746|496|true|2|2|0|0 193 2294 754 496x746 false
+  MDF|Dessus / dessous|Rep. 12 - Bas 1 porte|582|464|true|0|1|0|1 43 2294 1504 464x582 false
+#6 MDF 5 20597
+  MDF|Côté|Rep. 3 - Bas 1 porte|750|582|true|1|0|1|0 9 4 4 582x750 false
+  MDF|Côté|Rep. 3 - Bas 1 porte|750|582|true|1|0|1|0 9 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 3 - Bas 1 porte|582|564|true|0|1|0|1 10 4 1512 582x564 true
+  MDF|Côté|Rep. 4 - Bas 1 porte|750|582|true|1|0|1|0 13 590 4 582x750 false
+  MDF|Côté|Rep. 4 - Bas 1 porte|750|582|true|1|0|1|0 13 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 3 - Bas 1 porte|582|564|true|0|1|0|1 10 590 1512 582x564 true
+  MDF|Façade tiroir|Rep. 28 - Bas casserolier et tiroirs|596|371|true|2|2|0|0 116 1176 4 371x596 false
+  MDF|Façade tiroir|Rep. 28 - Bas casserolier et tiroirs|596|371|true|2|2|0|0 116 1176 604 371x596 false
+  MDF|Côté|Rep. 16 - Haut 1 porte|800|352|true|1|0|1|0 62 1176 1204 352x800 false
+  MDF|Porte|Rep. 37 - Haut 1 porte|796|596|true|2|2|0|0 153 1551 4 596x796 false
+  MDF|Porte|Rep. 38 - Haut 1 porte|796|596|true|2|2|0|0 157 1551 804 596x796 false
+  MDF|Façade tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|596|206|true|2|2|0|0 109 1551 1604 596x206 true
+  MDF|Dessus / dessous|Rep. 8 - Bas 1 porte|582|264|true|0|1|0|1 30 1551 1814 582x264 true
+  MDF|Étagère en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|642|642|true|1|0|0|0 95 2151 4 642x642 true
+  MDF|Étagère en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|642|642|true|1|0|0|0 235 2151 650 642x642 true
+  MDF|Porte|Rep. 39 - Haut 1 porte|796|596|true|2|2|0|0 161 2151 1296 596x796 false
+#7 MDF 5 20698
+  MDF|Côté|Rep. 5 - Bas 1 porte|750|582|true|1|0|1|0 17 4 4 582x750 false
+  MDF|Côté|Rep. 5 - Bas 1 porte|750|582|true|1|0|1|0 17 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 4 - Bas 1 porte|582|564|true|0|1|0|1 14 4 1512 582x564 true
+  MDF|Porte|Rep. 49 - Haut 1 porte|796|596|true|2|2|0|0 205 590 4 596x796 false
+  MDF|Porte|Rep. 50 - Haut 1 porte|796|596|true|2|2|0|0 209 590 804 596x796 false
+  MDF|Dessus / dessous|Rep. 12 - Bas 1 porte|582|464|true|0|1|0|1 43 590 1604 582x464 true
+  MDF|Porte|Rep. 51 - Haut 1 porte|796|596|true|2|2|0|0 213 1190 4 596x796 false
+  MDF|Porte|Rep. 52 - Haut 1 porte|796|596|true|2|2|0|0 217 1190 804 596x796 false
+  MDF|Dessus / dessous|Rep. 25 - Bas 1 porte|582|464|true|0|1|0|1 99 1190 1604 582x464 true
+  MDF|Porte|Rep. 53 - Haut 1 porte|796|596|true|2|2|0|0 221 1790 4 596x796 false
+  MDF|Porte|Rep. 54 - Haut 1 porte|796|596|true|2|2|0|0 225 1790 804 596x796 false
+  MDF|Dessus / dessous|Rep. 25 - Bas 1 porte|582|464|true|0|1|0|1 99 1790 1604 582x464 true
+  MDF|Porte (x2)|Rep. 9 - Bas sous-évier|746|396|true|2|2|0|0 36 2390 4 396x746 false
+  MDF|Porte (x2)|Rep. 9 - Bas sous-évier|746|396|true|2|2|0|0 36 2390 754 396x746 false
+  MDF|Dessus / dessous|Rep. 15 - Haut 1 porte|564|352|true|1|0|1|0 59 2390 1504 352x564 false
+#8 MDF 5 20152
+  MDF|Côté|Rep. 6 - Bas 1 porte|750|582|true|1|0|1|0 21 4 4 582x750 false
+  MDF|Côté|Rep. 6 - Bas 1 porte|750|582|true|1|0|1|0 21 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 4 - Bas 1 porte|582|564|true|0|1|0|1 14 4 1512 582x564 true
+  MDF|Côté|Rep. 7 - Bas 1 porte|750|582|true|1|0|1|0 25 590 4 582x750 false
+  MDF|Côté|Rep. 7 - Bas 1 porte|750|582|true|1|0|1|0 25 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 6 - Bas 1 porte|582|564|true|0|1|0|1 22 590 1512 582x564 true
+  MDF|Traverse haute|Rep. 14 - Angle bas en L (90°)|864|100|true|1|0|0|0 54 1176 4 100x864 false
+  MDF|Traverse haute|Rep. 14 - Angle bas en L (90°)|864|100|true|1|0|0|0 54 1176 872 100x864 false
+  MDF|Côté|Rep. 8 - Bas 1 porte|750|582|true|1|0|1|0 29 1280 4 750x582 true
+  MDF|Côté|Rep. 8 - Bas 1 porte|750|582|true|1|0|1|0 29 1280 590 750x582 true
+  MDF|Côté|Rep. 9 - Bas sous-évier|750|582|true|1|0|1|0 33 1280 1176 750x582 true
+  MDF|Porte|Rep. 8 - Bas 1 porte|746|296|true|2|2|0|0 32 1280 1762 746x296 true
+  MDF|Côté|Rep. 9 - Bas sous-évier|750|582|true|1|0|1|0 33 2034 4 750x582 true
+  MDF|Côté|Rep. 11 - Bas 1 porte|750|582|true|1|0|1|0 38 2034 590 750x582 true
+  MDF|Côté|Rep. 11 - Bas 1 porte|750|582|true|1|0|1|0 38 2034 1176 750x582 true
+  MDF|Porte|Rep. 13 - Bas 1 porte|746|296|true|2|2|0|0 49 2034 1762 746x296 true
+#9 MDF 5 20152
+  MDF|Côté|Rep. 12 - Bas 1 porte|750|582|true|1|0|1|0 42 4 4 582x750 false
+  MDF|Côté|Rep. 12 - Bas 1 porte|750|582|true|1|0|1|0 42 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 6 - Bas 1 porte|582|564|true|0|1|0|1 22 4 1512 582x564 true
+  MDF|Côté|Rep. 13 - Bas 1 porte|750|582|true|1|0|1|0 46 590 4 582x750 false
+  MDF|Côté|Rep. 13 - Bas 1 porte|750|582|true|1|0|1|0 46 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 11 - Bas 1 porte|582|564|true|0|1|0|1 39 590 1512 582x564 true
+  MDF|Traverse haute|Rep. 48 - Angle bas en L (90°)|864|100|true|1|0|0|0 198 1176 4 100x864 false
+  MDF|Traverse haute|Rep. 48 - Angle bas en L (90°)|864|100|true|1|0|0|0 198 1176 872 100x864 false
+  MDF|Côté|Rep. 25 - Bas 1 porte|750|582|true|1|0|1|0 98 1280 4 750x582 true
+  MDF|Côté|Rep. 25 - Bas 1 porte|750|582|true|1|0|1|0 98 1280 590 750x582 true
+  MDF|Côté|Rep. 26 - Bas 1 porte|750|582|true|1|0|1|0 102 1280 1176 750x582 true
+  MDF|Porte|Rep. 26 - Bas 1 porte|746|296|true|2|2|0|0 105 1280 1762 746x296 true
+  MDF|Côté|Rep. 26 - Bas 1 porte|750|582|true|1|0|1|0 102 2034 4 750x582 true
+  MDF|Côté|Rep. 27 - Bas pour four encastré et table de cuisson|750|582|true|1|0|1|0 106 2034 590 750x582 true
+  MDF|Côté|Rep. 27 - Bas pour four encastré et table de cuisson|750|582|true|1|0|1|0 106 2034 1176 750x582 true
+  MDF|Porte|Rep. 31 - Bas 1 porte|746|296|true|2|2|0|0 131 2034 1762 746x296 true
+#10 MDF 5 19602
+  MDF|Côté|Rep. 28 - Bas casserolier et tiroirs|750|582|true|1|0|1|0 113 4 4 582x750 false
+  MDF|Côté|Rep. 28 - Bas casserolier et tiroirs|750|582|true|1|0|1|0 113 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 11 - Bas 1 porte|582|564|true|0|1|0|1 39 4 1512 582x564 true
+  MDF|Côté|Rep. 29 - Bas 1 porte|750|582|true|1|0|1|0 120 590 4 582x750 false
+  MDF|Côté|Rep. 29 - Bas 1 porte|750|582|true|1|0|1|0 120 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 27 - Bas pour four encastré et table de cuisson|582|564|true|0|1|0|1 107 590 1512 582x564 true
+  MDF|Côté|Rep. 30 - Bas 1 porte|750|582|true|1|0|1|0 124 1176 4 582x750 false
+  MDF|Côté|Rep. 30 - Bas 1 porte|750|582|true|1|0|1|0 124 1176 758 582x750 false
+  MDF|Dessus / dessous|Rep. 27 - Bas pour four encastré et table de cuisson|582|564|true|0|1|0|1 107 1176 1512 582x564 true
+  MDF|Porte|Rep. 1 - Bas 1 porte|746|596|true|2|2|0|0 4 1762 4 746x596 true
+  MDF|Porte|Rep. 2 - Bas 1 porte|746|596|true|2|2|0|0 8 1762 604 746x596 true
+  MDF|Porte|Rep. 3 - Bas 1 porte|746|596|true|2|2|0|0 12 1762 1204 746x596 true
+  MDF|Dessus / dessous|Rep. 13 - Bas 1 porte|582|264|true|0|1|0|1 47 1762 1804 582x264 true
+  MDF|Dessus / dessous|Rep. 13 - Bas 1 porte|582|264|true|0|1|0|1 47 2512 4 264x582 false
+  MDF|Dessus / dessous|Rep. 26 - Bas 1 porte|582|264|true|0|1|0|1 103 2512 590 264x582 false
+  MDF|Dessus / dessous|Rep. 26 - Bas 1 porte|582|264|true|0|1|0|1 103 2512 1176 264x582 false
+#11 MDF 5 20280
+  MDF|Côté|Rep. 31 - Bas 1 porte|750|582|true|1|0|1|0 128 4 4 582x750 false
+  MDF|Côté|Rep. 31 - Bas 1 porte|750|582|true|1|0|1|0 128 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 28 - Bas casserolier et tiroirs|582|564|true|0|1|0|1 114 4 1512 582x564 true
+  MDF|Côté|Rep. 41 - Bas 1 porte|750|582|true|1|0|1|0 166 590 4 582x750 false
+  MDF|Côté|Rep. 41 - Bas 1 porte|750|582|true|1|0|1|0 166 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 28 - Bas casserolier et tiroirs|582|564|true|0|1|0|1 114 590 1512 582x564 true
+  MDF|Côté|Rep. 42 - Bas 1 porte|750|582|true|1|0|1|0 170 1176 4 582x750 false
+  MDF|Côté|Rep. 42 - Bas 1 porte|750|582|true|1|0|1|0 170 1176 758 582x750 false
+  MDF|Dessus / dessous|Rep. 29 - Bas 1 porte|582|564|true|0|1|0|1 121 1176 1512 582x564 true
+  MDF|Dessus / dessous|Rep. 31 - Bas 1 porte|582|264|true|0|1|0|1 129 1762 4 264x582 false
+  MDF|Dessus / dessous|Rep. 31 - Bas 1 porte|582|264|true|0|1|0|1 129 1762 590 264x582 false
+  MDF|Dessus / dessous|Rep. 22 - Haut 1 porte|352|264|true|0|1|0|1 87 1762 1176 264x352 false
+  MDF|Dessus / dessous|Rep. 22 - Haut 1 porte|352|264|true|0|1|0|1 87 1762 1532 264x352 false
+  MDF|Porte|Rep. 4 - Bas 1 porte|746|596|true|2|2|0|0 16 2030 4 746x596 true
+  MDF|Porte|Rep. 6 - Bas 1 porte|746|596|true|2|2|0|0 24 2030 604 746x596 true
+  MDF|Porte|Rep. 10 - Façade lave-vaisselle tout intégrable|746|596|true|2|2|0|0 37 2030 1204 746x596 true
+  MDF|Dessus / dessous|Rep. 34 - Haut 1 porte|352|264|true|0|1|0|1 142 2030 1804 352x264 true
+  MDF|Dessus / dessous|Rep. 34 - Haut 1 porte|352|264|true|0|1|0|1 142 2386 1804 352x264 true
+#12 MDF 5 20400
+  MDF|Côté|Rep. 43 - Bas 1 porte|750|582|true|1|0|1|0 174 4 4 582x750 false
+  MDF|Côté|Rep. 43 - Bas 1 porte|750|582|true|1|0|1|0 174 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 29 - Bas 1 porte|582|564|true|0|1|0|1 121 4 1512 582x564 true
+  MDF|Côté|Rep. 44 - Bas 1 porte|750|582|true|1|0|1|0 178 590 4 582x750 false
+  MDF|Côté|Rep. 44 - Bas 1 porte|750|582|true|1|0|1|0 178 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 30 - Bas 1 porte|582|564|true|0|1|0|1 125 590 1512 582x564 true
+  MDF|Côté|Rep. 45 - Bas 1 porte|750|582|true|1|0|1|0 182 1176 4 582x750 false
+  MDF|Côté|Rep. 45 - Bas 1 porte|750|582|true|1|0|1|0 182 1176 758 582x750 false
+  MDF|Dessus / dessous|Rep. 30 - Bas 1 porte|582|564|true|0|1|0|1 125 1176 1512 582x564 true
+  MDF|Fond tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|466|true|0|0|0|0 112 1762 4 466x502 false
+  MDF|Fond tiroir|Rep. 28 - Bas casserolier et tiroirs|502|466|true|0|0|0|0 119 1762 510 466x502 false
+  MDF|Fond tiroir|Rep. 28 - Bas casserolier et tiroirs|502|466|true|0|0|0|0 119 1762 1016 466x502 false
+  MDF|Dessus / dessous|Rep. 15 - Haut 1 porte|564|352|true|1|0|1|0 59 1762 1522 352x564 false
+  MDF|Dessus / dessous|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|582|564|true|0|1|0|1 133 2232 4 564x582 false
+  MDF|Dessus / dessous|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|582|564|true|0|1|0|1 133 2232 590 564x582 false
+  MDF|Dessus / dessous|Rep. 41 - Bas 1 porte|582|564|true|0|1|0|1 167 2232 1176 564x582 false
+  MDF|Dessus / dessous|Rep. 40 - Haut 1 porte|352|264|true|0|1|0|1 163 2232 1762 352x264 true
+#13 MDF 5 20812
+  MDF|Dessus / dessous|Rep. 19 - Haut 1 porte|564|352|true|1|0|1|0 75 4 4 352x564 false
+  MDF|Porte|Rep. 55 - Haut 1 porte|796|596|true|2|2|0|0 229 360 4 596x796 false
+  MDF|Porte|Rep. 29 - Bas 1 porte|746|596|true|2|2|0|0 123 360 804 596x746 false
+  MDF|Porte|Rep. 30 - Bas 1 porte|746|596|true|2|2|0|0 127 960 4 596x746 false
+  MDF|Porte|Rep. 11 - Bas 1 porte|746|596|true|2|2|0|0 41 960 754 596x746 false
+  MDF|Porte|Rep. 41 - Bas 1 porte|746|596|true|2|2|0|0 169 1560 4 596x746 false
+  MDF|Porte|Rep. 42 - Bas 1 porte|746|596|true|2|2|0|0 173 1560 754 596x746 false
+  MDF|Porte|Rep. 43 - Bas 1 porte|746|596|true|2|2|0|0 177 2160 4 596x746 false
+  MDF|Porte|Rep. 44 - Bas 1 porte|746|596|true|2|2|0|0 181 2160 754 596x746 false
+  MDF|Dessus / dessous|Rep. 42 - Bas 1 porte|582|564|true|0|1|0|1 171 960 1504 564x582 false
+  MDF|Dessus / dessous|Rep. 41 - Bas 1 porte|582|564|true|0|1|0|1 167 1560 1504 564x582 false
+  MDF|Dessus / dessous|Rep. 42 - Bas 1 porte|582|564|true|0|1|0|1 171 2160 1504 564x582 false
+  MDF|Côté|Rep. 16 - Haut 1 porte|800|352|true|1|0|1|0 62 4 572 352x800 false
+  MDF|Dessus / dessous|Rep. 47 - Bas 1 porte|582|464|true|0|1|0|1 191 360 1554 582x464 true
+  MDF|Dessus / dessous|Rep. 16 - Haut 1 porte|564|352|true|1|0|1|0 63 4 1376 352x564 false
+#14 MDF 5 19288
+  MDF|Dessus / dessous|Rep. 17 - Haut 1 porte|564|352|true|1|0|1|0 67 4 4 352x564 false
+  MDF|Porte|Rep. 45 - Bas 1 porte|746|596|true|2|2|0|0 185 360 4 596x746 false
+  MDF|Porte|Rep. 46 - Bas 1 porte|746|596|true|2|2|0|0 189 360 754 596x746 false
+  MDF|Côté|Rep. 46 - Bas 1 porte|750|582|true|1|0|1|0 186 960 4 582x750 false
+  MDF|Côté|Rep. 46 - Bas 1 porte|750|582|true|1|0|1|0 186 960 758 582x750 false
+  MDF|Côté|Rep. 47 - Bas 1 porte|750|582|true|1|0|1|0 190 1546 4 582x750 false
+  MDF|Côté|Rep. 47 - Bas 1 porte|750|582|true|1|0|1|0 190 1546 758 582x750 false
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|644|644|true|1|0|0|0 94 2132 4 644x644 true
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|644|644|true|1|0|0|0 94 2132 652 644x644 true
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|644|644|true|1|0|0|0 234 2132 1300 644x644 true
+  MDF|Dessus / dessous|Rep. 43 - Bas 1 porte|582|564|true|0|1|0|1 175 960 1512 582x564 true
+  MDF|Dessus / dessous|Rep. 44 - Bas 1 porte|582|564|true|0|1|0|1 179 1546 1512 582x564 true
+  MDF|Dessus / dessous|Rep. 44 - Bas 1 porte|582|564|true|0|1|0|1 179 360 1504 564x582 false
+  MDF|Côté|Rep. 17 - Haut 1 porte|800|352|true|1|0|1|0 66 4 572 352x800 false
+  MDF|Dessus / dessous|Rep. 16 - Haut 1 porte|564|352|true|1|0|1|0 63 4 1376 352x564 false
+#15 MDF 4 23824
+  MDF|Côté|Rep. 18 - Haut 1 porte|800|352|true|1|0|1|0 70 4 4 800x352 true
+  MDF|Côté|Rep. 17 - Haut 1 porte|800|352|true|1|0|1|0 66 4 360 800x352 true
+  MDF|Côté|Rep. 18 - Haut 1 porte|800|352|true|1|0|1|0 70 4 716 800x352 true
+  MDF|Côté|Rep. 19 - Haut 1 porte|800|352|true|1|0|1|0 74 4 1072 800x352 true
+  MDF|Côté|Rep. 20 - Haut 1 porte|800|352|true|1|0|1|0 78 4 1428 800x352 true
+  MDF|Côté|Rep. 19 - Haut 1 porte|800|352|true|1|0|1|0 74 808 4 800x352 true
+  MDF|Côté|Rep. 20 - Haut 1 porte|800|352|true|1|0|1|0 78 808 360 800x352 true
+  MDF|Côté|Rep. 21 - Haut 1 porte|800|352|true|1|0|1|0 82 808 716 800x352 true
+  MDF|Côté|Rep. 22 - Haut 1 porte|800|352|true|1|0|1|0 86 808 1072 800x352 true
+  MDF|Côté|Rep. 21 - Haut 1 porte|800|352|true|1|0|1|0 82 808 1428 800x352 true
+  MDF|Côté|Rep. 22 - Haut 1 porte|800|352|true|1|0|1|0 86 1612 4 800x352 true
+  MDF|Côté|Rep. 33 - Haut 1 porte|800|352|true|1|0|1|0 137 1612 360 800x352 true
+  MDF|Côté|Rep. 33 - Haut 1 porte|800|352|true|1|0|1|0 137 1612 716 800x352 true
+  MDF|Côté|Rep. 34 - Haut 1 porte|800|352|true|1|0|1|0 141 1612 1072 800x352 true
+  MDF|Côté|Rep. 37 - Haut 1 porte|800|352|true|1|0|1|0 150 1612 1428 800x352 true
+  MDF|Côté|Rep. 34 - Haut 1 porte|800|352|true|1|0|1|0 141 2416 4 352x800 false
+  MDF|Côté|Rep. 37 - Haut 1 porte|800|352|true|1|0|1|0 150 2416 808 352x800 false
+  MDF|Porte|Rep. 22 - Haut 1 porte|796|296|true|2|2|0|0 89 4 1784 796x296 true
+  MDF|Porte|Rep. 34 - Haut 1 porte|796|296|true|2|2|0|0 144 808 1784 796x296 true
+  MDF|Porte|Rep. 40 - Haut 1 porte|796|296|true|2|2|0|0 165 1612 1784 796x296 true
+  MDF|Dessus / dessous|Rep. 40 - Haut 1 porte|352|264|true|0|1|0|1 163 2416 1612 352x264 true
+#16 MDF 4 23118
+  MDF|Dessus / dessous|Rep. 43 - Bas 1 porte|582|564|true|0|1|0|1 175 4 4 582x564 true
+  MDF|Dessus / dessous|Rep. 45 - Bas 1 porte|582|564|true|0|1|0|1 183 4 572 582x564 true
+  MDF|Dessus / dessous|Rep. 45 - Bas 1 porte|582|564|true|0|1|0|1 183 4 1140 582x564 true
+  MDF|Dessus / dessous|Rep. 17 - Haut 1 porte|564|352|true|1|0|1|0 67 4 1708 564x352 true
+  MDF|Dessus / dessous|Rep. 46 - Bas 1 porte|582|564|true|0|1|0|1 187 590 4 564x582 false
+  MDF|Dessus / dessous|Rep. 46 - Bas 1 porte|582|564|true|0|1|0|1 187 590 590 564x582 false
+  MDF|Tablette fixe médiane|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|564|560|true|1|0|0|0 135 590 1176 564x560 true
+  MDF|Dessus / dessous|Rep. 18 - Haut 1 porte|564|352|true|1|0|1|0 71 590 1740 564x352 true
+  MDF|Côté|Rep. 38 - Haut 1 porte|800|352|true|1|0|1|0 154 1158 4 800x352 true
+  MDF|Côté|Rep. 38 - Haut 1 porte|800|352|true|1|0|1|0 154 1158 360 800x352 true
+  MDF|Côté|Rep. 39 - Haut 1 porte|800|352|true|1|0|1|0 158 1158 716 800x352 true
+  MDF|Côté|Rep. 39 - Haut 1 porte|800|352|true|1|0|1|0 158 1158 1072 800x352 true
+  MDF|Côté|Rep. 40 - Haut 1 porte|800|352|true|1|0|1|0 162 1158 1428 800x352 true
+  MDF|Fileur|Rep. 56 - Fileur d'ajustement haut|800|120|true|2|0|0|0 230 1158 1784 800x120 true
+  MDF|Côté|Rep. 36 - Haut pour hotte intégrée|750|352|true|1|0|1|0 146 1962 4 750x352 true
+  MDF|Côté|Rep. 40 - Haut 1 porte|800|352|true|1|0|1|0 162 1962 360 352x800 false
+  MDF|Côté|Rep. 49 - Haut 1 porte|800|352|true|1|0|1|0 202 2318 360 352x800 false
+  MDF|Côté|Rep. 49 - Haut 1 porte|800|352|true|1|0|1|0 202 1962 1164 352x800 false
+  MDF|Côté|Rep. 50 - Haut 1 porte|800|352|true|1|0|1|0 206 2318 1164 352x800 false
+#17 MDF 4 21944
+  MDF|Côté|Rep. 50 - Haut 1 porte|800|352|true|1|0|1|0 206 4 4 800x352 true
+  MDF|Côté|Rep. 51 - Haut 1 porte|800|352|true|1|0|1|0 210 4 360 800x352 true
+  MDF|Côté|Rep. 51 - Haut 1 porte|800|352|true|1|0|1|0 210 4 716 800x352 true
+  MDF|Côté|Rep. 52 - Haut 1 porte|800|352|true|1|0|1|0 214 4 1072 800x352 true
+  MDF|Côté|Rep. 52 - Haut 1 porte|800|352|true|1|0|1|0 214 4 1428 800x352 true
+  MDF|Côté|Rep. 53 - Haut 1 porte|800|352|true|1|0|1|0 218 808 4 800x352 true
+  MDF|Côté|Rep. 53 - Haut 1 porte|800|352|true|1|0|1|0 218 808 360 800x352 true
+  MDF|Côté|Rep. 54 - Haut 1 porte|800|352|true|1|0|1|0 222 808 716 800x352 true
+  MDF|Côté|Rep. 54 - Haut 1 porte|800|352|true|1|0|1|0 222 808 1072 800x352 true
+  MDF|Côté|Rep. 55 - Haut 1 porte|800|352|true|1|0|1|0 226 808 1428 800x352 true
+  MDF|Côté|Rep. 55 - Haut 1 porte|800|352|true|1|0|1|0 226 1612 4 352x800 false
+  MDF|Dessus / dessous|Rep. 18 - Haut 1 porte|564|352|true|1|0|1|0 71 1612 808 352x564 false
+  MDF|Dessus / dessous|Rep. 19 - Haut 1 porte|564|352|true|1|0|1|0 75 1612 1376 352x564 false
+  MDF|Côté (flanc)|Rep. 24 - Angle haut en L (90°)|800|350|true|2|2|0|0 91 1968 4 800x350 true
+  MDF|Côté (flanc)|Rep. 24 - Angle haut en L (90°)|800|350|true|2|2|0|0 91 1968 358 800x350 true
+  MDF|Côté (flanc)|Rep. 57 - Angle haut en L (90°)|800|350|true|2|2|0|0 231 1968 712 800x350 true
+  MDF|Côté (flanc)|Rep. 57 - Angle haut en L (90°)|800|350|true|2|2|0|0 231 1968 1066 800x350 true
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|644|644|true|1|0|0|0 234 1968 1420 644x644 true
+#18 MDF 6 25678
+  MDF|Dessus / dessous|Rep. 20 - Haut 1 porte|564|352|true|1|0|1|0 79 4 4 352x564 false
+  MDF|Dessus / dessous|Rep. 20 - Haut 1 porte|564|352|true|1|0|1|0 79 4 572 352x564 false
+  MDF|Dessus / dessous|Rep. 21 - Haut 1 porte|564|352|true|1|0|1|0 83 4 1140 352x564 false
+  MDF|Dessus / dessous|Rep. 21 - Haut 1 porte|564|352|true|1|0|1|0 83 360 4 352x564 false
+  MDF|Dessus / dessous|Rep. 33 - Haut 1 porte|564|352|true|1|0|1|0 138 360 572 352x564 false
+  MDF|Dessus / dessous|Rep. 33 - Haut 1 porte|564|352|true|1|0|1|0 138 360 1140 352x564 false
+  MDF|Dessus / dessous|Rep. 36 - Haut pour hotte intégrée|564|352|true|1|0|1|0 147 716 4 352x564 false
+  MDF|Dessus / dessous|Rep. 36 - Haut pour hotte intégrée|564|352|true|1|0|1|0 147 716 572 352x564 false
+  MDF|Dessus / dessous|Rep. 37 - Haut 1 porte|564|352|true|1|0|1|0 151 716 1140 352x564 false
+  MDF|Dessus / dessous|Rep. 47 - Bas 1 porte|582|464|true|0|1|0|1 191 1072 4 582x464 true
+  MDF|Dessus / dessous|Rep. 37 - Haut 1 porte|564|352|true|1|0|1|0 151 1072 472 564x352 true
+  MDF|Dessus / dessous|Rep. 38 - Haut 1 porte|564|352|true|1|0|1|0 155 1072 828 564x352 true
+  MDF|Dessus / dessous|Rep. 38 - Haut 1 porte|564|352|true|1|0|1|0 155 1072 1184 564x352 true
+  MDF|Dessus / dessous|Rep. 39 - Haut 1 porte|564|352|true|1|0|1|0 159 1072 1540 564x352 true
+  MDF|Dessus / dessous|Rep. 39 - Haut 1 porte|564|352|true|1|0|1|0 159 1658 4 564x352 true
+  MDF|Dessus / dessous|Rep. 49 - Haut 1 porte|564|352|true|1|0|1|0 203 1658 360 564x352 true
+  MDF|Dessus / dessous|Rep. 49 - Haut 1 porte|564|352|true|1|0|1|0 203 1658 716 564x352 true
+  MDF|Dessus / dessous|Rep. 50 - Haut 1 porte|564|352|true|1|0|1|0 207 1658 1072 564x352 true
+  MDF|Dessus / dessous|Rep. 50 - Haut 1 porte|564|352|true|1|0|1|0 207 1658 1428 564x352 true
+  MDF|Dessus / dessous|Rep. 51 - Haut 1 porte|564|352|true|1|0|1|0 211 2226 4 564x352 true
+  MDF|Dessus / dessous|Rep. 51 - Haut 1 porte|564|352|true|1|0|1|0 211 2226 360 564x352 true
+  MDF|Dessus / dessous|Rep. 52 - Haut 1 porte|564|352|true|1|0|1|0 215 2226 716 564x352 true
+  MDF|Dessus / dessous|Rep. 52 - Haut 1 porte|564|352|true|1|0|1|0 215 2226 1072 564x352 true
+  MDF|Dessus / dessous|Rep. 53 - Haut 1 porte|564|352|true|1|0|1|0 219 2226 1428 564x352 true
+#19 MDF 2 8924
+  MDF|Porte|Rep. 36 - Haut pour hotte intégrée|596|596|true|2|2|0|0 149 4 4 596x596 true
+  MDF|Dessus / dessous|Rep. 53 - Haut 1 porte|564|352|true|1|0|1|0 219 4 604 564x352 true
+  MDF|Dessus / dessous|Rep. 54 - Haut 1 porte|564|352|true|1|0|1|0 223 4 960 564x352 true
+  MDF|Dessus / dessous|Rep. 54 - Haut 1 porte|564|352|true|1|0|1|0 223 4 1316 564x352 true
+  MDF|Dessus / dessous|Rep. 55 - Haut 1 porte|564|352|true|1|0|1|0 227 4 1672 564x352 true
+  MDF|Dessus / dessous|Rep. 55 - Haut 1 porte|564|352|true|1|0|1|0 227 604 4 352x564 false
+#20 HDF 6 mm 4 17647
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 9 - Bas sous-évier|782|741|true|0|0|0|0 35 4 4 741x782 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 1 - Bas 1 porte|741|582|true|0|0|0|0 3 4 790 741x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 2 - Bas 1 porte|741|582|true|0|0|0|0 7 4 1376 741x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 3 - Bas 1 porte|741|582|true|0|0|0|0 11 749 4 741x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 4 - Bas 1 porte|741|582|true|0|0|0|0 15 749 590 741x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 6 - Bas 1 porte|741|582|true|0|0|0|0 23 749 1176 741x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 5 - Bas 1 porte|741|282|true|0|0|0|0 19 749 1762 741x282 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 15 - Haut 1 porte|782|582|true|0|0|0|0 60 1494 4 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 16 - Haut 1 porte|782|582|true|0|0|0|0 64 1494 590 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 17 - Haut 1 porte|782|582|true|0|0|0|0 68 1494 1176 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 22 - Haut 1 porte|782|282|true|0|0|0|0 88 1494 1762 782x282 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 7 - Bas 1 porte|741|482|true|0|0|0|0 27 2280 4 482x741 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 12 - Bas 1 porte|741|482|true|0|0|0|0 44 2280 749 482x741 false
+#21 HDF 6 mm 4 18388
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 11 - Bas 1 porte|741|582|true|0|0|0|0 40 4 4 741x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 27 - Bas pour four encastré et table de cuisson|741|582|true|0|0|0|0 108 4 590 741x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 28 - Bas casserolier et tiroirs|741|582|true|0|0|0|0 115 4 1176 741x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 8 - Bas 1 porte|741|282|true|0|0|0|0 31 4 1762 741x282 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 29 - Bas 1 porte|741|582|true|0|0|0|0 122 749 4 741x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 30 - Bas 1 porte|741|582|true|0|0|0|0 126 749 590 741x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 41 - Bas 1 porte|741|582|true|0|0|0|0 168 749 1176 741x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 13 - Bas 1 porte|741|282|true|0|0|0|0 48 749 1762 741x282 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 18 - Haut 1 porte|782|582|true|0|0|0|0 72 1494 4 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 19 - Haut 1 porte|782|582|true|0|0|0|0 76 1494 590 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 20 - Haut 1 porte|782|582|true|0|0|0|0 80 1494 1176 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 34 - Haut 1 porte|782|282|true|0|0|0|0 143 1494 1762 782x282 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 25 - Bas 1 porte|741|482|true|0|0|0|0 100 2280 4 482x741 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 47 - Bas 1 porte|741|482|true|0|0|0|0 192 2280 749 482x741 false
+#22 HDF 6 mm 4 17234
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 21 - Haut 1 porte|782|582|true|0|0|0|0 84 4 4 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 33 - Haut 1 porte|782|582|true|0|0|0|0 139 4 590 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 37 - Haut 1 porte|782|582|true|0|0|0|0 152 4 1176 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 40 - Haut 1 porte|782|282|true|0|0|0|0 164 4 1762 782x282 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 38 - Haut 1 porte|782|582|true|0|0|0|0 156 790 4 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 39 - Haut 1 porte|782|582|true|0|0|0|0 160 790 590 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 49 - Haut 1 porte|782|582|true|0|0|0|0 204 790 1176 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 26 - Bas 1 porte|741|282|true|0|0|0|0 104 790 1762 741x282 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 50 - Haut 1 porte|782|582|true|0|0|0|0 208 1576 4 582x782 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 51 - Haut 1 porte|782|582|true|0|0|0|0 212 1576 790 582x782 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 52 - Haut 1 porte|782|582|true|0|0|0|0 216 2162 4 582x782 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 53 - Haut 1 porte|782|582|true|0|0|0|0 220 2162 790 582x782 false
+#23 HDF 6 mm 2 17932
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 36 - Haut pour hotte intégrée|732|582|true|0|0|0|0 148 4 4 582x732 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2182|582|true|0|0|0|0 134 590 4 2182x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 54 - Haut 1 porte|782|582|true|0|0|0|0 224 4 740 582x782 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 42 - Bas 1 porte|741|582|true|0|0|0|0 172 590 590 582x741 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 43 - Bas 1 porte|741|582|true|0|0|0|0 176 1176 590 582x741 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 55 - Haut 1 porte|782|582|true|0|0|0|0 228 1762 590 782x582 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 44 - Bas 1 porte|741|582|true|0|0|0|0 180 590 1335 582x741 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 45 - Bas 1 porte|741|582|true|0|0|0|0 184 1176 1335 582x741 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 46 - Bas 1 porte|741|582|true|0|0|0|0 188 1762 1335 582x741 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 31 - Bas 1 porte|741|282|true|0|0|0|0 130 2348 1335 282x741 false
+== méthode 3
+feuilles 23 refusées 0
+#1 MDF 4 19016
+  MDF|Porte|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|1096|596|true|2|2|0|0 136 4 4 1096x596 false
+  MDF|Porte|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|1096|596|true|2|2|0|0 136 1104 4 1096x596 false
+  MDF|Façade tiroir|Rep. 28 - Bas casserolier et tiroirs|596|371|true|2|2|0|0 116 2204 4 371x596 true
+  MDF|Façade tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|596|206|true|2|2|0|0 109 2579 4 206x596 true
+  MDF|Côté|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2200|582|true|1|0|1|0 132 4 604 2200x582 false
+  MDF|Dessus / dessous|Rep. 1 - Bas 1 porte|582|564|true|0|1|0|1 2 2208 604 564x582 true
+  MDF|Traverse haute|Rep. 14 - Angle bas en L (90°)|864|100|true|1|0|0|0 54 4 1190 864x100 false
+  MDF|Traverse haute|Rep. 14 - Angle bas en L (90°)|864|100|true|1|0|0|0 54 872 1190 864x100 false
+  MDF|Traverse haute|Rep. 48 - Angle bas en L (90°)|864|100|true|1|0|0|0 198 1740 1190 864x100 false
+  MDF|Dos porteur mur 1|Rep. 24 - Angle haut en L (90°)|800|662|true|0|0|0|0 92 4 1294 662x800 true
+  MDF|Dos porteur mur 1|Rep. 57 - Angle haut en L (90°)|800|662|true|0|0|0|0 232 670 1294 662x800 true
+  MDF|Dos porteur mur 2|Rep. 24 - Angle haut en L (90°)|800|644|true|0|0|0|0 93 1336 1294 644x800 true
+  MDF|Dos porteur mur 2|Rep. 57 - Angle haut en L (90°)|800|644|true|0|0|0|0 233 1984 1294 644x800 true
+  MDF|Fileur|Rep. 23 - Fileur d'ajustement haut|800|140|true|2|0|0|0 90 2632 1294 140x800 true
+#2 MDF 5 21088
+  MDF|Porte esclave (pliante, poignée)|Rep. 14 - Angle bas en L (90°)|746|277|true|2|2|0|0 57 4 4 277x746 false
+  MDF|Porte esclave (pliante, poignée)|Rep. 48 - Angle bas en L (90°)|746|277|true|2|2|0|0 201 4 754 277x746 false
+  MDF|Dessus / dessous|Rep. 5 - Bas 1 porte|582|264|true|0|1|0|1 18 4 1504 264x582 false
+  MDF|Côté tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 110 285 4 150x502 false
+  MDF|Côté tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 110 285 510 150x502 false
+  MDF|Avant / arrière tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 111 285 1016 150x502 false
+  MDF|Avant / arrière tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 111 285 1522 150x502 false
+  MDF|Porte|Rep. 15 - Haut 1 porte|796|596|true|2|2|0|0 61 439 4 796x596 true
+  MDF|Porte|Rep. 16 - Haut 1 porte|796|596|true|2|2|0|0 65 439 604 796x596 true
+  MDF|Porte|Rep. 17 - Haut 1 porte|796|596|true|2|2|0|0 69 439 1204 796x596 true
+  MDF|Porte esclave (pliante, poignée)|Rep. 24 - Angle haut en L (90°)|796|287|true|2|2|0|0 97 439 1804 796x287 true
+  MDF|Porte|Rep. 18 - Haut 1 porte|796|596|true|2|2|0|0 73 1239 4 796x596 true
+  MDF|Porte|Rep. 19 - Haut 1 porte|796|596|true|2|2|0|0 77 1239 604 796x596 true
+  MDF|Porte|Rep. 20 - Haut 1 porte|796|596|true|2|2|0|0 81 1239 1204 796x596 true
+  MDF|Porte esclave (pliante, poignée)|Rep. 57 - Angle haut en L (90°)|796|287|true|2|2|0|0 237 1239 1804 796x287 true
+  MDF|Dos porteur mur 1|Rep. 14 - Angle bas en L (90°)|882|750|true|0|0|0|0 51 2039 4 750x882 false
+  MDF|Dos porteur mur 1|Rep. 48 - Angle bas en L (90°)|882|750|true|0|0|0|0 195 2039 890 750x882 false
+  MDF|Porte|Rep. 5 - Bas 1 porte|746|296|true|2|2|0|0 20 2039 1776 746x296 true
+#3 MDF 4 17860
+  MDF|Dos porteur mur 2|Rep. 14 - Angle bas en L (90°)|864|750|true|0|0|0|0 52 4 4 750x864 false
+  MDF|Dos porteur mur 2|Rep. 48 - Angle bas en L (90°)|864|750|true|0|0|0|0 196 4 872 750x864 false
+  MDF|Côté|Rep. 36 - Haut pour hotte intégrée|750|352|true|1|0|1|0 146 4 1740 750x352 true
+  MDF|Côté (flanc)|Rep. 14 - Angle bas en L (90°)|750|580|true|2|2|0|0 50 758 4 580x750 false
+  MDF|Côté (flanc)|Rep. 14 - Angle bas en L (90°)|750|580|true|2|2|0|0 50 758 758 580x750 false
+  MDF|Dessus / dessous|Rep. 1 - Bas 1 porte|582|564|true|0|1|0|1 2 758 1512 564x582 false
+  MDF|Côté (flanc)|Rep. 48 - Angle bas en L (90°)|750|580|true|2|2|0|0 194 1342 4 580x750 false
+  MDF|Côté (flanc)|Rep. 48 - Angle bas en L (90°)|750|580|true|2|2|0|0 194 1342 758 580x750 false
+  MDF|Dessus / dessous|Rep. 2 - Bas 1 porte|582|564|true|0|1|0|1 6 1342 1512 564x582 false
+  MDF|Fond en L (découpe CNC)|Rep. 14 - Angle bas en L (90°)|864|864|true|1|0|0|0 53 1926 4 864x864 true
+  MDF|Fond en L (découpe CNC)|Rep. 48 - Angle bas en L (90°)|864|864|true|1|0|0|0 197 1926 872 864x864 true
+  MDF|Traverse haute|Rep. 48 - Angle bas en L (90°)|864|100|true|1|0|0|0 198 1926 1740 864x100 true
+  MDF|Fileur|Rep. 35 - Fileur d'ajustement haut|800|120|true|2|0|0|0 145 1926 1844 800x120 true
+  MDF|Fileur|Rep. 56 - Fileur d'ajustement haut|800|120|true|2|0|0|0 230 1926 1968 800x120 true
+#4 MDF 4 22112
+  MDF|Côté|Rep. 15 - Haut 1 porte|800|352|true|1|0|1|0 58 4 4 800x352 true
+  MDF|Côté|Rep. 15 - Haut 1 porte|800|352|true|1|0|1|0 58 4 360 800x352 true
+  MDF|Côté|Rep. 16 - Haut 1 porte|800|352|true|1|0|1|0 62 4 716 800x352 true
+  MDF|Côté|Rep. 16 - Haut 1 porte|800|352|true|1|0|1|0 62 4 1072 800x352 true
+  MDF|Côté|Rep. 17 - Haut 1 porte|800|352|true|1|0|1|0 66 4 1428 800x352 true
+  MDF|Porte maître (pliante)|Rep. 24 - Angle haut en L (90°)|796|305|true|2|2|0|0 96 4 1784 796x305 true
+  MDF|Côté|Rep. 17 - Haut 1 porte|800|352|true|1|0|1|0 66 808 4 800x352 true
+  MDF|Côté|Rep. 18 - Haut 1 porte|800|352|true|1|0|1|0 70 808 360 800x352 true
+  MDF|Côté|Rep. 18 - Haut 1 porte|800|352|true|1|0|1|0 70 808 716 800x352 true
+  MDF|Côté|Rep. 19 - Haut 1 porte|800|352|true|1|0|1|0 74 808 1072 800x352 true
+  MDF|Côté|Rep. 19 - Haut 1 porte|800|352|true|1|0|1|0 74 808 1428 800x352 true
+  MDF|Porte maître (pliante)|Rep. 57 - Angle haut en L (90°)|796|305|true|2|2|0|0 236 808 1784 796x305 true
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 1612 4 315x502 false
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 1612 510 315x502 false
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 1612 1016 315x502 false
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 1612 1522 315x502 false
+  MDF|Étagère en L (découpe CNC)|Rep. 14 - Angle bas en L (90°)|862|862|true|1|0|0|0 55 1931 4 862x862 true
+  MDF|Étagère en L (découpe CNC)|Rep. 48 - Angle bas en L (90°)|862|862|true|1|0|0|0 199 1931 870 862x862 true
+  MDF|Côté|Rep. 20 - Haut 1 porte|800|352|true|1|0|1|0 78 1931 1736 800x352 true
+#5 MDF 4 19368
+  MDF|Côté|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2200|582|true|1|0|1|0 132 4 4 2200x582 false
+  MDF|Dessus / dessous|Rep. 2 - Bas 1 porte|582|564|true|0|1|0|1 6 2208 4 564x582 true
+  MDF|Porte|Rep. 21 - Haut 1 porte|796|596|true|2|2|0|0 85 4 590 796x596 false
+  MDF|Porte|Rep. 33 - Haut 1 porte|796|596|true|2|2|0|0 140 804 590 796x596 false
+  MDF|Porte|Rep. 37 - Haut 1 porte|796|596|true|2|2|0|0 153 1604 590 796x596 false
+  MDF|Façade tiroir|Rep. 28 - Bas casserolier et tiroirs|596|371|true|2|2|0|0 116 2404 590 371x596 true
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 4 1190 502x315 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 510 1190 502x315 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 1016 1190 502x315 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 1522 1190 502x315 false
+  MDF|Porte|Rep. 8 - Bas 1 porte|746|296|true|2|2|0|0 32 2028 1190 746x296 false
+  MDF|Dessus / dessous|Rep. 9 - Bas sous-évier|764|582|true|1|0|1|0 34 4 1509 764x582 false
+  MDF|Dessus / dessous|Rep. 9 - Bas sous-évier|764|582|true|1|0|1|0 34 772 1509 764x582 false
+  MDF|Côté|Rep. 1 - Bas 1 porte|750|582|true|1|0|1|0 1 1540 1509 750x582 false
+  MDF|Dessus / dessous|Rep. 7 - Bas 1 porte|582|464|true|0|1|0|1 26 2294 1509 464x582 true
+#6 MDF 4 21460
+  MDF|Côté|Rep. 1 - Bas 1 porte|750|582|true|1|0|1|0 1 4 4 582x750 false
+  MDF|Côté|Rep. 2 - Bas 1 porte|750|582|true|1|0|1|0 5 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 3 - Bas 1 porte|582|564|true|0|1|0|1 10 4 1512 582x564 true
+  MDF|Côté|Rep. 2 - Bas 1 porte|750|582|true|1|0|1|0 5 590 4 582x750 false
+  MDF|Côté|Rep. 3 - Bas 1 porte|750|582|true|1|0|1|0 9 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 3 - Bas 1 porte|582|564|true|0|1|0|1 10 590 1512 582x564 true
+  MDF|Côté|Rep. 20 - Haut 1 porte|800|352|true|1|0|1|0 78 1176 4 800x352 true
+  MDF|Côté|Rep. 21 - Haut 1 porte|800|352|true|1|0|1|0 82 1176 360 800x352 true
+  MDF|Côté|Rep. 21 - Haut 1 porte|800|352|true|1|0|1|0 82 1176 716 800x352 true
+  MDF|Côté|Rep. 22 - Haut 1 porte|800|352|true|1|0|1|0 86 1176 1072 800x352 true
+  MDF|Côté|Rep. 22 - Haut 1 porte|800|352|true|1|0|1|0 86 1176 1428 800x352 true
+  MDF|Porte|Rep. 22 - Haut 1 porte|796|296|true|2|2|0|0 89 1176 1784 796x296 true
+  MDF|Côté|Rep. 33 - Haut 1 porte|800|352|true|1|0|1|0 137 1980 4 800x352 true
+  MDF|Côté|Rep. 33 - Haut 1 porte|800|352|true|1|0|1|0 137 1980 360 800x352 true
+  MDF|Côté|Rep. 34 - Haut 1 porte|800|352|true|1|0|1|0 141 1980 716 800x352 true
+  MDF|Côté|Rep. 34 - Haut 1 porte|800|352|true|1|0|1|0 141 1980 1072 800x352 true
+  MDF|Côté|Rep. 37 - Haut 1 porte|800|352|true|1|0|1|0 150 1980 1428 800x352 true
+  MDF|Porte|Rep. 34 - Haut 1 porte|796|296|true|2|2|0|0 144 1980 1784 796x296 true
+#7 MDF 5 22754
+  MDF|Côté|Rep. 3 - Bas 1 porte|750|582|true|1|0|1|0 9 4 4 582x750 false
+  MDF|Côté|Rep. 4 - Bas 1 porte|750|582|true|1|0|1|0 13 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 4 - Bas 1 porte|582|564|true|0|1|0|1 14 4 1512 582x564 true
+  MDF|Côté|Rep. 37 - Haut 1 porte|800|352|true|1|0|1|0 150 590 4 800x352 true
+  MDF|Côté|Rep. 38 - Haut 1 porte|800|352|true|1|0|1|0 154 590 360 800x352 true
+  MDF|Côté|Rep. 38 - Haut 1 porte|800|352|true|1|0|1|0 154 590 716 800x352 true
+  MDF|Côté|Rep. 39 - Haut 1 porte|800|352|true|1|0|1|0 158 590 1072 800x352 true
+  MDF|Côté|Rep. 39 - Haut 1 porte|800|352|true|1|0|1|0 158 590 1428 800x352 true
+  MDF|Porte|Rep. 40 - Haut 1 porte|796|296|true|2|2|0|0 165 590 1784 796x296 true
+  MDF|Porte|Rep. 13 - Bas 1 porte|746|296|true|2|2|0|0 49 1394 4 296x746 false
+  MDF|Porte|Rep. 26 - Bas 1 porte|746|296|true|2|2|0|0 105 1394 754 296x746 false
+  MDF|Dessus / dessous|Rep. 5 - Bas 1 porte|582|264|true|0|1|0|1 18 1394 1504 264x582 false
+  MDF|Porte|Rep. 7 - Bas 1 porte|746|496|true|2|2|0|0 28 1694 4 496x746 false
+  MDF|Porte|Rep. 12 - Bas 1 porte|746|496|true|2|2|0|0 45 1694 754 496x746 false
+  MDF|Dessus / dessous|Rep. 7 - Bas 1 porte|582|464|true|0|1|0|1 26 1694 1504 464x582 false
+  MDF|Porte|Rep. 38 - Haut 1 porte|796|596|true|2|2|0|0 157 2194 4 596x796 false
+  MDF|Porte|Rep. 39 - Haut 1 porte|796|596|true|2|2|0|0 161 2194 804 596x796 false
+  MDF|Dessus / dessous|Rep. 12 - Bas 1 porte|582|464|true|0|1|0|1 43 2194 1604 582x464 true
+#8 MDF 5 20698
+  MDF|Côté|Rep. 13 - Bas 1 porte|750|582|true|1|0|1|0 46 4 4 582x750 false
+  MDF|Porte|Rep. 49 - Haut 1 porte|796|596|true|2|2|0|0 205 590 4 596x796 false
+  MDF|Porte|Rep. 50 - Haut 1 porte|796|596|true|2|2|0|0 209 590 804 596x796 false
+  MDF|Porte|Rep. 51 - Haut 1 porte|796|596|true|2|2|0|0 213 1190 4 596x796 false
+  MDF|Porte|Rep. 52 - Haut 1 porte|796|596|true|2|2|0|0 217 1190 804 596x796 false
+  MDF|Porte|Rep. 53 - Haut 1 porte|796|596|true|2|2|0|0 221 1790 4 596x796 false
+  MDF|Porte|Rep. 54 - Haut 1 porte|796|596|true|2|2|0|0 225 1790 804 596x796 false
+  MDF|Côté|Rep. 4 - Bas 1 porte|750|582|true|1|0|1|0 13 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 4 - Bas 1 porte|582|564|true|0|1|0|1 14 4 1512 582x564 true
+  MDF|Porte (x2)|Rep. 9 - Bas sous-évier|746|396|true|2|2|0|0 36 2390 4 396x746 false
+  MDF|Porte (x2)|Rep. 9 - Bas sous-évier|746|396|true|2|2|0|0 36 2390 754 396x746 false
+  MDF|Dessus / dessous|Rep. 12 - Bas 1 porte|582|464|true|0|1|0|1 43 590 1604 582x464 true
+  MDF|Dessus / dessous|Rep. 25 - Bas 1 porte|582|464|true|0|1|0|1 99 1190 1604 582x464 true
+  MDF|Dessus / dessous|Rep. 25 - Bas 1 porte|582|464|true|0|1|0|1 99 1790 1604 582x464 true
+  MDF|Dessus / dessous|Rep. 15 - Haut 1 porte|564|352|true|1|0|1|0 59 2390 1504 352x564 false
+#9 MDF 5 22504
+  MDF|Côté|Rep. 5 - Bas 1 porte|750|582|true|1|0|1|0 17 4 4 582x750 false
+  MDF|Côté|Rep. 5 - Bas 1 porte|750|582|true|1|0|1|0 17 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 6 - Bas 1 porte|582|564|true|0|1|0|1 22 4 1512 582x564 true
+  MDF|Côté|Rep. 6 - Bas 1 porte|750|582|true|1|0|1|0 21 590 4 582x750 false
+  MDF|Côté|Rep. 6 - Bas 1 porte|750|582|true|1|0|1|0 21 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 6 - Bas 1 porte|582|564|true|0|1|0|1 22 590 1512 582x564 true
+  MDF|Porte maître (pliante)|Rep. 14 - Angle bas en L (90°)|746|295|true|2|2|0|0 56 1176 4 295x746 false
+  MDF|Porte maître (pliante)|Rep. 48 - Angle bas en L (90°)|746|295|true|2|2|0|0 200 1176 754 295x746 false
+  MDF|Dessus / dessous|Rep. 8 - Bas 1 porte|582|264|true|0|1|0|1 30 1176 1504 264x582 false
+  MDF|Porte|Rep. 25 - Bas 1 porte|746|496|true|2|2|0|0 101 1475 4 496x746 false
+  MDF|Porte|Rep. 47 - Bas 1 porte|746|496|true|2|2|0|0 193 1475 754 496x746 false
+  MDF|Dessus / dessous|Rep. 47 - Bas 1 porte|582|464|true|0|1|0|1 191 1475 1504 464x582 false
+  MDF|Côté|Rep. 40 - Haut 1 porte|800|352|true|1|0|1|0 162 1975 4 800x352 true
+  MDF|Côté|Rep. 40 - Haut 1 porte|800|352|true|1|0|1|0 162 1975 360 800x352 true
+  MDF|Côté|Rep. 49 - Haut 1 porte|800|352|true|1|0|1|0 202 1975 716 800x352 true
+  MDF|Côté|Rep. 49 - Haut 1 porte|800|352|true|1|0|1|0 202 1975 1072 800x352 true
+  MDF|Côté|Rep. 50 - Haut 1 porte|800|352|true|1|0|1|0 206 1975 1428 800x352 true
+  MDF|Porte|Rep. 31 - Bas 1 porte|746|296|true|2|2|0|0 131 1975 1784 746x296 true
+#10 MDF 5 20042
+  MDF|Côté|Rep. 7 - Bas 1 porte|750|582|true|1|0|1|0 25 4 4 582x750 false
+  MDF|Côté|Rep. 7 - Bas 1 porte|750|582|true|1|0|1|0 25 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 11 - Bas 1 porte|582|564|true|0|1|0|1 39 4 1512 582x564 true
+  MDF|Étagère en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|642|642|true|1|0|0|0 95 590 4 642x642 true
+  MDF|Étagère en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|642|642|true|1|0|0|0 235 590 650 642x642 true
+  MDF|Porte|Rep. 55 - Haut 1 porte|796|596|true|2|2|0|0 229 590 1296 596x796 false
+  MDF|Porte|Rep. 1 - Bas 1 porte|746|596|true|2|2|0|0 4 1236 4 596x746 false
+  MDF|Porte|Rep. 2 - Bas 1 porte|746|596|true|2|2|0|0 8 1236 754 596x746 false
+  MDF|Dessus / dessous|Rep. 11 - Bas 1 porte|582|564|true|0|1|0|1 39 1236 1504 564x582 false
+  MDF|Porte|Rep. 3 - Bas 1 porte|746|596|true|2|2|0|0 12 1836 4 596x746 false
+  MDF|Porte|Rep. 4 - Bas 1 porte|746|596|true|2|2|0|0 16 1836 754 596x746 false
+  MDF|Dessus / dessous|Rep. 27 - Bas pour four encastré et table de cuisson|582|564|true|0|1|0|1 107 1836 1504 564x582 false
+  MDF|Côté|Rep. 50 - Haut 1 porte|800|352|true|1|0|1|0 206 2436 4 352x800 false
+  MDF|Côté|Rep. 51 - Haut 1 porte|800|352|true|1|0|1|0 210 2436 808 352x800 false
+  MDF|Dessus / dessous|Rep. 22 - Haut 1 porte|352|264|true|0|1|0|1 87 2436 1612 352x264 true
+#11 MDF 5 20400
+  MDF|Côté|Rep. 8 - Bas 1 porte|750|582|true|1|0|1|0 29 4 4 582x750 false
+  MDF|Côté|Rep. 8 - Bas 1 porte|750|582|true|1|0|1|0 29 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 27 - Bas pour four encastré et table de cuisson|582|564|true|0|1|0|1 107 4 1512 582x564 true
+  MDF|Côté|Rep. 9 - Bas sous-évier|750|582|true|1|0|1|0 33 590 4 582x750 false
+  MDF|Côté|Rep. 9 - Bas sous-évier|750|582|true|1|0|1|0 33 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 28 - Bas casserolier et tiroirs|582|564|true|0|1|0|1 114 590 1512 582x564 true
+  MDF|Côté|Rep. 11 - Bas 1 porte|750|582|true|1|0|1|0 38 1176 4 582x750 false
+  MDF|Côté|Rep. 11 - Bas 1 porte|750|582|true|1|0|1|0 38 1176 758 582x750 false
+  MDF|Dessus / dessous|Rep. 28 - Bas casserolier et tiroirs|582|564|true|0|1|0|1 114 1176 1512 582x564 true
+  MDF|Fond tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|466|true|0|0|0|0 112 1762 4 466x502 false
+  MDF|Fond tiroir|Rep. 28 - Bas casserolier et tiroirs|502|466|true|0|0|0|0 119 1762 510 466x502 false
+  MDF|Fond tiroir|Rep. 28 - Bas casserolier et tiroirs|502|466|true|0|0|0|0 119 1762 1016 466x502 false
+  MDF|Dessus / dessous|Rep. 15 - Haut 1 porte|564|352|true|1|0|1|0 59 1762 1522 352x564 false
+  MDF|Dessus / dessous|Rep. 29 - Bas 1 porte|582|564|true|0|1|0|1 121 2232 4 564x582 false
+  MDF|Dessus / dessous|Rep. 29 - Bas 1 porte|582|564|true|0|1|0|1 121 2232 590 564x582 false
+  MDF|Dessus / dessous|Rep. 30 - Bas 1 porte|582|564|true|0|1|0|1 125 2232 1176 564x582 false
+  MDF|Dessus / dessous|Rep. 22 - Haut 1 porte|352|264|true|0|1|0|1 87 2232 1762 352x264 true
+#12 MDF 5 20204
+  MDF|Côté|Rep. 12 - Bas 1 porte|750|582|true|1|0|1|0 42 4 4 582x750 false
+  MDF|Côté|Rep. 12 - Bas 1 porte|750|582|true|1|0|1|0 42 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 30 - Bas 1 porte|582|564|true|0|1|0|1 125 4 1512 582x564 true
+  MDF|Côté|Rep. 13 - Bas 1 porte|750|582|true|1|0|1|0 46 590 4 582x750 false
+  MDF|Côté|Rep. 25 - Bas 1 porte|750|582|true|1|0|1|0 98 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|582|564|true|0|1|0|1 133 590 1512 582x564 true
+  MDF|Porte|Rep. 6 - Bas 1 porte|746|596|true|2|2|0|0 24 1176 4 596x746 false
+  MDF|Porte|Rep. 10 - Façade lave-vaisselle tout intégrable|746|596|true|2|2|0|0 37 1176 754 596x746 false
+  MDF|Dessus / dessous|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|582|564|true|0|1|0|1 133 1176 1504 564x582 false
+  MDF|Porte|Rep. 11 - Bas 1 porte|746|596|true|2|2|0|0 41 1776 4 746x596 true
+  MDF|Porte|Rep. 29 - Bas 1 porte|746|596|true|2|2|0|0 123 1776 604 746x596 true
+  MDF|Porte|Rep. 30 - Bas 1 porte|746|596|true|2|2|0|0 127 1776 1204 746x596 true
+  MDF|Dessus / dessous|Rep. 8 - Bas 1 porte|582|264|true|0|1|0|1 30 1776 1804 582x264 true
+  MDF|Dessus / dessous|Rep. 13 - Bas 1 porte|582|264|true|0|1|0|1 47 2526 4 264x582 false
+  MDF|Dessus / dessous|Rep. 13 - Bas 1 porte|582|264|true|0|1|0|1 47 2526 590 264x582 false
+  MDF|Dessus / dessous|Rep. 26 - Bas 1 porte|582|264|true|0|1|0|1 103 2526 1176 264x582 false
+#13 MDF 5 20468
+  MDF|Côté|Rep. 25 - Bas 1 porte|750|582|true|1|0|1|0 98 4 4 582x750 false
+  MDF|Côté|Rep. 26 - Bas 1 porte|750|582|true|1|0|1|0 102 4 758 582x750 false
+  MDF|Dessus / dessous|Rep. 41 - Bas 1 porte|582|564|true|0|1|0|1 167 4 1512 582x564 true
+  MDF|Côté|Rep. 26 - Bas 1 porte|750|582|true|1|0|1|0 102 590 4 582x750 false
+  MDF|Côté|Rep. 27 - Bas pour four encastré et table de cuisson|750|582|true|1|0|1|0 106 590 758 582x750 false
+  MDF|Dessus / dessous|Rep. 41 - Bas 1 porte|582|564|true|0|1|0|1 167 590 1512 582x564 true
+  MDF|Porte|Rep. 41 - Bas 1 porte|746|596|true|2|2|0|0 169 1176 4 596x746 false
+  MDF|Porte|Rep. 42 - Bas 1 porte|746|596|true|2|2|0|0 173 1176 754 596x746 false
+  MDF|Dessus / dessous|Rep. 42 - Bas 1 porte|582|564|true|0|1|0|1 171 1176 1504 564x582 false
+  MDF|Porte|Rep. 43 - Bas 1 porte|746|596|true|2|2|0|0 177 1776 4 746x596 true
+  MDF|Porte|Rep. 44 - Bas 1 porte|746|596|true|2|2|0|0 181 1776 604 746x596 true
+  MDF|Porte|Rep. 45 - Bas 1 porte|746|596|true|2|2|0|0 185 1776 1204 746x596 true
+  MDF|Dessus / dessous|Rep. 26 - Bas 1 porte|582|264|true|0|1|0|1 103 1776 1804 582x264 true
+  MDF|Dessus / dessous|Rep. 31 - Bas 1 porte|582|264|true|0|1|0|1 129 2526 4 264x582 false
+  MDF|Dessus / dessous|Rep. 31 - Bas 1 porte|582|264|true|0|1|0|1 129 2526 590 264x582 false
+  MDF|Dessus / dessous|Rep. 34 - Haut 1 porte|352|264|true|0|1|0|1 142 2526 1176 264x352 false
+  MDF|Dessus / dessous|Rep. 34 - Haut 1 porte|352|264|true|0|1|0|1 142 2526 1532 264x352 false
+#14 MDF 4 20544
+  MDF|Côté|Rep. 51 - Haut 1 porte|800|352|true|1|0|1|0 210 4 4 800x352 false
+  MDF|Côté|Rep. 52 - Haut 1 porte|800|352|true|1|0|1|0 214 808 4 800x352 false
+  MDF|Côté|Rep. 52 - Haut 1 porte|800|352|true|1|0|1|0 214 1612 4 800x352 false
+  MDF|Dessus / dessous|Rep. 40 - Haut 1 porte|352|264|true|0|1|0|1 163 2416 4 264x352 true
+  MDF|Côté|Rep. 27 - Bas pour four encastré et table de cuisson|750|582|true|1|0|1|0 106 4 360 750x582 false
+  MDF|Côté|Rep. 28 - Bas casserolier et tiroirs|750|582|true|1|0|1|0 113 758 360 750x582 false
+  MDF|Côté|Rep. 28 - Bas casserolier et tiroirs|750|582|true|1|0|1|0 113 1512 360 750x582 false
+  MDF|Dessus / dessous|Rep. 47 - Bas 1 porte|582|464|true|0|1|0|1 191 2266 360 464x582 true
+  MDF|Dessus / dessous|Rep. 42 - Bas 1 porte|582|564|true|0|1|0|1 171 4 946 582x564 false
+  MDF|Dessus / dessous|Rep. 43 - Bas 1 porte|582|564|true|0|1|0|1 175 590 946 582x564 false
+  MDF|Dessus / dessous|Rep. 43 - Bas 1 porte|582|564|true|0|1|0|1 175 1176 946 582x564 false
+  MDF|Dessus / dessous|Rep. 44 - Bas 1 porte|582|564|true|0|1|0|1 179 1762 946 582x564 false
+  MDF|Dessus / dessous|Rep. 16 - Haut 1 porte|564|352|true|1|0|1|0 63 2348 946 352x564 true
+  MDF|Dessus / dessous|Rep. 44 - Bas 1 porte|582|564|true|0|1|0|1 179 4 1514 582x564 false
+  MDF|Dessus / dessous|Rep. 45 - Bas 1 porte|582|564|true|0|1|0|1 183 590 1514 582x564 false
+  MDF|Dessus / dessous|Rep. 45 - Bas 1 porte|582|564|true|0|1|0|1 183 1176 1514 582x564 false
+  MDF|Dessus / dessous|Rep. 46 - Bas 1 porte|582|564|true|0|1|0|1 187 1762 1514 582x564 false
+  MDF|Dessus / dessous|Rep. 16 - Haut 1 porte|564|352|true|1|0|1|0 63 2348 1514 352x564 true
+#15 MDF 5 20588
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|644|644|true|1|0|0|0 94 4 4 644x644 true
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|644|644|true|1|0|0|0 234 4 652 644x644 true
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|644|644|true|1|0|0|0 234 4 1300 644x644 true
+  MDF|Porte|Rep. 46 - Bas 1 porte|746|596|true|2|2|0|0 189 652 4 596x746 false
+  MDF|Porte|Rep. 36 - Haut pour hotte intégrée|596|596|true|2|2|0|0 149 652 754 596x596 true
+  MDF|Côté|Rep. 29 - Bas 1 porte|750|582|true|1|0|1|0 120 1252 4 582x750 false
+  MDF|Côté|Rep. 29 - Bas 1 porte|750|582|true|1|0|1|0 120 1252 758 582x750 false
+  MDF|Côté|Rep. 30 - Bas 1 porte|750|582|true|1|0|1|0 124 1838 4 582x750 false
+  MDF|Côté|Rep. 31 - Bas 1 porte|750|582|true|1|0|1|0 128 1838 758 582x750 false
+  MDF|Dessus / dessous|Rep. 46 - Bas 1 porte|582|564|true|0|1|0|1 187 1252 1512 582x564 true
+  MDF|Côté|Rep. 53 - Haut 1 porte|800|352|true|1|0|1|0 218 2424 4 352x800 false
+  MDF|Tablette fixe médiane|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|564|560|true|1|0|0|0 135 1838 1512 564x560 true
+  MDF|Côté|Rep. 53 - Haut 1 porte|800|352|true|1|0|1|0 218 2424 808 352x800 false
+  MDF|Dessus / dessous|Rep. 17 - Haut 1 porte|564|352|true|1|0|1|0 67 652 1354 564x352 true
+  MDF|Dessus / dessous|Rep. 18 - Haut 1 porte|564|352|true|1|0|1|0 71 652 1710 564x352 true
+  MDF|Dessus / dessous|Rep. 40 - Haut 1 porte|352|264|true|0|1|0|1 163 2424 1612 352x264 true
+#16 MDF 3 18818
+  MDF|Côté|Rep. 30 - Bas 1 porte|750|582|true|1|0|1|0 124 4 4 582x750 true
+  MDF|Côté|Rep. 31 - Bas 1 porte|750|582|true|1|0|1|0 128 590 4 582x750 true
+  MDF|Côté|Rep. 41 - Bas 1 porte|750|582|true|1|0|1|0 166 1176 4 582x750 true
+  MDF|Côté|Rep. 41 - Bas 1 porte|750|582|true|1|0|1|0 166 1762 4 582x750 true
+  MDF|Côté|Rep. 42 - Bas 1 porte|750|582|true|1|0|1|0 170 4 758 582x750 true
+  MDF|Côté|Rep. 42 - Bas 1 porte|750|582|true|1|0|1|0 170 590 758 582x750 true
+  MDF|Côté|Rep. 43 - Bas 1 porte|750|582|true|1|0|1|0 174 1176 758 582x750 true
+  MDF|Côté|Rep. 43 - Bas 1 porte|750|582|true|1|0|1|0 174 1762 758 582x750 true
+  MDF|Côté|Rep. 44 - Bas 1 porte|750|582|true|1|0|1|0 178 4 1512 750x582 false
+  MDF|Côté|Rep. 44 - Bas 1 porte|750|582|true|1|0|1|0 178 758 1512 750x582 false
+  MDF|Côté|Rep. 45 - Bas 1 porte|750|582|true|1|0|1|0 182 1512 1512 750x582 false
+  MDF|Côté|Rep. 36 - Haut pour hotte intégrée|750|352|true|1|0|1|0 146 2348 4 352x750 true
+  MDF|Dessus / dessous|Rep. 17 - Haut 1 porte|564|352|true|1|0|1|0 67 2266 1512 352x564 true
+  MDF|Dessus / dessous|Rep. 18 - Haut 1 porte|564|352|true|1|0|1|0 71 2348 758 352x564 true
+#17 MDF 3 23104
+  MDF|Côté|Rep. 45 - Bas 1 porte|750|582|true|1|0|1|0 182 4 4 582x750 true
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|644|644|true|1|0|0|0 94 590 4 644x644 false
+  MDF|Côté|Rep. 46 - Bas 1 porte|750|582|true|1|0|1|0 186 1238 4 582x750 true
+  MDF|Côté|Rep. 46 - Bas 1 porte|750|582|true|1|0|1|0 186 1824 4 582x750 true
+  MDF|Côté|Rep. 47 - Bas 1 porte|750|582|true|1|0|1|0 190 4 758 582x750 true
+  MDF|Côté|Rep. 47 - Bas 1 porte|750|582|true|1|0|1|0 190 590 758 582x750 true
+  MDF|Côté|Rep. 54 - Haut 1 porte|800|352|true|1|0|1|0 222 1176 758 800x352 false
+  MDF|Côté|Rep. 54 - Haut 1 porte|800|352|true|1|0|1|0 222 1980 758 800x352 false
+  MDF|Côté|Rep. 55 - Haut 1 porte|800|352|true|1|0|1|0 226 1176 1114 800x352 false
+  MDF|Côté|Rep. 55 - Haut 1 porte|800|352|true|1|0|1|0 226 1980 1114 800x352 false
+  MDF|Dessus / dessous|Rep. 19 - Haut 1 porte|564|352|true|1|0|1|0 75 2410 4 352x564 true
+  MDF|Dessus / dessous|Rep. 19 - Haut 1 porte|564|352|true|1|0|1|0 75 4 1512 352x564 true
+  MDF|Dessus / dessous|Rep. 20 - Haut 1 porte|564|352|true|1|0|1|0 79 360 1512 352x564 true
+  MDF|Dessus / dessous|Rep. 20 - Haut 1 porte|564|352|true|1|0|1|0 79 716 1512 352x564 true
+  MDF|Dessus / dessous|Rep. 21 - Haut 1 porte|564|352|true|1|0|1|0 83 1072 1512 352x564 true
+  MDF|Dessus / dessous|Rep. 21 - Haut 1 porte|564|352|true|1|0|1|0 83 1428 1512 352x564 true
+  MDF|Dessus / dessous|Rep. 33 - Haut 1 porte|564|352|true|1|0|1|0 138 1784 1512 352x564 true
+  MDF|Dessus / dessous|Rep. 33 - Haut 1 porte|564|352|true|1|0|1|0 138 2140 1512 352x564 true
+#18 MDF 4 24062
+  MDF|Dessus / dessous|Rep. 36 - Haut pour hotte intégrée|564|352|true|1|0|1|0 147 4 4 352x564 true
+  MDF|Dessus / dessous|Rep. 36 - Haut pour hotte intégrée|564|352|true|1|0|1|0 147 360 4 352x564 true
+  MDF|Dessus / dessous|Rep. 37 - Haut 1 porte|564|352|true|1|0|1|0 151 716 4 352x564 true
+  MDF|Dessus / dessous|Rep. 37 - Haut 1 porte|564|352|true|1|0|1|0 151 1072 4 352x564 true
+  MDF|Dessus / dessous|Rep. 38 - Haut 1 porte|564|352|true|1|0|1|0 155 1428 4 352x564 true
+  MDF|Dessus / dessous|Rep. 39 - Haut 1 porte|564|352|true|1|0|1|0 159 1784 4 352x564 true
+  MDF|Dessus / dessous|Rep. 38 - Haut 1 porte|564|352|true|1|0|1|0 155 2140 4 352x564 true
+  MDF|Dessus / dessous|Rep. 39 - Haut 1 porte|564|352|true|1|0|1|0 159 4 572 352x564 true
+  MDF|Dessus / dessous|Rep. 49 - Haut 1 porte|564|352|true|1|0|1|0 203 360 572 352x564 true
+  MDF|Dessus / dessous|Rep. 50 - Haut 1 porte|564|352|true|1|0|1|0 207 716 572 352x564 true
+  MDF|Dessus / dessous|Rep. 50 - Haut 1 porte|564|352|true|1|0|1|0 207 1072 572 352x564 true
+  MDF|Dessus / dessous|Rep. 51 - Haut 1 porte|564|352|true|1|0|1|0 211 1428 572 352x564 true
+  MDF|Dessus / dessous|Rep. 51 - Haut 1 porte|564|352|true|1|0|1|0 211 1784 572 352x564 true
+  MDF|Dessus / dessous|Rep. 52 - Haut 1 porte|564|352|true|1|0|1|0 215 2140 572 352x564 true
+  MDF|Dessus / dessous|Rep. 49 - Haut 1 porte|564|352|true|1|0|1|0 203 4 1140 352x564 true
+  MDF|Dessus / dessous|Rep. 53 - Haut 1 porte|564|352|true|1|0|1|0 219 360 1140 352x564 true
+  MDF|Dessus / dessous|Rep. 53 - Haut 1 porte|564|352|true|1|0|1|0 219 716 1140 352x564 true
+  MDF|Dessus / dessous|Rep. 54 - Haut 1 porte|564|352|true|1|0|1|0 223 1072 1140 352x564 true
+  MDF|Dessus / dessous|Rep. 54 - Haut 1 porte|564|352|true|1|0|1|0 223 1428 1140 352x564 true
+  MDF|Dessus / dessous|Rep. 55 - Haut 1 porte|564|352|true|1|0|1|0 227 1784 1140 352x564 true
+  MDF|Dessus / dessous|Rep. 55 - Haut 1 porte|564|352|true|1|0|1|0 227 2140 1140 352x564 true
+  MDF|Côté (flanc)|Rep. 24 - Angle haut en L (90°)|800|350|true|2|2|0|0 91 4 1708 800x350 false
+  MDF|Côté (flanc)|Rep. 24 - Angle haut en L (90°)|800|350|true|2|2|0|0 91 808 1708 800x350 false
+  MDF|Côté (flanc)|Rep. 57 - Angle haut en L (90°)|800|350|true|2|2|0|0 231 1612 1708 800x350 false
+#19 MDF 1 2796
+  MDF|Dessus / dessous|Rep. 52 - Haut 1 porte|564|352|true|1|0|1|0 215 4 4 352x564 false
+  MDF|Côté (flanc)|Rep. 57 - Angle haut en L (90°)|800|350|true|2|2|0|0 231 4 572 350x800 false
+#20 HDF 6 mm 3 17642
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 9 - Bas sous-évier|782|741|true|0|0|0|0 35 4 4 741x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 15 - Haut 1 porte|782|582|true|0|0|0|0 60 749 4 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 16 - Haut 1 porte|782|582|true|0|0|0|0 64 1335 4 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 17 - Haut 1 porte|782|582|true|0|0|0|0 68 1921 4 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 22 - Haut 1 porte|782|282|true|0|0|0|0 88 2507 4 282x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 18 - Haut 1 porte|782|582|true|0|0|0|0 72 4 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 19 - Haut 1 porte|782|582|true|0|0|0|0 76 590 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 20 - Haut 1 porte|782|582|true|0|0|0|0 80 1176 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 21 - Haut 1 porte|782|582|true|0|0|0|0 84 1762 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 34 - Haut 1 porte|782|282|true|0|0|0|0 143 2348 790 282x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 7 - Bas 1 porte|741|482|true|0|0|0|0 27 4 1576 741x482 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 12 - Bas 1 porte|741|482|true|0|0|0|0 44 749 1576 741x482 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 25 - Bas 1 porte|741|482|true|0|0|0|0 100 1494 1576 741x482 false
+#21 HDF 6 mm 3 16368
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 1 - Bas 1 porte|741|582|true|0|0|0|0 3 4 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 2 - Bas 1 porte|741|582|true|0|0|0|0 7 590 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 3 - Bas 1 porte|741|582|true|0|0|0|0 11 1176 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 4 - Bas 1 porte|741|582|true|0|0|0|0 15 1762 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 5 - Bas 1 porte|741|282|true|0|0|0|0 19 2348 4 282x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 6 - Bas 1 porte|741|582|true|0|0|0|0 23 4 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 11 - Bas 1 porte|741|582|true|0|0|0|0 40 590 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 27 - Bas pour four encastré et table de cuisson|741|582|true|0|0|0|0 108 1176 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 28 - Bas casserolier et tiroirs|741|582|true|0|0|0|0 115 1762 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 8 - Bas 1 porte|741|282|true|0|0|0|0 31 2348 749 282x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2182|582|true|0|0|0|0 134 4 1494 2182x582 false
+#22 HDF 6 mm 3 17532
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 29 - Bas 1 porte|741|582|true|0|0|0|0 122 4 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 30 - Bas 1 porte|741|582|true|0|0|0|0 126 590 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 41 - Bas 1 porte|741|582|true|0|0|0|0 168 1176 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 42 - Bas 1 porte|741|582|true|0|0|0|0 172 1762 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 13 - Bas 1 porte|741|282|true|0|0|0|0 48 2348 4 282x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 43 - Bas 1 porte|741|582|true|0|0|0|0 176 4 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 44 - Bas 1 porte|741|582|true|0|0|0|0 180 590 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 45 - Bas 1 porte|741|582|true|0|0|0|0 184 1176 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 46 - Bas 1 porte|741|582|true|0|0|0|0 188 1762 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 26 - Bas 1 porte|741|282|true|0|0|0|0 104 2348 749 282x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 33 - Haut 1 porte|782|582|true|0|0|0|0 139 4 1494 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 37 - Haut 1 porte|782|582|true|0|0|0|0 152 790 1494 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 38 - Haut 1 porte|782|582|true|0|0|0|0 156 1576 1494 782x582 false
+#23 HDF 6 mm 3 17838
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 39 - Haut 1 porte|782|582|true|0|0|0|0 160 4 4 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 49 - Haut 1 porte|782|582|true|0|0|0|0 204 790 4 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 50 - Haut 1 porte|782|582|true|0|0|0|0 208 1576 4 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 51 - Haut 1 porte|782|582|true|0|0|0|0 212 4 590 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 52 - Haut 1 porte|782|582|true|0|0|0|0 216 790 590 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 53 - Haut 1 porte|782|582|true|0|0|0|0 220 1576 590 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 54 - Haut 1 porte|782|582|true|0|0|0|0 224 4 1176 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 55 - Haut 1 porte|782|582|true|0|0|0|0 228 590 1176 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 40 - Haut 1 porte|782|282|true|0|0|0|0 164 1176 1176 282x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 36 - Haut pour hotte intégrée|732|582|true|0|0|0|0 148 1462 1176 582x732 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 47 - Bas 1 porte|741|482|true|0|0|0|0 192 2048 1176 741x482 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 31 - Bas 1 porte|741|282|true|0|0|0|0 130 2048 1662 741x282 false
+== cnc
+feuilles 25 refusées 0
+#1 MDF 0 0
+  MDF|Côté|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2200|582|true|1|0|1|0 132 4 4 2200x582 false
+  MDF|Côté|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2200|582|true|1|0|1|0 132 4 590 2200x582 false
+  MDF|Fond en L (découpe CNC)|Rep. 14 - Angle bas en L (90°)|864|864|true|1|0|0|0 53 4 1176 864x864 false
+  MDF|Fond en L (découpe CNC)|Rep. 48 - Angle bas en L (90°)|864|864|true|1|0|0|0 197 872 1176 864x864 false
+  MDF|Étagère en L (découpe CNC)|Rep. 14 - Angle bas en L (90°)|862|862|true|1|0|0|0 55 1740 1176 862x862 false
+  MDF|Dessus / dessous|Rep. 1 - Bas 1 porte|582|564|true|0|1|0|1 2 2208 4 564x582 true
+  MDF|Dessus / dessous|Rep. 1 - Bas 1 porte|582|564|true|0|1|0|1 2 2208 590 564x582 true
+  MDF|Fileur|Rep. 23 - Fileur d'ajustement haut|800|140|true|2|0|0|0 90 2606 1176 140x800 true
+#2 MDF 0 0
+  MDF|Étagère en L (découpe CNC)|Rep. 48 - Angle bas en L (90°)|862|862|true|1|0|0|0 199 4 4 862x862 false
+  MDF|Dos porteur mur 1|Rep. 14 - Angle bas en L (90°)|882|750|true|0|0|0|0 51 4 870 750x882 true
+  MDF|Dos porteur mur 1|Rep. 48 - Angle bas en L (90°)|882|750|true|0|0|0|0 195 870 4 882x750 false
+  MDF|Porte|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|1096|596|true|2|2|0|0 136 870 758 596x1096 true
+  MDF|Porte|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|1096|596|true|2|2|0|0 136 1470 758 1096x596 false
+  MDF|Dos porteur mur 2|Rep. 14 - Angle bas en L (90°)|864|750|true|0|0|0|0 52 1756 4 864x750 false
+  MDF|Dos porteur mur 1|Rep. 24 - Angle haut en L (90°)|800|662|true|0|0|0|0 92 1470 1358 800x662 false
+  MDF|Dessus / dessous|Rep. 7 - Bas 1 porte|582|464|true|0|1|0|1 26 2274 1358 464x582 true
+  MDF|Porte maître (pliante)|Rep. 24 - Angle haut en L (90°)|796|305|true|2|2|0|0 96 4 1756 796x305 false
+  MDF|Façade tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|596|206|true|2|2|0|0 109 870 1858 596x206 false
+  MDF|Traverse haute|Rep. 14 - Angle bas en L (90°)|864|100|true|1|0|0|0 54 758 870 100x864 true
+  MDF|Côté tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 110 2274 1944 502x150 false
+  MDF|Côté tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 110 2624 4 150x502 true
+  MDF|Avant / arrière tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 111 2570 758 150x502 true
+#3 MDF 0 0
+  MDF|Dos porteur mur 2|Rep. 48 - Angle bas en L (90°)|864|750|true|0|0|0|0 196 4 4 750x864 true
+  MDF|Dos porteur mur 1|Rep. 57 - Angle haut en L (90°)|800|662|true|0|0|0|0 232 4 872 662x800 true
+  MDF|Dos porteur mur 2|Rep. 24 - Angle haut en L (90°)|800|644|true|0|0|0|0 93 758 4 800x644 false
+  MDF|Dos porteur mur 2|Rep. 57 - Angle haut en L (90°)|800|644|true|0|0|0|0 233 1562 4 800x644 false
+  MDF|Porte|Rep. 15 - Haut 1 porte|796|596|true|2|2|0|0 61 758 652 596x796 true
+  MDF|Porte|Rep. 16 - Haut 1 porte|796|596|true|2|2|0|0 65 1358 652 796x596 false
+  MDF|Porte|Rep. 17 - Haut 1 porte|796|596|true|2|2|0|0 69 1358 1252 596x796 true
+  MDF|Porte|Rep. 18 - Haut 1 porte|796|596|true|2|2|0|0 73 1958 1252 796x596 false
+  MDF|Porte|Rep. 36 - Haut pour hotte intégrée|596|596|true|2|2|0|0 149 758 1452 596x596 false
+  MDF|Dessus / dessous|Rep. 2 - Bas 1 porte|582|564|true|0|1|0|1 6 2158 652 564x582 true
+  MDF|Porte (x2)|Rep. 9 - Bas sous-évier|746|396|true|2|2|0|0 36 4 1676 746x396 false
+  MDF|Façade tiroir|Rep. 28 - Bas casserolier et tiroirs|596|371|true|2|2|0|0 116 2366 4 371x596 true
+  MDF|Fileur|Rep. 35 - Fileur d'ajustement haut|800|120|true|2|0|0|0 145 1958 1852 800x120 false
+  MDF|Fileur|Rep. 56 - Fileur d'ajustement haut|800|120|true|2|0|0|0 230 1958 1976 800x120 false
+#4 MDF 0 0
+  MDF|Porte|Rep. 19 - Haut 1 porte|796|596|true|2|2|0|0 77 4 4 596x796 true
+  MDF|Porte|Rep. 20 - Haut 1 porte|796|596|true|2|2|0|0 81 4 804 596x796 true
+  MDF|Porte|Rep. 21 - Haut 1 porte|796|596|true|2|2|0|0 85 604 4 596x796 true
+  MDF|Porte|Rep. 33 - Haut 1 porte|796|596|true|2|2|0|0 140 604 804 596x796 true
+  MDF|Porte|Rep. 37 - Haut 1 porte|796|596|true|2|2|0|0 153 1204 4 796x596 false
+  MDF|Porte|Rep. 38 - Haut 1 porte|796|596|true|2|2|0|0 157 1204 604 596x796 true
+  MDF|Porte|Rep. 39 - Haut 1 porte|796|596|true|2|2|0|0 161 1804 604 796x596 false
+  MDF|Porte|Rep. 49 - Haut 1 porte|796|596|true|2|2|0|0 205 1804 1204 596x796 true
+  MDF|Dessus / dessous|Rep. 9 - Bas sous-évier|764|582|true|1|0|1|0 34 2004 4 764x582 false
+  MDF|Dessus / dessous|Rep. 2 - Bas 1 porte|582|564|true|0|1|0|1 6 1204 1404 582x564 false
+  MDF|Côté|Rep. 15 - Haut 1 porte|800|352|true|1|0|1|0 58 2404 1204 352x800 true
+  MDF|Dessus / dessous|Rep. 7 - Bas 1 porte|582|464|true|0|1|0|1 26 4 1604 582x464 false
+  MDF|Dessus / dessous|Rep. 12 - Bas 1 porte|582|464|true|0|1|0|1 43 604 1604 582x464 false
+  MDF|Avant / arrière tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|150|true|1|0|0|0 111 2604 604 150x502 true
+#5 MDF 0 0
+  MDF|Porte|Rep. 50 - Haut 1 porte|796|596|true|2|2|0|0 209 4 4 596x796 true
+  MDF|Porte|Rep. 51 - Haut 1 porte|796|596|true|2|2|0|0 213 4 804 596x796 true
+  MDF|Porte|Rep. 52 - Haut 1 porte|796|596|true|2|2|0|0 217 604 4 596x796 true
+  MDF|Porte|Rep. 53 - Haut 1 porte|796|596|true|2|2|0|0 221 604 804 596x796 true
+  MDF|Porte|Rep. 54 - Haut 1 porte|796|596|true|2|2|0|0 225 1204 4 796x596 false
+  MDF|Porte|Rep. 55 - Haut 1 porte|796|596|true|2|2|0|0 229 1204 604 596x796 true
+  MDF|Dessus / dessous|Rep. 9 - Bas sous-évier|764|582|true|1|0|1|0 34 2004 4 764x582 false
+  MDF|Porte|Rep. 1 - Bas 1 porte|746|596|true|2|2|0|0 4 1804 604 746x596 false
+  MDF|Porte|Rep. 2 - Bas 1 porte|746|596|true|2|2|0|0 8 1804 1204 596x746 true
+  MDF|Dessus / dessous|Rep. 3 - Bas 1 porte|582|564|true|0|1|0|1 10 1204 1404 582x564 false
+  MDF|Côté|Rep. 15 - Haut 1 porte|800|352|true|1|0|1|0 58 2404 1204 352x800 true
+  MDF|Dessus / dessous|Rep. 12 - Bas 1 porte|582|464|true|0|1|0|1 43 4 1604 582x464 false
+  MDF|Dessus / dessous|Rep. 25 - Bas 1 porte|582|464|true|0|1|0|1 99 604 1604 582x464 false
+#6 MDF 0 0
+  MDF|Porte|Rep. 3 - Bas 1 porte|746|596|true|2|2|0|0 12 4 4 596x746 true
+  MDF|Porte|Rep. 4 - Bas 1 porte|746|596|true|2|2|0|0 16 4 754 596x746 true
+  MDF|Porte|Rep. 6 - Bas 1 porte|746|596|true|2|2|0|0 24 604 4 596x746 true
+  MDF|Porte|Rep. 10 - Façade lave-vaisselle tout intégrable|746|596|true|2|2|0|0 37 604 754 596x746 true
+  MDF|Porte|Rep. 11 - Bas 1 porte|746|596|true|2|2|0|0 41 1204 4 746x596 false
+  MDF|Porte|Rep. 29 - Bas 1 porte|746|596|true|2|2|0|0 123 1954 4 746x596 false
+  MDF|Porte|Rep. 30 - Bas 1 porte|746|596|true|2|2|0|0 127 1204 604 596x746 true
+  MDF|Porte|Rep. 41 - Bas 1 porte|746|596|true|2|2|0|0 169 1804 604 746x596 false
+  MDF|Porte|Rep. 42 - Bas 1 porte|746|596|true|2|2|0|0 173 1804 1204 596x746 true
+  MDF|Dessus / dessous|Rep. 3 - Bas 1 porte|582|564|true|0|1|0|1 10 4 1504 564x582 true
+  MDF|Dessus / dessous|Rep. 4 - Bas 1 porte|582|564|true|0|1|0|1 14 604 1504 564x582 true
+  MDF|Dessus / dessous|Rep. 4 - Bas 1 porte|582|564|true|0|1|0|1 14 1204 1354 582x564 false
+  MDF|Côté|Rep. 16 - Haut 1 porte|800|352|true|1|0|1|0 62 2404 1204 352x800 true
+#7 MDF 0 0
+  MDF|Porte|Rep. 43 - Bas 1 porte|746|596|true|2|2|0|0 177 4 4 596x746 true
+  MDF|Porte|Rep. 44 - Bas 1 porte|746|596|true|2|2|0|0 181 4 754 596x746 true
+  MDF|Porte|Rep. 45 - Bas 1 porte|746|596|true|2|2|0|0 185 604 4 596x746 true
+  MDF|Porte|Rep. 46 - Bas 1 porte|746|596|true|2|2|0|0 189 604 754 596x746 true
+  MDF|Côté|Rep. 1 - Bas 1 porte|750|582|true|1|0|1|0 1 1204 4 750x582 false
+  MDF|Côté|Rep. 1 - Bas 1 porte|750|582|true|1|0|1|0 1 1958 4 750x582 false
+  MDF|Côté|Rep. 2 - Bas 1 porte|750|582|true|1|0|1|0 5 1204 590 582x750 true
+  MDF|Côté|Rep. 2 - Bas 1 porte|750|582|true|1|0|1|0 5 1204 1344 582x750 true
+  MDF|Côté|Rep. 3 - Bas 1 porte|750|582|true|1|0|1|0 9 1790 590 750x582 false
+  MDF|Côté|Rep. 3 - Bas 1 porte|750|582|true|1|0|1|0 9 1790 1176 582x750 true
+  MDF|Dessus / dessous|Rep. 6 - Bas 1 porte|582|564|true|0|1|0|1 22 4 1504 564x582 true
+  MDF|Dessus / dessous|Rep. 6 - Bas 1 porte|582|564|true|0|1|0|1 22 604 1504 564x582 true
+  MDF|Porte (x2)|Rep. 9 - Bas sous-évier|746|396|true|2|2|0|0 36 2376 1176 396x746 true
+#8 MDF 0 0
+  MDF|Côté|Rep. 4 - Bas 1 porte|750|582|true|1|0|1|0 13 4 4 582x750 true
+  MDF|Côté|Rep. 4 - Bas 1 porte|750|582|true|1|0|1|0 13 4 758 582x750 true
+  MDF|Côté|Rep. 5 - Bas 1 porte|750|582|true|1|0|1|0 17 590 4 582x750 true
+  MDF|Côté|Rep. 5 - Bas 1 porte|750|582|true|1|0|1|0 17 590 758 582x750 true
+  MDF|Côté|Rep. 6 - Bas 1 porte|750|582|true|1|0|1|0 21 1176 4 750x582 false
+  MDF|Côté|Rep. 6 - Bas 1 porte|750|582|true|1|0|1|0 21 1930 4 750x582 false
+  MDF|Côté|Rep. 7 - Bas 1 porte|750|582|true|1|0|1|0 25 1176 590 582x750 true
+  MDF|Côté|Rep. 7 - Bas 1 porte|750|582|true|1|0|1|0 25 1176 1344 582x750 true
+  MDF|Côté|Rep. 8 - Bas 1 porte|750|582|true|1|0|1|0 29 1762 590 750x582 false
+  MDF|Côté|Rep. 8 - Bas 1 porte|750|582|true|1|0|1|0 29 1762 1176 582x750 true
+  MDF|Dessus / dessous|Rep. 11 - Bas 1 porte|582|564|true|0|1|0|1 39 4 1512 582x564 false
+  MDF|Dessus / dessous|Rep. 11 - Bas 1 porte|582|564|true|0|1|0|1 39 590 1512 582x564 false
+  MDF|Côté|Rep. 16 - Haut 1 porte|800|352|true|1|0|1|0 62 2348 1176 352x800 true
+  MDF|Dessus / dessous|Rep. 5 - Bas 1 porte|582|264|true|0|1|0|1 18 2516 590 264x582 true
+#9 MDF 0 0
+  MDF|Côté|Rep. 9 - Bas sous-évier|750|582|true|1|0|1|0 33 4 4 582x750 true
+  MDF|Côté|Rep. 9 - Bas sous-évier|750|582|true|1|0|1|0 33 4 758 582x750 true
+  MDF|Côté|Rep. 11 - Bas 1 porte|750|582|true|1|0|1|0 38 590 4 582x750 true
+  MDF|Côté|Rep. 11 - Bas 1 porte|750|582|true|1|0|1|0 38 590 758 582x750 true
+  MDF|Côté|Rep. 12 - Bas 1 porte|750|582|true|1|0|1|0 42 1176 4 750x582 false
+  MDF|Côté|Rep. 12 - Bas 1 porte|750|582|true|1|0|1|0 42 1930 4 750x582 false
+  MDF|Côté|Rep. 13 - Bas 1 porte|750|582|true|1|0|1|0 46 1176 590 582x750 true
+  MDF|Côté|Rep. 13 - Bas 1 porte|750|582|true|1|0|1|0 46 1176 1344 582x750 true
+  MDF|Côté|Rep. 25 - Bas 1 porte|750|582|true|1|0|1|0 98 1762 590 750x582 false
+  MDF|Côté|Rep. 25 - Bas 1 porte|750|582|true|1|0|1|0 98 1762 1176 582x750 true
+  MDF|Dessus / dessous|Rep. 27 - Bas pour four encastré et table de cuisson|582|564|true|0|1|0|1 107 4 1512 582x564 false
+  MDF|Dessus / dessous|Rep. 27 - Bas pour four encastré et table de cuisson|582|564|true|0|1|0|1 107 590 1512 582x564 false
+  MDF|Côté|Rep. 17 - Haut 1 porte|800|352|true|1|0|1|0 66 2348 1176 352x800 true
+  MDF|Dessus / dessous|Rep. 5 - Bas 1 porte|582|264|true|0|1|0|1 18 2516 590 264x582 true
+#10 MDF 0 0
+  MDF|Côté|Rep. 26 - Bas 1 porte|750|582|true|1|0|1|0 102 4 4 582x750 true
+  MDF|Côté|Rep. 26 - Bas 1 porte|750|582|true|1|0|1|0 102 4 758 582x750 true
+  MDF|Côté|Rep. 27 - Bas pour four encastré et table de cuisson|750|582|true|1|0|1|0 106 590 4 582x750 true
+  MDF|Côté|Rep. 27 - Bas pour four encastré et table de cuisson|750|582|true|1|0|1|0 106 590 758 582x750 true
+  MDF|Côté|Rep. 28 - Bas casserolier et tiroirs|750|582|true|1|0|1|0 113 1176 4 750x582 false
+  MDF|Côté|Rep. 28 - Bas casserolier et tiroirs|750|582|true|1|0|1|0 113 1930 4 750x582 false
+  MDF|Côté|Rep. 29 - Bas 1 porte|750|582|true|1|0|1|0 120 1176 590 582x750 true
+  MDF|Côté|Rep. 29 - Bas 1 porte|750|582|true|1|0|1|0 120 1176 1344 582x750 true
+  MDF|Côté|Rep. 30 - Bas 1 porte|750|582|true|1|0|1|0 124 1762 590 750x582 false
+  MDF|Côté|Rep. 30 - Bas 1 porte|750|582|true|1|0|1|0 124 1762 1176 582x750 true
+  MDF|Dessus / dessous|Rep. 28 - Bas casserolier et tiroirs|582|564|true|0|1|0|1 114 4 1512 582x564 false
+  MDF|Dessus / dessous|Rep. 28 - Bas casserolier et tiroirs|582|564|true|0|1|0|1 114 590 1512 582x564 false
+  MDF|Côté|Rep. 17 - Haut 1 porte|800|352|true|1|0|1|0 66 2348 1176 352x800 true
+  MDF|Dessus / dessous|Rep. 8 - Bas 1 porte|582|264|true|0|1|0|1 30 2516 590 264x582 true
+#11 MDF 0 0
+  MDF|Côté|Rep. 31 - Bas 1 porte|750|582|true|1|0|1|0 128 4 4 582x750 true
+  MDF|Côté|Rep. 31 - Bas 1 porte|750|582|true|1|0|1|0 128 4 758 582x750 true
+  MDF|Côté|Rep. 41 - Bas 1 porte|750|582|true|1|0|1|0 166 590 4 582x750 true
+  MDF|Côté|Rep. 41 - Bas 1 porte|750|582|true|1|0|1|0 166 590 758 582x750 true
+  MDF|Côté|Rep. 42 - Bas 1 porte|750|582|true|1|0|1|0 170 1176 4 750x582 false
+  MDF|Côté|Rep. 42 - Bas 1 porte|750|582|true|1|0|1|0 170 1930 4 750x582 false
+  MDF|Côté|Rep. 43 - Bas 1 porte|750|582|true|1|0|1|0 174 1176 590 582x750 true
+  MDF|Côté|Rep. 43 - Bas 1 porte|750|582|true|1|0|1|0 174 1176 1344 582x750 true
+  MDF|Côté|Rep. 44 - Bas 1 porte|750|582|true|1|0|1|0 178 1762 590 750x582 false
+  MDF|Côté|Rep. 44 - Bas 1 porte|750|582|true|1|0|1|0 178 1762 1176 582x750 true
+  MDF|Dessus / dessous|Rep. 29 - Bas 1 porte|582|564|true|0|1|0|1 121 4 1512 582x564 false
+  MDF|Dessus / dessous|Rep. 29 - Bas 1 porte|582|564|true|0|1|0|1 121 590 1512 582x564 false
+  MDF|Côté|Rep. 18 - Haut 1 porte|800|352|true|1|0|1|0 70 2348 1176 352x800 true
+  MDF|Dessus / dessous|Rep. 8 - Bas 1 porte|582|264|true|0|1|0|1 30 2516 590 264x582 true
+#12 MDF 0 0
+  MDF|Côté|Rep. 45 - Bas 1 porte|750|582|true|1|0|1|0 182 4 4 582x750 true
+  MDF|Côté|Rep. 45 - Bas 1 porte|750|582|true|1|0|1|0 182 4 758 582x750 true
+  MDF|Côté|Rep. 46 - Bas 1 porte|750|582|true|1|0|1|0 186 590 4 582x750 true
+  MDF|Côté|Rep. 46 - Bas 1 porte|750|582|true|1|0|1|0 186 590 758 582x750 true
+  MDF|Côté|Rep. 47 - Bas 1 porte|750|582|true|1|0|1|0 190 1176 4 750x582 false
+  MDF|Côté|Rep. 47 - Bas 1 porte|750|582|true|1|0|1|0 190 1930 4 750x582 false
+  MDF|Côté (flanc)|Rep. 14 - Angle bas en L (90°)|750|580|true|2|2|0|0 50 1176 590 580x750 true
+  MDF|Côté (flanc)|Rep. 14 - Angle bas en L (90°)|750|580|true|2|2|0|0 50 1176 1344 580x750 true
+  MDF|Côté (flanc)|Rep. 48 - Angle bas en L (90°)|750|580|true|2|2|0|0 194 1760 590 750x580 false
+  MDF|Côté (flanc)|Rep. 48 - Angle bas en L (90°)|750|580|true|2|2|0|0 194 1760 1174 580x750 true
+  MDF|Dessus / dessous|Rep. 30 - Bas 1 porte|582|564|true|0|1|0|1 125 4 1512 582x564 false
+  MDF|Dessus / dessous|Rep. 30 - Bas 1 porte|582|564|true|0|1|0|1 125 590 1512 582x564 false
+  MDF|Côté|Rep. 18 - Haut 1 porte|800|352|true|1|0|1|0 70 2344 1174 352x800 true
+  MDF|Dessus / dessous|Rep. 22 - Haut 1 porte|352|264|true|0|1|0|1 87 2514 590 264x352 true
+#13 MDF 0 0
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|644|644|true|1|0|0|0 94 4 4 644x644 false
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|644|644|true|1|0|0|0 94 4 652 644x644 false
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|644|644|true|1|0|0|0 234 4 1300 644x644 false
+  MDF|Fond et dessus en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|644|644|true|1|0|0|0 234 652 4 644x644 false
+  MDF|Étagère en L (découpe CNC)|Rep. 24 - Angle haut en L (90°)|642|642|true|1|0|0|0 95 652 652 642x642 false
+  MDF|Étagère en L (découpe CNC)|Rep. 57 - Angle haut en L (90°)|642|642|true|1|0|0|0 235 652 1298 642x642 false
+  MDF|Porte|Rep. 7 - Bas 1 porte|746|496|true|2|2|0|0 28 1300 4 746x496 false
+  MDF|Porte|Rep. 12 - Bas 1 porte|746|496|true|2|2|0|0 45 2050 4 746x496 false
+  MDF|Porte|Rep. 25 - Bas 1 porte|746|496|true|2|2|0|0 101 1300 504 746x496 false
+  MDF|Porte|Rep. 47 - Bas 1 porte|746|496|true|2|2|0|0 193 2050 504 746x496 false
+  MDF|Dessus / dessous|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|582|564|true|0|1|0|1 133 1300 1004 564x582 true
+  MDF|Dessus / dessous|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|582|564|true|0|1|0|1 133 1868 1004 582x564 false
+  MDF|Côté|Rep. 19 - Haut 1 porte|800|352|true|1|0|1|0 74 1868 1572 800x352 false
+  MDF|Fond tiroir|Rep. 27 - Bas pour four encastré et table de cuisson|502|466|true|0|0|0|0 112 1300 1590 466x502 true
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 2454 1004 315x502 true
+  MDF|Traverse haute|Rep. 14 - Angle bas en L (90°)|864|100|true|1|0|0|0 54 1868 1928 864x100 false
+#14 MDF 0 0
+  MDF|Dessus / dessous|Rep. 41 - Bas 1 porte|582|564|true|0|1|0|1 167 4 4 564x582 true
+  MDF|Dessus / dessous|Rep. 41 - Bas 1 porte|582|564|true|0|1|0|1 167 4 590 564x582 true
+  MDF|Dessus / dessous|Rep. 42 - Bas 1 porte|582|564|true|0|1|0|1 171 4 1176 564x582 true
+  MDF|Dessus / dessous|Rep. 42 - Bas 1 porte|582|564|true|0|1|0|1 171 572 4 564x582 true
+  MDF|Dessus / dessous|Rep. 43 - Bas 1 porte|582|564|true|0|1|0|1 175 572 590 564x582 true
+  MDF|Dessus / dessous|Rep. 43 - Bas 1 porte|582|564|true|0|1|0|1 175 572 1176 564x582 true
+  MDF|Dessus / dessous|Rep. 44 - Bas 1 porte|582|564|true|0|1|0|1 179 1140 4 582x564 false
+  MDF|Dessus / dessous|Rep. 44 - Bas 1 porte|582|564|true|0|1|0|1 179 1726 4 582x564 false
+  MDF|Dessus / dessous|Rep. 45 - Bas 1 porte|582|564|true|0|1|0|1 183 1140 572 564x582 true
+  MDF|Dessus / dessous|Rep. 45 - Bas 1 porte|582|564|true|0|1|0|1 183 1140 1158 564x582 true
+  MDF|Dessus / dessous|Rep. 46 - Bas 1 porte|582|564|true|0|1|0|1 187 1708 572 582x564 false
+  MDF|Dessus / dessous|Rep. 46 - Bas 1 porte|582|564|true|0|1|0|1 187 1708 1140 564x582 true
+  MDF|Côté|Rep. 19 - Haut 1 porte|800|352|true|1|0|1|0 74 2276 1140 352x800 true
+  MDF|Fond tiroir|Rep. 28 - Bas casserolier et tiroirs|502|466|true|0|0|0|0 119 2294 572 502x466 false
+  MDF|Fond tiroir|Rep. 28 - Bas casserolier et tiroirs|502|466|true|0|0|0|0 119 2312 4 466x502 true
+  MDF|Dessus / dessous|Rep. 15 - Haut 1 porte|564|352|true|1|0|1|0 59 1140 1744 564x352 false
+  MDF|Dessus / dessous|Rep. 15 - Haut 1 porte|564|352|true|1|0|1|0 59 1708 1726 564x352 false
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 4 1762 502x315 false
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 572 1762 502x315 false
+  MDF|Traverse haute|Rep. 48 - Angle bas en L (90°)|864|100|true|1|0|0|0 198 2632 1140 100x864 true
+#15 MDF 0 0
+  MDF|Tablette fixe médiane|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|564|560|true|1|0|0|0 135 4 4 560x564 true
+  MDF|Côté|Rep. 20 - Haut 1 porte|800|352|true|1|0|1|0 78 4 572 352x800 true
+  MDF|Côté|Rep. 20 - Haut 1 porte|800|352|true|1|0|1|0 78 568 4 352x800 true
+  MDF|Côté|Rep. 21 - Haut 1 porte|800|352|true|1|0|1|0 82 568 808 352x800 true
+  MDF|Côté|Rep. 21 - Haut 1 porte|800|352|true|1|0|1|0 82 924 4 800x352 false
+  MDF|Côté|Rep. 22 - Haut 1 porte|800|352|true|1|0|1|0 86 1728 4 800x352 false
+  MDF|Côté|Rep. 22 - Haut 1 porte|800|352|true|1|0|1|0 86 924 360 352x800 true
+  MDF|Côté|Rep. 33 - Haut 1 porte|800|352|true|1|0|1|0 137 924 1164 352x800 true
+  MDF|Côté|Rep. 33 - Haut 1 porte|800|352|true|1|0|1|0 137 1280 360 800x352 false
+  MDF|Côté|Rep. 34 - Haut 1 porte|800|352|true|1|0|1|0 141 1280 716 352x800 true
+  MDF|Côté|Rep. 34 - Haut 1 porte|800|352|true|1|0|1|0 141 1636 716 800x352 false
+  MDF|Côté|Rep. 37 - Haut 1 porte|800|352|true|1|0|1|0 150 1636 1072 352x800 true
+  MDF|Côté|Rep. 37 - Haut 1 porte|800|352|true|1|0|1|0 150 1992 1072 800x352 false
+  MDF|Côté|Rep. 38 - Haut 1 porte|800|352|true|1|0|1|0 154 1992 1428 800x352 false
+  MDF|Dessus / dessous|Rep. 25 - Bas 1 porte|582|464|true|0|1|0|1 99 4 1376 464x582 true
+  MDF|Porte maître (pliante)|Rep. 57 - Angle haut en L (90°)|796|305|true|2|2|0|0 236 1992 1784 796x305 false
+  MDF|Dessus / dessous|Rep. 16 - Haut 1 porte|564|352|true|1|0|1|0 63 2084 360 564x352 false
+  MDF|Dessus / dessous|Rep. 16 - Haut 1 porte|564|352|true|1|0|1|0 63 1280 1520 352x564 true
+  MDF|Dessus / dessous|Rep. 22 - Haut 1 porte|352|264|true|0|1|0|1 87 568 1612 352x264 false
+  MDF|Dessus / dessous|Rep. 34 - Haut 1 porte|352|264|true|0|1|0|1 142 2532 4 264x352 true
+  MDF|Dessus / dessous|Rep. 34 - Haut 1 porte|352|264|true|0|1|0|1 142 2440 716 264x352 true
+#16 MDF 0 0
+  MDF|Côté|Rep. 38 - Haut 1 porte|800|352|true|1|0|1|0 154 4 4 352x800 true
+  MDF|Côté|Rep. 39 - Haut 1 porte|800|352|true|1|0|1|0 158 4 808 352x800 true
+  MDF|Côté|Rep. 39 - Haut 1 porte|800|352|true|1|0|1|0 158 360 4 352x800 true
+  MDF|Côté|Rep. 40 - Haut 1 porte|800|352|true|1|0|1|0 162 360 808 352x800 true
+  MDF|Côté|Rep. 40 - Haut 1 porte|800|352|true|1|0|1|0 162 716 4 800x352 false
+  MDF|Côté|Rep. 49 - Haut 1 porte|800|352|true|1|0|1|0 202 1520 4 800x352 false
+  MDF|Côté|Rep. 49 - Haut 1 porte|800|352|true|1|0|1|0 202 716 360 352x800 true
+  MDF|Côté|Rep. 50 - Haut 1 porte|800|352|true|1|0|1|0 206 716 1164 352x800 true
+  MDF|Côté|Rep. 50 - Haut 1 porte|800|352|true|1|0|1|0 206 1072 360 800x352 false
+  MDF|Côté|Rep. 51 - Haut 1 porte|800|352|true|1|0|1|0 210 1876 360 800x352 false
+  MDF|Côté|Rep. 51 - Haut 1 porte|800|352|true|1|0|1|0 210 1072 716 352x800 true
+  MDF|Côté|Rep. 52 - Haut 1 porte|800|352|true|1|0|1|0 214 1428 716 800x352 false
+  MDF|Côté|Rep. 52 - Haut 1 porte|800|352|true|1|0|1|0 214 1428 1072 352x800 true
+  MDF|Côté|Rep. 53 - Haut 1 porte|800|352|true|1|0|1|0 218 1784 1072 800x352 false
+  MDF|Côté|Rep. 53 - Haut 1 porte|800|352|true|1|0|1|0 218 1784 1428 800x352 false
+  MDF|Porte|Rep. 22 - Haut 1 porte|796|296|true|2|2|0|0 89 1784 1784 796x296 false
+  MDF|Dessus / dessous|Rep. 17 - Haut 1 porte|564|352|true|1|0|1|0 67 1072 1520 352x564 true
+  MDF|Dessus / dessous|Rep. 17 - Haut 1 porte|564|352|true|1|0|1|0 67 2232 716 564x352 false
+  MDF|Dessus / dessous|Rep. 40 - Haut 1 porte|352|264|true|0|1|0|1 163 4 1612 352x264 false
+  MDF|Dessus / dessous|Rep. 40 - Haut 1 porte|352|264|true|0|1|0|1 163 360 1612 352x264 false
+#17 MDF 0 0
+  MDF|Côté|Rep. 54 - Haut 1 porte|800|352|true|1|0|1|0 222 4 4 352x800 true
+  MDF|Côté|Rep. 54 - Haut 1 porte|800|352|true|1|0|1|0 222 4 808 352x800 true
+  MDF|Côté|Rep. 55 - Haut 1 porte|800|352|true|1|0|1|0 226 360 4 352x800 true
+  MDF|Côté|Rep. 55 - Haut 1 porte|800|352|true|1|0|1|0 226 360 808 352x800 true
+  MDF|Côté (flanc)|Rep. 24 - Angle haut en L (90°)|800|350|true|2|2|0|0 91 716 4 800x350 false
+  MDF|Côté (flanc)|Rep. 24 - Angle haut en L (90°)|800|350|true|2|2|0|0 91 1520 4 800x350 false
+  MDF|Côté (flanc)|Rep. 57 - Angle haut en L (90°)|800|350|true|2|2|0|0 231 716 358 350x800 true
+  MDF|Côté (flanc)|Rep. 57 - Angle haut en L (90°)|800|350|true|2|2|0|0 231 716 1162 350x800 true
+  MDF|Dessus / dessous|Rep. 47 - Bas 1 porte|582|464|true|0|1|0|1 191 1070 358 582x464 false
+  MDF|Dessus / dessous|Rep. 47 - Bas 1 porte|582|464|true|0|1|0|1 191 1656 358 582x464 false
+  MDF|Côté|Rep. 36 - Haut pour hotte intégrée|750|352|true|1|0|1|0 146 1070 826 352x750 true
+  MDF|Côté|Rep. 36 - Haut pour hotte intégrée|750|352|true|1|0|1|0 146 1426 826 352x750 true
+  MDF|Porte|Rep. 34 - Haut 1 porte|796|296|true|2|2|0|0 144 1782 826 796x296 false
+  MDF|Porte|Rep. 40 - Haut 1 porte|796|296|true|2|2|0|0 165 1782 1126 296x796 true
+  MDF|Porte esclave (pliante, poignée)|Rep. 24 - Angle haut en L (90°)|796|287|true|2|2|0|0 97 2082 1126 287x796 true
+  MDF|Porte esclave (pliante, poignée)|Rep. 57 - Angle haut en L (90°)|796|287|true|2|2|0|0 237 2373 1126 287x796 true
+  MDF|Côté tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 117 1070 1580 315x502 true
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 1426 1580 315x502 true
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 2242 358 502x315 false
+  MDF|Traverse haute|Rep. 48 - Angle bas en L (90°)|864|100|true|1|0|0|0 198 2664 1126 100x864 true
+#18 MDF 0 0
+  MDF|Façade tiroir|Rep. 28 - Bas casserolier et tiroirs|596|371|true|2|2|0|0 116 4 4 371x596 true
+  MDF|Porte|Rep. 5 - Bas 1 porte|746|296|true|2|2|0|0 20 4 604 296x746 true
+  MDF|Porte|Rep. 8 - Bas 1 porte|746|296|true|2|2|0|0 32 379 4 296x746 true
+  MDF|Porte|Rep. 13 - Bas 1 porte|746|296|true|2|2|0|0 49 379 754 296x746 true
+  MDF|Porte|Rep. 26 - Bas 1 porte|746|296|true|2|2|0|0 105 679 4 296x746 true
+  MDF|Porte|Rep. 31 - Bas 1 porte|746|296|true|2|2|0|0 131 679 754 296x746 true
+  MDF|Porte maître (pliante)|Rep. 14 - Angle bas en L (90°)|746|295|true|2|2|0|0 56 979 4 746x295 false
+  MDF|Porte maître (pliante)|Rep. 48 - Angle bas en L (90°)|746|295|true|2|2|0|0 200 1729 4 746x295 false
+  MDF|Porte esclave (pliante, poignée)|Rep. 14 - Angle bas en L (90°)|746|277|true|2|2|0|0 57 979 303 277x746 true
+  MDF|Porte esclave (pliante, poignée)|Rep. 48 - Angle bas en L (90°)|746|277|true|2|2|0|0 201 979 1053 277x746 true
+  MDF|Dessus / dessous|Rep. 18 - Haut 1 porte|564|352|true|1|0|1|0 71 4 1354 352x564 true
+  MDF|Dessus / dessous|Rep. 18 - Haut 1 porte|564|352|true|1|0|1|0 71 1260 303 564x352 false
+  MDF|Dessus / dessous|Rep. 19 - Haut 1 porte|564|352|true|1|0|1|0 75 1828 303 564x352 false
+  MDF|Dessus / dessous|Rep. 19 - Haut 1 porte|564|352|true|1|0|1|0 75 1260 659 352x564 true
+  MDF|Dessus / dessous|Rep. 20 - Haut 1 porte|564|352|true|1|0|1|0 79 1260 1227 352x564 true
+  MDF|Dessus / dessous|Rep. 20 - Haut 1 porte|564|352|true|1|0|1|0 79 1616 659 564x352 false
+  MDF|Dessus / dessous|Rep. 21 - Haut 1 porte|564|352|true|1|0|1|0 83 2184 659 564x352 false
+  MDF|Dessus / dessous|Rep. 21 - Haut 1 porte|564|352|true|1|0|1|0 83 1616 1015 352x564 true
+  MDF|Dessus / dessous|Rep. 33 - Haut 1 porte|564|352|true|1|0|1|0 138 1972 1015 564x352 false
+  MDF|Dessus / dessous|Rep. 33 - Haut 1 porte|564|352|true|1|0|1|0 138 1972 1371 352x564 true
+  MDF|Dessus / dessous|Rep. 36 - Haut pour hotte intégrée|564|352|true|1|0|1|0 147 2328 1371 352x564 true
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 1616 1583 315x502 true
+  MDF|Dessus / dessous|Rep. 13 - Bas 1 porte|582|264|true|0|1|0|1 47 379 1504 264x582 true
+  MDF|Dessus / dessous|Rep. 13 - Bas 1 porte|582|264|true|0|1|0|1 47 679 1504 264x582 true
+#19 MDF 0 0
+  MDF|Dessus / dessous|Rep. 36 - Haut pour hotte intégrée|564|352|true|1|0|1|0 147 4 4 352x564 true
+  MDF|Dessus / dessous|Rep. 37 - Haut 1 porte|564|352|true|1|0|1|0 151 4 572 352x564 true
+  MDF|Dessus / dessous|Rep. 37 - Haut 1 porte|564|352|true|1|0|1|0 151 4 1140 352x564 true
+  MDF|Dessus / dessous|Rep. 38 - Haut 1 porte|564|352|true|1|0|1|0 155 360 4 352x564 true
+  MDF|Dessus / dessous|Rep. 38 - Haut 1 porte|564|352|true|1|0|1|0 155 360 572 352x564 true
+  MDF|Dessus / dessous|Rep. 39 - Haut 1 porte|564|352|true|1|0|1|0 159 360 1140 352x564 true
+  MDF|Dessus / dessous|Rep. 39 - Haut 1 porte|564|352|true|1|0|1|0 159 716 4 564x352 false
+  MDF|Dessus / dessous|Rep. 49 - Haut 1 porte|564|352|true|1|0|1|0 203 1284 4 564x352 false
+  MDF|Dessus / dessous|Rep. 49 - Haut 1 porte|564|352|true|1|0|1|0 203 1852 4 564x352 false
+  MDF|Dessus / dessous|Rep. 50 - Haut 1 porte|564|352|true|1|0|1|0 207 716 360 352x564 true
+  MDF|Dessus / dessous|Rep. 50 - Haut 1 porte|564|352|true|1|0|1|0 207 716 928 352x564 true
+  MDF|Dessus / dessous|Rep. 51 - Haut 1 porte|564|352|true|1|0|1|0 211 716 1496 352x564 true
+  MDF|Dessus / dessous|Rep. 51 - Haut 1 porte|564|352|true|1|0|1|0 211 1072 360 564x352 false
+  MDF|Dessus / dessous|Rep. 52 - Haut 1 porte|564|352|true|1|0|1|0 215 1640 360 564x352 false
+  MDF|Dessus / dessous|Rep. 52 - Haut 1 porte|564|352|true|1|0|1|0 215 2208 360 564x352 false
+  MDF|Dessus / dessous|Rep. 53 - Haut 1 porte|564|352|true|1|0|1|0 219 1072 716 352x564 true
+  MDF|Dessus / dessous|Rep. 53 - Haut 1 porte|564|352|true|1|0|1|0 219 1072 1284 352x564 true
+  MDF|Dessus / dessous|Rep. 54 - Haut 1 porte|564|352|true|1|0|1|0 223 1428 716 564x352 false
+  MDF|Dessus / dessous|Rep. 54 - Haut 1 porte|564|352|true|1|0|1|0 223 1996 716 564x352 false
+  MDF|Dessus / dessous|Rep. 55 - Haut 1 porte|564|352|true|1|0|1|0 227 1428 1072 352x564 true
+  MDF|Dessus / dessous|Rep. 55 - Haut 1 porte|564|352|true|1|0|1|0 227 1784 1072 564x352 false
+  MDF|Avant / arrière tiroir|Rep. 28 - Bas casserolier et tiroirs|502|315|true|1|0|0|0 118 1784 1428 315x502 true
+  MDF|Dessus / dessous|Rep. 26 - Bas 1 porte|582|264|true|0|1|0|1 103 2103 1428 264x582 true
+  MDF|Dessus / dessous|Rep. 26 - Bas 1 porte|582|264|true|0|1|0|1 103 2371 1428 264x582 true
+#20 MDF 0 0
+  MDF|Dessus / dessous|Rep. 31 - Bas 1 porte|582|264|true|0|1|0|1 129 4 4 264x582 true
+  MDF|Dessus / dessous|Rep. 31 - Bas 1 porte|582|264|true|0|1|0|1 129 4 590 264x582 true
+#21 HDF 6 mm 0 0
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 32 - Colonne réfrigérateur/congélateur intégrable|2182|582|true|0|0|0|0 134 4 4 2182x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 9 - Bas sous-évier|782|741|true|0|0|0|0 35 4 590 741x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 15 - Haut 1 porte|782|582|true|0|0|0|0 60 749 590 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 16 - Haut 1 porte|782|582|true|0|0|0|0 64 1335 590 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 17 - Haut 1 porte|782|582|true|0|0|0|0 68 1335 1176 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 18 - Haut 1 porte|782|582|true|0|0|0|0 72 1921 1176 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 1 - Bas 1 porte|741|582|true|0|0|0|0 3 4 1376 741x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 22 - Haut 1 porte|782|282|true|0|0|0|0 88 1921 1762 782x282 false
+#22 HDF 6 mm 0 0
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 19 - Haut 1 porte|782|582|true|0|0|0|0 76 4 4 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 20 - Haut 1 porte|782|582|true|0|0|0|0 80 4 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 21 - Haut 1 porte|782|582|true|0|0|0|0 84 590 4 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 33 - Haut 1 porte|782|582|true|0|0|0|0 139 590 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 37 - Haut 1 porte|782|582|true|0|0|0|0 152 1176 4 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 38 - Haut 1 porte|782|582|true|0|0|0|0 156 1962 4 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 39 - Haut 1 porte|782|582|true|0|0|0|0 160 1176 590 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 49 - Haut 1 porte|782|582|true|0|0|0|0 204 1762 590 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 50 - Haut 1 porte|782|582|true|0|0|0|0 208 1762 1176 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 34 - Haut 1 porte|782|282|true|0|0|0|0 143 2348 1176 282x782 true
+#23 HDF 6 mm 0 0
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 51 - Haut 1 porte|782|582|true|0|0|0|0 212 4 4 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 52 - Haut 1 porte|782|582|true|0|0|0|0 216 4 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 53 - Haut 1 porte|782|582|true|0|0|0|0 220 590 4 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 54 - Haut 1 porte|782|582|true|0|0|0|0 224 590 790 582x782 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 55 - Haut 1 porte|782|582|true|0|0|0|0 228 1176 4 782x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 2 - Bas 1 porte|741|582|true|0|0|0|0 7 1962 4 741x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 3 - Bas 1 porte|741|582|true|0|0|0|0 11 1176 590 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 4 - Bas 1 porte|741|582|true|0|0|0|0 15 1176 1335 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 6 - Bas 1 porte|741|582|true|0|0|0|0 23 1762 590 741x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 11 - Bas 1 porte|741|582|true|0|0|0|0 40 1762 1176 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 40 - Haut 1 porte|782|282|true|0|0|0|0 164 2348 1176 282x782 true
+#24 HDF 6 mm 0 0
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 27 - Bas pour four encastré et table de cuisson|741|582|true|0|0|0|0 108 4 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 28 - Bas casserolier et tiroirs|741|582|true|0|0|0|0 115 4 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 29 - Bas 1 porte|741|582|true|0|0|0|0 122 590 4 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 30 - Bas 1 porte|741|582|true|0|0|0|0 126 590 749 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 41 - Bas 1 porte|741|582|true|0|0|0|0 168 1176 4 741x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 42 - Bas 1 porte|741|582|true|0|0|0|0 172 1921 4 741x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 43 - Bas 1 porte|741|582|true|0|0|0|0 176 1176 590 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 44 - Bas 1 porte|741|582|true|0|0|0|0 180 1176 1335 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 45 - Bas 1 porte|741|582|true|0|0|0|0 184 1762 590 741x582 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 46 - Bas 1 porte|741|582|true|0|0|0|0 188 1762 1176 582x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 5 - Bas 1 porte|741|282|true|0|0|0|0 19 2348 1176 282x741 true
+#25 HDF 6 mm 0 0
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 36 - Haut pour hotte intégrée|732|582|true|0|0|0|0 148 4 4 582x732 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 7 - Bas 1 porte|741|482|true|0|0|0|0 27 4 740 482x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 12 - Bas 1 porte|741|482|true|0|0|0|0 44 590 4 482x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 25 - Bas 1 porte|741|482|true|0|0|0|0 100 590 749 482x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 47 - Bas 1 porte|741|482|true|0|0|0|0 192 1076 4 741x482 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 8 - Bas 1 porte|741|282|true|0|0|0|0 31 1821 4 741x282 false
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 13 - Bas 1 porte|741|282|true|0|0|0|0 48 1076 490 282x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 26 - Bas 1 porte|741|282|true|0|0|0|0 104 1076 1235 282x741 true
+  HDF 6 mm|Fond arrière 6 mm (rainuré)|Rep. 31 - Bas 1 porte|741|282|true|0|0|0|0 130 1362 490 741x282 false

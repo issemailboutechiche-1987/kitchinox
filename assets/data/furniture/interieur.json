@@ -1,0 +1,546 @@
+{
+  "database": "morocco_general_interior_mdf_furniture",
+  "unit": "mm",
+  "currency": "MAD",
+  "categories": [
+    {
+      "category_id": "entryway_and_shoe_cabinets",
+      "category_name": "Meubles à Chaussures, Banquettes & Vestiaires d'Entrée",
+      "modules": [
+        {
+          "id": "shoe_cabinet_tilt_flap_slim",
+          "name": "Meuble à Chaussures Faible Profondeur à Abattants Basculants",
+          "available_widths": [
+            600,
+            800,
+            1000,
+            1200
+          ],
+          "available_heights": [
+            900,
+            1200,
+            1600
+          ],
+          "depths": [
+            220,
+            260,
+            300
+          ],
+          "flaps_count": [
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "id": "entryway_hall_tree_bench",
+          "name": "Vestiaire d'Entrée Combiné (Banquette assise + Tiroir chaussures + Tasseaux patères + Miroir)",
+          "available_widths": [
+            1000,
+            1200,
+            1500,
+            1800
+          ],
+          "height": 2200,
+          "depth": 400,
+          "bench_seat_height": 450
+        },
+        {
+          "id": "entry_console_floating",
+          "name": "Console d’Entrée Suspendue (1 Tiroir Vide-Poches)",
+          "available_widths": [
+            800,
+            1000,
+            1200
+          ],
+          "available_heights": [
+            200,
+            250
+          ],
+          "depths": [
+            300,
+            350
+          ],
+          "composition": {
+            "drawers": 1,
+            "drawer_front": 150,
+            "wall_hung": true,
+            "z": 800
+          }
+        },
+        {
+          "id": "entry_cloakroom_column",
+          "name": "Colonne Vestiaire Fermée (Penderie Manteaux + Casier Chaussures)",
+          "available_widths": [
+            600,
+            800
+          ],
+          "heights": [
+            2200,
+            2400
+          ],
+          "depths": [
+            400,
+            600
+          ],
+          "composition": {
+            "doors": 2,
+            "shelves": 3,
+            "rods": 1
+          }
+        }
+      ],
+      "accessories": [
+        {
+          "id": "acc_shoe_flap_mechanism",
+          "name": "Compas Basculant Double ou Triple Rangée pour Abattant à Chaussures (Plastique ABS ou Acier)",
+          "price_mad_per_pair": {
+            "min": 25,
+            "max": 65
+          }
+        },
+        {
+          "id": "acc_shoe_cabinet_pivot_360",
+          "name": "Étagère à Chaussures Rotative 360° sur Axe Central (jusqu'à 12 niveaux)",
+          "min_depth": 360,
+          "price_mad": {
+            "min": 950,
+            "max": 2200
+          }
+        },
+        {
+          "id": "acc_coat_hooks_black_gold",
+          "name": "Patères et Crochets Porte-Manteaux Design (Noir Mat / Or Brossé / Noyer)",
+          "price_mad_per_unit": {
+            "min": 18,
+            "max": 60
+          }
+        }
+      ]
+    },
+    {
+      "category_id": "office_and_library_furniture",
+      "category_name": "Bibliothèques, Bureaux sur Mesure & Rangements",
+      "modules": [
+        {
+          "id": "library_bookcase_full_wall",
+          "name": "Bibliothèque Toute Hauteur (Niches asymétriques + Soubassement portes/tiroirs)",
+          "available_widths": [
+            800,
+            1200,
+            1600,
+            2400,
+            3200
+          ],
+          "heights": [
+            2200,
+            2400,
+            2600
+          ],
+          "depths": [
+            300,
+            350,
+            400
+          ],
+          "recommended_shelf_thickness_above_800mm_span": 22
+        },
+        {
+          "id": "desk_workstation_custom",
+          "name": "Bureau Sur-Mesure (Avec Caisson 3 Tiroirs ou Jambage Panneau Double 36mm)",
+          "available_widths": [
+            1200,
+            1400,
+            1600,
+            1800
+          ],
+          "height": 750,
+          "depths": [
+            600,
+            700,
+            800
+          ],
+          "top_thickness_mm": 36
+        },
+        {
+          "id": "desk_wall_foldable_secretariat",
+          "name": "Bureau Mural Rabattable Gain de Place (Secrétaire)",
+          "widths": [
+            800,
+            1000
+          ],
+          "folded_depth": 200,
+          "open_depth": 650
+        },
+        {
+          "id": "office_wall_cabinet",
+          "name": "Rangement Haut de Bureau (Portes Relevables)",
+          "available_widths": [
+            800,
+            1000,
+            1200
+          ],
+          "available_heights": [
+            350,
+            400
+          ],
+          "depths": [
+            300,
+            350
+          ],
+          "composition": {
+            "flaps": 1,
+            "lift_up": true,
+            "wall_hung": true,
+            "z": 1500
+          }
+        },
+        {
+          "id": "office_filing_cabinet",
+          "name": "Caisson de Bureau Mobile (3 Tiroirs dont 1 Dossiers Suspendus)",
+          "available_widths": [
+            400,
+            450
+          ],
+          "available_heights": [
+            600,
+            650
+          ],
+          "depths": [
+            500,
+            550
+          ],
+          "composition": {
+            "drawers": 3,
+            "drawer_front": 200
+          }
+        }
+      ],
+      "accessories": [
+        {
+          "id": "acc_desk_drawer_cam_lock",
+          "name": "Serrure à Cylindre ou Serrure Centrale (Verrouillage simultané des 3 tiroirs de bureau)",
+          "price_mad": {
+            "single_lock": 20,
+            "central_3_drawer_lock_system": 65
+          }
+        },
+        {
+          "id": "acc_desk_wireless_qi_charger",
+          "name": "Chargeur Sans Fil Qi Encastrable dans le Plateau de Bureau (Diamètre 60mm ou 80mm)",
+          "price_mad": {
+            "min": 120,
+            "max": 280
+          }
+        },
+        {
+          "id": "acc_desk_pop_up_power_block",
+          "name": "Bloc Multiprise Escamotable Motorisé ou Clapet Affleurant (220V + USB-C + RJ45)",
+          "price_mad": {
+            "min": 220,
+            "max": 650
+          }
+        },
+        {
+          "id": "acc_concealed_floating_shelf_brackets",
+          "name": "Tiges Supports Invisibles pour Étagère Murale Flottante (Épaisseur panneau min 22mm à 36mm)",
+          "price_mad_per_pair": {
+            "min": 18,
+            "max": 45
+          }
+        }
+      ]
+    },
+    {
+      "category_id": "bedroom_and_living_room_mdf",
+      "category_name": "Chambre à Coucher, Salon & Salle à Manger",
+      "modules": [
+        {
+          "id": "bedroom_headboard_nightstands",
+          "name": "Tête de Lit Sur-Mesure avec 2 Tables de Chevet Suspendues Intégrées",
+          "total_widths": [
+            2400,
+            2600,
+            2800,
+            3000
+          ],
+          "bed_mattress_widths": [
+            1600,
+            1800,
+            2000
+          ],
+          "headboard_height": [
+            1100,
+            1200,
+            2400
+          ],
+          "nightstand_dims": {
+            "width": 500,
+            "height": 250,
+            "depth": 400
+          }
+        },
+        {
+          "id": "bedroom_storage_bed_base",
+          "name": "Cadre de Lit Coffre Relevable (Structure MDF 22mm renforcée)",
+          "mattress_sizes": [
+            "900x1900",
+            "1400x1900",
+            "1600x2000",
+            "1800x2000"
+          ],
+          "box_height": 350
+        },
+        {
+          "id": "bedroom_vanity_dressing_table",
+          "name": "Coiffeuse Suspendue avec Tiroir Compartimenté et Miroir LED",
+          "widths": [
+            800,
+            1000,
+            1200
+          ],
+          "height": 180,
+          "depth": 420
+        },
+        {
+          "id": "dining_sideboard_buffet",
+          "name": "Buffet / Bahut de Salle à Manger (3 ou 4 Portes + Tiroirs intérieurs)",
+          "widths": [
+            1600,
+            1800,
+            2000,
+            2200
+          ],
+          "height": 850,
+          "depth": 450
+        },
+        {
+          "id": "living_window_storage_bench",
+          "name": "Banquette Coffre de Fenêtre ou Salon Marocain Moderne (Base à Tiroirs sur Roulettes)",
+          "widths": [
+            1200,
+            1600,
+            2000,
+            2400
+          ],
+          "height": 400,
+          "depth": 700
+        },
+        {
+          "id": "bedroom_nightstand",
+          "name": "Table de Chevet (1 Tiroir + Niche)",
+          "available_widths": [
+            400,
+            450,
+            500
+          ],
+          "available_heights": [
+            450,
+            500,
+            550
+          ],
+          "depths": [
+            350,
+            400
+          ],
+          "composition": {
+            "drawers": 1,
+            "drawer_front": 150,
+            "shelves": 1
+          }
+        },
+        {
+          "id": "bedroom_chest_drawers",
+          "name": "Commode (4 à 6 Tiroirs)",
+          "available_widths": [
+            800,
+            1000,
+            1200
+          ],
+          "available_heights": [
+            800,
+            900,
+            1000
+          ],
+          "depth": 450,
+          "composition": {
+            "drawers": 4,
+            "drawer_front": 200
+          }
+        },
+        {
+          "id": "kids_desk_shelf",
+          "name": "Bureau Enfant avec Étagère Haute",
+          "available_widths": [
+            1000,
+            1200
+          ],
+          "available_heights": [
+            700
+          ],
+          "depths": [
+            500,
+            600
+          ],
+          "composition": {
+            "shape": "desk",
+            "drawers": 2,
+            "drawer_front": 150
+          }
+        }
+      ],
+      "accessories": [
+        {
+          "id": "acc_bed_storage_lift_mechanism",
+          "name": "Mécanisme Relevable de Lit Coffre avec 2 Vérins à Gaz Haute Pression (800N à 1200N)",
+          "length_mm": 1200,
+          "price_mad_per_pair": {
+            "min": 280,
+            "max": 550
+          }
+        },
+        {
+          "id": "acc_wall_bed_murphy_mechanism",
+          "name": "Mécanisme Complet de Lit Escamotable Mural (Armoire-Lit Vertical ou Horizontal)",
+          "price_mad": {
+            "min": 1800,
+            "max": 4200
+          }
+        },
+        {
+          "id": "acc_furniture_metal_legs",
+          "name": "Pieds de Buffet / Console en Acier Thermolaqué (Épingle Hairpin, Conique ou Cadre Carré)",
+          "heights_mm": [
+            120,
+            150,
+            200,
+            710
+          ],
+          "price_mad_set_of_4": {
+            "min": 120,
+            "max": 450
+          }
+        }
+      ]
+    },
+    {
+      "category_id": "architectural_cladding_and_covers",
+      "category_name": "Habillages Architecturaux, Portes Invisibles & Caches Techniques (CNC)",
+      "modules": [
+        {
+          "id": "arch_Moucharabieh_partition",
+          "name": "Claustra / Séparation de Pièce (Tasseaux verticaux pivotants ou Moucharabieh ajouré CNC)",
+          "widths": [
+            600,
+            900,
+            1200,
+            1800
+          ],
+          "heights": [
+            2200,
+            2500,
+            2750
+          ],
+          "thickness_or_depth": [
+            36,
+            100
+          ]
+        },
+        {
+          "id": "arch_radiator_or_ac_cover",
+          "name": "Cache-Radiateur ou Coffrage Climatiseur Split (Façade cannage rotin ou grille usinée CNC)",
+          "widths": [
+            900,
+            1100,
+            1300
+          ],
+          "heights": [
+            350,
+            850
+          ],
+          "depths": [
+            200,
+            280
+          ]
+        },
+        {
+          "id": "arch_electrical_meter_cabinet",
+          "name": "Coffret Cache Tableau Électrique / Compteur d'Eau et Routeur Fibre Optique",
+          "widths": [
+            450,
+            600
+          ],
+          "heights": [
+            600,
+            900,
+            1200
+          ],
+          "depth": [
+            150,
+            200
+          ]
+        }
+      ],
+      "accessories": [
+        {
+          "id": "acc_claustra_swivel_pivots",
+          "name": "Pivots Haut et Bas Réglables pour Lame de Claustra Orientable (Rotation 360°)",
+          "price_mad_per_blade_set": {
+            "min": 25,
+            "max": 55
+          }
+        },
+        {
+          "id": "acc_natural_rattan_cane_roll",
+          "name": "Rouleau de Cannage Naturel en Rotin Tressé (Pour portes de buffet ou caches-radiateurs)",
+          "widths_mm": [
+            450,
+            600,
+            900
+          ],
+          "price_mad_per_linear_meter": {
+            "min": 140,
+            "max": 260
+          }
+        },
+        {
+          "id": "acc_concealed_3d_door_hinges",
+          "name": "Charnières Invisibles Encastrées 3D (Type Kubica / Simonswerk pour porte dérobée dans habillage mural)",
+          "load_capacity_kg": [
+            40,
+            60,
+            80
+          ],
+          "price_mad_per_pair": {
+            "min": 280,
+            "max": 650
+          }
+        }
+      ]
+    }
+  ],
+  "ergonomics_mm": {
+    "desk_height": [
+      720,
+      750
+    ],
+    "desk_knee_clearance_min": 600,
+    "console_height": [
+      750,
+      850
+    ],
+    "bench_seat_height": [
+      430,
+      470
+    ],
+    "nightstand_top_vs_mattress": "au niveau du dessus du matelas (±50 mm)",
+    "bookcase_shelf_spacing": [
+      300,
+      350,
+      400
+    ],
+    "coat_hook_height": [
+      1600,
+      1750
+    ]
+  }
+}

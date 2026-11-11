@@ -1,0 +1,276 @@
+{
+  "system": "corner_cabinets_parametric_cutlist_engine",
+  "unit": "mm",
+  "global_variables": {
+    "T": 18,
+    "T_door": 18,
+    "gap_door_vertical": 4,
+    "gola_deduction": 35,
+    "bifold_master_clearance": 7,
+    "bifold_slave_clearance": 25
+  },
+  "corner_cutlist_formulas": [
+    {
+      "type_id": "corner_L_90_cabinet",
+      "name": "Meuble d'Angle en L à 90° (Bas, Haut ou Colonne)",
+      "input_parameters": [
+        "W1",
+        "W2",
+        "H",
+        "D",
+        "is_wall_or_tall",
+        "has_gola"
+      ],
+      "assembly_logic": "Les 2 côtés latéraux (flancs) et les 2 panneaux de dos (18mm) reposent ou entourent le fond et le plafond découpés en L.",
+      "parts": [
+        {
+          "part_id": "side_panels_flanks",
+          "label": "Côtés latéraux de jonction (Flancs gauche et droit)",
+          "quantity": 2,
+          "thickness": "T",
+          "length_formula": "H",
+          "width_formula": "D",
+          "edge_banding_1mm_formula": "2 * (H + D)"
+        },
+        {
+          "part_id": "back_panel_axis_W1",
+          "label": "Panneau de dos porteur Mur 1 (18mm)",
+          "quantity": 1,
+          "thickness": "T",
+          "length_formula": "H",
+          "width_formula": "W1 - T",
+          "edge_banding_04mm_formula": "0",
+          "note": "Recouvre la tranche du côté gauche"
+        },
+        {
+          "part_id": "back_panel_axis_W2",
+          "label": "Panneau de dos porteur Mur 2 (18mm)",
+          "quantity": 1,
+          "thickness": "T",
+          "length_formula": "H",
+          "width_formula": "W2 - (2 * T)",
+          "edge_banding_04mm_formula": "0",
+          "note": "Vient buter contre le dos Mur 1 et la tranche du côté droit"
+        },
+        {
+          "part_id": "bottom_and_top_L_panels",
+          "label": "Fond (et Plafond complet si meuble haut/colonne) découpé en L",
+          "quantity_formula": "is_wall_or_tall ? 2 : 1",
+          "thickness": "T",
+          "nesting_bounding_box": {
+            "length_formula": "W1 - (2 * T)",
+            "width_formula": "W2 - (2 * T)"
+          },
+          "cnc_notched_cutout_L": {
+            "notch_width_formula": "(W1 - T) - D",
+            "notch_depth_formula": "(W2 - T) - D",
+            "resulting_inner_front_edges": [
+              "W1 - T - D",
+              "W2 - T - D"
+            ]
+          },
+          "edge_banding_1mm_formula": "((W1 - T - D) + (W2 - T - D)) * quantity"
+        },
+        {
+          "part_id": "top_stretchers_base_only",
+          "label": "Traverses supérieures en L (Uniquement pour caisson bas)",
+          "quantity_formula": "is_wall_or_tall ? 0 : 2",
+          "thickness": "T",
+          "length_formula": "W1 - (2 * T)",
+          "width_formula": 100,
+          "edge_banding_1mm_formula": "2 * (W1 - (2 * T))"
+        },
+        {
+          "part_id": "internal_L_shelf",
+          "label": "Étagère intermédiaire en L",
+          "quantity": 1,
+          "thickness": "T",
+          "nesting_bounding_box": {
+            "length_formula": "W1 - (2 * T) - 2",
+            "width_formula": "W2 - (2 * T) - 2"
+          },
+          "cnc_notched_cutout_L": {
+            "notch_width_formula": "(W1 - T) - D + 15",
+            "notch_depth_formula": "(W2 - T) - D + 15"
+          },
+          "edge_banding_1mm_formula": "((W1 - T - D) + (W2 - T - D) + 30)"
+        }
+      ],
+      "doors_bifold": {
+        "door_master": {
+          "label": "Porte Maître (Fixée sur le montant par charnières 155°/165°)",
+          "quantity": 1,
+          "thickness": "T_door",
+          "height_formula": "has_gola ? (H - gola_deduction) : (H - gap_door_vertical)",
+          "width_formula": "(W1 - D) - T_door - bifold_master_clearance",
+          "edge_banding_2mm_formula": "2 * (height + width)"
+        },
+        "door_slave": {
+          "label": "Porte Esclave (Articulée par charnière 60° et équipée de la poignée)",
+          "quantity": 1,
+          "thickness": "T_door",
+          "height_formula": "has_gola ? (H - gola_deduction) : (H - gap_door_vertical)",
+          "width_formula": "(W2 - D) - T_door - bifold_slave_clearance",
+          "edge_banding_2mm_formula": "2 * (height + width)"
+        }
+      }
+    },
+    {
+      "type_id": "corner_diagonal_45_cabinet",
+      "name": "Meuble d'Angle Diagonal à Pan Coupé 45° (Pentagonal)",
+      "input_parameters": [
+        "W1",
+        "W2",
+        "H",
+        "D",
+        "has_gola"
+      ],
+      "parts": [
+        {
+          "part_id": "side_panels_flanks",
+          "label": "Côtés latéraux de jonction",
+          "quantity": 2,
+          "thickness": "T",
+          "length_formula": "H",
+          "width_formula": "D",
+          "edge_banding_1mm_formula": "2 * (H + D)"
+        },
+        {
+          "part_id": "back_panels_90_deg",
+          "label": "Panneaux de dos 18mm",
+          "quantity": 2,
+          "thickness": "T",
+          "part_1_dims": {
+            "length": "H",
+            "width": "W1 - T"
+          },
+          "part_2_dims": {
+            "length": "H",
+            "width": "W2 - (2 * T)"
+          }
+        },
+        {
+          "part_id": "pentagonal_bottom_top",
+          "label": "Fond et Dessus pentagonaux (Pan coupé à 45°)",
+          "quantity": 2,
+          "thickness": "T",
+          "nesting_bounding_box": {
+            "length_formula": "W1 - (2 * T)",
+            "width_formula": "W2 - (2 * T)"
+          },
+          "diagonal_chamfer_cut": {
+            "cathetus_x_formula": "(W1 - T) - D",
+            "cathetus_y_formula": "(W2 - T) - D",
+            "diagonal_front_edge_length_formula": "sqrt(pow(W1 - T - D, 2) + pow(W2 - T - D, 2))"
+          },
+          "edge_banding_1mm_formula": "2 * sqrt(pow(W1 - T - D, 2) + pow(W2 - T - D, 2))"
+        },
+        {
+          "part_id": "pentagonal_shelf",
+          "label": "Étagère pentagonale en retrait",
+          "quantity": 1,
+          "thickness": "T",
+          "nesting_bounding_box": {
+            "length_formula": "W1 - (2 * T) - 20",
+            "width_formula": "W2 - (2 * T) - 20"
+          },
+          "edge_banding_1mm_formula": "sqrt(pow(W1 - T - D, 2) + pow(W2 - T - D, 2))"
+        }
+      ],
+      "door_diagonal": {
+        "label": "Porte unique oblique à 45°",
+        "quantity": 1,
+        "thickness": "T_door",
+        "height_formula": "has_gola ? (H - gola_deduction) : (H - gap_door_vertical)",
+        "width_formula": "sqrt(pow(W1 - D, 2) + pow(W2 - D, 2)) - 6",
+        "edge_banding_2mm_formula": "2 * (height + width)"
+      }
+    },
+    {
+      "type_id": "corner_blind_straight_cabinet",
+      "name": "Meuble d'Angle Droit Borgne (Angle mort avec panneau fixe et fileur)",
+      "input_parameters": [
+        "W1_footprint",
+        "W2_return",
+        "carcass_W",
+        "H",
+        "D",
+        "filler_W",
+        "has_gola"
+      ],
+      "parts": [
+        {
+          "part_id": "side_panels",
+          "label": "Côtés (Gauche et Droit)",
+          "quantity": 2,
+          "thickness": "T",
+          "length_formula": "H",
+          "width_formula": "D",
+          "edge_banding_1mm_formula": "2 * (H + D)"
+        },
+        {
+          "part_id": "bottom_panel",
+          "label": "Dessous droit",
+          "quantity": 1,
+          "thickness": "T",
+          "length_formula": "carcass_W - (2 * T)",
+          "width_formula": "D",
+          "edge_banding_1mm_formula": "carcass_W - (2 * T)"
+        },
+        {
+          "part_id": "top_stretchers",
+          "label": "Traverses hautes",
+          "quantity": 2,
+          "thickness": "T",
+          "length_formula": "carcass_W - (2 * T)",
+          "width_formula": 100,
+          "edge_banding_1mm_formula": "2 * (carcass_W - (2 * T))"
+        },
+        {
+          "part_id": "center_stiffener_stile",
+          "label": "Montant central de séparation (Support charnières angle mort)",
+          "quantity": 1,
+          "thickness": "T",
+          "length_formula": "H - (2 * T)",
+          "width_formula": 100,
+          "edge_banding_1mm_formula": "H - (2 * T)"
+        },
+        {
+          "part_id": "blind_fixed_panel",
+          "label": "Panneau fixe d'angle mort (Côté caché par le retour)",
+          "quantity": 1,
+          "thickness": "T",
+          "length_formula": "H - 4",
+          "width_formula": "(D + T_door) - (W1_footprint - carcass_W) + filler_W",
+          "edge_banding_1mm_formula": "2 * (length + width)"
+        },
+        {
+          "part_id": "corner_filler_strip_90",
+          "label": "Fileur d'angle à 90° (En couleur façade)",
+          "quantity": 2,
+          "thickness": "T_door",
+          "length_formula": "has_gola ? (H - gola_deduction) : (H - gap_door_vertical)",
+          "width_formula": "filler_W + T_door",
+          "edge_banding_2mm_formula": "4 * (length + width)"
+        },
+        {
+          "part_id": "back_panel_6mm",
+          "label": "Fond arrière en 6mm",
+          "quantity": 1,
+          "thickness": 6,
+          "length_formula": "H - T + 9",
+          "width_formula": "carcass_W - (2 * T) + 18",
+          "edge_banding_formula": "0"
+        }
+      ],
+      "door_accessible": {
+        "label": "Porte ouvrante d'accès",
+        "quantity": 1,
+        "thickness": "T_door",
+        "height_formula": "has_gola ? (H - gola_deduction) : (H - gap_door_vertical)",
+        "width_formula": "carcass_W - ((D + T_door) - (W1_footprint - carcass_W) + filler_W) - 4",
+        "edge_banding_2mm_formula": "2 * (height + width)"
+      }
+    }
+  ]
+}

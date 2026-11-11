@@ -1,0 +1,203 @@
+{
+  "database": "morocco_kitchen_appliances",
+  "currency": "MAD",
+  "unit": "mm",
+  "categories": [
+    {
+      "category_id": "ovens",
+      "name": "Fours Encastrables",
+      "items": [
+        {
+          "id": "oven_standard_60",
+          "name": "Four Encastrable Standard 60 cm (65L - 72L)",
+          "compatible_cabinet_width": 600,
+          "overall_dimensions_mm": { "width": 595, "height": 595, "depth": 550 },
+          "cutout_niche_mm": { "width": 560, "height": 585, "depth_min": 560 },
+          "ventilation_back_gap_mm": 50,
+          "market_segments_morocco": [
+            { "tier": "Entrée de gamme", "brands": ["Candy", "Beko", "Tivoli", "Krohler", "Siera"], "price_mad": { "min": 1950, "max": 3200 } },
+            { "tier": "Milieu de gamme", "brands": ["Whirlpool", "Teka", "Franke", "Schneider", "LG"], "price_mad": { "min": 3300, "max": 5500 } },
+            { "tier": "Haut de gamme", "brands": ["Bosch", "Siemens", "Smeg", "Samsung"], "price_mad": { "min": 5600, "max": 12000 } }
+          ]
+        },
+        {
+          "id": "oven_large_90",
+          "name": "Four Encastrable Grande Largeur 90 cm",
+          "compatible_cabinet_width": 900,
+          "overall_dimensions_mm": { "width": 895, "height": 480, "depth": 550 },
+          "cutout_niche_mm": { "width": 860, "height": 475, "depth_min": 560 },
+          "market_segments_morocco": [
+            { "tier": "Standard & Pro", "brands": ["Tivoli", "Teka", "Whirlpool", "Smeg", "Bosch"], "price_mad": { "min": 4200, "max": 14500 } }
+          ]
+        }
+      ]
+    },
+    {
+      "category_id": "microwaves",
+      "name": "Micro-ondes Encastrables",
+      "items": [
+        {
+          "id": "microwave_builtin_60",
+          "name": "Micro-ondes Encastrable (20L - 25L)",
+          "compatible_cabinet_width": 600,
+          "overall_dimensions_mm": { "width": 595, "height": 388, "depth": 345 },
+          "cutout_niche_mm": { "width": 560, "height": 380, "depth_min": 350 },
+          "market_segments_morocco": [
+            { "tier": "Entrée de gamme", "brands": ["Candy", "Beko", "Krohler", "Siera"], "price_mad": { "min": 1500, "max": 2500 } },
+            { "tier": "Milieu & Haut de gamme", "brands": ["Whirlpool", "Bosch", "Teka", "Samsung"], "price_mad": { "min": 2800, "max": 6500 } }
+          ]
+        }
+      ]
+    },
+    {
+      "category_id": "cooktops",
+      "name": "Plaques de Cuisson (Gaz, Vitrocéramique, Induction)",
+      "items": [
+        {
+          "id": "cooktop_4_burners_60",
+          "name": "Plaque 4 Feux 60 cm (Gaz / Vitro / Induction)",
+          "overall_dimensions_mm": { "width": 590, "height": 50, "depth": 520 },
+          "worktop_cutout_mm": { "width": 560, "depth": 490 },
+          "market_segments_morocco": [
+            { "tier": "Gaz Inox / Verre Noir", "brands": ["Candy", "Beko", "Whirlpool", "Teka", "Bosch", "Schneider"], "price_mad": { "min": 950, "max": 4200 } },
+            { "tier": "Vitrocéramique 60 cm", "brands": ["Candy", "Whirlpool", "Teka", "Bosch"], "price_mad": { "min": 1800, "max": 4500 } },
+            { "tier": "Induction 60 cm", "brands": ["Bosch", "Whirlpool", "Samsung", "Siemens"], "price_mad": { "min": 3500, "max": 8500 } }
+          ]
+        },
+        {
+          "id": "cooktop_5_burners_75_90",
+          "name": "Plaque 5 Feux Gaz (70 cm à 90 cm - Wok Central)",
+          "overall_dimensions_mm": { "width": 750, "height": 50, "depth": 510 },
+          "worktop_cutout_mm": { "width": 560, "depth": 480, "note": "Beaucoup de plaques 70-75cm s'encastrent dans une découpe standard de 56x48cm, les 90cm demandent 84x49cm" },
+          "market_segments_morocco": [
+            { "tier": "Toutes gammes", "brands": ["Active Chef", "Teka", "Whirlpool", "Bosch", "Franke"], "price_mad": { "min": 1400, "max": 6800 } }
+          ]
+        }
+      ]
+    },
+    {
+      "category_id": "hoods",
+      "name": "Hottes Aspirantes",
+      "items": [
+        {
+          "id": "hood_telescopic_or_builtin",
+          "name": "Hotte Télescopique (Casquette) ou Groupe Filtrant Encastré",
+          "compatible_wall_cabinet_width": [600, 900],
+          "overall_dimensions_mm": { "width": 600, "height": 180, "depth": 300 },
+          "market_segments_morocco": [
+            { "tier": "Toutes gammes", "brands": ["Candy", "Whirlpool", "Teka", "Beko", "Bosch", "Elica"], "price_mad": { "min": 750, "max": 3800 } }
+          ]
+        },
+        {
+          "id": "hood_wall_decorative",
+          "name": "Hotte Décorative Murale (Inclinée Verre ou Pyramide Inox)",
+          "available_widths_mm": [600, 900],
+          "requires_wall_space_clear": true,
+          "market_segments_morocco": [
+            { "tier": "Toutes gammes", "brands": ["Teka", "Whirlpool", "Bosch", "Samsung", "Franke", "Candy"], "price_mad": { "min": 1400, "max": 7500 } }
+          ]
+        }
+      ]
+    },
+    {
+      "category_id": "washing_machines",
+      "name": "Lave-Linge",
+      "items": [
+        {
+          "id": "washing_machine_60",
+          "name": "Lave-Linge Frontal 60 cm (7 à 9 kg, pose libre)",
+          "overall_dimensions_mm": { "width": 597, "height": 845, "depth": 560 },
+          "niche_dimensions_builtin_mm": { "width": 600, "height_min": 850, "depth": 600 },
+          "market_segments_morocco": [
+            { "tier": "Toutes gammes", "brands": ["Beko", "Candy", "LG", "Samsung", "Whirlpool", "Bosch"], "price_mad": { "min": 3000, "max": 8000 } }
+          ]
+        }
+      ]
+    },
+    {
+      "category_id": "dishwashers",
+      "name": "Lave-Vaisselle",
+      "items": [
+        {
+          "id": "dishwasher_60_standard",
+          "name": "Lave-Vaisselle 60 cm (12 à 15 Couverts - Pose libre ou Tout Intégrable)",
+          "overall_dimensions_mm": { "width": 598, "height": 845, "depth": 600 },
+          "niche_dimensions_builtin_mm": { "width": 600, "height_min": 820, "depth": 580 },
+          "market_segments_morocco": [
+            { "tier": "Pose libre (Inox / Noir / Blanc)", "brands": ["Beko", "Candy", "LG", "Whirlpool", "Bosch", "Samsung"], "price_mad": { "min": 3100, "max": 8500 } },
+            { "tier": "Tout Intégrable (Habillable porte bois)", "brands": ["Beko", "Whirlpool", "Bosch", "Teka", "Siemens"], "price_mad": { "min": 3800, "max": 9500 } }
+          ]
+        },
+        {
+          "id": "dishwasher_45_compact",
+          "name": "Lave-Vaisselle Étroit 45 cm (9 à 10 Couverts)",
+          "overall_dimensions_mm": { "width": 448, "height": 845, "depth": 600 },
+          "niche_dimensions_builtin_mm": { "width": 450, "height_min": 820, "depth": 580 },
+          "market_segments_morocco": [
+            { "tier": "Toutes gammes", "brands": ["Beko", "Candy", "Whirlpool", "Bosch"], "price_mad": { "min": 2900, "max": 6800 } }
+          ]
+        }
+      ]
+    },
+    {
+      "category_id": "refrigerators",
+      "name": "Réfrigérateurs",
+      "items": [
+        {
+          "id": "fridge_builtin_60",
+          "name": "Réfrigérateur Combiné Encastrable (Dans colonne de 60 cm)",
+          "compatible_tall_cabinet_width": 600,
+          "overall_dimensions_mm": { "width": 540, "height": 1770, "depth": 545 },
+          "niche_dimensions_mm": { "width": 560, "height": 1780, "depth_min": 560 },
+          "market_segments_morocco": [
+            { "tier": "Toutes gammes", "brands": ["Whirlpool", "Beko", "Bosch", "Teka", "Samsung", "Liebherr"], "price_mad": { "min": 5500, "max": 14000 } }
+          ]
+        },
+        {
+          "id": "fridge_freestanding_combi_70",
+          "name": "Réfrigérateur Combiné Pose Libre (Largeur 60 cm ou 70 cm)",
+          "available_widths_mm": [600, 700, 750],
+          "height_range_mm": [1850, 2030],
+          "depth_mm": 670,
+          "clearance_sides_mm": 30,
+          "market_segments_morocco": [
+            { "tier": "Toutes gammes", "brands": ["LG", "Samsung", "Bosch", "Whirlpool", "Beko", "Siera", "Midea"], "price_mad": { "min": 3800, "max": 13500 } }
+          ]
+        },
+        {
+          "id": "fridge_american_side_by_side",
+          "name": "Réfrigérateur Américain Side-by-Side / Multi-portes",
+          "overall_dimensions_mm": { "width": 912, "height": 1790, "depth": 735 },
+          "required_niche_width_with_door_swing_mm": 960,
+          "market_segments_morocco": [
+            { "tier": "Toutes gammes", "brands": ["LG", "Samsung", "Haier", "Beko", "Whirlpool", "Hisense"], "price_mad": { "min": 7800, "max": 24000 } }
+          ]
+        }
+      ]
+    },
+    {
+      "category_id": "sinks",
+      "name": "Éviers de Cuisine",
+      "items": [
+        {
+          "id": "sink_1_bowl_undermount_or_topmount",
+          "name": "Évier 1 Grand Bac (Inox 304 ou Granit/Résine - Sous-plan ou à encastrer)",
+          "minimum_base_cabinet_width": 600,
+          "overall_dimensions_mm": { "width": 550, "depth": 450, "bowl_depth": 200 },
+          "market_segments_morocco": [
+            { "tier": "Inox 304 / Granit", "brands": ["Teka", "Franke", "Blanco", "Schock", "Inox Artisanal Épais"], "price_mad": { "min": 900, "max": 4500 } }
+          ]
+        },
+        {
+          "id": "sink_2_bowls",
+          "name": "Évier 2 Bacs (avec ou sans égouttoir)",
+          "minimum_base_cabinet_width": 800,
+          "overall_dimensions_mm": { "width": 860, "depth": 500, "bowl_depth": 200 },
+          "market_segments_morocco": [
+            { "tier": "Inox / Granit", "brands": ["Teka", "Franke", "Blanco"], "price_mad": { "min": 1200, "max": 5800 } }
+          ]
+        }
+      ]
+    }
+  ]
+}

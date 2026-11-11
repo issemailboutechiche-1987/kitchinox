@@ -1,0 +1,505 @@
+// Export de la cuisine pour la vue WebGL (three.js) : géométrie en mm (repère du plan : x, y, z vers
+// le haut), matériaux (couleur, texture, brillance) et images dessinées par le moteur Flutter
+// (façades case par case, intérieurs, dessus de plaque et d'évier). Les images sont mises en cache :
+// seules les nouvelles sont envoyées au navigateur.
+
+import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
+
+import '../engine/engine.dart';
+import 'app_state.dart';
+import 'finishes.dart';
+import 'openings_ui.dart';
+import 'fronts.dart';
+import 'scene3d.dart';
+import 'textures.dart';
+
+/// Image prête pour le navigateur (pixels RGBA).
+class SceneImage {
+  final String key;
+  final int width, height;
+  final Uint8List rgba;
+  const SceneImage(this.key, this.width, this.height, this.rgba);
+}
+
+class SceneExporter {
+  final Map<String, SceneImage> _images = {}; // déjà rendues
+  final Set<String> _sent = {}; // déjà envoyées au navigateur
+
+  /// Images rendues pendant la dernière construction et pas encore envoyées.
+  List<SceneImage> takeNewImages() {
+    final out = [for (final e in _images.entries) if (!_sent.contains(e.key)) e.value];
+    _sent.addAll(out.map((x) => x.key));
+    return out;
+  }
+
+  Future<SceneImage> _image(String key, double wMm, double hMm, void Function(Canvas c) draw, {double pxPerMm = 0.5, int maxPx = 512}) async {
+    final hit = _images[key];
+    if (hit != null) return hit;
+    final k = math.min(pxPerMm, maxPx / math.max(wMm, hMm));
+    final w = math.max(2, (wMm * k).round()), h = math.max(2, (hMm * k).round());
+    final rec = ui.PictureRecorder();
+    final c = Canvas(rec);
+    c.scale(w / wMm, h / hMm);
+    draw(c);
+    final img = await rec.endRecording().toImage(w, h);
+    final data = await img.toByteData(format: ui.ImageByteFormat.rawRgba);
+    img.dispose();
+    final out = SceneImage(key, w, h, data!.buffer.asUint8List());
+    _images[key] = out;
+    return out;
+  }
+
+  Future<String?> _bank(String? tex) async {
+    if (tex == null) return null;
+    final img = TextureBank.instance[tex];
+    if (img == null) return null;
+    final key = 'bank:$tex';
+    if (!_images.containsKey(key)) {
+      final data = await img.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (data == null) return null;
+      _images[key] = SceneImage(key, img.width, img.height, data.buffer.asUint8List());
+    }
+    return key;
+  }
+
+  static String _hex(Color c) => '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+
+  /// Matériau : couleur, texture (clé), taille réelle du motif, rugosité, métal.
+  Future<Map<String, dynamic>> _mat(Finish f, {double rough = 0.6, double metal = 0, bool vertical = false}) async => {
+        'color': _hex(f.textured ? Colors.white : f.color),
+        if (f.textured) 'map': await _bank(f.tex),
+        'tile': f.tile,
+        'rough': f.gloss ? 0.25 : rough,
+        'metal': f.tex == 'steel' ? 0.35 : metal,
+        if (vertical) 'vertical': true,
+      };
+
+  static Map<String, dynamic> _plain(Color c, {double rough = 0.7, double metal = 0}) => {'color': _hex(c), 'rough': rough, 'metal': metal};
+
+  static Map<String, dynamic> _box(Box3 b) => {'x0': b.x0, 'y0': b.y0, 'z0': b.z0, 'x1': b.x1, 'y1': b.y1, 'z1': b.z1};
+
+  static Map<String, dynamic> _frame(Wall w) => {'ox': w.x0, 'oy': w.y0, 'dx': w.dx, 'dy': w.dy, 'nx': w.nx, 'ny': w.ny};
+
+  /// Construit la scène complète (JSON) ; les images nouvelles sont ensuite prises par [takeNewImages].
+  Future<Map<String, dynamic>> build(AppState st) async {
+    final e = st.engine;
+    final p = st.project;
+    final room = p.room;
+    final style = p.style;
+    final std = p.standards;
+    final carcass = finishById(carcasses, style.carcass);
+    final top = worktopFinish(style, style.worktop);
+    final lowFront = frontFinish(style, style.frontLower ?? style.front);
+    final (_, hSize, hColor) = handleLook(style, st.db?.handles);
+
+    // ---- pièce : murs (avec ouvertures), sol, crédence
+    final walls = <Map<String, dynamic>>[];
+    for (final w in room.walls) {
+      if (!w.straight) {
+        // arc : découpé en pans droits (sans ouverture), masqués avec l'arc
+        final pts = w.points(16);
+        for (var i = 0; i + 1 < pts.length; i++) {
+          final (ax, ay) = pts[i];
+          final (bx, by) = pts[i + 1];
+          final len = math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+          final dx = (bx - ax) / len, dy = (by - ay) / len;
+          walls.add({'id': '${w.id}~$i', 'ox': ax, 'oy': ay, 'dx': dx, 'dy': dy, 'nx': -dy, 'ny': dx, 'len': len + 2, 'openings': const []});
+        }
+        continue;
+      }
+      walls.add({
+        'id': w.id,
+        ..._frame(w),
+        'len': w.length,
+        'openings': [
+          for (final o in p.openings.where((o) => o.wallId == w.id))
+            () {
+              final m = openingModelOf(o);
+              return {
+                's': o.s, 'w': o.width, 'z': o.z, 'h': o.height, 'door': o.isDoor,
+                'mech': m?.mechanism ?? (o.isDoor ? 'hinged_single' : 'casement_inward'),
+                'glazed': m?.glazed ?? !o.isDoor,
+                'leaf': openingLeafColor(m).toARGB32() & 0xFFFFFF,
+                'hinge': o.hinge,
+              };
+            }(),
+        ],
+      });
+    }
+    final splash = <Map<String, dynamic>>[];
+    for (final w in room.walls.where((w) => w.enabled)) {
+      for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
+        var zTop = std.worktopTop + 600.0;
+        for (final c in p.items.where((c) => c.wallId == w.id && e.modelOf(c).kind.isHigh && c.s < b && a < c.right)) {
+          zTop = math.min(zTop, c.z);
+        }
+        splash.add({'wall': w.id, 's0': a, 's1': b, 'z0': std.worktopTop, 'z1': zTop});
+      }
+    }
+
+    // ---- solides : caissons, plans de travail, plinthes, îlot, appareils
+    final solids = <Map<String, dynamic>>[];
+    final tops = <Map<String, dynamic>>[];
+    final fronts = <Map<String, dynamic>>[];
+    final items = <Map<String, dynamic>>[];
+    final carcassMat = await _mat(carcass, rough: 0.7);
+
+    for (final c in p.items) {
+      final m = e.modelOf(c);
+      final fr = frontOfItem(style, c, m);
+      final isPanel = m.kind.isFiller || m.kind == CabinetKind.coverPanel || m.kind == CabinetKind.islandPanel;
+      final frMat = await _mat(fr, rough: 0.5, vertical: true);
+      final boxes = e.boxesOf(c);
+      final corner = m.kind.isCorner && m.isCarcass;
+      final opens = openableCells(m, c).isNotEmpty || corner;
+      for (var bi = 0; bi < boxes.length; bi++) {
+        final b = boxes[bi].box;
+        if (opens && (bi == 0 || corner)) {
+          // caisson creux (côtés, dessus, dessous, dos de 18 mm) : l'intérieur se voit quand on ouvre ;
+          // la façade (18 mm + tampon) est un volume à part devant
+          final w = room.wall(boxes[bi].wallId);
+          final (s0, s1, t0, t1) = w.boxToWall(b);
+          final tf = t1 - 20; // face avant du caisson
+          Box3 at(double sa, double sb, double ta, double tb, double za, double zb) {
+            final (ax, ay) = w.toPlan(sa, ta);
+            final (bx, by) = w.toPlan(sb, tb);
+            return Box3(math.min(ax, bx), math.min(ay, by), za, math.max(ax, bx), math.max(ay, by), zb);
+          }
+
+          for (final bx in [
+            at(s0, s0 + 18, t0, tf, b.z0, b.z1), // côtés
+            at(s1 - 18, s1, t0, tf, b.z0, b.z1),
+            at(s0 + 18, s1 - 18, t0, tf, b.z0, b.z0 + 18), // dessous
+            at(s0 + 18, s1 - 18, t0, tf, b.z1 - 18, b.z1), // dessus
+            at(s0 + 18, s1 - 18, t0, t0 + 18, b.z0 + 18, b.z1 - 18), // dos
+          ]) {
+            solids.add({..._box(bx), 'mat': carcassMat, 'uid': c.uid});
+          }
+          // étagères réelles dans les cases à porte sans appareil
+          final apps = appliancesOf(m, c);
+          if (apps.isEmpty && !e.isWashing(m)) {
+            final inner = b.z1 - b.z0 - 36;
+            final n = m.kind == CabinetKind.tall ? 4 : (inner > 600 ? 2 : (inner > 330 ? 1 : 0));
+            final drawers = openableCells(m, c).where((x) => x.kind == CellKind.drawer).fold<double>(0, (a, x) => a + x.h);
+            final top = b.z1 - 18, bottom = b.z0 + 18 + (drawers > 0 && m.kind.isLow ? drawers : 0);
+            for (var k = 1; k <= n; k++) {
+              final z = bottom + (top - bottom) * k / (n + 1);
+              if (z < bottom + 120 || z > top - 120) continue;
+              solids.add({..._box(at(s0 + 18, s1 - 18, t0 + 18, tf - 30, z - 9, z + 9)), 'mat': carcassMat, 'uid': c.uid});
+            }
+          }
+        } else {
+          solids.add({..._box(b), 'mat': isPanel ? frMat : carcassMat, 'uid': c.uid});
+        }
+      }
+      final w0 = room.wall(boxes.first.wallId);
+      items.add({'uid': c.uid, ..._frame(w0), 's': c.s, 'z': c.z, 'canZ': e.canMoveVertically(m), 'depth': c.depth});
+
+      // façades
+      final cells = openableCells(m, c);
+      final all = cellsOf(rowsOf(m, c) ?? seedRows(m, c), c.height);
+      final apps = appliancesOf(m, c);
+      Future<String> frontImg(String what, double wMm, double hMm, List<FrontCell>? cs, {String? opening}) async {
+        final key = 'front|${m.id}|$what|${wMm.round()}x${hMm.round()}|${fr.id}|${style.handle}|${style.handleId}|${style.handleSize}|'
+            '${style.handleFinish}|${style.tallXxl}|${opening ?? c.opening}|${c.variant}|${apps.join(',')}|${carcass.id}|${fr.textured}';
+        final img = await _image(key, wMm, hMm, (cv) {
+          paintFront(cv, Rect.fromLTWH(0, 0, wMm, hMm), m,
+              fill: fr.color,
+              stroke: shade(fr.color, -0.3),
+              line: lineOn(fr.color),
+              opening: opening ?? c.opening,
+              variant: c.variant,
+              handle: style.handle,
+              handleSize: hSize,
+              handleColor: hColor,
+              tallXxl: style.tallXxl,
+              fillPaint: fr.paint(vertical: true),
+              cells: cs,
+              realistic: true,
+              pxPerMm: 1,
+              appliances: apps,
+              carcass: carcass.color,
+              gloss: fr.gloss);
+        });
+        return img.key;
+      }
+
+      Future<String> interiorImg(FrontCell cell, double wMm, double hMm) async {
+        final key = 'inside|${m.id}|${cell.kind.name}|${wMm.round()}x${hMm.round()}|${carcass.id}|${apps.join(',')}';
+        final img = await _image(key, wMm, hMm, (cv) {
+          paintCabinetInterior(e, cv, Rect.fromLTWH(0, 0, wMm, hMm), [FrontCell(cell.kind, 0, hMm, cell.hinge, -1)], hMm, carcass.color, m, c);
+        }, pxPerMm: 0.35);
+        return img.key;
+      }
+
+      for (var bi = 0; bi < boxes.length; bi++) {
+        final tb = boxes[bi];
+        final w = room.wall(tb.wallId);
+        final b = tb.box;
+        final (s0, s1, _, t1) = w.boxToWall(b);
+        final width = s1 - s0, height = b.z1 - b.z0;
+        final parts = <Map<String, dynamic>>[];
+        if (bi == 0 && cells.isNotEmpty) {
+          final total = all.isEmpty ? height : all.last.y + all.last.h;
+          final kz = height / (total <= 0 ? 1 : total);
+          for (final cell in all) {
+            final zTop = b.z1 - cell.y * kz, h = cell.h * kz;
+            final moving = cells.any((x) => x.y == cell.y && x.kind == cell.kind);
+            final kind = !moving
+                ? 'static'
+                : switch (cell.kind) {
+                    CellKind.drawer => 'drawer',
+                    CellKind.flap => m.kind.isHigh ? 'flapUp' : 'flapDown',
+                    _ => 'door',
+                  };
+            final halves = kind == 'door' && (cell.kind == CellKind.door2 || (cell.kind == CellKind.glass && width >= 790))
+                ? [(s0, width / 2, 'left'), (s0 + width / 2, width / 2, 'right')]
+                : [
+                    (
+                      s0,
+                      width,
+                      (c.opening == 'hinged_left' || (c.opening != 'hinged_right' && cell.hinge != 'right')) ? 'left' : 'right',
+                    ),
+                  ];
+            for (final (ls, lw, hinge) in halves) {
+              final single = FrontCell(cell.kind == CellKind.door2 ? CellKind.door : cell.kind, 0, h, hinge, cell.index);
+              final m2 = m.id == 'base_integrated_dishwasher_door' ? null : [single];
+              parts.add({
+                'kind': kind,
+                'hinge': hinge,
+                's0': ls,
+                's1': ls + lw,
+                'z0': zTop - h,
+                'z1': zTop,
+                'img': await frontImg('${cell.kind.name}-$hinge', lw, h, m2, opening: hinge == 'left' ? 'hinged_left' : 'hinged_right'),
+                if (kind != 'static') 'inside': await interiorImg(cell, lw, h),
+                if (kind != 'static') 'insideT': 19.0,
+              });
+            }
+          }
+        } else if (corner) {
+          // angle en L / pan coupé : une porte par bras, articulée côté extérieur ; borgne : porte d'accès + panneau fixe
+          final door = FrontCell(CellKind.door, 0, height, null, -1);
+          Future<void> addDoor(double a, double bb, String hinge) async {
+            if (bb - a < 60) return;
+            parts.add({
+              'kind': 'door',
+              'hinge': hinge,
+              's0': a,
+              's1': bb,
+              'z0': b.z0,
+              'z1': b.z1,
+              'img': await frontImg('corner-$bi-$hinge-${(bb - a).round()}', bb - a, height, [door],
+                  opening: hinge == 'left' ? 'hinged_left' : 'hinged_right'),
+              'insideT': 19.0,
+            });
+          }
+
+          if (m.shape == CabinetShape.blind) {
+            final wl = room.wall(c.wallId);
+            final blindAtEnd = c.right >= wl.length - 60 || c.s > 60;
+            final dw = blindDoorWidth(m, c).clamp(200.0, width);
+            final (da, db) = blindAtEnd ? (s0, s0 + dw) : (s1 - dw, s1);
+            await addDoor(da, db, blindAtEnd ? 'left' : 'right');
+            final (pa, pb) = blindAtEnd ? (db, s1) : (s0, da);
+            parts.add({'kind': 'static', 's0': pa, 's1': pb, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('blind$bi-${(pb - pa).round()}', pb - pa, height, const [])});
+          } else if (bi == 0) {
+            // bras le long du mur : de l'extrémité jusqu'au retour
+            await addDoor(s0, math.min(s1, room.wall(c.wallId).length - c.depth), 'left');
+          } else {
+            await addDoor(math.max(s0, c.depth.toDouble()), s1, 'right');
+          }
+        } else {
+          parts.add({'kind': 'static', 's0': s0, 's1': s1, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('box$bi', width, height, frontCells(m, c, realistic: true))});
+        }
+        fronts.add({'uid': c.uid, ..._frame(w), 't': t1, 'depth': c.depth, 'parts': parts, if (m.id.contains('mirror')) 'mirror': true});
+      }
+    }
+
+    // plans de travail et plinthes
+    final topMat = await _mat(top, rough: top.tex?.startsWith('marble') ?? false ? 0.3 : 0.55);
+    final plinthMat = _plain(shade(lowFront.color, -0.12), rough: 0.6);
+    for (final w in room.walls.where((w) => w.enabled)) {
+      for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
+        solids.add({..._box(w.strip(a, b - a, worktopDepth.toDouble(), std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
+      }
+      for (final (a, b) in e.runs(w.id, (m) => m.floorSupport)) {
+        solids.add({..._box(w.strip(a, b - a, 540, 0, std.plinthHeight.toDouble())), 'mat': plinthMat});
+      }
+    }
+    final isl = room.island;
+    if (isl != null) {
+      final w = room.wall('I');
+      Box3 box(double s0, double s1, double t0, double t1, double z0, double z1) {
+        final (ax, ay) = w.toPlan(s0, t0);
+        final (bx, by) = w.toPlan(s1, t1);
+        return Box3(math.min(ax, bx), math.min(ay, by), z0, math.max(ax, bx), math.max(ay, by), z1);
+      }
+
+      for (final (a, b) in e.runs('I', (m) => e.kitchen && m.kind.isLow)) {
+        solids.add({..._box(box(a, b, -isl.overhang, Island.depth + 20, std.baseTop.toDouble(), std.worktopTop.toDouble())), 'mat': topMat, 'top': true});
+        solids.add({..._box(box(a, b, -18, 0, 0, std.baseTop.toDouble())), 'mat': await _mat(lowFront, vertical: true)});
+      }
+      for (final (a, b) in e.runs('I', (m) => m.floorSupport)) {
+        solids.add({..._box(box(a, b, 0, 540, 0, std.plinthHeight.toDouble())), 'mat': plinthMat});
+      }
+    }
+    // appareils visibles : plaque, évier et robinet, hotte
+    final steel = _plain(const Color(0xFFC4C8CC), rough: 0.35, metal: 0.35);
+    for (final c in p.items) {
+      final m = e.modelOf(c);
+      final w = room.wall(c.wallId);
+      final topZ = std.worktopTop.toDouble();
+      Box3 at(double s0, double width, double t0, double t1, double z, double h) {
+        final (ax, ay) = w.toPlan(s0, t0);
+        final (bx, by) = w.toPlan(s0 + width, t1);
+        return Box3(math.min(ax, bx), math.min(ay, by), z, math.max(ax, bx), math.max(ay, by), z + h);
+      }
+
+      const wd = worktopDepth * 1.0;
+      if (m.id == 'base_cooktop_oven') {
+        final hd = c.width >= 750 ? 520.0 : 510.0;
+        final t0 = (wd - hd) / 2;
+        final b = at(c.s + 30, c.width - 60.0, t0, t0 + hd, topZ, 6);
+        solids.add({..._box(b), 'mat': _plain(const Color(0xFF17181A), rough: 0.15)});
+        final img = await _image('top|hob|${(b.x1 - b.x0).round()}x${(b.y1 - b.y0).round()}', b.x1 - b.x0, b.y1 - b.y0,
+            (cv) => paintTopDecor(cv, Rect.fromLTWH(0, 0, b.x1 - b.x0, b.y1 - b.y0), 'hob', const Color(0xFF1F2124)));
+        tops.add({..._box(b), 'img': img.key});
+      } else if (m.id == 'base_sink') {
+        final sk = KitchenFixtures.sink(style.sink), fc = KitchenFixtures.faucet(style.faucet);
+        final bw = math.min(c.width - 60.0, sk.length.toDouble());
+        final sd = math.min(sk.depth.toDouble(), wd - 110);
+        const front = 70.0;
+        final t0 = wd - front - sd;
+        final b = at(c.s + (c.width - bw) / 2, bw, t0, t0 + sd, topZ, 4);
+        final img = await _image('top|sink-${sk.layout}|${(b.x1 - b.x0).round()}x${(b.y1 - b.y0).round()}', b.x1 - b.x0, b.y1 - b.y0,
+            (cv) => paintTopDecor(cv, Rect.fromLTWH(0, 0, b.x1 - b.x0, b.y1 - b.y0), 'sink:${sk.layout}', const Color(0xFFBFC5CA)));
+        solids.add({..._box(b), 'mat': steel});
+        tops.add({..._box(b), 'img': img.key});
+        // mitigeur au-dessus du bac (pas de l'égouttoir), à la hauteur du modèle
+        final mid = sk.layout == 'drainer' ? c.s + (c.width - bw) / 2 + bw * 0.28 : c.s + c.width / 2;
+        final fh = fc.height.toDouble();
+        solids.add({..._box(at(mid - 18, 36, t0 - 75, t0 - 40, topZ, fh - 30)), 'mat': steel});
+        solids.add({..._box(at(mid - 15, 30, t0 - 75, t0 + (fc.spring ? 200 : 160), topZ + fh - 60, 30)), 'mat': steel});
+        if (fc.pullout || fc.spring) solids.add({..._box(at(mid - 22, 44, t0 + 120, t0 + 175, topZ + fh - 150, 120)), 'mat': steel});
+      } else if (m.id == 'wall_integrated_hood') {
+        solids.add({..._box(w.strip(c.s + 40, c.width - 80.0, 480, c.z - 70, 70)), 'mat': steel});
+      }
+    }
+
+    // joues de finition automatiques
+    if (style.endPanels) {
+      for (final j in endPanels(e)) {
+        final w = room.wall(j.wallId);
+        final f = frontFinish(style, j.high ? (style.frontUpper ?? style.front) : (style.frontLower ?? style.front));
+        solids.add({..._box(w.strip(j.s, EndPanel.thickness, j.depth, j.z0, j.height)), 'mat': await _mat(f, rough: 0.5, vertical: true)});
+      }
+    }
+
+    // éclairage : rubans LED sous les hauts (et dans les plinthes)
+    final lights = <Map<String, dynamic>>[];
+    if (style.lighting != 'aucun') {
+      for (final c in p.items) {
+        final m = e.modelOf(c);
+        if (!m.kind.isHigh || m.id == 'wall_integrated_hood') continue;
+        final w = room.wall(c.wallId);
+        final b = w.strip(c.s + 25, c.width - 50.0, c.depth - 70.0, c.z - 6, 6);
+        final (cx, cy) = w.toPlan(c.s + c.width / 2, c.depth - 60.0);
+        lights.add({..._box(b), 'px': cx, 'py': cy, 'pz': c.z - 20, 'spot': true});
+      }
+      if (style.lighting == 'led_hauts_plinthes') {
+        for (final w in room.walls.where((w) => w.enabled)) {
+          for (final (a, b) in e.runs(w.id, (m) => m.floorSupport)) {
+            lights.add({..._box(w.strip(a + 20, b - a - 40, 545, 8, 6)), 'spot': false});
+          }
+        }
+      }
+    }
+
+    return {
+      'room': {'w': room.width, 'd': room.depth, 'h': room.height},
+      if (room.outline != null) 'floorPoly': [for (final (x, y) in room.floorPolygon) [x, y]],
+      'lights': lights,
+      'walls': walls,
+      // sol : béton ciré et carrelages plus satinés que le parquet
+      'floor': await _mat(floorFinish(style), rough: (floorFinish(style).tex ?? '').startsWith('parquet') ? 0.6 : 0.35),
+      'wall': await _mat(wallFinish(style), rough: 0.9),
+      'splashMat': style.splash == null ? null : await _mat(splashFinish(style), rough: 0.35),
+      'splash': style.splash == null ? const [] : splash,
+      'solids': solids,
+      'tops': tops,
+      'fronts': fronts,
+      'items': items,
+      // objets de la pièce : sanitaires (volumes générés) et modèles glTF du catalogue libre, chargés à la demande
+      'objects': [
+        for (final ob in p.objects)
+          {
+            'uid': ob.uid,
+            'kind': ob.isFixture ? 'fixture' : 'model',
+            'type': ob.isFixture ? ob.ref.substring(8) : ob.ref,
+            'file': ob.isFixture ? null : st.objectCatalog.where((c) => c.id == ob.ref).firstOrNull?.file,
+            'yaw': ob.isFixture ? 0 : st.objectCatalog.where((c) => c.id == ob.ref).firstOrNull?.yaw ?? 0,
+            'x': ob.x, 'y': ob.y, 'z': ob.z, 'rot': ob.rot, 'w': ob.w, 'h': ob.h, 'd': ob.d,
+          }
+      ],
+      // vasques en céramique posées sur les meubles vasque (le toucher choisit le meuble)
+      'basins': [
+        for (final c in p.items)
+          if (c.modelId.contains('vanity') && c.wallId != 'I')
+            () {
+              final w = room.wall(c.wallId);
+              final (x, y) = w.toPlan(c.s + c.width / 2, c.depth / 2);
+              return {
+                'uid': 'vasque-${c.uid}',
+                'pick': c.uid,
+                'kind': 'fixture',
+                'type': c.modelId.contains('double') && c.width >= 1000 ? 'vasque_double' : 'lavabo',
+                'x': x, 'y': y, 'z': c.z + c.height - 110, 'rot': room.wall(c.wallId).rot,
+                'w': c.width, 'h': 150, 'd': c.depth,
+              };
+            }(),
+      ],
+      // points de réseau (prises, interrupteurs, sorties, arrivées d'eau…) : plaques et appareils sur les murs
+      'netPoints': !p.networks
+          ? const []
+          : [
+              for (final x in visiblePoints(p))
+                if (!_hiddenIn3d(p, x))
+                if (x.onCeiling)
+                  {'uid': x.uid, 'kind': x.kind.name, 'x': x.s, 'y': x.z, 'z': room.height, 'dx': 1.0, 'dy': 0.0, 'nx': 0.0, 'ny': 0.0, 'ceiling': true}
+                else if (x.wallId == 'I' ? room.island != null : room.order.contains(x.wallId))
+                  () {
+                    final w = room.wall(x.wallId);
+                    // îlot : sur l'habillage côté repas (face arrière)
+                    final (px, py) = x.wallId == 'I' ? w.toPlan(x.s, -2) : w.toPlan(x.s, 0);
+                    final sign = x.wallId == 'I' ? -1.0 : 1.0;
+                    return {
+                      'uid': x.uid, 'kind': x.kind.name, 'x': px, 'y': py, 'z': x.z,
+                      'dx': w.dx * sign, 'dy': w.dy * sign, 'nx': w.nx * sign, 'ny': w.ny * sign, 'wall': x.wallId,
+                    };
+                  }(),
+            ],
+      'selectedObject': st.selectedObject,
+      'selected': st.selected,
+      'open': {
+        for (final u in st.openTargets)
+          if (p.byUid(u) != null) u: openLimit(e, p.byUid(u)!).$1,
+      },
+      'yaw': st.yaw,
+      'zoom': st.zoom,
+      'editable': st.step == PlanStep.layout || st.step == PlanStep.style,
+    };
+  }
+}
+
+/// Point de réseau absent de la vue 3D : attente noyée dans le bâti-support d'un WC suspendu,
+/// ou arrivée / évacuation existante une fois les appareils raccordés (le réseau généré la remplace).
+bool _hiddenIn3d(Project p, NetPoint x) {
+  if (x.onCeiling || x.wallId == 'I') return false;
+  if (x.use == existingUse) return p.points.any((y) => y.auto && y.kind.network == x.kind.network && y.forUid != null);
+  return x.kind.network != 'elec' && x.kind.network != 'data' && concealedInFrame(p.room, p.objects, x.wallId, x.s, x.z);
+}

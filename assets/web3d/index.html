@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>kitchinox 3D</title>
+  <!-- Vue 3D de l'app native (iPad) : le même moteur three.js que la version web, servi par l'app elle-même -->
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #eef1f3; touch-action: none; -webkit-user-select: none; user-select: none; }
+    #host { position: fixed; inset: 0; }
+  </style>
+  <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head>
+<body>
+  <div id="host"></div>
+  <script>
+    // gestes de la vue 3D (choisir, glisser, double toucher) → Flutter, par le canal « Bridge »
+    window.kitchen3dHandlers = new Proxy({}, {
+      get: (_, name) => (...args) => Bridge.postMessage(JSON.stringify({ h: String(name), a: args })),
+    });
+  </script>
+  <script type="module">
+    import './three_view.js';
+    // mises à jour dans l'ordre : images d'abord (façades, textures), puis la scène
+    let chain = Promise.resolve();
+    window.kitchen3dNative = {
+      update(id, imgs, sceneUrl) {
+        chain = chain
+          .then(async () => {
+            for (const i of imgs) {
+              const b = await (await fetch(i.url)).arrayBuffer();
+              window.kitchen3d.addImage(i.key, i.w, i.h, new Uint8Array(b));
+            }
+            const s = await (await fetch(sceneUrl)).text();
+            window.kitchen3d.setScene(s);
+            Bridge.postMessage(JSON.stringify({ h: 'done', a: [id] }));
+          })
+          .catch((e) => Bridge.postMessage(JSON.stringify({ h: 'error', a: [String(e)] })));
+      },
+    };
+    window.kitchen3d.mount(document.getElementById('host'));
+    Bridge.postMessage(JSON.stringify({ h: 'ready', a: [] }));
+  </script>
+</body>
+</html>

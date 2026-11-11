@@ -1,0 +1,35 @@
+/// Moteur de la cuisine modulaire (Dart pur, sans interface).
+library;
+
+export 'access.dart';
+export 'art.dart';
+export 'art_box.dart';
+export 'assembly.dart';
+export 'bom.dart';
+export 'catalog.dart';
+export 'clearance.dart';
+export 'front_layout.dart';
+export 'furniture.dart';
+export 'handles.dart';
+export 'kitchen_fixtures.dart';
+export 'corners.dart';
+export 'cutting.dart';
+export 'end_panels.dart';
+export 'fixes.dart';
+export 'layout_engine.dart';
+export 'manual_cut.dart';
+export 'materials.dart';
+export 'openings_catalog.dart';
+export 'networks.dart';
+export 'project.dart';
+export 'proposals.dart';
+export 'room_objects.dart';
+export 'standards.dart';
+export 'supplier.dart';
+export 'templates.dart';
+export 'universe_catalog.dart';
+export 'brands_sizes.dart';
+export 'proposal_objects.dart';
+export 'universe_templates.dart';
+export 'perf.dart';
+export 'i18n_hook.dart';

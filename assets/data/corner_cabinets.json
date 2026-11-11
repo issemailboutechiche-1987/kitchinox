@@ -1,0 +1,600 @@
+{
+  "database": "kitchen_corner_cabinets_4_params",
+  "unit": "mm",
+  "standard_parameters_definition": {
+    "format_code": "W1 / W2 / H / D",
+    "W1": "Encombrement mural axe gauche (mm)",
+    "W2": "Encombrement mural axe droit (mm)",
+    "H": "Hauteur du caisson (mm)",
+    "D": "Profondeur latérale d'alignement avec les caissons voisins (mm)",
+    "T_carcass": 18,
+    "T_door": 18,
+    "door_bumper_gap": 2,
+    "carcass_depth_formula": "D_total - T_door - door_bumper_gap"
+  },
+  "corner_categories": [
+    {
+      "category_id": "base_corner_cabinets",
+      "category_name": "Caissons d'Angle Bas",
+      "nominal_total_depth": 600,
+      "carcass_side_depth_without_door": 580,
+      "standard_plinth_heights": [
+        80,
+        100,
+        120,
+        150
+      ],
+      "types": [
+        {
+          "id": "base_corner_L_90_symmetrical",
+          "name": "Angle Bas en L à 90° Symétrique (Portes pliantes Bi-fold)",
+          "shape": "L_polygon_6_vertices",
+          "door_configuration": "2 portes articulées (charnières 165° + charnière centrale 60°)",
+          "available_4_param_sizes": [
+            {
+              "code_4_params": "880/880/800/580",
+              "W1": 880,
+              "W2": 880,
+              "H": 800,
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "front_opening_W1": 280,
+              "front_opening_W2": 280,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 257,
+                  "height": 796,
+                  "note": "Porte esclave (reçoit la poignée)"
+                },
+                {
+                  "qty": 1,
+                  "width": 275,
+                  "height": 796,
+                  "note": "Porte maître (fixée au montant)"
+                }
+              ]
+            },
+            {
+              "code_4_params": "900/900/800/580",
+              "W1": 900,
+              "W2": 900,
+              "H": 800,
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "front_opening_W1": 300,
+              "front_opening_W2": 300,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 277,
+                  "height": 796
+                },
+                {
+                  "qty": 1,
+                  "width": 295,
+                  "height": 796
+                }
+              ]
+            },
+            {
+              "code_4_params": "900/900/720/580",
+              "W1": 900,
+              "W2": 900,
+              "H": 720,
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "front_opening_W1": 300,
+              "front_opening_W2": 300,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 277,
+                  "height": 716
+                },
+                {
+                  "qty": 1,
+                  "width": 295,
+                  "height": 716
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "base_corner_L_90_asymmetrical",
+          "name": "Angle Bas en L Asymétrique",
+          "shape": "L_polygon_asymmetrical",
+          "available_4_param_sizes": [
+            {
+              "code_4_params": "900/1050/800/580",
+              "W1": 900,
+              "W2": 1050,
+              "H": 800,
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 277,
+                  "height": 796
+                },
+                {
+                  "qty": 1,
+                  "width": 445,
+                  "height": 796
+                }
+              ]
+            },
+            {
+              "code_4_params": "800/900/800/580",
+              "W1": 800,
+              "W2": 900,
+              "H": 800,
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 177,
+                  "height": 796
+                },
+                {
+                  "qty": 1,
+                  "width": 295,
+                  "height": 796
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "base_corner_blind_straight",
+          "name": "Angle Bas Droit Borgne (Angle mort avec fileur)",
+          "shape": "rectangle_with_perpendicular_filler",
+          "note": "W1 correspond à la longueur du caisson + vide mur, W2 correspond à l'emprise du retour (600mm + fileur)",
+          "available_4_param_sizes": [
+            {
+              "code_4_params": "1050/650/800/580",
+              "W1_wall_footprint": 1050,
+              "W2_return_footprint": 650,
+              "carcass_actual_length": 1000,
+              "H": 800,
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "blind_panel_width": 600,
+              "corner_filler_width": 50,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 396,
+                  "height": 796,
+                  "nominal_door": 400
+                }
+              ]
+            },
+            {
+              "code_4_params": "1100/650/800/580",
+              "W1_wall_footprint": 1100,
+              "W2_return_footprint": 650,
+              "carcass_actual_length": 1050,
+              "H": 800,
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "blind_panel_width": 600,
+              "corner_filler_width": 50,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 446,
+                  "height": 796,
+                  "nominal_door": 450
+                }
+              ]
+            },
+            {
+              "code_4_params": "1250/650/800/580",
+              "W1_wall_footprint": 1250,
+              "W2_return_footprint": 650,
+              "carcass_actual_length": 1200,
+              "H": 800,
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "blind_panel_width": 600,
+              "corner_filler_width": 50,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 596,
+                  "height": 796,
+                  "nominal_door": 600
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "base_corner_diagonal_45",
+          "name": "Angle Bas Diagonal à Pan Coupé (45°)",
+          "shape": "pentagon_5_vertices",
+          "available_4_param_sizes": [
+            {
+              "code_4_params": "900/900/800/580",
+              "W1": 900,
+              "W2": 900,
+              "H": 800,
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "diagonal_opening_mm": 424,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 418,
+                  "height": 796,
+                  "bevel_edges_45_deg": true
+                }
+              ]
+            },
+            {
+              "code_4_params": "1050/1050/800/580",
+              "W1": 1050,
+              "W2": 1050,
+              "H": 800,
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "diagonal_opening_mm": 636,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 596,
+                  "height": 796,
+                  "bevel_edges_45_deg": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category_id": "wall_corner_cabinets",
+      "category_name": "Caissons d'Angle Hauts (Muraux)",
+      "nominal_total_depth": 370,
+      "carcass_side_depth_without_door": 350,
+      "available_standard_heights": [
+        400,
+        600,
+        720,
+        800,
+        900,
+        1000
+      ],
+      "types": [
+        {
+          "id": "wall_corner_L_90",
+          "name": "Angle Haut en L à 90° (Portes pliantes)",
+          "shape": "L_polygon_6_vertices",
+          "available_4_param_sizes": [
+            {
+              "code_4_params": "600/600/800/350",
+              "W1": 600,
+              "W2": 600,
+              "H_variants": [
+                600,
+                800,
+                1000
+              ],
+              "D_carcass": 350,
+              "D_with_door": 370,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 207,
+                  "height_formula": "H - 4"
+                },
+                {
+                  "qty": 1,
+                  "width": 225,
+                  "height_formula": "H - 4"
+                }
+              ]
+            },
+            {
+              "code_4_params": "680/680/800/350",
+              "W1": 680,
+              "W2": 680,
+              "H_variants": [
+                400,
+                600,
+                800,
+                1000
+              ],
+              "D_carcass": 350,
+              "D_with_door": 370,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 287,
+                  "height_formula": "H - 4"
+                },
+                {
+                  "qty": 1,
+                  "width": 305,
+                  "height_formula": "H - 4"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "wall_corner_diagonal_45",
+          "name": "Angle Haut Diagonal à Pan Coupé (45°)",
+          "shape": "pentagon_5_vertices",
+          "available_4_param_sizes": [
+            {
+              "code_4_params": "600/600/800/350",
+              "W1": 600,
+              "W2": 600,
+              "H_variants": [
+                600,
+                720,
+                800,
+                900,
+                1000
+              ],
+              "D_carcass": 350,
+              "D_with_door": 370,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 348,
+                  "height_formula": "H - 4"
+                }
+              ]
+            },
+            {
+              "code_4_params": "680/680/800/350",
+              "W1": 680,
+              "W2": 680,
+              "H_variants": [
+                600,
+                800,
+                1000
+              ],
+              "D_carcass": 350,
+              "D_with_door": 370,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 446,
+                  "height_formula": "H - 4"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "wall_corner_blind_straight",
+          "name": "Angle Haut Droit Borgne (Avec fileur)",
+          "shape": "rectangle_with_perpendicular_filler",
+          "available_4_param_sizes": [
+            {
+              "code_4_params": "700/400/800/350",
+              "W1_wall_footprint": 700,
+              "W2_return_footprint": 400,
+              "carcass_actual_length": 680,
+              "H_variants": [
+                600,
+                800,
+                1000
+              ],
+              "D_carcass": 350,
+              "D_with_door": 370,
+              "blind_panel_width": 370,
+              "corner_filler_width": 30,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 296,
+                  "height_formula": "H - 4",
+                  "nominal_door": 300
+                }
+              ]
+            },
+            {
+              "code_4_params": "800/400/800/350",
+              "W1_wall_footprint": 800,
+              "W2_return_footprint": 400,
+              "carcass_actual_length": 780,
+              "H_variants": [
+                600,
+                800,
+                1000
+              ],
+              "D_carcass": 350,
+              "D_with_door": 370,
+              "blind_panel_width": 370,
+              "corner_filler_width": 30,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 396,
+                  "height_formula": "H - 4",
+                  "nominal_door": 400
+                }
+              ]
+            },
+            {
+              "code_4_params": "1000/400/800/350",
+              "W1_wall_footprint": 1000,
+              "W2_return_footprint": 400,
+              "carcass_actual_length": 980,
+              "H_variants": [
+                600,
+                800,
+                1000
+              ],
+              "D_carcass": 350,
+              "D_with_door": 370,
+              "blind_panel_width": 370,
+              "corner_filler_width": 30,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 596,
+                  "height_formula": "H - 4",
+                  "nominal_door": 600
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category_id": "tall_corner_cabinets",
+      "category_name": "Colonnes d'Angle (Garde-Manger & Armoires d'Angle)",
+      "nominal_total_depth": 600,
+      "carcass_side_depth_without_door": 580,
+      "available_standard_heights": [
+        2000,
+        2100,
+        2200,
+        2400
+      ],
+      "types": [
+        {
+          "id": "tall_corner_diagonal_pantry",
+          "name": "Colonne d'Angle Garde-Manger à Pan Coupé (Walk-in ou Étagères en L)",
+          "shape": "pentagon_5_vertices",
+          "available_4_param_sizes": [
+            {
+              "code_4_params": "950/950/2000/580",
+              "W1": 950,
+              "W2": 950,
+              "H_variants": [
+                2000,
+                2200,
+                2400
+              ],
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 496,
+                  "height_lower": 1396,
+                  "height_upper": 596
+                }
+              ]
+            },
+            {
+              "code_4_params": "1050/1050/2200/580",
+              "W1": 1050,
+              "W2": 1050,
+              "H_variants": [
+                2000,
+                2200,
+                2400
+              ],
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 596,
+                  "height_lower": 1396,
+                  "height_upper": 796
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tall_corner_L_90",
+          "name": "Colonne d'Angle en L à 90° (Portes pliantes sur 2 niveaux)",
+          "shape": "L_polygon_6_vertices",
+          "available_4_param_sizes": [
+            {
+              "code_4_params": "900/900/2000/580",
+              "W1": 900,
+              "W2": 900,
+              "H_variants": [
+                2000,
+                2200,
+                2400
+              ],
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "doors": [
+                {
+                  "qty": 2,
+                  "width": 277,
+                  "note": "Portes pliantes côté gauche (basse + haute)"
+                },
+                {
+                  "qty": 2,
+                  "width": 295,
+                  "note": "Portes pliantes côté droit (basse + haute)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tall_corner_blind_pantry",
+          "name": "Colonne d'Angle Borgne (Accès façade + rangement profond extractible)",
+          "shape": "rectangle_with_perpendicular_filler",
+          "available_4_param_sizes": [
+            {
+              "code_4_params": "1100/650/2000/580",
+              "W1_wall_footprint": 1100,
+              "W2_return_footprint": 650,
+              "carcass_actual_length": 1050,
+              "H_variants": [
+                2000,
+                2200,
+                2400
+              ],
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "blind_panel_width": 600,
+              "corner_filler_width": 50,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 446,
+                  "height_lower": 1396,
+                  "height_upper": 596
+                }
+              ]
+            },
+            {
+              "code_4_params": "1250/650/2200/580",
+              "W1_wall_footprint": 1250,
+              "W2_return_footprint": 650,
+              "carcass_actual_length": 1200,
+              "H_variants": [
+                2000,
+                2200,
+                2400
+              ],
+              "D_carcass": 580,
+              "D_with_door": 600,
+              "blind_panel_width": 600,
+              "corner_filler_width": 50,
+              "doors": [
+                {
+                  "qty": 1,
+                  "width": 596,
+                  "height_lower": 1396,
+                  "height_upper": 796
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

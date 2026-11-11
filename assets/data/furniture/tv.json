@@ -1,0 +1,331 @@
+{
+  "database": "morocco_tv_media_units_system",
+  "unit": "mm",
+  "currency": "MAD",
+  "tv_screen_reference_widths_mm": {
+    "55_inch": 1230,
+    "65_inch": 1450,
+    "75_inch": 1680,
+    "85_inch": 1900
+  },
+  "modules": [
+    {
+      "id": "tv_low_bench_floating",
+      "name": "Banc TV Bas Suspendu (Portes abattantes vers le bas ou Tiroirs)",
+      "available_widths": [
+        1400,
+        1600,
+        1800,
+        2000,
+        2400,
+        3000
+      ],
+      "available_heights": [
+        300,
+        350,
+        400
+      ],
+      "available_depths": [
+        350,
+        400,
+        450
+      ],
+      "opening_types": [
+        "flap_down_door",
+        "push_to_open_drawers",
+        "open_soundbar_niche"
+      ]
+    },
+    {
+      "id": "tv_low_bench_floor_standing",
+      "name": "Meuble TV Bas sur Socle ou Pieds Métal/Bois",
+      "available_widths": [
+        1400,
+        1600,
+        1800,
+        2000,
+        2400
+      ],
+      "carcass_height": 400,
+      "base_height": [
+        100,
+        150
+      ],
+      "depth": 420
+    },
+    {
+      "id": "tv_wall_cladding_back_panel",
+      "name": "Panneau Mural Décoratif Support TV (Avec passage de câbles caché)",
+      "available_widths": [
+        1600,
+        2000,
+        2400,
+        3000
+      ],
+      "available_heights": [
+        1200,
+        1600,
+        2400,
+        2600
+      ],
+      "cavity_depth_for_cables_mm": 36,
+      "surface_styles": [
+        "MDF Tasseaux Noyer (Bardage acoustique)",
+        "Effet Marbre / Béton ciré",
+        "Laque Mate avec Gorge LED périphérique"
+      ]
+    },
+    {
+      "id": "tv_wall_hanging_vertical_column",
+      "name": "Colonne Murale Suspendue (Fermée ou Vitrine Verre Fumé avec Étagères Verre)",
+      "available_widths": [
+        350,
+        400,
+        450
+      ],
+      "available_heights": [
+        1000,
+        1200,
+        1500,
+        1800
+      ],
+      "available_depths": [
+        300,
+        350
+      ]
+    },
+    {
+      "id": "tv_wall_horizontal_bridge",
+      "name": "Élément Haut Horizontal Relevable (Pont au-dessus de la TV)",
+      "available_widths": [
+        1200,
+        1500,
+        1800
+      ],
+      "heights": [
+        300,
+        350,
+        400
+      ],
+      "depths": [
+        300,
+        350
+      ],
+      "opening_type": "gas_strut_lift_up"
+    },
+    {
+      "id": "tv_fireplace_niche_module",
+      "name": "Caisson Bas Encastrement Cheminée Bioéthanol ou Électrique Vapeur d'Eau",
+      "available_widths": [
+        1200,
+        1500,
+        1800
+      ],
+      "height": 450,
+      "depth": 450,
+      "requires_fireproof_mdf_or_rockwool_insulation": true
+    },
+    {
+      "id": "tv_floating_shelf",
+      "name": "Étagère Flottante Murale (Fixation Invisible, 22 à 36 mm)",
+      "available_widths": [
+        600,
+        800,
+        1000,
+        1200,
+        1500
+      ],
+      "available_heights": [
+        36,
+        50
+      ],
+      "depths": [
+        200,
+        250
+      ],
+      "composition": {
+        "open": true,
+        "wall_hung": true,
+        "z": 1300
+      }
+    },
+    {
+      "id": "tv_side_bookcase",
+      "name": "Bibliothèque Latérale Toute Hauteur (Niches + Porte Basse)",
+      "available_widths": [
+        400,
+        500,
+        600
+      ],
+      "heights": [
+        2000,
+        2200,
+        2400
+      ],
+      "depths": [
+        300,
+        350
+      ],
+      "composition": {
+        "open": true,
+        "shelves": 5
+      }
+    },
+    {
+      "id": "tv_open_cube",
+      "name": "Cube Niche Mural Ouvert",
+      "available_widths": [
+        300,
+        400,
+        450
+      ],
+      "available_heights": [
+        300,
+        400,
+        450
+      ],
+      "depths": [
+        250,
+        300
+      ],
+      "composition": {
+        "open": true,
+        "wall_hung": true,
+        "z": 1400
+      }
+    },
+    {
+      "id": "tv_drawer_unit_floating",
+      "name": "Bloc Tiroirs Suspendu (2 Tiroirs Push-to-Open)",
+      "available_widths": [
+        600,
+        800,
+        1000
+      ],
+      "available_heights": [
+        300,
+        400
+      ],
+      "depths": [
+        350,
+        400
+      ],
+      "composition": {
+        "drawers": 2,
+        "drawer_front": 150,
+        "wall_hung": true,
+        "z": 250
+      }
+    }
+  ],
+  "accessories": [
+    {
+      "id": "acc_tv_drop_down_flap_stay",
+      "name": "Compas d'Abattant Freiné (Ouverture vers le bas pour porte banc TV)",
+      "brands": [
+        "Hafele Duo / Free Flap",
+        "Hettich",
+        "Samet",
+        "Kraby"
+      ],
+      "price_mad_per_unit": {
+        "min": 65,
+        "max": 240
+      }
+    },
+    {
+      "id": "acc_tv_cable_grommet_brush",
+      "name": "Passe-Câbles Rectangulaire Aluminium à Clapet Brosse (Noir Mat / Argent)",
+      "dimensions_mm": [
+        "160x80",
+        "280x80"
+      ],
+      "price_mad": {
+        "min": 45,
+        "max": 120
+      }
+    },
+    {
+      "id": "acc_tv_ventilation_grille",
+      "name": "Grille d'Aération Aluminium Anodisé (Refroidissement PS5 / Décodeur / Ampli)",
+      "dimensions_mm": [
+        "250x60",
+        "400x60",
+        "500x80"
+      ],
+      "finishes": [
+        "Noir Mat",
+        "Alu Brossé",
+        "Or"
+      ],
+      "price_mad": {
+        "min": 35,
+        "max": 85
+      }
+    },
+    {
+      "id": "acc_tv_glass_shelf_led_clips",
+      "name": "Clips Lumineux LED pour Étagère en Verre 6mm ou 8mm",
+      "price_mad_per_set_of_4": {
+        "min": 120,
+        "max": 280
+      }
+    },
+    {
+      "id": "acc_tv_motorized_lift",
+      "name": "Ascenseur TV Motorisé Télécommandé (Pour cacher la TV dans un buffet)",
+      "stroke_height_mm": [
+        700,
+        900,
+        1000
+      ],
+      "max_tv_size_inches": 65,
+      "price_mad": {
+        "min": 2400,
+        "max": 4800
+      }
+    },
+    {
+      "id": "acc_tv_acoustic_wood_slat_panel",
+      "name": "Panneau Tasseaux Bois Acoustique sur Feutrine Noire (Prêt à poser)",
+      "sheet_dimensions_mm": {
+        "height": 2400,
+        "width": 600,
+        "thickness": 21
+      },
+      "finishes": [
+        "Noyer",
+        "Chêne Naturel",
+        "Chêne Noir",
+        "Teck"
+      ],
+      "price_mad_per_panel": {
+        "min": 380,
+        "max": 650
+      }
+    }
+  ],
+  "ergonomics_mm": {
+    "tv_center_eye_height_seated": [
+      1000,
+      1100
+    ],
+    "viewing_distance_factor_4k": 1.2,
+    "bench_top_height": [
+      400,
+      500
+    ],
+    "cable_cavity_depth": 36,
+    "ventilation_gap_behind_devices": 50,
+    "max_floating_bench_load_kg": 60
+  },
+  "interior_options": [
+    "passe-câbles brosse",
+    "grille d’aération",
+    "niche barre de son ouverte",
+    "abattant freiné",
+    "push-to-open",
+    "éclairage LED de gorge",
+    "étagères verre 8 mm"
+  ]
+}

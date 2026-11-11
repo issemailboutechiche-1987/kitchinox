@@ -1,0 +1,163 @@
+{
+ "sofa_02": {
+  "file": "sofa_02_1k.gltf",
+  "name": "Sofa 02",
+  "authors": [
+   "Kirill Sannikov"
+  ]
+ },
+ "sofa_03": {
+  "file": "sofa_03_1k.gltf",
+  "name": "Sofa 03",
+  "authors": [
+   "Fran Calvente"
+  ]
+ },
+ "Sofa_01": {
+  "file": "Sofa_01_1k.gltf",
+  "name": "Sofa 01",
+  "authors": [
+   "Kirill Sannikov"
+  ]
+ },
+ "modern_arm_chair_01": {
+  "file": "modern_arm_chair_01_1k.gltf",
+  "name": "Modern Arm Chair 01",
+  "authors": [
+   "Vibrant Nordic"
+  ]
+ },
+ "mid_century_lounge_chair": {
+  "file": "mid_century_lounge_chair_1k.gltf",
+  "name": "Mid Century Lounge Chair",
+  "authors": [
+   "Kuutti Siitonen"
+  ]
+ },
+ "ArmChair_01": {
+  "file": "ArmChair_01_1k.gltf",
+  "name": "Arm Chair 01",
+  "authors": [
+   "Kirill Sannikov"
+  ]
+ },
+ "Ottoman_01": {
+  "file": "Ottoman_01_1k.gltf",
+  "name": "Ottoman 01",
+  "authors": [
+   "Caspian Fortune"
+  ]
+ },
+ "modern_coffee_table_01": {
+  "file": "modern_coffee_table_01_1k.gltf",
+  "name": "Modern Coffee Table 01",
+  "authors": [
+   "Amin"
+  ]
+ },
+ "modern_coffee_table_02": {
+  "file": "modern_coffee_table_02_1k.gltf",
+  "name": "Modern Coffee Table 02",
+  "authors": [
+   "Amin"
+  ]
+ },
+ "coffee_table_round_01": {
+  "file": "coffee_table_round_01_1k.gltf",
+  "name": "Coffee Table Round 01",
+  "authors": [
+   "Ulan Cabanilla"
+  ]
+ },
+ "side_table_01": {
+  "file": "side_table_01_1k.gltf",
+  "name": "Side Table 01",
+  "authors": [
+   "James Ray Cock"
+  ]
+ },
+ "side_table_tall_01": {
+  "file": "side_table_tall_01_1k.gltf",
+  "name": "Side Table Tall 01",
+  "authors": [
+   "James Ray Cock"
+  ]
+ },
+ "gallinera_table": {
+  "file": "gallinera_table_1k.gltf",
+  "name": "Gallinera Table",
+  "authors": [
+   "Ulan Cabanilla"
+  ]
+ },
+ "gallinera_chair": {
+  "file": "gallinera_chair_1k.gltf",
+  "name": "Gallinera Chair",
+  "authors": [
+   "Ulan Cabanilla"
+  ]
+ },
+ "dining_chair_02": {
+  "file": "dining_chair_02_1k.gltf",
+  "name": "Dining Chair 02",
+  "authors": [
+   "James Ray Cock"
+  ]
+ },
+ "round_wooden_table_01": {
+  "file": "round_wooden_table_01_1k.gltf",
+  "name": "Round Wooden Table 01",
+  "authors": [
+   "Ulan Cabanilla"
+  ]
+ },
+ "bar_chair_round_01": {
+  "file": "bar_chair_round_01_1k.gltf",
+  "name": "Bar Chair Round 01",
+  "authors": [
+   "Dairon Sanchez"
+  ]
+ },
+ "potted_plant_02": {
+  "file": "potted_plant_02_1k.gltf",
+  "name": "Potted Plant 02",
+  "authors": [
+   "Rico Cilliers"
+  ]
+ },
+ "potted_plant_04": {
+  "file": "potted_plant_04_1k.gltf",
+  "name": "Potted Plant 04",
+  "authors": [
+   "James Ray Cock"
+  ]
+ },
+ "modern_ceiling_lamp_01": {
+  "file": "modern_ceiling_lamp_01_1k.gltf",
+  "name": "Modern Ceiling Lamp 01",
+  "authors": [
+   "James Ray Cock"
+  ]
+ },
+ "modern_wooden_cabinet": {
+  "file": "modern_wooden_cabinet_1k.gltf",
+  "name": "Modern Wooden Cabinet",
+  "authors": [
+   "Patrik Pangerl"
+  ]
+ },
+ "ceramic_vase_01": {
+  "file": "ceramic_vase_01_1k.gltf",
+  "name": "Ceramic Vase 01",
+  "authors": [
+   "James Ray Cock"
+  ]
+ },
+ "throw_pillows_01": {
+  "file": "throw_pillows_01_1k.gltf",
+  "name": "Throw Pillows 01",
+  "authors": [
+   "Serhii Khromov"
+  ]
+ }
+}

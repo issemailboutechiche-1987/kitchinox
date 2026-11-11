@@ -1,0 +1,292 @@
+{
+  "database": "morocco_kitchen_hardware_catalog",
+  "currency": "MAD",
+  "unit": "mm",
+  "auto_calculation_rules": {
+    "hinges_per_door_by_height": [
+      { "max_height_mm": 900, "max_weight_kg": 7, "hinges_qty": 2 },
+      { "max_height_mm": 1600, "max_weight_kg": 12, "hinges_qty": 3 },
+      { "max_height_mm": 2000, "max_weight_kg": 17, "hinges_qty": 4 },
+      { "max_height_mm": 2400, "max_weight_kg": 22, "hinges_qty": 5 }
+    ],
+    "plinth_legs_per_cabinet": {
+      "width_up_to_800mm": 4,
+      "width_900mm_to_1200mm": 6,
+      "corner_cabinet_L": 6
+    }
+  },
+  "categories": [
+    {
+      "id": "hinges",
+      "name": "Charnières (Amorties / Soft-Close & Spéciales)",
+      "cup_drilling_diameter_mm": 35,
+      "cup_drilling_depth_mm": 13,
+      "items": [
+        {
+          "id": "hinge_110_soft_close",
+          "name": "Charnière Droite 110° Freinée + Embase Clipsable (Recouvrement total / Applique)",
+          "variants": ["Droite (Applique)", "Coudée (Semi-applique)", "Super-coudée (Encastrée)"],
+          "brands_pricing_mad_per_unit": [
+            { "brand": "Blum", "model": "CLIP top BLUMOTION 110°", "origin": "Autriche", "price_mad": { "min": 32, "max": 48 } },
+            { "brand": "Hettich", "model": "Sensys 110° Silent System", "origin": "Allemagne", "price_mad": { "min": 25, "max": 38 } },
+            { "brand": "Samet", "model": "Master Soft-Close 110°", "origin": "Turquie", "price_mad": { "min": 12, "max": 18 } },
+            { "brand": "Standard / Import", "model": "Hydraulique Clipsable Inox/Acier", "origin": "Chine/Turquie", "price_mad": { "min": 6, "max": 11 } }
+          ]
+        },
+        {
+          "id": "hinge_155_165_zero_protrusion",
+          "name": "Charnière Grand Angle 155° / 165° (Pour colonnes avec tiroirs à l'anglaise ou angles)",
+          "brands_pricing_mad_per_unit": [
+            { "brand": "Blum", "model": "CLIP top BLUMOTION 155° (Dégagement zéro)", "price_mad": { "min": 85, "max": 120 } },
+            { "brand": "Hettich", "model": "Sensys 165°", "price_mad": { "min": 65, "max": 95 } },
+            { "brand": "Samet", "model": "Star / Master 165°", "price_mad": { "min": 28, "max": 42 } }
+          ]
+        },
+        {
+          "id": "hinge_corner_bifold_60",
+          "name": "Charnière d'Angle Portes Pliantes (Bi-fold 60° pour meuble en L)",
+          "brands_pricing_mad_per_unit": [
+            { "brand": "Blum", "model": "CLIP top 60° Bi-fold", "price_mad": { "min": 75, "max": 110 } },
+            { "brand": "Hettich", "model": "Intermat / Sensys W60", "price_mad": { "min": 55, "max": 85 } },
+            { "brand": "Samet", "model": "Bi-fold 60°", "price_mad": { "min": 25, "max": 38 } }
+          ]
+        },
+        {
+          "id": "hinge_blind_corner_90",
+          "name": "Charnière Angle Mort 90° (Sur fileur aligné)",
+          "brands_pricing_mad_per_unit": [
+            { "brand": "Blum", "model": "CLIP top BLUMOTION 95° Blind Corner", "price_mad": { "min": 55, "max": 80 } },
+            { "brand": "Hettich", "model": "Sensys 90° Angle Mort", "price_mad": { "min": 45, "max": 68 } },
+            { "brand": "Samet", "model": "Master 90°", "price_mad": { "min": 18, "max": 28 } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "drawer_systems",
+      "name": "Systèmes de Tiroirs et Coulisses",
+      "available_nominal_lengths_mm": [350, 400, 450, 500, 550],
+      "standard_kitchen_depth_mm": 500,
+      "items": [
+        {
+          "id": "double_wall_box_drawer_low",
+          "name": "Kit Tiroir Double Paroi Métallique Bas (Hauteur M / ~85-90 mm) - Complet",
+          "load_capacity_kg": [30, 40],
+          "wood_bottom_thickness_mm": 16,
+          "brands_pricing_mad_per_kit": [
+            { "brand": "Blum", "model": "TANDEMBOX Antaro / Merivobox (Hauteur M)", "price_mad": { "min": 420, "max": 580 } },
+            { "brand": "Hettich", "model": "InnoTech Atira / AvanTech YOU (H70-H101)", "price_mad": { "min": 320, "max": 480 } },
+            { "brand": "Samet", "model": "AlphaBox / SmartBox Bas", "price_mad": { "min": 180, "max": 250 } },
+            { "brand": "SlimBox Générique", "model": "Tiroir Slim Paroi Fine Anthracite", "price_mad": { "min": 130, "max": 175 } }
+          ]
+        },
+        {
+          "id": "double_wall_box_casserolier_deep",
+          "name": "Kit Casserolier Haut avec Tringles ou Parois Rehaussées (Hauteur D / ~190-210 mm)",
+          "load_capacity_kg": [30, 40, 65],
+          "wood_bottom_thickness_mm": 16,
+          "brands_pricing_mad_per_kit": [
+            { "brand": "Blum", "model": "TANDEMBOX Antaro Hauteur D (avec galerie ou Boxside)", "price_mad": { "min": 520, "max": 720 } },
+            { "brand": "Hettich", "model": "InnoTech Atira Hauteur 144/176 + Rehausse", "price_mad": { "min": 390, "max": 560 } },
+            { "brand": "Samet", "model": "AlphaBox / SmartBox Haut avec tringles", "price_mad": { "min": 220, "max": 310 } },
+            { "brand": "SlimBox Générique", "model": "Casserolier Slim Haut Anthracite / Verre", "price_mad": { "min": 165, "max": 230 } }
+          ]
+        },
+        {
+          "id": "undermount_concealed_slides_wood_drawer",
+          "name": "Paire de Coulisses Invisibles Sortie Totale Freinées (Pour tiroir caisson bois)",
+          "load_capacity_kg": [30, 40],
+          "brands_pricing_mad_per_pair": [
+            { "brand": "Blum", "model": "TANDEM Plus BLUMOTION 500mm + Toc d'entraînement", "price_mad": { "min": 240, "max": 340 } },
+            { "brand": "Blum", "model": "MOVENTO 500mm (40kg / 60kg)", "price_mad": { "min": 350, "max": 480 } },
+            { "brand": "Hettich", "model": "Quadro V6 Silent System 500mm", "price_mad": { "min": 160, "max": 230 } },
+            { "brand": "Samet", "model": "Smart Slide Sortie Totale Soft-Close 500mm", "price_mad": { "min": 95, "max": 140 } }
+          ]
+        },
+        {
+          "id": "telescopic_ball_bearing_slides",
+          "name": "Paire de Coulisses à Billes Télescopiques (Montage latéral économique)",
+          "side_clearance_required_mm": 25.4,
+          "brands_pricing_mad_per_pair": [
+            { "brand": "Samet / Import", "model": "Télescopique 45mm Avec Frein (Soft-Close) 500mm", "price_mad": { "min": 45, "max": 75 } },
+            { "brand": "Standard", "model": "Télescopique 45mm Sans Frein 500mm", "price_mad": { "min": 25, "max": 40 } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lift_systems",
+      "name": "Systèmes Relevables pour Caissons Hauts (Aventos / Vérins)",
+      "items": [
+        {
+          "id": "lift_bifold_double_door",
+          "name": "Système Relevable Pliant 2 Portes Horizontales (Meubles hauts 600 à 1000mm)",
+          "brands_pricing_mad_per_set": [
+            { "brand": "Blum", "model": "AVENTOS HF top (Mécanisme + Bras + Caches)", "price_mad": { "min": 950, "max": 1450 } },
+            { "brand": "Samet", "model": "Multi-Mech Relevable Pliant", "price_mad": { "min": 520, "max": 750 } }
+          ]
+        },
+        {
+          "id": "lift_stay_single_door_heavy",
+          "name": "Système Relevable Pivotant Monobloc Sans Charnières",
+          "brands_pricing_mad_per_set": [
+            { "brand": "Blum", "model": "AVENTOS HK top / HK-S", "price_mad": { "min": 420, "max": 850 } },
+            { "brand": "Hettich", "model": "Lift Advanced HK", "price_mad": { "min": 380, "max": 690 } },
+            { "brand": "Samet", "model": "Solo-Mech", "price_mad": { "min": 180, "max": 290 } }
+          ]
+        },
+        {
+          "id": "lift_compact_single_door",
+          "name": "Compas Relevable Compact (Utilisé avec charnières standards)",
+          "brands_pricing_mad_per_unit": [
+            { "brand": "Blum", "model": "AVENTOS HK-XS (1 ou 2 compas selon largeur)", "price_mad": { "min": 190, "max": 320 } },
+            { "brand": "Samet / Générique", "model": "Vérin à Gaz (80N / 100N / 120N)", "price_mad": { "min": 15, "max": 35 } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gola_profiles_and_handles",
+      "name": "Profils Gola Sans Poignées, Poignées & Push-to-Open",
+      "items": [
+        {
+          "id": "gola_profile_horizontal_L",
+          "name": "Profil Gola Horizontal en 'L' (Sous plan de travail)",
+          "bar_lengths_mm": [3000, 4000],
+          "finishes": ["Noir Mat Anodisé", "Gris Anthracite / Gunmetal", "Inox Brossé", "Aluminium Argent", "Or Brossé"],
+          "machining_cutout_mm": { "height": 57, "depth": 26, "note": "Encoche en haut des côtés des caissons bas" },
+          "pricing_mad_per_bar": {
+            "3000mm_standard": { "min": 99, "max": 180 },
+            "4000mm_heavy_anodized_klaus_intercocina": { "min": 250, "max": 410 }
+          },
+          "accessories_mad": {
+            "embouts_terminaux_paire": 15,
+            "angle_interieur_exterieur_90_deg": 25,
+            "equerres_fixation_sachet_10": 30
+          }
+        },
+        {
+          "id": "gola_profile_horizontal_C",
+          "name": "Profil Gola Horizontal en 'C' (Central entre 2 tiroirs/casseroliers)",
+          "bar_lengths_mm": [3000, 4000],
+          "finishes": ["Noir Mat Anodisé", "Gris Anthracite / Gunmetal", "Inox Brossé", "Aluminium Argent"],
+          "machining_cutout_mm": { "height": 73, "depth": 26, "note": "Encoche intermédiaire sur les côtés du caisson" },
+          "pricing_mad_per_bar": {
+            "3000mm_standard": { "min": 130, "max": 220 },
+            "4000mm_heavy_anodized_klaus_intercocina": { "min": 320, "max": 500 }
+          }
+        },
+        {
+          "id": "gola_profile_vertical_tall",
+          "name": "Profil Gola Vertical (Latéral L ou Central C pour Colonnes Four/Frigo)",
+          "bar_lengths_mm": [2700, 3000, 4000],
+          "clearance_width_deduction_mm": 30,
+          "pricing_mad_per_bar": { "min": 280, "max": 650 }
+        },
+        {
+          "id": "gola_profile_wall_cabinet_bottom",
+          "name": "Profil Gola Encastré ou à Visser sous Caisson Haut (Souvent avec gorge LED)",
+          "bar_lengths_mm": [3000, 4000],
+          "pricing_mad_per_bar": { "min": 120, "max": 350 }
+        },
+        {
+          "id": "handle_j_profile_top_edge",
+          "name": "Poignée Profil sur Chant (Sur la tranche supérieure de la porte)",
+          "finishes": ["Noir Mat", "Inox", "Or Brossé"],
+          "pricing_mad": {
+            "barre_3000mm_a_recouper": { "min": 90, "max": 180 },
+            "poignee_individuelle_150mm_a_600mm": { "min": 20, "max": 65 }
+          }
+        },
+        {
+          "id": "handle_standard_screw_on",
+          "name": "Poignée Applique Standard (Entraxe 128mm, 160mm, 192mm, 320mm)",
+          "pricing_mad_per_unit": { "min": 15, "max": 85 }
+        },
+        {
+          "id": "push_to_open_latch",
+          "name": "Système Touche-Lâche (Push-to-Open / TIP-ON pour portes sans poignées)",
+          "brands_pricing_mad_per_unit": [
+            { "brand": "Blum", "model": "TIP-ON avec adaptateur", "price_mad": { "min": 45, "max": 75 } },
+            { "brand": "Samet / Générique", "model": "Push-Open Magnétique", "price_mad": { "min": 10, "max": 25 } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "legs_plinths_and_hangers",
+      "name": "Pieds Réglables, Plinthes & Fixations Murales",
+      "items": [
+        {
+          "id": "adjustable_cabinet_legs",
+          "name": "Pieds Vérins Réglables ABS Haute Résistance (avec clip de plinthe)",
+          "available_heights_mm": [80, 100, 120, 150],
+          "standard_height_mm": 100,
+          "adjustment_range_mm": { "minus": 10, "plus": 25 },
+          "pricing_mad_per_unit": { "min": 3.5, "max": 8.0 }
+        },
+        {
+          "id": "kitchen_plinth_pvc_aluminium",
+          "name": "Plinthe de Cuisine Étanchéifiée avec Joint Silicone Bas (Barre de 4m)",
+          "available_heights_mm": [100, 120, 150],
+          "bar_length_mm": 4000,
+          "finishes": ["Aluminium Brossé", "Noir Mat", "Gris Anthracite", "Blanc"],
+          "pricing_mad_per_bar_4m": {
+            "pvc_plaque_alu_standard": { "min": 140, "max": 240 },
+            "aluminium_massif_anodise": { "min": 280, "max": 450 }
+          },
+          "corner_connectors_90_deg_mad": 15
+        },
+        {
+          "id": "wall_cabinet_hangers",
+          "name": "Boîtiers de Suspension Réglables 3D pour Caissons Hauts (La paire + Rail mural)",
+          "load_capacity_per_pair_kg": 130,
+          "brands_pricing_mad_per_pair": [
+            { "brand": "Camar / Hettich (SAH)", "model": "Suspension invisible encastrée ou apparente haute charge", "price_mad": { "min": 35, "max": 70 } },
+            { "brand": "Samet / Standard", "model": "Équerre boîtier plastique/acier + rail 2m", "price_mad": { "min": 12, "max": 25 } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "internal_wirework_accessories",
+      "name": "Accessoires Intérieurs & Rangements Coulissants",
+      "items": [
+        {
+          "id": "pullout_bottle_spice_rack",
+          "name": "Épicier / Bouteiller Coulissant Freiné (Fil Chromé ou Panier Anthracite Plein)",
+          "compatible_cabinet_widths_mm": [150, 200, 300],
+          "pricing_mad": {
+            "fil_chrome_standard": { "min": 350, "max": 600 },
+            "anthracite_fond_plein_soft_close": { "min": 650, "max": 1150 }
+          }
+        },
+        {
+          "id": "corner_magic_or_lemans",
+          "name": "Mécanisme d'Angle Mort (Haricot LeMans ou Magic Corner Sortie Totale)",
+          "compatible_cabinet_widths_mm": [900, 1000, 1200],
+          "pricing_mad": {
+            "tourniquet_360_plastique_ou_fil": { "min": 450, "max": 850 },
+            "plateaux_haricot_type_lemans_anthracite": { "min": 1600, "max": 3200 },
+            "magic_corner_extractible_complet": { "min": 1800, "max": 3800 }
+          }
+        },
+        {
+          "id": "dish_drainer_wall_cabinet",
+          "name": "Égouttoir à Vaisselle Inox 304 (2 Niveaux + Bac Récupérateur d'eau)",
+          "compatible_cabinet_widths_mm": [600, 700, 800, 900],
+          "pricing_mad": {
+            "acier_chrome_economique": { "min": 140, "max": 250 },
+            "inox_304_pur_ou_anthracite_lourd": { "min": 320, "max": 650 }
+          }
+        },
+        {
+          "id": "under_sink_aluminium_mat",
+          "name": "Tapis de Protection Fond de Meuble Sous-Évier (Aluminium Gaufré Étanche)",
+          "compatible_cabinet_widths_mm": [600, 800, 900, 1000, 1200],
+          "pricing_mad": { "min": 85, "max": 160 }
+        }
+      ]
+    }
+  ]
+}

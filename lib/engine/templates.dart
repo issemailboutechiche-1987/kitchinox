@@ -1,0 +1,263 @@
+/// Collection kitchinox : modèles de cuisines complets (forme, composition, style), inspirés des
+/// grandes familles de cuisines que l'on trouve chez les cuisinistes (blanches, bois, colorées,
+/// grises, noires, beiges, petites cuisines et kitchenettes). Noms et compositions propres à
+/// kitchinox ; chaque modèle est recalculé pour la pièce de l'utilisateur.
+library;
+
+import 'catalog.dart';
+import 'layout_engine.dart';
+import 'project.dart';
+import 'proposals.dart';
+
+/// Meubles hauts : normaux, étagères ouvertes, vitrines aux extrémités, ou aucun (étagères).
+enum Uppers { normal, open, glassEnds, glass, none }
+
+class KitchenTemplate {
+  final String id;
+  final String name; // nom kitchinox
+  final String family;
+  final String description;
+  final Set<String> shapes; // formes acceptées, par ordre d'intérêt (lin, lini, l, li, u, p)
+  final String fill; // portes | tiroirs | mixte
+  final Uppers uppers;
+  final String front;
+  final String? frontUpper, frontLower;
+  final String worktop;
+  final String handle; // bar | knob | gola
+  final String? handleId, handleFinish;
+  final int? handleSize;
+  final String floor, wall;
+  final String? splash;
+
+  const KitchenTemplate({
+    required this.id,
+    required this.name,
+    required this.family,
+    required this.description,
+    required this.shapes,
+    this.fill = 'mixte',
+    this.uppers = Uppers.normal,
+    required this.front,
+    this.frontUpper,
+    this.frontLower,
+    required this.worktop,
+    this.handle = 'bar',
+    this.handleId,
+    this.handleFinish,
+    this.handleSize,
+    required this.floor,
+    this.wall = 'blanc_casse',
+    this.splash,
+  });
+
+  void applyStyle(KitchenStyle s) {
+    s
+      ..front = front
+      ..frontUpper = frontUpper
+      ..frontLower = frontLower
+      ..worktop = worktop
+      ..handle = handle
+      ..handleId = handleId
+      ..handleFinish = handleFinish
+      ..handleSize = handleSize
+      ..floor = floor
+      ..wall = wall
+      ..splash = splash;
+  }
+}
+
+const kitchenTemplates = <KitchenTemplate>[
+  // ---------------------------------------------------------------- blanches
+  KitchenTemplate(
+      id: 'tetouan', name: 'Tétouan', family: 'Blanches',
+      description: 'Blanc mat sans poignée, plan quartz, bas tout en tiroirs : épurée, rangements cachés.',
+      shapes: {'l', 'li', 'u'}, fill: 'tiroirs', front: 'blanc_mat', worktop: 'quartz_blanc', handle: 'gola',
+      floor: 'beton_cire', splash: null),
+  KitchenTemplate(
+      id: 'saidia', name: 'Saïdia', family: 'Blanches',
+      description: 'Blanc brillant laqué, plan granit noir en contraste, grands volumes de rangement.',
+      shapes: {'u', 'l', 'p'}, fill: 'tiroirs', front: 'blanc_brillant', worktop: 'granit_noir', handle: 'edgeFull',
+      handleId: 'edge_pull_full_width_bar', handleFinish: 'Alu anodisé brossé', floor: 'carrelage_blanc', splash: 'inox_cred'),
+  KitchenTemplate(
+      id: 'rabat', name: 'Rabat', family: 'Blanches',
+      description: 'Ouverte sur la vie de famille : îlot avec coin repas, blanc et marbre.',
+      shapes: {'li', 'lini'}, fill: 'mixte', front: 'blanc_mat', frontLower: 'blanc_mat', worktop: 'marbre',
+      handle: 'bar', handleId: 'handle_d_pull_flat', handleFinish: 'Noir mat', floor: 'parquet_chene', splash: 'metro_blanc'),
+  KitchenTemplate(
+      id: 'essaouira', name: 'Essaouira', family: 'Blanches',
+      description: 'Blanc et bois, étagères ouvertes au-dessus de l\'évier, ambiance bord de mer.',
+      shapes: {'l', 'lin'}, fill: 'portes', uppers: Uppers.open, front: 'blanc_mat', frontLower: 'chene_clair',
+      worktop: 'quartz_blanc', handle: 'knob', handleId: 'knob_round_mushroom', handleFinish: 'Laiton brossé',
+      floor: 'parquet_clair', splash: 'zellige_blanc'),
+  KitchenTemplate(
+      id: 'tanger', name: 'Tanger', family: 'Blanches',
+      description: 'Traditionnelle chaleureuse : façades blanches, vitrines aux extrémités, plan bois.',
+      shapes: {'u', 'l'}, fill: 'portes', uppers: Uppers.glassEnds, front: 'blanc_mat', worktop: 'marbre',
+      handle: 'cup', handleId: 'cup_handle_shell_shaker', handleFinish: 'Noir vieilli', floor: 'tomettes', splash: 'metro_blanc'),
+  // ---------------------------------------------------------------- bois
+  KitchenTemplate(
+      id: 'atlas', name: 'Atlas', family: 'Bois',
+      description: 'Chêne naturel, plan céramique effet béton, îlot pour se retrouver.',
+      shapes: {'li', 'lini', 'l'}, fill: 'tiroirs', front: 'chene', worktop: 'beton', handle: 'gola',
+      floor: 'beton_cire', splash: null),
+  KitchenTemplate(
+      id: 'ifrane', name: 'Ifrane', family: 'Bois',
+      description: 'Esprit chalet scandinave : chêne clair, boutons, étagères ouvertes, plan quartz.',
+      shapes: {'l', 'u'}, fill: 'mixte', uppers: Uppers.open, front: 'chene_clair', worktop: 'quartz_blanc', handle: 'knob',
+      handleId: 'knob_cylinder_knurled', handleFinish: 'Noir mat', floor: 'parquet_clair', splash: 'metro_blanc'),
+  KitchenTemplate(
+      id: 'cedre', name: 'Cèdre', family: 'Bois',
+      description: 'Bois et blanc : hauts blancs, bas en chêne, plan granit gris, lumineuse.',
+      shapes: {'l', 'lin', 'p'}, fill: 'mixte', front: 'blanc_mat', frontUpper: 'blanc_mat', frontLower: 'chene',
+      worktop: 'granit_gris', handle: 'bar', handleId: 'handle_tubular_t_bar', handleFinish: 'Inox brossé',
+      floor: 'parquet_chene', splash: 'zellige_blanc'),
+  KitchenTemplate(
+      id: 'chef', name: 'Toubkal', family: 'Bois',
+      description: 'Pour gastronome : noyer, plan granit noir, grand plan de travail en U, tiroirs à casseroles.',
+      shapes: {'u', 'p', 'li'}, fill: 'tiroirs', front: 'noyer', worktop: 'granit_noir', handle: 'bar',
+      handleId: 'handle_knurled_industrial', handleFinish: 'Noir carbone', floor: 'carrelage_gris', splash: 'inox_cred'),
+  // ---------------------------------------------------------------- colorées
+  KitchenTemplate(
+      id: 'chefchaouen', name: 'Chefchaouen', family: 'Colorées',
+      description: 'Bleu nuit sur mesure, poignées dorées, plan marbre blanc, îlot.',
+      shapes: {'li', 'lini', 'l'}, fill: 'tiroirs', front: 'bleu_nuit', worktop: 'marbre', handle: 'bar',
+      handleId: 'handle_d_pull_flat', handleFinish: 'Or brossé', floor: 'carrelage_marbre', splash: 'zellige_bleu'),
+  KitchenTemplate(
+      id: 'oasis', name: 'Oasis', family: 'Colorées',
+      description: 'Vert sauge campagne chic, boutons laiton, plan marbre, vitrines, zellige blanc.',
+      shapes: {'l', 'lin'}, fill: 'portes', uppers: Uppers.glassEnds, front: 'vert_sauge', worktop: 'marbre', handle: 'knob',
+      handleId: 'knob_round_mushroom', handleFinish: 'Laiton brossé', floor: 'tomettes', splash: 'zellige_blanc'),
+  KitchenTemplate(
+      id: 'fes', name: 'Fès', family: 'Colorées',
+      description: 'Vert forêt et bois, crédence en zellige vert, sol en carreaux de ciment : esprit médina.',
+      shapes: {'l', 'u'}, fill: 'mixte', front: 'vert_foret', frontUpper: 'chene', worktop: 'marbre', handle: 'bar',
+      handleId: 'handle_tubular_t_bar', handleFinish: 'Doré / Laiton brossé', floor: 'carreaux_ciment', splash: 'zellige_vert'),
+  KitchenTemplate(
+      id: 'marrakech', name: 'Marrakech', family: 'Colorées',
+      description: 'Terracotta chaleureuse, plan béton, étagères ouvertes, murs couleur sable.',
+      shapes: {'lin', 'l'}, fill: 'mixte', uppers: Uppers.open, front: 'terracotta', worktop: 'beton', handle: 'leather',
+      handleId: 'leather_loop_pull', handleFinish: 'Camel naturel', floor: 'tomettes', wall: 'beige_sable', splash: 'zellige_blanc'),
+  // ---------------------------------------------------------------- grises
+  KitchenTemplate(
+      id: 'agadir', name: 'Agadir', family: 'Grises',
+      description: 'Gris galet doux et intemporel, plan quartz blanc, carreaux métro.',
+      shapes: {'l', 'u'}, fill: 'mixte', front: 'gris_galet', worktop: 'quartz_blanc', handle: 'bar',
+      handleId: 'handle_tubular_t_bar', handleFinish: 'Inox brossé', floor: 'carrelage_gris', splash: 'metro_blanc'),
+  KitchenTemplate(
+      id: 'casa', name: 'Casa', family: 'Grises',
+      description: 'Esprit industriel : façades effet béton, plan céramique anthracite, mur de briques.',
+      shapes: {'l', 'p', 'lin'}, fill: 'tiroirs', uppers: Uppers.open, front: 'beton_facade', worktop: 'dekton_noir', handle: 'bar',
+      handleId: 'handle_knurled_industrial', handleFinish: 'Noir carbone', floor: 'beton_cire', wall: 'brique', splash: null),
+  // ---------------------------------------------------------------- noires
+  KitchenTemplate(
+      id: 'nuit_atlas', name: 'Nuit d\'Atlas', family: 'Noires',
+      description: 'Noir mat et bois au sol : sans poignée, plan céramique effet marbre, îlot.',
+      shapes: {'li', 'lini', 'l'}, fill: 'tiroirs', front: 'noir_mat', worktop: 'dekton_marbre', handle: 'gola',
+      floor: 'parquet_chene', splash: 'metro_blanc'),
+  KitchenTemplate(
+      id: 'kasbah', name: 'Kasbah', family: 'Noires',
+      description: 'Traditionnelle noire dans un petit espace : boutons dorés, plan marbre.',
+      shapes: {'lin', 'l', 'p'}, fill: 'portes', front: 'noir_mat', worktop: 'marbre', handle: 'knob',
+      handleId: 'knob_round_mushroom', handleFinish: 'Laiton brossé', floor: 'carreaux_ciment', splash: 'zellige_blanc'),
+  KitchenTemplate(
+      id: 'ouarzazate', name: 'Ouarzazate', family: 'Noires',
+      description: 'Anthracite ouverte et spacieuse, plan béton, grand îlot.',
+      shapes: {'li', 'lini', 'u'}, fill: 'tiroirs', front: 'anthracite', worktop: 'beton', handle: 'gola',
+      floor: 'beton_cire', splash: null),
+  // ---------------------------------------------------------------- beiges
+  KitchenTemplate(
+      id: 'merzouga', name: 'Merzouga', family: 'Beiges',
+      description: 'Cachemire et bois clair, minimaliste et accueillante, murs sable.',
+      shapes: {'l', 'li'}, fill: 'tiroirs', front: 'cachemire', worktop: 'beton', handle: 'gola',
+      floor: 'parquet_clair', wall: 'beige_sable', splash: 'zellige_blanc'),
+  KitchenTemplate(
+      id: 'dakhla', name: 'Dakhla', family: 'Beiges',
+      description: 'Familiale, lumineuse et spacieuse : beige et blanc, îlot, plan terrazzo.',
+      shapes: {'li', 'lini', 'u'}, fill: 'mixte', front: 'cachemire', frontUpper: 'blanc_mat', worktop: 'terrazzo',
+      handle: 'bar', handleId: 'handle_d_pull_flat', handleFinish: 'Or brossé', floor: 'terrazzo_sol', splash: 'metro_blanc'),
+  // ---------------------------------------------------------------- petites cuisines et kitchenettes
+  KitchenTemplate(
+      id: 'riad', name: 'Riad', family: 'Petites cuisines',
+      description: 'Petite cuisine aux rangements optimisés : hauts jusqu\'au plafond, tiroirs partout.',
+      shapes: {'l', 'lin', 'p'}, fill: 'tiroirs', front: 'blanc_mat', worktop: 'quartz_gris', handle: 'bar',
+      handleId: 'handle_tubular_t_bar', handleFinish: 'Noir mat', floor: 'carrelage_blanc', splash: 'metro_blanc'),
+  KitchenTemplate(
+      id: 'medina', name: 'Médina', family: 'Petites cuisines',
+      description: 'Petite cuisine stylée vert sauge, étagères ouvertes, carreaux de ciment.',
+      shapes: {'lin', 'l'}, fill: 'mixte', uppers: Uppers.open, front: 'vert_sauge', worktop: 'marbre', handle: 'knob',
+      handleId: 'knob_conical_tapered', handleFinish: 'Or brossé', floor: 'carreaux_ciment', splash: 'zellige_vert'),
+  KitchenTemplate(
+      id: 'studio', name: 'Studio', family: 'Kitchenettes',
+      description: 'Kitchenette d\'étudiant : un mur, étagères au lieu des hauts, plan bois.',
+      shapes: {'lin'}, fill: 'portes', uppers: Uppers.none, front: 'blanc_mat', worktop: 'granit_gris', handle: 'knob',
+      handleId: 'knob_round_mushroom', handleFinish: 'Noir mat', floor: 'parquet_clair', splash: 'metro_blanc'),
+  KitchenTemplate(
+      id: 'kitchenette_nord', name: 'Ifrane mini', family: 'Kitchenettes',
+      description: 'Kitchenette scandinave en chêne clair, vitrines, compacte et pratique.',
+      shapes: {'lin', 'p'}, fill: 'mixte', uppers: Uppers.glass, front: 'chene_clair', worktop: 'corian_blanc', handle: 'edge',
+      handleId: 'edge_pull_individual_cut', handleFinish: 'Noir mat anodisé', floor: 'parquet_clair', splash: null),
+];
+
+/// Applique la composition des hauts du modèle (étagères ouvertes, vitrines, aucun haut).
+void _applyUppers(LayoutEngine e, Uppers u) {
+  if (u == Uppers.normal) return;
+  final highs = e.project.items.where((c) {
+    final m = e.modelOf(c);
+    return m.kind == CabinetKind.wall && m.id != 'wall_integrated_hood';
+  }).toList();
+  for (final c in highs) {
+    switch (u) {
+      case Uppers.none:
+        e.project.items.remove(c);
+      case Uppers.open:
+        // étagères ouvertes : niches larges sur toute la longueur (600 à 1200), sinon niche étroite
+        final id = c.width >= 600 ? 'wall_open_niche_wide' : 'wall_open_shelf';
+        e.replace(c.uid, id);
+      case Uppers.glass:
+        e.replace(c.uid, 'wall_glass_door');
+      case Uppers.glassEnds:
+        final run = e.runs(c.wallId, (m) => m.kind.isHigh);
+        final atEnd = run.any((r) => (c.s - r.$1).abs() < 1 || (c.right - r.$2).abs() < 1);
+        if (atEnd) e.replace(c.uid, 'wall_glass_door');
+      case Uppers.normal:
+        break;
+    }
+  }
+  // les remplacements plus étroits laissent parfois des vides : fileurs
+  for (final g in e.gaps().where((g) => g.fillable)) {
+    e.fillGap(g);
+  }
+}
+
+/// Construit chaque modèle de la collection pour la pièce : la meilleure forme compatible, la
+/// composition des hauts, puis le style complet. Les modèles impossibles dans la pièce sont omis.
+List<(KitchenTemplate, LayoutProposal)> buildTemplates(LayoutEngine base) {
+  final cache = <String, List<LayoutProposal>>{};
+  final out = <(KitchenTemplate, LayoutProposal)>[];
+  for (final t in kitchenTemplates) {
+    final all = cache.putIfAbsent(t.fill, () => proposeLayouts(base, max: 99, fillStyle: t.fill, distinct: false));
+    final pr = all.where((p) => t.shapes.contains(p.id.split('_').first)).firstOrNull;
+    if (pr == null) continue;
+    final project = Project.fromJson(pr.project.toJson());
+    final e = LayoutEngine(base.catalog, project);
+    _applyUppers(e, t.uppers);
+    t.applyStyle(project.style);
+    out.add((
+      t,
+      LayoutProposal(
+        id: 'tpl_${t.id}',
+        name: t.name,
+        description: t.description,
+        project: project,
+        score: pr.score,
+        strengths: [pr.name, ...pr.strengths.take(2)],
+        warnings: pr.warnings,
+        errors: pr.errors,
+        worktop: pr.worktop,
+        storage: pr.storage,
+        triangle: pr.triangle,
+      ),
+    ));
+  }
+  return out;
+}

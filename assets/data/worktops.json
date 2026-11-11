@@ -1,0 +1,151 @@
+{
+  "database": "morocco_kitchen_worktops",
+  "currency": "MAD",
+  "pricing_unit": "linear_meter_600mm_depth",
+  "standard_depths_mm": [
+    600,
+    620,
+    650,
+    900,
+    1200
+  ],
+  "worktop_materials": [
+    {
+      "id": "marbre_naturel",
+      "name": "Marbre Naturel",
+      "heat_resistance": "Bonne",
+      "scratch_resistance": "Moyenne (pierre calcaire)",
+      "stain_resistance": "Sensible aux acides (citron, vinaigre) : hydrofuge recommandé",
+      "thickness_options_mm": [
+        20,
+        30
+      ],
+      "edge_profiles": [
+        "Droit poli",
+        "Biseauté (Chanfrein)",
+        "Retombée d'onglet 40-60mm (Mitred edge)"
+      ],
+      "particularity": "Prix au mètre linéaire à demander au marbrier selon la carrière"
+    },
+    {
+      "id": "granit_naturel",
+      "name": "Granit Naturel",
+      "heat_resistance": "Excellente (jusqu'à 300°C+)",
+      "scratch_resistance": "Très élevée",
+      "thickness_options_mm": [
+        20,
+        30
+      ],
+      "edge_profiles": [
+        "Droit poli",
+        "Biseauté (Chanfrein)",
+        "Retombée d'onglet 40-60mm (Mitred edge)"
+      ],
+      "popular_variants_morocco": [
+        {
+          "name": "Noir Zimbabwe (Poli ou Cuir/Flammé)",
+          "price_per_ml_mad": {
+            "min": 1400,
+            "max": 2100
+          }
+        },
+        {
+          "name": "Labrador Bleu / Émeraude (Norvège)",
+          "price_per_ml_mad": {
+            "min": 1300,
+            "max": 1900
+          }
+        },
+        {
+          "name": "Noir Absolu / Noir Galaxy",
+          "price_per_ml_mad": {
+            "min": 1200,
+            "max": 1800
+          }
+        },
+        {
+          "name": "Gris Perla / Blanc Cristal (Économique)",
+          "price_per_ml_mad": {
+            "min": 650,
+            "max": 950
+          }
+        }
+      ]
+    },
+    {
+      "id": "quartz_synthese",
+      "name": "Quartz de Synthèse (Silestone, Compac, Belenco, Çimstone)",
+      "heat_resistance": "Moyenne (craint les chocs thermiques directs > 150°C)",
+      "stain_resistance": "Excellente (Non poreux, antibactérien)",
+      "thickness_options_mm": [
+        15,
+        20
+      ],
+      "edge_profiles": [
+        "Droit",
+        "Retombée en coupe d'onglet 45° (effet 40mm ou 60mm)"
+      ],
+      "popular_variants_morocco": [
+        {
+          "name": "Blanc Pur (White Zeus / Blanc Absolu)",
+          "price_per_ml_mad": {
+            "min": 1300,
+            "max": 2200
+          }
+        },
+        {
+          "name": "Calacatta Gold / Veiné Marbre",
+          "price_per_ml_mad": {
+            "min": 1600,
+            "max": 2800
+          }
+        },
+        {
+          "name": "Gris Expo / Gris Anthracite / Beige",
+          "price_per_ml_mad": {
+            "min": 1100,
+            "max": 1700
+          }
+        }
+      ]
+    },
+    {
+      "id": "ceramique_grands_formats",
+      "name": "Céramique Ultracompacte / Pierre Frittée (Dekton, Neolith, Laminam)",
+      "heat_resistance": "Extrême (Résiste au feu direct et casseroles brûlantes)",
+      "scratch_resistance": "Inrayable",
+      "thickness_options_mm": [
+        12,
+        20
+      ],
+      "popular_variants_morocco": [
+        {
+          "name": "Dekton Sirius / Laurent / Entzo",
+          "price_per_ml_mad": {
+            "min": 2500,
+            "max": 4200
+          }
+        },
+        {
+          "name": "Grès Cérame Grands Formats (Import Espagne/Italie/Inde sur support)",
+          "price_per_ml_mad": {
+            "min": 1400,
+            "max": 2300
+          }
+        }
+      ]
+    },
+    {
+      "id": "solid_surface_corian",
+      "name": "Solid Surface (Corian, Krion, Hanex)",
+      "particularity": "Joints invisibles et évier moulé dans la masse",
+      "thickness_options_mm": [
+        12
+      ],
+      "price_per_ml_mad": {
+        "min": 2200,
+        "max": 3500
+      }
+    }
+  ]
+}

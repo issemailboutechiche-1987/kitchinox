@@ -1,0 +1,190 @@
+{
+  "source": "Devis ADMIRAL CONCEPT n° CC261904 du 04/08/26 (client BOUD BROTHERS DECORATION, Casablanca)",
+  "currency": "MAD",
+  "prices_are": "TTC (TVA 20 %), avant remise",
+  "usual_discount_pct": 15,
+  "construction": {
+    "carcass": "latté blanc 18 mm",
+    "fronts": "MDF chant PVC"
+  },
+  "models": {
+    "_comment": "Ajustés sur les lignes du devis, TTC avant remise. W = largeur (m), S = surface (m²).",
+    "carcass_wall_h700": {
+      "a": 335,
+      "b": 695,
+      "note": "caisson haut 70 x 33, latté blanc 18 mm avec retrait"
+    },
+    "carcass_base": {
+      "a": 420,
+      "b": 1000,
+      "note": "caisson bas 70 x 58, Gola ou non"
+    },
+    "tall_oven": 2842,
+    "tall_fridge": 2290,
+    "front_decor": {
+      "a": 18.6,
+      "b": 320,
+      "min": 42,
+      "note": "MDF décor AD003, chant PVC décor"
+    },
+    "front_gloss": {
+      "a": 16,
+      "b": 424,
+      "min": 46,
+      "note": "MDF brillant 6020, chant PVC uni"
+    },
+    "drawer_kit": {
+      "price": 59,
+      "discount_pct": 10
+    }
+  },
+  "lines": [
+    {
+      "ref": "P023003",
+      "name": "Caisson haut 70x40x33 latté blanc 18 mm avec retrait",
+      "pu_ttc": 610
+    },
+    {
+      "ref": "P023006",
+      "name": "Caisson haut 70x60x33 latté blanc 18 mm avec retrait",
+      "pu_ttc": 749
+    },
+    {
+      "ref": "P023006",
+      "name": "Caisson haut 66x60x33 latté blanc 18 mm",
+      "pu_ttc": 749
+    },
+    {
+      "ref": "P023002",
+      "name": "Caisson haut 70x35x33 latté blanc 18 mm avec retrait",
+      "pu_ttc": 570
+    },
+    {
+      "ref": "P013038",
+      "name": "Colonne four micro-ondes 200x60x58 latté blanc Gola côté droit",
+      "pu_ttc": 2842
+    },
+    {
+      "ref": "P013036",
+      "name": "Colonne frigo 200x60x58 latté blanc sans dos, Gola côté gauche",
+      "pu_ttc": 2290
+    },
+    {
+      "ref": "P013003",
+      "name": "Caisson bas 70x40x58 latté blanc 18 mm Gola",
+      "pu_ttc": 820
+    },
+    {
+      "ref": "P013012",
+      "name": "Caisson bas four 70x60x58 latté blanc 18 mm Gola",
+      "pu_ttc": 740
+    },
+    {
+      "ref": "P013002",
+      "name": "Caisson bas 70x35x58 latté blanc 18 mm Gola",
+      "pu_ttc": 768
+    },
+    {
+      "ref": "P013006",
+      "name": "Caisson bas 70x60x58 latté blanc 18 mm",
+      "pu_ttc": 1020
+    },
+    {
+      "ref": "P010045",
+      "name": "Fond et arrière de tiroir 60 cm (1T+4C)",
+      "pu_ttc": 59,
+      "discount_pct": 10
+    },
+    {
+      "ref": "P034003",
+      "name": "Porte 70x40 MDF AD003 chant PVC décor",
+      "pu_ttc": 108
+    },
+    {
+      "ref": "P034006",
+      "name": "Porte 70x60 MDF AD003 chant PVC décor",
+      "pu_ttc": 153
+    },
+    {
+      "ref": "P034002",
+      "name": "Porte 70x35 MDF AD003 chant PVC décor",
+      "pu_ttc": 97
+    },
+    {
+      "ref": "P034044",
+      "name": "Joue 15x60 MDF AD003 chant PVC décor",
+      "pu_ttc": 50
+    },
+    {
+      "ref": "P034057",
+      "name": "Joue 70x35 MDF AD003 chant PVC décor",
+      "pu_ttc": 97
+    },
+    {
+      "ref": "P060063",
+      "name": "Réglette 70x15 MDF 6020 brillant chant PVC uni",
+      "pu_ttc": 62
+    },
+    {
+      "ref": "P060060",
+      "name": "Joue 200x60 MDF 6020 brillant",
+      "pu_ttc": 524
+    },
+    {
+      "ref": "P060058",
+      "name": "Joue 70x60 MDF 6020 brillant",
+      "pu_ttc": 194
+    },
+    {
+      "ref": "P060000",
+      "name": "Porte 10x56 MDF 6020 brillant",
+      "pu_ttc": 46
+    },
+    {
+      "ref": "P060053",
+      "name": "Porte 32x60 MDF 6020 brillant",
+      "pu_ttc": 105
+    },
+    {
+      "ref": "P060030",
+      "name": "Porte 30x60 MDF 6020 brillant",
+      "pu_ttc": 92
+    },
+    {
+      "ref": "P060000",
+      "name": "Porte 130x60 MDF 6020 brillant",
+      "pu_ttc": 346
+    },
+    {
+      "ref": "P060006",
+      "name": "Porte 70x60 / 67x60 MDF 6020 brillant",
+      "pu_ttc": 194
+    },
+    {
+      "ref": "P060003",
+      "name": "Porte 67x40 MDF 6020 brillant",
+      "pu_ttc": 135
+    },
+    {
+      "ref": "P060002",
+      "name": "Porte 67x35 MDF 6020 brillant",
+      "pu_ttc": 121
+    }
+  ],
+  "totals": {
+    "gross_ttc": 18304.0,
+    "discount_ttc": 2730.85,
+    "net_ht": 12977.63,
+    "tva": 2595.52,
+    "net_ttc": 15573.15
+  },
+  "own_workshop_costs": {
+    "mdf_sheet_2800x2100_mad": 850,
+    "mdf_per_m2_mad": 144.6,
+    "edge_band_per_ml_mad": {
+      "min": 9,
+      "max": 12
+    },
+    "cutting_per_sheet_mad": 53
+  }
+}
