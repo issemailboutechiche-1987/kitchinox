@@ -270,7 +270,7 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
     final v = await showDialog<double>(
       context: context,
       builder: (ctx) {
-        void ok() => Navigator.pop(ctx, parseLen(c.text));
+        void ok() => Navigator.pop(ctx, editedLen(c.text, cur));
         return AlertDialog(
           title: Text(which == 'w' ? tr('Largeur de la pièce') : tr('Profondeur de la pièce')),
           content: TextField(

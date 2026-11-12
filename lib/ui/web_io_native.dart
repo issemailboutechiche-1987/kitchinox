@@ -25,6 +25,9 @@ bool nativeIoEnabled = false;
 /// Tests : simule un stockage plein.
 bool storeFull = false;
 
+/// Appelé si l'écriture de la session sur l'appareil échoue (stockage plein...) : l'app prévient l'utilisateur.
+void Function(Object error)? onStoreFailure;
+
 final _store = <String, String>{};
 File? _file;
 Timer? _flush;
@@ -91,6 +94,7 @@ Future<void> _write() async {
     await tmp.rename(f.path);
   } catch (e) {
     debugPrint('sauvegarde : $e');
+    onStoreFailure?.call(e);
   }
 }
 

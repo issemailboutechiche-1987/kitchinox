@@ -931,7 +931,7 @@ class _MmBoxState extends State<_MmBox> {
           inputFormatters: [FilteringTextInputFormatter.allow(lenInputPattern)],
           decoration: InputDecoration(labelText: widget.label, suffixText: lenSuffix, isDense: true, border: const OutlineInputBorder(), errorText: error),
           onSubmitted: (s) {
-            final v = parseLen(s)?.roundToDouble();
+            final v = editedLen(s, widget.value)?.roundToDouble();
             if (v == null || v < widget.min || v > widget.max) {
               setState(() => error = lenRange(widget.min, widget.max));
               return;
@@ -974,7 +974,7 @@ class _NumberFieldState extends State<_NumberField> {
           errorText: error,
         ),
         onSubmitted: (s) {
-          final v = parseLen(s)?.round();
+          final v = editedLen(s, widget.value)?.round();
           if (v == null || v < widget.min || v > widget.max) {
             setState(() => error = lenRange(widget.min, widget.max));
             return;

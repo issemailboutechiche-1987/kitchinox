@@ -84,7 +84,10 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
         final files = _pending.remove(a.isEmpty ? -1 : (a[0] as num).toInt());
         files?.forEach(LocalServer.instance.remove);
       case 'error':
-        debugPrint('3D : $u');
+        // la mise à jour a échoué : ses images et sa scène ne seront jamais lues, on les libère
+        final failed = _pending.remove(a.isEmpty || a[0] is! num ? -1 : (a[0] as num).toInt());
+        failed?.forEach(LocalServer.instance.remove);
+        debugPrint('3D : ${a.length > 1 ? a[1] : u}');
       case 'pick':
         if (_covered) return;
         if (u != null && u.startsWith('obj:')) {

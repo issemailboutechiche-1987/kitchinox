@@ -333,7 +333,7 @@ class _MmFieldState extends State<MmField> {
   }
 
   void _submit() {
-    final v = parseLen(c.text)?.roundToDouble();
+    final v = editedLen(c.text, widget.value)?.roundToDouble();
     if (v == null || v < widget.min || v > widget.max) {
       setState(() => error = lenRange(widget.min, widget.max));
       return;

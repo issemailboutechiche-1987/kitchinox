@@ -182,3 +182,7 @@ final lenInputPattern = RegExp(r'[0-9.,/ ]');
 
 /// Plage autorisée, dans l'unité choisie (« 1000 – 15000 mm »).
 String lenRange(num min, num max) => '${lenValue(min)} – ${lenText(max)}';
+
+/// Valeur saisie dans un champ de cote, en mm. Si le texte est resté tel qu'affiché, la cote ne change pas :
+/// en pouces l'affichage est arrondi au 1/16 (601 mm → « 23 11/16 » → 602 mm), le relire décalerait la pièce.
+double? editedLen(String text, num current) => text.trim() == lenValue(current) ? current.toDouble() : parseLen(text);

@@ -430,9 +430,18 @@ class AppState extends ChangeNotifier {
     });
   }
 
-  Future<CutPlan> _nestAway(String key, List<CutPart> parts, CutSettings cs, int n) async {
+  final Map<String, Future<CutPlan>> _nestJobs = {}; // calculs en cours, par clé
+
+  Future<CutPlan> _nestAway(String key, List<CutPart> parts, CutSettings cs, int n) {
     final hit = nestPeek(key);
-    if (hit != null) return hit;
+    if (hit != null) return Future.value(hit);
+    // même débit déjà en cours de calcul : on attend celui-là au lieu d'en relancer un
+    return _nestJobs[key] ??= _nestRun(key, parts, cs, n).whenComplete(() {
+      _nestJobs.remove(key); // bloc sans valeur de retour : renvoyer le calcul lui-même le ferait s'attendre sans fin
+    });
+  }
+
+  Future<CutPlan> _nestRun(String key, List<CutPart> parts, CutSettings cs, int n) async {
     CutPlan plan;
     try {
       plan = await PerformanceProfiler.instance
@@ -482,7 +491,10 @@ class AppState extends ChangeNotifier {
 
   void _load(String snap) {
     final tex = [...project.style.textures];
+    // un numéro de plan déjà attribué (PDF émis) ne se perd pas en annulant : sinon le projet en reprendrait un autre
+    final numbers = {...project.client.numbers};
     project = Project.fromJson(jsonDecode(snap) as Map<String, dynamic>);
+    numbers.forEach((k, v) => project.client.numbers.putIfAbsent(k, () => v));
     project.style.textures
       ..clear()
       ..addAll(tex);

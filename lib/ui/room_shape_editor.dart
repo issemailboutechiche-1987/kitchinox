@@ -452,7 +452,7 @@ class _MmInput extends StatelessWidget {
         inputFormatters: [FilteringTextInputFormatter.allow(lenInputPattern)],
         decoration: InputDecoration(labelText: label, suffixText: lenSuffix, isDense: true, border: const OutlineInputBorder()),
         onFieldSubmitted: (s) {
-          final v = parseLen(s);
+          final v = editedLen(s, value);
           if (v != null && v > 0) onSubmit(v);
         },
       );

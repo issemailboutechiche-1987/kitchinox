@@ -31,3 +31,6 @@ Future<void> initPlatformIo() async {}
 
 /// Fichiers natifs (iPad) : non.
 const bool nativeIoEnabled = false;
+
+/// Sans objet ici (l'écriture est immédiate : storeSet renvoie faux en cas d'échec).
+void Function(Object error)? onStoreFailure;

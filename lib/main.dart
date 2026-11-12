@@ -33,6 +33,7 @@ Future<void> main() async {
   // calculs lourds (débit) hors du fil de l'interface ; télémétrie de performance
   AppState.backgroundNest = true;
   await initPlatformIo(); // iPad : sauvegarde dans l'app, fichiers par le menu Partager
+  onStoreFailure = (e) => Session.onFailure(trp('Enregistrement impossible sur l’appareil : {0}', [e]));
   AppSettings.instance.load(); // langue, unités, numérotation des plans
   translateHook = tr; // messages du moteur (contrôles, erreurs de pose) dans la langue choisie
   // app installée (iPad) : orientation verrouillée en paysage
