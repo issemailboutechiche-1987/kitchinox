@@ -84,7 +84,7 @@ void main() {
         .where((l) => l.section == 'Panneaux' || l.section == 'Chants');
     final t = totalOf(lines);
     expect(t.min, closeTo(4250 + 265 + 18.63 * 9, 1));
-    expect(t.max, closeTo(4250 + 265 + 18.63 * 12, 1));
+    expect(t.max, closeTo(4250 + 265 + 18.63 * 10, 1)); // chant au tarif public : 9 (blanc) à 10 MAD/m (décor)
     expect(4700, inInclusiveRange(t.min, t.max));
   });
 }

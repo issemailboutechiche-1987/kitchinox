@@ -82,6 +82,7 @@ Future<void> main() async {
   KitchenFixtures.parse(await rootBundle.loadString('assets/data/accessories.json')); // éviers, mitigeurs, appareillage
   BrandCatalog.parse(await rootBundle.loadString('assets/data/brands.json')); // marques et prix (Maroc)
   SizeCatalog.parse(await rootBundle.loadString('assets/data/sizes.json')); // dimensions types et normes
+  PublicPrices.parse(await rootBundle.loadString('assets/data/public_prices.json')); // prix publics des panneaux
   state.addListener(() => Session.autosave('cuisine', () => projectWorkJson(state.project.toJson())));
   final bank = TextureBank.instance;
   bank.addListener(state.refresh);
@@ -90,6 +91,8 @@ Future<void> main() async {
   SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
   runApp(KitchenApp(state: state, showHome: true));
 }
+
+const _kSheetPrice = "Prix d'une feuille (MAD)";
 
 class KitchenApp extends StatefulWidget {
   final AppState state;
@@ -487,6 +490,35 @@ class _PlannerScreenState extends State<PlannerScreen> {
                   },
                 ),
                 const SizedBox(height: Tokens.s3),
+                if (PublicPrices.structural.isNotEmpty) ...[
+                  DropdownButtonFormField<String>(
+                    key: const ValueKey('public_panel'),
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                        labelText: tr('Panneau au prix public'),
+                        helperText: tr('remplit le prix, le format de la feuille et l’épaisseur'),
+                        border: const OutlineInputBorder(),
+                        isDense: true),
+                    items: [
+                      for (final p in PublicPrices.structural)
+                        DropdownMenuItem(value: p.id, child: Text('${tr(p.name)} · ${p.length ~/ 10} x ${p.width ~/ 10} · ${p.price.round()} MAD', overflow: TextOverflow.ellipsis)),
+                    ],
+                    onChanged: (v) {
+                      final p = PublicPrices.byId(v ?? '');
+                      if (p == null) return;
+                      prices[_kSheetPrice]!.text = '${p.price.round()}';
+                      fields['Longueur du panneau (mm)']!.text = '${p.length}';
+                      fields['Largeur du panneau (mm)']!.text = '${p.width}';
+                      fields['Épaisseur caisson (mm)']!.text = '${p.thickness}';
+                      final e = PublicPrices.edgeRange;
+                      if (e != null) {
+                        prices['Chant posé, min (MAD/m)']!.text = '${e.$1}';
+                        prices['Chant posé, max (MAD/m)']!.text = '${e.$2}';
+                      }
+                    },
+                  ),
+                  const SizedBox(height: Tokens.s3),
+                ],
                 for (final e in prices.entries)
                   Padding(
                     padding: const EdgeInsets.only(bottom: Tokens.s3),

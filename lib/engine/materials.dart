@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'bom.dart';
+import 'public_prices.dart';
 import 'brands_sizes.dart';
 import 'assembly.dart';
 import 'catalog.dart';
@@ -355,7 +356,7 @@ class ProjectSpecs {
     this.frontEdge = 2.0,
     this.sheetPrice = 850,
     this.edgePriceMin = 9,
-    this.edgePriceMax = 12,
+    this.edgePriceMax = 10,
     this.cuttingPerSheet = 53,
     this.hobEnergy = 'gas',
     this.gamme = 'standard',
@@ -615,10 +616,23 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
             ? db.panel(mat == cs.frontMaterial && cs.frontMaterial != cs.carcassMaterial ? specs.frontPanel : specs.carcassPanel)
             : null;
     final atelier = main && specs.sheetPrice != null;
-    final price = atelier ? PriceRange(specs.sheetPrice!, specs.sheetPrice!) : pt?.sheetPrice(cs.sheetLength, cs.sheetWidth) ?? PriceRange.zero;
+    // fond arrière : prix public du panneau mince blanc le plus proche en épaisseur
+    final back = mat == cs.backMaterial && pt == null ? PublicPrices.back(cs.backThickness) : null;
+    final price = atelier
+        ? PriceRange(specs.sheetPrice!, specs.sheetPrice!)
+        : back != null
+            ? PriceRange(back.price, back.price)
+            : pt?.sheetPrice(cs.sheetLength, cs.sheetWidth) ?? PriceRange.zero;
     final thick = mat == cs.backMaterial ? cs.backThickness : mat == cs.drawerMaterial ? 16 : cs.carcassThickness;
+    final how = atelier
+        ? ' · tarif atelier'
+        : back != null
+            ? ' · prix public ${back.name}'
+            : pt == null
+                ? ' · prix à demander'
+                : '';
     out.add(SupplyLine('Panneaux', decor ? '$mat (${pt?.name ?? 'décor'})' : (main ? pt?.name ?? mat : mat),
-        '${cs.sheetLength} x ${cs.sheetWidth} x $thick mm${atelier ? ' · tarif atelier' : pt == null ? ' · prix à demander' : ''}', n.toDouble(), 'feuille', price));
+        '${cs.sheetLength} x ${cs.sheetWidth} x $thick mm$how', n.toDouble(), 'feuille', price));
     if (specs.cuttingPerSheet > 0) {
       out.add(SupplyLine('Panneaux', 'Découpe à la scie à panneaux', 'service par feuille', n.toDouble(), 'feuille',
           PriceRange(specs.cuttingPerSheet, specs.cuttingPerSheet)));

@@ -83,6 +83,48 @@ Future<void> showBrandsDialog(BuildContext context, AppState st, void Function(S
                           ),
                         ),
                     ],
+                    // ---- panneaux : tarif public (prix par feuille), applicable au projet d'un clic
+                    if (c.id == 'mdf_and_wood_panels' && PublicPrices.panels.isNotEmpty) ...[
+                      const SizedBox(height: Tokens.s3),
+                      Text(tr('Prix publics des panneaux'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                      Text(trp('Tarif public relevé en {0}, par feuille. À confirmer avec le fournisseur.', [PublicPrices.updated]), style: t.bodySmall),
+                      for (final fam in PublicPrices.families) ...[
+                        const SizedBox(height: Tokens.s2),
+                        Text(tr(fam), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+                        for (final p in PublicPrices.panels.where((p) => p.family == fam))
+                          Card(
+                            margin: const EdgeInsets.only(top: 4),
+                            child: ListTile(
+                              dense: true,
+                              title: Text(tr(p.name), style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+                              subtitle: Text([
+                                '${p.length ~/ 10} x ${p.width ~/ 10} cm · ${p.thickness} mm${p.thicknessAssumed ? ' ?' : ''}',
+                                trp('{0} MAD/m²', [p.perM2.round()]),
+                                if (p.note.isNotEmpty) tr(p.note),
+                              ].join(' · ')),
+                              trailing: Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 10, children: [
+                                Text(_mad(PriceRange(p.price, p.price)), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                                if (p.thickness >= 16)
+                                  st.project.specs.sheetPrice == p.price && st.project.cut.sheetLength == p.length && st.project.cut.sheetWidth == p.width
+                                      ? Chip(label: Text(tr('Dans le devis')))
+                                      : OutlinedButton(
+                                          key: ValueKey('pub_${p.id}'),
+                                          onPressed: () {
+                                            st.applyPublicPanel(p);
+                                            Navigator.pop(ctx);
+                                            onMessage(trp('{0} : {1} MAD la feuille, devis et débit mis à jour', [tr(p.name), p.price.round()]));
+                                          },
+                                          child: Text(tr('Choisir'))),
+                              ]),
+                            ),
+                          ),
+                      ],
+                      const SizedBox(height: Tokens.s2),
+                      Text(
+                          [for (final (n, pr) in PublicPrices.edges) trp('{0} : {1} MAD/m', [tr(n), pr.toStringAsFixed(pr == pr.roundToDouble() ? 0 : 1)])].join(' · '),
+                          style: t.bodySmall),
+                      const Divider(height: Tokens.s5),
+                    ],
                     // ---- panneaux : nombre de feuilles du débit × prix de la marque
                     if (c.id == 'mdf_and_wood_panels' && sheets > 0) ...[
                       const SizedBox(height: Tokens.s3),

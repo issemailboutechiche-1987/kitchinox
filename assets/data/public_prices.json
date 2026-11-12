@@ -1,0 +1,35 @@
+{
+  "database": "prix_publics_panneaux_maroc",
+  "currency": "MAD",
+  "updated": "2026-11",
+  "source": "Tarif public fournisseur (relevé client, novembre 2026)",
+  "note": "Prix publics par feuille. Épaisseur 18 mm quand elle n'est pas précisée dans le tarif.",
+  "panels": [
+    { "id": "mdf_blanc_18", "name": "MDF blanc", "family": "MDF", "length": 2800, "width": 2100, "thickness": 18, "price": 850, "thickness_assumed": true },
+    { "id": "mdf_sonoma_18", "name": "MDF sonoma", "family": "MDF", "length": 2800, "width": 2100, "thickness": 18, "price": 850, "thickness_assumed": true },
+    { "id": "mdf_noyer_18", "name": "MDF noyer", "family": "MDF", "length": 2800, "width": 2100, "thickness": 18, "price": 950, "thickness_assumed": true },
+    { "id": "mdf_chene_18", "name": "MDF chêne", "family": "MDF", "length": 2800, "width": 2100, "thickness": 18, "price": 900, "thickness_assumed": true },
+
+    { "id": "latte_blanc_bois_rouge_cp", "name": "Latté blanc bois rouge contreplaqué", "family": "Latté", "length": 2440, "width": 1220, "thickness": 18, "price": 750, "thickness_assumed": true },
+    { "id": "latte_blanc_bois_rouge_hydro", "name": "Latté blanc bois rouge hydrofuge", "family": "Latté", "length": 2440, "width": 1220, "thickness": 18, "price": 800, "thickness_assumed": true },
+    { "id": "latte_chene_bois_rouge", "name": "Latté chêne bois rouge", "family": "Latté", "length": 2440, "width": 1220, "thickness": 18, "price": 850, "thickness_assumed": true },
+    { "id": "latte_chene_normal", "name": "Latté chêne normal", "family": "Latté", "length": 2440, "width": 2100, "thickness": 18, "price": 750, "thickness_assumed": true, "note": "Format 244 x 210 tel qu'indiqué au tarif, à confirmer (les autres lattés sont en 244 x 122)." },
+
+    { "id": "strati_blanc_16", "name": "Stratifié blanc 16 mm", "family": "Stratifié", "length": 2550, "width": 1830, "thickness": 16, "price": 600 },
+    { "id": "strati_blanc_18", "name": "Stratifié blanc 18 mm", "family": "Stratifié", "length": 2550, "width": 1830, "thickness": 18, "price": 700 },
+    { "id": "strati_decor_16", "name": "Stratifié décor 16 mm", "family": "Stratifié", "length": 2550, "width": 1830, "thickness": 16, "price": 650 },
+    { "id": "strati_decor_18", "name": "Stratifié décor 18 mm", "family": "Stratifié", "length": 2550, "width": 1830, "thickness": 18, "price": 750 },
+
+    { "id": "mdf_blanc_8", "name": "MDF blanc 8 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 8, "price": 650 },
+    { "id": "medlack_blanc_1f_8", "name": "Medlack blanc 1 face 8 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 8, "price": 600 },
+    { "id": "mdf_blanc_5", "name": "MDF blanc 5 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 5, "price": 400 },
+    { "id": "mdf_sonoma_8", "name": "MDF sonoma 8 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 8, "price": 700, "thickness_assumed": true, "note": "Épaisseur non précisée au tarif (ligne « MDF sonoma 700 / medlack 750 »), supposée 8 mm : à confirmer." },
+    { "id": "medlack_8", "name": "Medlack 8 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 8, "price": 750, "thickness_assumed": true, "note": "Épaisseur non précisée au tarif, supposée 8 mm : à confirmer." },
+    { "id": "mdf_noyer_8", "name": "MDF noyer 8 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 8, "price": 750 },
+    { "id": "mdf_noyer_5", "name": "MDF noyer 5 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 5, "price": 800, "note": "Prix tel qu'indiqué au tarif (plus cher que le 8 mm) : à confirmer." }
+  ],
+  "edge_banding": [
+    { "id": "chant_blanc", "name": "Bande de chant blanche", "price_per_meter": 9 },
+    { "id": "chant_decor", "name": "Bande de chant décor", "price_per_meter": 10 }
+  ]
+}

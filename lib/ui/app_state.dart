@@ -593,6 +593,22 @@ class AppState extends ChangeNotifier {
   /// Marque de quincaillerie du devis.
   void setHardwareBrand(String brand) => edit(() => project.specs.hardwareBrand = brand);
 
+  /// Panneau du tarif public pour le projet : prix de la feuille, format de la feuille, épaisseur des caissons,
+  /// et bandes de chant au prix public.
+  void applyPublicPanel(PublicPanel p) => edit(() {
+        project.specs.sheetPrice = p.price;
+        project.cut
+          ..sheetLength = p.length
+          ..sheetWidth = p.width;
+        if (p.thickness >= 16) project.cut.carcassThickness = p.thickness;
+        final e = PublicPrices.edgeRange;
+        if (e != null) {
+          project.specs
+            ..edgePriceMin = e.$1
+            ..edgePriceMax = e.$2;
+        }
+      });
+
   /// Replace l'îlot au meilleur endroit libre (passages de 1 m).
   String? replaceIsland() {
     final isl = project.room.island;
