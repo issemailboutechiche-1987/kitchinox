@@ -71,6 +71,13 @@ final universePalettes = <String, List<Palette>>{
     Palette('Noir mat', _s('noir_mat', 'gola', 'noir', 'carrelage_gris', 'beton_mur')),
     Palette('Chêne fumé', _s('chene_fume', 'gola', 'noir', 'parquet_chene', 'gris_perle')),
   ],
+  'buanderie': [
+    Palette('Blanc immaculé', _s('blanc_mat', 'gola', 'blanc', 'carrelage_blanc', 'blanc_casse')),
+    Palette('Chêne et blanc', _s('blanc_mat', 'bar', 'chene', 'parquet_clair', 'beige_sable')),
+    Palette('Vert d’eau / Sauge', _s('vert_sauge', 'bar', 'blanc', 'carreaux_ciment', 'blanc_casse')),
+    Palette('Gris moderne', _s('gris_galet', 'gola', 'gris', 'beton_cire', 'gris_perle')),
+    Palette('Bleu azur', _s('bleu_nuit', 'bar', 'blanc', 'carrelage_marbre', 'blanc_casse')),
+  ],
 };
 
 const universeTemplates = <String, List<UniverseTemplate>>{
@@ -196,6 +203,48 @@ const universeTemplates = <String, List<UniverseTemplate>>{
         Palette('Signature noir', {'front': 'noir_mat', 'handle': 'gola', 'carcass': 'noir', 'floor': 'carrelage_gris', 'wall': 'beton_mur'}),
         center: true),
   ],
+  'buanderie': [
+    UniverseTemplate('buand_duo', 'Duo Fonctionnel', 'Côte-à-côte',
+        'Lave-linge et sèche-linge côte-à-côte sous plan continu, bac à laver profond et meuble haut relevable sécurisé.',
+        [
+          Slot('laundry_washer_dryer_side_by_side', 1300),
+          Slot('laundry_sink_deep_basin', 600),
+          Slot('laundry_detergent_wall_unit', 800, above: 1, optional: true),
+          Slot('laundry_sorting_baskets_cabinet', 600, optional: true),
+        ],
+        Palette('Signature blanc et chêne', {'front': 'blanc_mat', 'handle': 'gola', 'carcass': 'chene', 'floor': 'carrelage_blanc', 'wall': 'blanc_casse'}),
+        fill: 'laundry_sorting_baskets_cabinet'),
+    UniverseTemplate('buand_tour', 'Tour & Colonnes', 'Gain de place',
+        'Colonne machines superposées, armoire balais et aspirateur, bac à laver et tringle de séchage murale.',
+        [
+          Slot('laundry_washer_dryer_column', 650),
+          Slot('laundry_broom_vacuum_tower', 600, optional: true),
+          Slot('laundry_sink_deep_basin', 600),
+          Slot('laundry_drying_rack_hanging_rod', 800, above: 2, optional: true),
+        ],
+        Palette('Signature sauge', {'front': 'vert_sauge', 'handle': 'bar', 'carcass': 'blanc', 'floor': 'carreaux_ciment', 'wall': 'blanc_casse'}),
+        fill: 'laundry_linen_tower'),
+    UniverseTemplate('buand_expert', 'Buanderie Complète', 'Luxe & Organisation',
+        'Colonne superposée, meuble tri sélectif, bac inox sous plan, table à repasser escamotable en tiroir et armoire lingère.',
+        [
+          Slot('laundry_washer_dryer_column', 650),
+          Slot('laundry_sorting_baskets_cabinet', 600),
+          Slot('laundry_sink_deep_basin', 600),
+          Slot('laundry_ironing_board_drawer', 600, optional: true),
+          Slot('laundry_linen_tower', 600, optional: true),
+          Slot('laundry_detergent_wall_unit', 800, above: 2, optional: true),
+        ],
+        Palette('Signature gris galet', {'front': 'gris_galet', 'handle': 'gola', 'carcass': 'gris', 'floor': 'beton_cire', 'wall': 'gris_perle'}),
+        fill: 'laundry_sorting_baskets_cabinet'),
+    UniverseTemplate('buand_compact', 'Cellier Compact', 'Petit espace',
+        'Moins de 2 mètres : colonne machines superposées et meuble sous bac avec meuble haut pour détergents.',
+        [
+          Slot('laundry_washer_dryer_column', 650),
+          Slot('laundry_sink_deep_basin', 600),
+          Slot('laundry_detergent_wall_unit', 600, above: 1, optional: true),
+        ],
+        Palette('Signature blanc pur', {'front': 'blanc_mat', 'handle': 'bar', 'carcass': 'blanc', 'floor': 'carrelage_blanc', 'wall': 'blanc_casse'})),
+  ],
 };
 
 int _nearest(List<int> v, int want) => v.reduce((a, b) => (a - want).abs() <= (b - want).abs() ? a : b);
@@ -264,17 +313,18 @@ LayoutProposal? _fit(LayoutEngine base, UniverseTemplate tp, String wallId, Pale
     widths[i] = cat[tp.slots[i].id].widths.values.reduce(math.min);
   }
   if (total() > L || widths.isEmpty) return null;
-  // modules de remplissage (pas pour le meuble TV, centré)
+  // modules de remplissage (pas pour le meuble TV, centré) : remplit parfaitement le mur
   final fills = <int>[];
   final fm = tp.fill == null ? null : cat.tryGet(tp.fill!);
   if (fm != null && !tp.center) {
     var rest = L - total();
-    for (var k = 0; k < 3; k++) {
+    while (rest >= 300) {
       final fit = fm.widths.values.where((x) => x <= rest).toList();
       if (fit.isEmpty) break;
       final wv = fit.reduce(math.max);
       fills.add(wv);
       rest -= wv;
+      if (fills.length >= 8) break;
     }
   }
   // place restante absorbée : chaque module passe à la largeur supérieure du catalogue tant que ça tient
@@ -378,7 +428,26 @@ LayoutProposal? _fit(LayoutEngine base, UniverseTemplate tp, String wallId, Pale
   final span = p.items.isEmpty ? 0.0 : p.items.map((c) => c.right).reduce(math.max) - p.items.map((c) => c.s).reduce(math.min);
   final leftover = L - span;
   final warnings = [for (final i in e.validate().where((i) => i.severity == Severity.error)) i.message];
+
+  // Adéquation de la composition avec la surface de la pièce choisie
+  final areaM2 = (src.room.width * src.room.depth) / 1000000.0;
+  var areaBonus = 0.0;
+  if (areaM2 < 4.5) {
+    // Petite pièce (< 4.5 m²) : valorise les modèles compacts et fonctionnels
+    if (span <= 2400) areaBonus += 35.0;
+    if (span > 3400) areaBonus -= 30.0;
+  } else if (areaM2 < 9.0) {
+    // Pièce moyenne (4.5 - 9 m²) : équilibre idéal entre 2 et 3.8 m
+    if (span >= 2000 && span <= 3800) areaBonus += 30.0;
+  } else {
+    // Grande pièce (> 9 m²) : valorise les grandes compositions riches en rangement
+    if (span >= 2800) areaBonus += 40.0;
+    if (span < 1800) areaBonus -= 25.0;
+  }
+
   final strengths = <String>[
+    if (areaM2 < 4.5 && span <= 2400) 'Parfaitement adapté à la surface (${areaM2.toStringAsFixed(1)} m²)'
+    else if (areaM2 >= 9.0 && span >= 2800) 'Grand volume pour belle surface (${areaM2.toStringAsFixed(1)} m²)',
     if (!tp.center && leftover < 50) 'Mur exploité d’un bout à l’autre (${(span / 1000).toStringAsFixed(2).replaceAll('.', ',')} m)'
     else if (tp.center) 'Centré sur le mur $wallId (${(span / 1000).toStringAsFixed(2).replaceAll('.', ',')} m)'
     else '${(span / 1000).toStringAsFixed(2).replaceAll('.', ',')} m sur le mur $wallId',
@@ -394,7 +463,8 @@ LayoutProposal? _fit(LayoutEngine base, UniverseTemplate tp, String wallId, Pale
   final score = (tp.center ? 60.0 + math.min(span / L, 0.8) * 20 : 100.0 * span / L) -
       (leftover > 0 && leftover < 300 && !tp.center ? 10 : 0) -
       warnings.length * 25 -
-      (wetD == null ? 0 : math.min(40, wetD / 100));
+      (wetD == null ? 0 : math.min(40, wetD / 100)) +
+      areaBonus;
   return LayoutProposal(
     id: '${tp.id}_${wallId}_${look?.name ?? 'vous'}',
     name: look == null || look == tp.signature ? tp.name : '${tp.name} · ${look.name}',

@@ -13,6 +13,8 @@ import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'local_server.dart';
+
 class PickedFile {
   final String name;
   final Uint8List bytes;
@@ -32,10 +34,37 @@ final _store = <String, String>{};
 File? _file;
 Timer? _flush;
 
-/// Prépare les fichiers et la sauvegarde (avant de relire la session).
+Directory? _kitchinoxDir;
+Directory? _projectsDir;
+Directory? _exportDir;
+Directory? _importDir;
+
+/// Dossier racine Kitchinox sur l'appareil
+Directory? get kitchinoxDir => _kitchinoxDir;
+Directory? get projectsDir => _projectsDir;
+Directory? get exportDir => _exportDir;
+Directory? get importDir => _importDir;
+
+/// Prépare les fichiers, dossiers et la sauvegarde (avant de relire la session).
 Future<void> initPlatformIo() async {
   if (!(Platform.isIOS || Platform.isAndroid)) return;
   nativeIoEnabled = true;
+
+  // Création du dossier Kitchinox visible dans l'application "Fichiers" sur iPad
+  try {
+    final docs = await getApplicationDocumentsDirectory();
+    _kitchinoxDir = Directory('${docs.path}/Kitchinox');
+    _projectsDir = Directory('${_kitchinoxDir!.path}/projets');
+    _exportDir = Directory('${_kitchinoxDir!.path}/export');
+    _importDir = Directory('${_kitchinoxDir!.path}/import');
+
+    await _projectsDir!.create(recursive: true);
+    await _exportDir!.create(recursive: true);
+    await _importDir!.create(recursive: true);
+  } catch (e) {
+    debugPrint('Erreur création dossiers Kitchinox: $e');
+  }
+
   final dir = await getApplicationSupportDirectory();
   await dir.create(recursive: true);
   _file = File('${dir.path}/kitchinox_session.json');
@@ -78,23 +107,53 @@ void storeRemove(String key) {
   _schedule();
 }
 
+bool _isWriting = false;
+bool _writePending = false;
+
 void _schedule() {
   if (_file == null) return;
   _flush?.cancel();
-  _flush = Timer(const Duration(milliseconds: 400), () => unawaited(_write()));
+  _flush = Timer(const Duration(milliseconds: 300), () => unawaited(_write()));
 }
 
 Future<void> _write() async {
   final f = _file;
   if (f == null) return;
+  if (_isWriting) {
+    _writePending = true;
+    return;
+  }
+  _isWriting = true;
+  _writePending = false;
+
   try {
-    // écriture dans un fichier temporaire puis renommage : jamais de session à moitié écrite
-    final tmp = File('${f.path}.tmp');
-    await tmp.writeAsString(jsonEncode(_store), flush: true);
-    await tmp.rename(f.path);
+    final content = jsonEncode(_store);
+    try {
+      // S'assurer que le dossier parent existe
+      if (!await f.parent.exists()) {
+        await f.parent.create(recursive: true);
+      }
+      final tmp = File('${f.path}.tmp');
+      await tmp.writeAsString(content, flush: true);
+      // Sur iPadOS / POSIX, supprimer le fichier cible avant renommage si existant
+      if (await f.exists()) {
+        await f.delete();
+      }
+      await tmp.rename(f.path);
+    } catch (_) {
+      // Fallback direct en cas d'erreur de renommage / verrou temporaire de fichier
+      await f.writeAsString(content, flush: true);
+    }
   } catch (e) {
-    debugPrint('sauvegarde : $e');
+    debugPrint('sauvegarde session : $e');
+    // On ne prévient l'utilisateur que si l'erreur persiste et n'est pas un verrou transitoire
     onStoreFailure?.call(e);
+  } finally {
+    _isWriting = false;
+    if (_writePending) {
+      _writePending = false;
+      unawaited(_write());
+    }
   }
 }
 
@@ -115,8 +174,24 @@ void downloadBytes(String name, List<int> bytes, {String mime = 'application/oct
 
 Future<void> _share(String name, List<int> bytes, String mime) async {
   try {
-    final dir = await getTemporaryDirectory();
     final safe = name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+
+    // Sauvegarder automatiquement une copie dans le dossier Kitchinox approprié
+    if (_kitchinoxDir != null) {
+      try {
+        final targetDir = safe.endsWith('.kin')
+            ? _projectsDir
+            : (safe.endsWith('.pdf') || safe.endsWith('.csv') || safe.endsWith('.sct') ? _exportDir : _kitchinoxDir);
+        if (targetDir != null) {
+          final localCopy = File('${targetDir.path}/$safe');
+          await localCopy.writeAsBytes(bytes, flush: true);
+        }
+      } catch (e) {
+        debugPrint('Copie locale dossier Kitchinox: $e');
+      }
+    }
+
+    final dir = await getTemporaryDirectory();
     final f = File('${dir.path}/$safe');
     await f.writeAsBytes(bytes, flush: true);
     // sur iPad, le menu Partager s'ouvre en bulle : il lui faut un point d'ancrage (en haut à droite, près des exports)
@@ -128,5 +203,14 @@ Future<void> _share(String name, List<int> bytes, String mime) async {
     ));
   } catch (e) {
     debugPrint('partage : $e');
+  }
+}
+
+void saveImportedAsset(String name, Uint8List bytes) {
+  LocalServer.instance.put('imported/$name', bytes);
+  if (_importDir != null) {
+    try {
+      File('${_importDir!.path}/$name').writeAsBytesSync(bytes);
+    } catch (_) {}
   }
 }

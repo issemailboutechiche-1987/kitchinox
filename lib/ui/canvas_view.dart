@@ -812,6 +812,35 @@ class _PlannerPainter extends CustomPainter {
     }
   }
 
+  /// Cote alignée le long d'un segment libre (pour les murs de forme personnalisée)
+  void _dimAligned(Canvas canvas, Offset p0, Offset p1, Offset normal, double offsetDist, String value) {
+    final a = p0 + normal * offsetDist;
+    final b = p1 + normal * offsetDist;
+    final p = _stroke(pc.dimension, 1.2);
+    // Lignes de rappel depuis les extrémités du mur
+    canvas.drawLine(p0 + normal * 4, a + normal * 6, _stroke(pc.dimension.withValues(alpha: 0.45), 0.8));
+    canvas.drawLine(p1 + normal * 4, b + normal * 6, _stroke(pc.dimension.withValues(alpha: 0.45), 0.8));
+    // Ligne de cote
+    canvas.drawLine(a, b, p);
+    // Ticks à 45°
+    final dir = (b - a);
+    if (dir.distanceSquared == 0) return;
+    final u = dir / dir.distance;
+    final n = Offset(-u.dy, u.dx);
+    final tick = (u + n) * 5;
+    canvas.drawLine(a - tick, a + tick, p);
+    canvas.drawLine(b - tick, b + tick, p);
+    // Étiquette orientée le long du mur
+    final mid = Offset.lerp(a, b, 0.5)!;
+    var ang = math.atan2(dir.dy, dir.dx);
+    if (ang > math.pi / 2 || ang < -math.pi / 2) ang += math.pi;
+    canvas.save();
+    canvas.translate(mid.dx, mid.dy);
+    canvas.rotate(ang);
+    _label(canvas, value, const Offset(0, -9), bg: pc.canvas, style: text.copyWith(fontSize: 11, fontWeight: FontWeight.w700, color: pc.dimension));
+    canvas.restore();
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = pc.canvas);
@@ -942,12 +971,28 @@ class _PlannerPainter extends CustomPainter {
       canvas.clipPath(path);
       if (!ff.textured) _parquet(canvas, v, w0, d0);
       canvas.restore();
-      // longueur de chaque mur, à l'extérieur
-      for (final w in room.walls) {
-        final (mx, my) = w.middle;
-        final at = v.toScreen(mx - w.nx * (t + 160), my - w.ny * (t + 160));
-        _label(canvas, w.straight ? lenValue(w.length) : 'arc ${lenValue(w.developed)}', at,
-            bg: Colors.white, style: text.copyWith(fontSize: 10.5, fontWeight: FontWeight.w700, color: const Color(0xFF3D4650)));
+      // cotation architecturale de chaque mur le long de son orientation
+      final wList = room.walls;
+      final badgePositions = <Offset>[];
+      for (var wi = 0; wi < wList.length; wi++) {
+        final w = wList[wi];
+        final p0 = v.toScreen(w.x0, w.y0);
+        final (ex, ey) = w.end;
+        final p1 = v.toScreen(ex, ey);
+        final normScr = Offset(-w.nx, -w.ny);
+        var off = math.max(26.0, (t + 40) * v.k);
+        // Anti-collision entre badges de cotes proches (ex: mur court 54mm et mur 410mm)
+        for (var tries = 0; tries < 5; tries++) {
+          final mid = (p0 + p1) / 2 + normScr * off;
+          final overlaps = badgePositions.any((bp) => (bp - mid).distance < 46);
+          if (overlaps) {
+            off += 26.0;
+          } else {
+            badgePositions.add(mid);
+            break;
+          }
+        }
+        _dimAligned(canvas, p0, p1, normScr, off, w.straight ? lenText(w.length) : 'arc ${lenText(w.length)}');
       }
     }
 
@@ -1024,9 +1069,11 @@ class _PlannerPainter extends CustomPainter {
       }
     }
 
-    // cotes extérieures
-    _dim(canvas, v.toScreen(0, -t) + const Offset(0, -26), v.toScreen(w0, -t) + const Offset(0, -26), lenText(w0));
-    _dim(canvas, v.toScreen(-t, 0) + const Offset(-26, 0), v.toScreen(-t, d0) + const Offset(-26, 0), lenText(d0), vertical: true);
+    // cotes extérieures (pièce rectangulaire uniquement)
+    if (room.outline == null) {
+      _dim(canvas, v.toScreen(0, -t) + const Offset(0, -26), v.toScreen(w0, -t) + const Offset(0, -26), lenText(w0));
+      _dim(canvas, v.toScreen(-t, 0) + const Offset(-26, 0), v.toScreen(-t, d0) + const Offset(-26, 0), lenText(d0), vertical: true);
+    }
 
     // noms des murs, écrits dans l'épaisseur du mur (grisés si le mur ne reçoit pas de caissons)
     for (final w in room.walls) {

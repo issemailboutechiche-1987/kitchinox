@@ -171,7 +171,12 @@ class SizeCatalog {
   static Map<String, dynamic> rules = {}; // règles brutes par pièce (cuisine, bain, dressing)
   static List<String> references = [];
 
-  static const _rooms = {'kitchen': 'cuisine', 'bathroom': 'bain', 'dressing_wardrobe': 'dressing'};
+  static const _rooms = {
+    'kitchen': 'cuisine',
+    'bathroom': 'bain',
+    'dressing_wardrobe': 'dressing',
+    'laundry': 'buanderie',
+  };
 
   static void parse(String src) {
     final j = jsonDecode(src) as Map<String, dynamic>;
@@ -267,6 +272,19 @@ List<Issue> sizeChecks(LayoutEngine e) {
       final free = span - da - db;
       if (free < minPass) {
         out.add(Issue(Severity.warning, 'dressing_passage', L('Passage de {0} mm devant les rangements : {1} mm au moins', [free.round(), minPass.round()])));
+      }
+    }
+  }
+  if (p.universe == 'buanderie') {
+    final minPass = SizeCatalog.rule('buanderie', ['work_aisles_and_walkways', 'passage_in_front_of_washer_dryer_min']) ?? 1000;
+    double depthOn(String w) => p.items.where((c) => c.wallId == w && c.z < 900).fold(0.0, (m, c) => math.max(m, c.depth.toDouble()));
+    for (final (a, b, span) in [('A', 'D', room.depth), ('B', 'C', room.width)]) {
+      if (room.outline != null) break;
+      final da = depthOn(a), db = depthOn(b);
+      if (da == 0 && db == 0) continue;
+      final free = span - da - db;
+      if (free < minPass) {
+        out.add(Issue(Severity.warning, 'buanderie_passage', L('Passage de {0} mm dans la buanderie : norme NKBA {1} mm au moins pour charger les machines', [free.round(), minPass.round()])));
       }
     }
   }

@@ -1,6 +1,7 @@
 // Débit manuel, à la manière de SketchCut : feuille, méthode (par longueur, par largeur, optimale),
 // liste des pièces saisies à la main (rotation, chants), aperçu des feuilles, PDF et fichier .sct.
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -117,14 +118,18 @@ Future<void> openManualCut(BuildContext context, AppState state, {bool offerOpen
   ));
 }
 
-/// Lit un fichier de débit : SketchCut (.sct) ou projet kitchinox (.json : son débit manuel, sinon
-/// les pièces de la cuisine dans le matériau qui en compte le plus). Null si le fichier n'est pas reconnu.
+/// Lit un fichier de débit : projet Kitchinox (.kin / .json) ou SketchCut (.sct).
+/// Importe l'ensemble des panneaux du projet dans l'optimiseur de débit. Null si non reconnu.
 (ManualCut, String)? manualCutFromFile(String name, List<int> bytes, AppState state) {
   String text;
   try {
-    text = utf8.decode(bytes);
-  } on FormatException {
-    text = latin1.decode(bytes); // SketchCut écrit en Windows-1252
+    text = KinFormat.decode(Uint8List.fromList(bytes));
+  } catch (_) {
+    try {
+      text = utf8.decode(bytes);
+    } on FormatException {
+      text = latin1.decode(bytes); // SketchCut écrit en Windows-1252
+    }
   }
   final lower = name.toLowerCase();
   if (lower.endsWith('.sct') || text.startsWith('<V')) {
@@ -143,11 +148,18 @@ Future<void> openManualCut(BuildContext context, AppState state, {bool offerOpen
     }
     final mat = (byMat.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
     final job = ManualCut(order: p.name, material: mat, sheetLength: p.cut.sheetLength, sheetWidth: p.cut.sheetWidth, kerf: p.cut.kerf, trim: p.cut.trim, method: p.cut.method);
-    for (final x in parts.where((x) => x.material == mat)) {
-      job.parts.add(ManualPart(length: x.length, width: x.width, qty: x.qty, rotate: x.canRotate, edgeLong: x.edgeLong, edgeShort: x.edgeShort, desc: '${x.name} · ${x.cabinet}'));
+    for (final x in parts) {
+      job.parts.add(ManualPart(
+        length: x.length,
+        width: x.width,
+        qty: x.qty,
+        rotate: x.canRotate,
+        edgeLong: x.edgeLong,
+        edgeShort: x.edgeShort,
+        desc: '${x.name} · ${x.cabinet} (${x.material})',
+      ));
     }
-    final others = byMat.keys.where((m) => m != mat).toList();
-    return (job, 'Cuisine « ${p.name} » : pièces en $mat${others.isEmpty ? '' : ' (autres matériaux non repris : ${others.join(', ')})'}');
+    return (job, 'Projet « ${p.name} » : ${parts.length} panneau(x) importé(s) pour le débit');
   } catch (_) {
     return null;
   }
@@ -180,11 +192,10 @@ class _ManualCutPageState extends State<ManualCutPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(tr('Débitage')),
-        content: Text(tr('Saisir les pièces à la main, ou reprendre un fichier déjà enregistré : '
-            'SketchCut (.sct) ou projet kitchinox (.json) ?')),
+        content: Text(tr('Saisir les pièces à la main, ou importer un fichier projet Kitchinox (.kin) ou SketchCut (.sct) ?')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Saisie manuelle'))),
-          FilledButton.icon(onPressed: () => Navigator.pop(ctx, true), icon: const Icon(Icons.file_open_outlined), label: Text(tr('Ouvrir un fichier'))),
+          FilledButton.icon(onPressed: () => Navigator.pop(ctx, true), icon: const Icon(Icons.file_open_outlined), label: Text(tr('Ouvrir un fichier (.kin / .sct)'))),
         ],
       ),
     );
@@ -192,7 +203,7 @@ class _ManualCutPageState extends State<ManualCutPage> {
   }
 
   Future<void> _open() async {
-    final f = await pickFile(accept: '.sct,.json');
+    final f = await pickFile(accept: '.kin,.sct,.json');
     if (f == null || !mounted) return;
     final r = manualCutFromFile(f.name, f.bytes, widget.state);
     if (r == null) {
@@ -204,16 +215,32 @@ class _ManualCutPageState extends State<ManualCutPage> {
     setState(() {
       widget.state.project.manual = job;
       _gen++;
-      _plan = null;
+      _plan = job.parts.any((p) => p.length > 0 && p.width > 0) ? job.plan() : null;
     });
     widget.state.refresh();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  void _changed() {
+  void _changed({bool recalc = true}) {
     Session.autosave('debit', () => jsonEncode(job.toJson()));
-    setState(() => _plan = null);
+    if (recalc && job.parts.any((p) => p.length > 0 && p.width > 0 && p.qty > 0)) {
+      try {
+        _plan = job.plan();
+      } catch (_) {}
+    }
+    setState(() {});
     widget.state.refresh();
+  }
+
+  void _validateRow(int i) {
+    final p = job.parts[i];
+    if (p.length > 0 && p.width > 0) {
+      if (p.qty <= 0) p.qty = 1;
+      if (i == job.parts.length - 1) {
+        job.parts.add(ManualPart());
+      }
+      _changed(recalc: true);
+    }
   }
 
   Future<void> _calc() async {
@@ -249,12 +276,12 @@ class _ManualCutPageState extends State<ManualCutPage> {
           decoration: InputDecoration(labelText: label, isDense: true, border: const OutlineInputBorder()),
           onChanged: (v) {
             on(int.tryParse(v) ?? 0);
-            _changed();
+            _changed(recalc: true);
           },
         ),
       );
 
-  Widget _cell(ManualPart p, String field, int value, ValueChanged<int> on, {double width = 84}) => SizedBox(
+  Widget _cell(ManualPart p, String field, int value, ValueChanged<int> on, {double width = 84, VoidCallback? onSubmitted}) => SizedBox(
         width: width,
         child: TextFormField(
           key: ValueKey('${identityHashCode(p)}-$field'),
@@ -265,8 +292,9 @@ class _ManualCutPageState extends State<ManualCutPage> {
           decoration: const InputDecoration(isDense: true, border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
           onChanged: (v) {
             on(int.tryParse(v) ?? 0);
-            _changed();
+            _changed(recalc: p.length > 0 && p.width > 0 && p.qty > 0);
           },
+          onFieldSubmitted: (_) => onSubmitted?.call(),
         ),
       );
 
@@ -383,6 +411,7 @@ class _ManualCutPageState extends State<ManualCutPage> {
         SizedBox(width: 64, child: Text(tr('Qté'), style: head, textAlign: TextAlign.center)),
         SizedBox(width: 48, child: Text(tr('Rot.'), style: head, textAlign: TextAlign.center)),
         Expanded(child: Text(tr('Description'), style: head)),
+        SizedBox(width: 52, child: Text('OK', style: head, textAlign: TextAlign.center)),
         const SizedBox(width: 40),
       ]),
       const SizedBox(height: Tokens.s1),
@@ -392,11 +421,11 @@ class _ManualCutPageState extends State<ManualCutPage> {
           padding: const EdgeInsets.only(bottom: 4),
           child: Row(children: [
             SizedBox(width: 28, child: Text('${i + 1}', style: t.bodySmall)),
-            _cell(job.parts[i], 'l', job.parts[i].length, (v) => job.parts[i].length = v),
+            _cell(job.parts[i], 'l', job.parts[i].length, (v) => job.parts[i].length = v, onSubmitted: () => _validateRow(i)),
             _edges(job.parts[i], true),
-            _cell(job.parts[i], 'w', job.parts[i].width, (v) => job.parts[i].width = v),
+            _cell(job.parts[i], 'w', job.parts[i].width, (v) => job.parts[i].width = v, onSubmitted: () => _validateRow(i)),
             _edges(job.parts[i], false),
-            _cell(job.parts[i], 'q', job.parts[i].qty, (v) => job.parts[i].qty = v, width: 64),
+            _cell(job.parts[i], 'q', job.parts[i].qty, (v) => job.parts[i].qty = v, width: 64, onSubmitted: () => _validateRow(i)),
             SizedBox(
               width: 48,
               child: Tooltip(
@@ -407,7 +436,7 @@ class _ManualCutPageState extends State<ManualCutPage> {
                       ? null
                       : () {
                           job.parts[i].rotate = !job.parts[i].rotate;
-                          _changed();
+                          _changed(recalc: true);
                         },
                 ),
               ),
@@ -419,8 +448,22 @@ class _ManualCutPageState extends State<ManualCutPage> {
                 decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
                 onChanged: (v) {
                   job.parts[i].desc = v;
-                  _changed();
+                  _changed(recalc: false);
                 },
+                onFieldSubmitted: (_) => _validateRow(i),
+              ),
+            ),
+            const SizedBox(width: 4),
+            SizedBox(
+              width: 48,
+              height: 38,
+              child: FilledButton.tonal(
+                style: FilledButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  backgroundColor: (job.parts[i].length > 0 && job.parts[i].width > 0) ? scheme.primaryContainer : scheme.surfaceContainerHighest,
+                ),
+                onPressed: () => _validateRow(i),
+                child: Text(tr('OK'), style: TextStyle(fontWeight: FontWeight.w800, color: (job.parts[i].length > 0 && job.parts[i].width > 0) ? scheme.onPrimaryContainer : scheme.onSurfaceVariant)),
               ),
             ),
             IconButton(
@@ -429,7 +472,7 @@ class _ManualCutPageState extends State<ManualCutPage> {
               onPressed: () {
                 job.parts.removeAt(i);
                 if (job.parts.isEmpty) job.parts.add(ManualPart());
-                _changed();
+                _changed(recalc: true);
               },
             ),
           ]),
@@ -439,7 +482,7 @@ class _ManualCutPageState extends State<ManualCutPage> {
         OutlinedButton.icon(
           onPressed: () {
             job.parts.add(ManualPart());
-            _changed();
+            _changed(recalc: false);
           },
           icon: const Icon(Icons.add),
           label: Text(tr('Ajouter une pièce')),
@@ -449,47 +492,119 @@ class _ManualCutPageState extends State<ManualCutPage> {
             job.parts
               ..clear()
               ..add(ManualPart());
-            _changed();
+            _changed(recalc: true);
           },
           icon: const Icon(Icons.clear_all),
           label: Text(tr('Tout effacer')),
         ),
       ]),
       const SizedBox(height: Tokens.s1),
-      Text(tr('Chants : cliquez les traits à côté d’une cote (0, 1 ou 2 chants sur ce côté).'), style: t.bodySmall),
+      Text(tr('Chants : cliquez les traits à côté d’une cote (0, 1 ou 2 chants sur ce côté). Appuyez sur Entrée ou OK pour découper en temps réel.'), style: t.bodySmall),
     ]);
 
-    final results = plan == null
-        ? const SizedBox()
-        : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(tr('Résultat'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: Tokens.s2),
-            Text(
-                trp('{0} feuille(s) · {1} pièces · surface des pièces {2} m² · coupes {3} m · chant {4} m{5}', [plan.sheets.length, plan.partCount, plan.partsArea.toStringAsFixed(3), plan.cutLength.toStringAsFixed(2), plan.edgeLength(job.material).toStringAsFixed(2), plan.notPlaced.isEmpty ? '' : ' · ${plan.notPlaced.length} pièce(s) trop grande(s) pour la feuille']),
-                style: t.bodyMedium),
-            const SizedBox(height: Tokens.s3),
-            Wrap(spacing: Tokens.s4, runSpacing: Tokens.s4, children: [
-              for (final s in plan.sheets)
-                Column(children: [
+    Widget buildResults([bool compact = false]) {
+      if (plan == null || plan.sheets.isEmpty) {
+        return Container(
+          padding: const EdgeInsets.all(Tokens.s5),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(Tokens.radius),
+            border: Border.all(color: scheme.outlineVariant),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.content_cut, size: 48, color: scheme.primary.withValues(alpha: 0.5)),
+                const SizedBox(height: Tokens.s2),
+                Text(tr('Découpe en temps réel'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text(tr('Saisissez les dimensions et cliquez sur OK ou Entrée : la feuille se découpe instantanément sous vos yeux.'), textAlign: TextAlign.center, style: t.bodySmall),
+              ],
+            ),
+          ),
+        );
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(
+          children: [
+            Expanded(child: Text(tr('Découpe en temps réel'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800))),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: scheme.primaryContainer, borderRadius: BorderRadius.circular(12)),
+              child: Text(
+                trp('{0} % utilisé', [((plan.sheets.isEmpty ? 0.0 : plan.sheets.fold<double>(0.0, (a, s) => a + s.usage) / plan.sheets.length) * 100).toStringAsFixed(1)]),
+                style: t.labelSmall?.copyWith(color: scheme.onPrimaryContainer, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Tokens.s2),
+        Wrap(
+          spacing: 12,
+          runSpacing: 6,
+          children: [
+            Text(trp('{0} feuille(s)', [plan.sheets.length]), style: t.labelMedium),
+            Text('•', style: t.labelMedium),
+            Text(trp('{0} pièces', [plan.partCount]), style: t.labelMedium),
+            Text('•', style: t.labelMedium),
+            Text(trp('Coupes : {0} m', [plan.cutLength.toStringAsFixed(2)]), style: t.labelMedium),
+            Text('•', style: t.labelMedium),
+            Text(trp('Chant : {0} m', [plan.edgeLength(job.material).toStringAsFixed(2)]), style: t.labelMedium),
+          ],
+        ),
+        if (plan.notPlaced.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(color: const Color(0xFFFFEBE6), borderRadius: BorderRadius.circular(6)),
+            child: Text(trp('Attention : {0} pièce(s) trop grande(s) pour la feuille !', [plan.notPlaced.length]),
+                style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ],
+        const SizedBox(height: Tokens.s3),
+        Wrap(
+          spacing: Tokens.s4,
+          runSpacing: Tokens.s4,
+          children: [
+            for (final s in plan.sheets)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Container(
-                    width: 300,
-                    height: 300 * s.length / s.width,
-                    decoration: BoxDecoration(border: Border.all(color: scheme.outlineVariant)),
-                    child: CustomPaint(painter: _SheetPainter(s)),
+                    width: compact ? 340 : 420,
+                    height: (compact ? 340 : 420) * (s.length / s.width).clamp(0.4, 2.5),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: scheme.outlineVariant, width: 1.5),
+                      borderRadius: BorderRadius.circular(6),
+                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: CustomPaint(painter: _SheetPainter(s)),
+                    ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(trp('Feuille {0} · {1} % · {2} pièces', [s.number, (s.usage * 100).toStringAsFixed(1), s.placements.length]), style: t.labelMedium),
-                ]),
-            ]),
-          ]);
+                  const SizedBox(height: 6),
+                  Text(
+                    trp('Feuille {0} ({1} × {2} mm) · {3} % utilisé · {4} pièces',
+                        [s.number, s.width, s.length, (s.usage * 100).toStringAsFixed(1), s.placements.length]),
+                    style: t.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ]);
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(tr('Débit manuel')),
+        title: Text(tr('Débitage en temps réel')),
         actions: [
           TextButton.icon(onPressed: _open, icon: const Icon(Icons.file_open_outlined), label: Text(tr('Ouvrir .sct / kitchinox'))),
           const SizedBox(width: Tokens.s2),
-          FilledButton.icon(onPressed: _calc, icon: const Icon(Icons.calculate_outlined), label: Text(tr('Calculer'))),
+          FilledButton.icon(onPressed: _calc, icon: const Icon(Icons.calculate_outlined), label: Text(tr('Recalculer'))),
           const SizedBox(width: Tokens.s2),
           OutlinedButton.icon(
               onPressed: _busy ? null : _pdf, icon: const Icon(Icons.picture_as_pdf_outlined), label: Text(tr('Plan de coupe (PDF)'))),
@@ -498,13 +613,50 @@ class _ManualCutPageState extends State<ManualCutPage> {
           const SizedBox(width: Tokens.s4),
         ],
       ),
-      body: ListView(key: ValueKey(_gen), padding: const EdgeInsets.all(Tokens.s5), children: [
-        settings,
-        const Divider(height: Tokens.s6),
-        table,
-        const Divider(height: Tokens.s6),
-        results,
-      ]),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 960;
+          if (isWide) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: math.min(620, constraints.maxWidth * 0.52),
+                  child: ListView(
+                    key: ValueKey(_gen),
+                    padding: const EdgeInsets.all(Tokens.s5),
+                    children: [
+                      settings,
+                      const Divider(height: Tokens.s6),
+                      table,
+                    ],
+                  ),
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(Tokens.s5),
+                    children: [
+                      buildResults(false),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+          return ListView(
+            key: ValueKey(_gen),
+            padding: const EdgeInsets.all(Tokens.s5),
+            children: [
+              settings,
+              const Divider(height: Tokens.s6),
+              table,
+              const Divider(height: Tokens.s6),
+              buildResults(true),
+            ],
+          );
+        },
+      ),
     );
   }
 }

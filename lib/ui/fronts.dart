@@ -40,6 +40,7 @@ void paintFront(
   double handleSize = 160, // entraxe, longueur ou diamètre de la poignée (mm)
   Color handleColor = const Color(0xFFB4B9BF),
   bool tallXxl = false, // barres XXL sur les portes de colonne
+  bool? handleTop, // force la position de la poignée (haut ou bas de porte)
 }) {
   final u = pxPerMm ?? r.height / math.max(1, m.defaultHeight); // pixels par mm
   final body = fillPaint ?? (Paint()..color = fill);
@@ -120,11 +121,20 @@ void paintFront(
   }
 
   /// Poignée sur le chant (profil, gorge usinée, biseau) le long du bord haut ou bas de [d].
-  void edgeGrip(Rect d, bool top) {
+  void edgeGrip(Rect d, bool top, {bool? hingeLeft}) {
     final full = handle != 'edge';
-    final len = full ? d.width : math.min(handleSize * u, d.width);
+    final len = full ? d.width : math.min(handleSize * u, d.width - 24 * u);
     final th = switch (handle) { 'groove' => 28.0, 'chamfer' => 12.0, 'jProfile' => 18.0, _ => 12.0 } * u;
-    final x0 = full ? d.left : d.center.dx - len / 2;
+    final double x0;
+    if (full) {
+      x0 = d.left;
+    } else if (hingeLeft != null) {
+      // Sur une porte battante, la poignée individuelle est placée du côté ouverture (opposé aux charnières)
+      x0 = hingeLeft ? d.right - len - 16 * u : d.left + 16 * u;
+    } else {
+      // Sur un tiroir ou abattant, la poignée est centrée
+      x0 = d.center.dx - len / 2;
+    }
     final r0 = Rect.fromLTWH(x0, top ? d.top : d.bottom - th, len, th);
     if (!realistic) {
       canvas.drawRect(r0, ln);
@@ -172,13 +182,26 @@ void paintFront(
     }
   }
 
-  // sans poignée : gorge (rainure) en haut de la façade
-  if (handle == 'gola' && m.hasDoors && !m.kind.isFiller && m.isCarcass) {
+  // sans poignée : gorge (rainure profilée) Gola
+  if (handle == 'gola' && !m.kind.isFiller && m.isCarcass) {
     if (realistic) {
-      final gh = math.max(2.0, 22 * u);
-      final g = isHigh ? Rect.fromLTWH(r.left, r.bottom - gh, r.width, gh) : Rect.fromLTWH(r.left, r.top, r.width, gh);
-      canvas.drawRect(g, Paint()..color = const Color(0xFF2B2C2E));
-      canvas.drawRect(Rect.fromLTWH(g.left, isHigh ? g.top : g.bottom - 1, g.width, 1), Paint()..color = Colors.white24);
+      final gh = math.max(2.0, 24 * u);
+      final golaPaint = Paint()..color = const Color(0xFF222426);
+      final golaHi = Paint()..color = Colors.white30;
+      if (m.kind == CabinetKind.tall) {
+        // Colonne haute : gorge horizontale au niveau du plan de travail (séparation des portes)
+        final gy = r.bottom - 1300 * u;
+        if (gy > r.top && gy < r.bottom) {
+          final g = Rect.fromLTWH(r.left, gy - gh / 2, r.width, gh);
+          canvas.drawRect(g, golaPaint);
+          canvas.drawRect(Rect.fromLTWH(g.left, g.top, g.width, 1), golaHi);
+        }
+      } else {
+        // Meuble bas (gorge en haut sous le plan) ou meuble haut (gorge en bas)
+        final g = isHigh ? Rect.fromLTWH(r.left, r.bottom - gh, r.width, gh) : Rect.fromLTWH(r.left, r.top, r.width, gh);
+        canvas.drawRect(g, golaPaint);
+        canvas.drawRect(Rect.fromLTWH(g.left, isHigh ? g.top : g.bottom - 1, g.width, 1), golaHi);
+      }
     } else {
       final gy = isHigh ? r.bottom - inset : r.top + inset;
       canvas.drawLine(Offset(r.left, gy), Offset(r.right, gy), ln);
@@ -227,33 +250,63 @@ void paintFront(
   }
 
   void door(Rect d, {required bool hingeLeft, bool handleTop = false}) {
-    panel(d);
-    if (tallXxl && realistic && m.kind == CabinetKind.tall && d.height / u > 1200) {
-      final x = hingeLeft ? d.right - math.min(50 * u, d.width * 0.15) : d.left + math.min(50 * u, d.width * 0.15);
-      pointGrip(Offset(x, d.bottom - 950 * u), true, d.height, as: 'xxl');
+    final dReal = (handle == 'gola' && !isHigh && m.kind != CabinetKind.tall)
+        ? Rect.fromLTRB(d.left, d.top + 30 * u, d.right, d.bottom)
+        : d;
+    panel(dReal);
+    if (handle == 'gola') return; // En profil Gola, aucune poignée n'est posée sur la porte
+    if (tallXxl && realistic && m.kind == CabinetKind.tall && dReal.height / u > 1200) {
+      final x = hingeLeft ? dReal.right - math.min(50 * u, dReal.width * 0.15) : dReal.left + math.min(50 * u, dReal.width * 0.15);
+      pointGrip(Offset(x, dReal.bottom - 950 * u), true, dReal.height, as: 'xxl');
       return;
     }
     if (edgeTypes.contains(handle)) {
-      edgeGrip(d, handleTop);
+      if (m.kind == CabinetKind.tall && dReal.height / u > 1200) {
+        // Sur grande colonne, poignée sur chant verticale à hauteur ergonomique de main (1050 mm)
+        final x = hingeLeft ? dReal.right - 14 * u : dReal.left;
+        final hlen = math.min(handleSize * u, 240 * u);
+        final rGrip = Rect.fromLTWH(x, dReal.bottom - 1050 * u - hlen / 2, 14 * u, hlen);
+        canvas.drawRect(rGrip, steel);
+        canvas.drawRect(Rect.fromLTWH(hingeLeft ? rGrip.left : rGrip.right - 1.2 * u, rGrip.top, 1.2 * u, rGrip.height), steelHi);
+      } else {
+        edgeGrip(dReal, handleTop, hingeLeft: hingeLeft);
+      }
       return;
     }
+    // Marge minimale latérale pour éviter que les coquilles ou boutons ne débordent de la façade
+    final margin = (handle == 'cup' ? 58.0 : 45.0) * u;
     final x = realistic
-        ? (hingeLeft ? d.right - math.min(45 * u, d.width * 0.15) : d.left + math.min(45 * u, d.width * 0.15))
-        : (hingeLeft ? d.right - d.width * 0.12 : d.left + d.width * 0.12);
-    final off = realistic ? math.min(130 * u, d.height * 0.3) : d.height * 0.15;
-    var cy = handleTop ? d.top + off : d.bottom - off;
+        ? (hingeLeft
+            ? dReal.right - math.max(margin, math.min(75 * u, dReal.width * 0.16))
+            : dReal.left + math.max(margin, math.min(75 * u, dReal.width * 0.16)))
+        : (hingeLeft ? dReal.right - dReal.width * 0.12 : dReal.left + dReal.width * 0.12);
+    final off = realistic ? math.min(130 * u, dReal.height * 0.3) : dReal.height * 0.15;
+    var cy = handleTop ? dReal.top + off : dReal.bottom - off;
     // porte de grande hauteur : poignée à hauteur de main (≈ 1050 mm du sol)
-    if (d.height / u > 1200 && m.kind == CabinetKind.tall) cy = math.max(d.top + off, d.bottom - 950 * u);
-    handleV(x, cy, math.min(d.height, 900 * u));
+    if (dReal.height / u > 1200 && m.kind == CabinetKind.tall) cy = math.max(dReal.top + off, dReal.bottom - 950 * u);
+    handleV(x, cy, math.min(dReal.height, 900 * u));
   }
 
   void drawers(Rect d, List<double> ratios) {
     var y = d.top;
     final total = ratios.fold<double>(0, (a, b) => a + b);
-    for (final k in ratios) {
+    for (var idx = 0; idx < ratios.length; idx++) {
+      final k = ratios[idx];
       final h = d.height * k / total;
-      final dr = Rect.fromLTWH(d.left, y, d.width, h).deflate(realistic ? 0 : 1);
+      final isGola = handle == 'gola';
+      final dr = Rect.fromLTWH(d.left, y + (isGola && idx > 0 ? 12 * u : 0), d.width, h - (isGola && idx > 0 ? 12 * u : 0)).deflate(realistic ? 0 : 1);
       panel(dr);
+      if (isGola) {
+        if (realistic && idx > 0) {
+          // Gorge intermédiaire Gola (profil C) entre tiroirs
+          final gh = math.max(2.0, 14 * u);
+          final gola = Rect.fromLTWH(d.left, y - gh / 2, d.width, gh);
+          canvas.drawRect(gola, Paint()..color = const Color(0xFF222426));
+          canvas.drawRect(Rect.fromLTWH(gola.left, gola.bottom - 1, gola.width, 1), Paint()..color = Colors.white24);
+        }
+        y += h;
+        continue;
+      }
       if (edgeTypes.contains(handle)) {
         edgeGrip(dr, true);
         y += h;
@@ -351,16 +404,6 @@ void paintFront(
     handleV(x, handleTop ? d.top + off : d.bottom - off, d.height);
   }
 
-  void crossNiche(Rect d) {
-    canvas.drawRect(d, ln);
-    final p = Path()
-      ..moveTo(d.left, d.top)
-      ..lineTo(d.right, d.bottom)
-      ..moveTo(d.right, d.top)
-      ..lineTo(d.left, d.bottom);
-    canvas.drawPath(p, ln..color = line.withValues(alpha: 0.5));
-    ln.color = line;
-  }
 
   final glassBlack = Paint()..color = const Color(0xFF17191C);
   void reflection(Rect g) {
@@ -442,13 +485,9 @@ void paintFront(
   }
 
   void appliance(Rect d, double hMm) {
-    if (!realistic) {
-      crossNiche(d);
-      return;
-    }
-    if (appliances.any((a) => a.startsWith('washing'))) {
+    if (appliances.any((a) => a.startsWith('washing') || a.contains('linge'))) {
       washer(d);
-    } else if (hMm > 1000 && appliances.any((a) => a.contains('fridge'))) {
+    } else if (hMm > 1000 && appliances.any((a) => a.contains('fridge') || a.contains('froid'))) {
       openNiche(d);
       fridge(d.deflate(25 * u));
     } else if (hMm < 470) {
@@ -466,7 +505,7 @@ void paintFront(
       final d = Rect.fromLTWH(f.left, f.top + c.y * k, f.width, c.h * k);
       final cellRect = realistic ? d : d.deflate(1);
       final hingeLeft = opening == 'hinged_left' || (opening != 'hinged_right' && c.hinge != 'right');
-      final lowerHalf = m.kind == CabinetKind.tall ? c.y > total * 0.45 : !isHigh;
+      final lowerHalf = handleTop ?? (m.kind == CabinetKind.tall ? c.y > total * 0.45 : !isHigh);
       switch (c.kind) {
         case CellKind.door:
           door(cellRect, hingeLeft: hingeLeft, handleTop: lowerHalf);
@@ -517,8 +556,11 @@ void paintFront(
       panel(f);
       handleH(f.center.dx, f.top + (realistic ? math.min(55 * u, f.height * 0.2) : f.height * 0.08), f.width);
       return;
+    case 'base_sink_drawers':
+      drawers(f, [1, 1]);
+      return;
     case 'base_cooktop_oven':
-      crossNiche(Rect.fromLTWH(f.left, f.top, f.width, f.height * 0.72).deflate(1));
+      oven(Rect.fromLTWH(f.left, f.top, f.width, f.height * 0.72).deflate(1));
       drawers(Rect.fromLTWH(f.left, f.top + f.height * 0.72, f.width, f.height * 0.28), [1]);
       return;
     case 'base_integrated_dishwasher_door':
@@ -553,8 +595,8 @@ void paintFront(
     case 'tall_oven_microwave':
       final h = f.height;
       door(Rect.fromLTWH(f.left, f.top, f.width, h * 0.2).deflate(1), hingeLeft: true, handleTop: false);
-      crossNiche(Rect.fromLTWH(f.left, f.top + h * 0.2, f.width, h * 0.17).deflate(1));
-      crossNiche(Rect.fromLTWH(f.left, f.top + h * 0.37, f.width, h * 0.27).deflate(1));
+      microwave(Rect.fromLTWH(f.left, f.top + h * 0.2, f.width, h * 0.17).deflate(1));
+      oven(Rect.fromLTWH(f.left, f.top + h * 0.37, f.width, h * 0.27).deflate(1));
       drawers(Rect.fromLTWH(f.left, f.top + h * 0.64, f.width, h * 0.36), [1, 1]);
       return;
     case 'tall_integrated_fridge':
@@ -651,10 +693,19 @@ class _ThumbPainter extends CustomPainter {
     final h = m.defaultHeight;
     final k = math.min(size.width / w, size.height / h) * 0.9;
     final rect = Rect.fromCenter(center: size.center(Offset.zero), width: w * k, height: h * k);
+    final apps = <String>[
+      if (m.requiresAppliance != null) m.requiresAppliance!,
+      if (m.id.contains('wash') || m.id.contains('linge')) 'washing_machine',
+      if (m.id.contains('oven') || m.id.contains('four') || m.id.contains('cooktop')) 'oven',
+      if (m.id.contains('micro')) 'microwave',
+      if (m.id.contains('fridge') || m.id.contains('refrigerateur')) 'fridge',
+    ];
     paintFront(canvas, rect, m,
         fill: fill,
         stroke: stroke,
         line: line,
+        realistic: true,
+        appliances: apps,
         opening: m.openingOptions.isEmpty ? null : m.openingOptions.first,
         variant: m.variants.isEmpty ? null : m.variants.first,
         cells: m.frontLayout == null ? null : cellsOf(m.frontLayout!, h));

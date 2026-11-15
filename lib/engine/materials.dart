@@ -412,7 +412,8 @@ List<String> defaultAppliances(CabinetModel m, PlacedCabinet c) => m.appliances.
       'tall_oven_microwave' => ['oven_standard_60', 'microwave_builtin_60'],
       'tall_integrated_fridge' => ['fridge_builtin_60'],
       'base_integrated_dishwasher_door' => [c.width <= 450 ? 'dishwasher_45_compact' : 'dishwasher_60_standard'],
-      'base_sink' => [c.width >= 800 ? 'sink_2_bowls' : 'sink_1_bowl_undermount_or_topmount'],
+      'base_sink' || 'base_sink_1door' || 'base_sink_2doors' || 'base_sink_drawers' =>
+        [c.width >= 800 ? 'sink_2_bowls' : 'sink_1_bowl_undermount_or_topmount'],
       'wall_integrated_hood' => ['hood_telescopic_or_builtin'],
       _ => const [],
     };

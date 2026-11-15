@@ -17,7 +17,13 @@ class FurnitureUniverse {
 
   FurnitureModel? model(String id) => models.where((m) => m.id == id).firstOrNull;
 
-  static const names = {'dressing': 'Dressing', 'bain': 'Salle de bain et WC', 'tv': 'Meuble TV', 'interieur': 'Mobilier intérieur'};
+  static const names = {
+    'dressing': 'Dressing',
+    'bain': 'Salle de bain et WC',
+    'buanderie': 'Buanderie',
+    'tv': 'Meuble TV',
+    'interieur': 'Mobilier intérieur',
+  };
 
   /// Lit un des catalogues : modules (« modules » au premier niveau ou dans des catégories) et accessoires.
   factory FurnitureUniverse.parse(String id, String src) {

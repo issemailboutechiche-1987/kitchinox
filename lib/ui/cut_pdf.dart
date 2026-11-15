@@ -287,7 +287,7 @@ Future<Uint8List> buildCutPdf(LayoutEngine e, CutPlan plan,
   final date = _date(now ?? DateTime.now());
   final format = PdfPageFormat.a4;
   const margin = 26.0;
-  final doc = pw.Document(theme: await pdfTheme(), title: _t(trp('Plan de découpe - {0}', [tr(p.name)])), author: 'kitchinox');
+  final doc = pw.Document(theme: await pdfTheme(), title: _t(trp('Plan de découpe - {0}', [trName(p.name)])), author: 'kitchinox');
   final figFont = PdfFont.helvetica(doc.document), figBold = PdfFont.helveticaBold(doc.document);
   int thick(String mat) => mat == cs.backMaterial ? cs.backThickness : mat == cs.drawerMaterial ? 16 : mat == cs.carcassMaterial ? cs.carcassThickness : cs.doorThickness;
   final method = switch (cs.method) { 2 => 'par largeur', 3 => 'optimale', _ => 'par longueur' };
@@ -308,9 +308,9 @@ Future<Uint8List> buildCutPdf(LayoutEngine e, CutPlan plan,
             pw.Expanded(
                 child: pw.Text(
                     _t([
-                      trp('Commande : {0}', [tr(p.name)]),
+                      trp('Commande : {0}', [trName(p.name)]),
                       if (number != null) trp('N° {0}', [number]),
-                      if (p.client.label.isNotEmpty) trp('Client : {0}', [tr(p.client.label)]),
+                      if (p.client.label.isNotEmpty) trp('Client : {0}', [p.client.label]),
                       if (p.client.ice.trim().isNotEmpty) trp('ICE {0}', [p.client.ice.trim()]),
                     ].join('   ')),
                     style: const pw.TextStyle(fontSize: 8.5))),

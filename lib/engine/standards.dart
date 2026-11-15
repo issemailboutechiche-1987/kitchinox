@@ -13,11 +13,19 @@ class KitchenStandards {
   /// Hauteur de pose par défaut du bas des caissons hauts (modifiable).
   final int wallBottomDefault;
 
+  /// Hauteur par défaut des caissons hauts (modifiable : 360, 600, 720, 800, 900, 1000 mm).
+  final int wallHeightDefault;
+
   /// Distance en dessous de laquelle un caisson est aimanté sur un bord voisin.
   final int snapTolerance;
 
   /// Écart maximal comblé par un fileur (au-delà : place pour un caisson).
   final int fillerMax;
+
+  /// Présence et dimensions des caissons casquette (sur-meubles au-dessus des hauts).
+  final bool casquetteEnabled;
+  final int casquetteHeight;
+  final int casquetteDepth;
 
   const KitchenStandards({
     this.plinthHeight = 100,
@@ -25,9 +33,16 @@ class KitchenStandards {
     this.worktopThickness = 50,
     this.wallClearanceMin = 450,
     this.wallBottomDefault = 1500, // crédence standard de 60 cm au-dessus du plan (900 + 600)
+    this.wallHeightDefault = 720,
     this.snapTolerance = 50,
     this.fillerMax = 200,
+    this.casquetteEnabled = false,
+    this.casquetteHeight = 360,
+    this.casquetteDepth = 600,
   });
+
+  /// Hauteur de la crédence (dégagement plan de travail vers bas des hauts).
+  int get credenceHeight => wallBottomDefault - worktopTop;
 
   /// Dessus du caisson bas = dessous du plan de travail.
   int get baseTop => plinthHeight + baseCarcassHeight;
@@ -38,14 +53,45 @@ class KitchenStandards {
   /// Bas minimal autorisé pour un caisson haut.
   int get wallBottomMin => worktopTop + wallClearanceMin;
 
+  KitchenStandards copyWith({
+    int? plinthHeight,
+    int? baseCarcassHeight,
+    int? worktopThickness,
+    int? wallClearanceMin,
+    int? wallBottomDefault,
+    int? wallHeightDefault,
+    int? snapTolerance,
+    int? fillerMax,
+    bool? casquetteEnabled,
+    int? casquetteHeight,
+    int? casquetteDepth,
+  }) =>
+      KitchenStandards(
+        plinthHeight: plinthHeight ?? this.plinthHeight,
+        baseCarcassHeight: baseCarcassHeight ?? this.baseCarcassHeight,
+        worktopThickness: worktopThickness ?? this.worktopThickness,
+        wallClearanceMin: wallClearanceMin ?? this.wallClearanceMin,
+        wallBottomDefault: wallBottomDefault ?? this.wallBottomDefault,
+        wallHeightDefault: wallHeightDefault ?? this.wallHeightDefault,
+        snapTolerance: snapTolerance ?? this.snapTolerance,
+        fillerMax: fillerMax ?? this.fillerMax,
+        casquetteEnabled: casquetteEnabled ?? this.casquetteEnabled,
+        casquetteHeight: casquetteHeight ?? this.casquetteHeight,
+        casquetteDepth: casquetteDepth ?? this.casquetteDepth,
+      );
+
   Map<String, dynamic> toJson() => {
         'plinth_height': plinthHeight,
         'base_carcass_height': baseCarcassHeight,
         'worktop_thickness': worktopThickness,
         'wall_clearance_min': wallClearanceMin,
         'wall_bottom_default': wallBottomDefault,
+        'wall_height_default': wallHeightDefault,
         'snap_tolerance': snapTolerance,
         'filler_max': fillerMax,
+        'casquette_enabled': casquetteEnabled,
+        'casquette_height': casquetteHeight,
+        'casquette_depth': casquetteDepth,
       };
 
   factory KitchenStandards.fromJson(Map<String, dynamic> j) {
@@ -56,8 +102,12 @@ class KitchenStandards {
       worktopThickness: j['worktop_thickness'] ?? d.worktopThickness,
       wallClearanceMin: j['wall_clearance_min'] ?? d.wallClearanceMin,
       wallBottomDefault: j['wall_bottom_default'] ?? d.wallBottomDefault,
+      wallHeightDefault: j['wall_height_default'] ?? d.wallHeightDefault,
       snapTolerance: j['snap_tolerance'] ?? d.snapTolerance,
       fillerMax: j['filler_max'] ?? d.fillerMax,
+      casquetteEnabled: j['casquette_enabled'] ?? d.casquetteEnabled,
+      casquetteHeight: j['casquette_height'] ?? d.casquetteHeight,
+      casquetteDepth: j['casquette_depth'] ?? d.casquetteDepth,
     );
   }
 }

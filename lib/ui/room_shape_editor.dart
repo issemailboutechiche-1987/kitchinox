@@ -42,6 +42,10 @@ class _RoomShapeEditorState extends State<RoomShapeEditor> {
   bool drawing = false; // tracé point par point
   bool closed = true;
   String tool = 'line'; // segment suivant : 'line' | 'arc'
+  int snapStep = 50; // mm : 10, 50, 100, 0 (libre)
+  bool orthoSnap = true; // aimantation orthogonale 90° et 45°
+  Offset? activeGuidelineX; // guide d'alignement vertical
+  Offset? activeGuidelineY; // guide d'alignement horizontal
   int? selVertex, selEdge;
   int? _dragging;
   // repère écran
@@ -107,18 +111,36 @@ class _RoomShapeEditorState extends State<RoomShapeEditor> {
     _oy = (size.height - h * _k) / 2 - y0 * _k;
   }
 
-  /// Aimantation : 10 mm, et alignement horizontal / vertical (ou 45°) avec le point voisin.
-  Offset _snap(Offset mm, int? neighbour) {
-    var p = Offset((mm.dx / 10).round() * 10, (mm.dy / 10).round() * 10);
-    if (neighbour != null && neighbour >= 0 && neighbour < pts.length) {
+  /// Aimantation : grille choisie, alignement magnétique sur les autres points et orthogonal (90° / 45°).
+  Offset _snap(Offset mm, int? neighbour, [int? ignoreIndex]) {
+    activeGuidelineX = null;
+    activeGuidelineY = null;
+    final step = snapStep <= 0 ? 1 : snapStep;
+    var p = Offset((mm.dx / step).round() * step.toDouble(), (mm.dy / step).round() * step.toDouble());
+
+    // Alignement magnétique automatique avec les autres coins de la pièce
+    for (var i = 0; i < pts.length; i++) {
+      if (i == ignoreIndex) continue;
+      final other = pts[i];
+      if ((p.dx - other.x).abs() < math.max(35.0, step * 0.9)) {
+        p = Offset(other.x, p.dy);
+        activeGuidelineX = Offset(other.x, other.y);
+      }
+      if ((p.dy - other.y).abs() < math.max(35.0, step * 0.9)) {
+        p = Offset(p.dx, other.y);
+        activeGuidelineY = Offset(other.x, other.y);
+      }
+    }
+
+    if (orthoSnap && neighbour != null && neighbour >= 0 && neighbour < pts.length) {
       final q = Offset(pts[neighbour].x, pts[neighbour].y);
       final d = p - q;
       final ang = math.atan2(d.dy, d.dx);
       for (final a in [0.0, math.pi / 4, math.pi / 2, 3 * math.pi / 4, math.pi, -math.pi / 4, -math.pi / 2, -3 * math.pi / 4]) {
-        if ((ang - a).abs() < 6 * math.pi / 180) {
+        if ((ang - a).abs() < 14 * math.pi / 180) {
           final l = d.distance;
           final snapped = q + Offset(math.cos(a), math.sin(a)) * l;
-          p = Offset((snapped.dx).roundToDouble(), (snapped.dy).roundToDouble());
+          p = Offset((snapped.dx / step).round() * step.toDouble(), (snapped.dy / step).round() * step.toDouble());
           break;
         }
       }
@@ -190,8 +212,8 @@ class _RoomShapeEditorState extends State<RoomShapeEditor> {
     if (i == null) return;
     // aligné sur le point précédent ou le suivant
     final prev = (i - 1 + pts.length) % pts.length, next = (i + 1) % pts.length;
-    var p = _snap(_mm(s), prev);
-    final pn = _snap(_mm(s), next);
+    var p = _snap(_mm(s), prev, i);
+    final pn = _snap(_mm(s), next, i);
     if ((pn - _mm(s)).distance < (p - _mm(s)).distance) p = pn;
     setState(() {
       pts[i].x = p.dx;
@@ -342,6 +364,24 @@ class _RoomShapeEditorState extends State<RoomShapeEditor> {
                 ),
               ],
             ]),
+            const SizedBox(height: Tokens.s4),
+            Text(tr('Précision & Aimantation (Snap)'), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 6, runSpacing: 6, children: [
+              for (final (step, label) in const [(50, 'Grille 50 mm'), (100, 'Grille 100 mm'), (10, 'Grille 10 mm'), (0, 'Libre')])
+                ChoiceChip(
+                  label: Text(tr(label)),
+                  selected: snapStep == step,
+                  onSelected: (_) => setState(() => snapStep = step),
+                ),
+            ]),
+            const SizedBox(height: 8),
+            FilterChip(
+              avatar: Icon(orthoSnap ? Icons.lock_outline : Icons.lock_open_outlined, size: 16),
+              label: Text(tr('Verrouillage orthogonal (90° & 45°)')),
+              selected: orthoSnap,
+              onSelected: (v) => setState(() => orthoSnap = v),
+            ),
             if (!drawing && selEdge != null && selEdge! < pts.length) ..._edgePanel(t, selEdge!),
             if (!drawing && selVertex != null && selVertex! < pts.length) ...[
               const SizedBox(height: Tokens.s4),
@@ -465,19 +505,47 @@ class _ShapePainter extends CustomPainter {
   @override
   void paint(Canvas c, Size size) {
     c.drawRect(Offset.zero & size, Paint()..color = const Color(0xFFF7F4F0));
-    // grille de 50 cm
-    final g = Paint()
-      ..color = const Color(0x16000000)
-      ..strokeWidth = 1;
-    final step = 500 * s._k;
-    if (step > 6) {
-      final x0 = s._ox % step, y0 = s._oy % step;
-      for (var x = x0; x < size.width; x += step) {
-        c.drawLine(Offset(x, 0), Offset(x, size.height), g);
+    // Grille bien visible : grille fine (10 cm) et grille principale (50 cm ou 100 cm)
+    final gFine = Paint()..color = const Color(0x18000000)..strokeWidth = 0.9;
+    final gMain = Paint()..color = const Color(0x38000000)..strokeWidth = 1.4;
+    final stepFine = 100 * s._k;
+    final stepMain = 500 * s._k;
+    if (stepFine > 6) {
+      final x0 = s._ox % stepFine, y0 = s._oy % stepFine;
+      for (var x = x0; x < size.width; x += stepFine) {
+        c.drawLine(Offset(x, 0), Offset(x, size.height), gFine);
       }
-      for (var y = y0; y < size.height; y += step) {
-        c.drawLine(Offset(0, y), Offset(size.width, y), g);
+      for (var y = y0; y < size.height; y += stepFine) {
+        c.drawLine(Offset(0, y), Offset(size.width, y), gFine);
       }
+    }
+    if (stepMain > 10) {
+      final x0 = s._ox % stepMain, y0 = s._oy % stepMain;
+      for (var x = x0; x < size.width; x += stepMain) {
+        c.drawLine(Offset(x, 0), Offset(x, size.height), gMain);
+      }
+      for (var y = y0; y < size.height; y += stepMain) {
+        c.drawLine(Offset(0, y), Offset(size.width, y), gMain);
+      }
+    }
+    // Indicateur HUD grille / aimantation active en bas à droite
+    final snapLabel = s.snapStep > 0 ? 'Snap: ${s.snapStep} mm ${s.orthoSnap ? '(Ortho 90°/45°)' : ''}' : 'Snap: Libre';
+    final snapTp = TextPainter(
+      text: TextSpan(text: snapLabel, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF55595F))),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final snapBadge = Rect.fromLTWH(size.width - snapTp.width - 24, size.height - 32, snapTp.width + 16, 24);
+    c.drawRRect(RRect.fromRectAndRadius(snapBadge, const Radius.circular(4)), Paint()..color = Colors.white.withValues(alpha: 0.85));
+    c.drawRRect(RRect.fromRectAndRadius(snapBadge, const Radius.circular(4)), Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = const Color(0xFFD0D5DD));
+    snapTp.paint(c, snapBadge.topLeft + const Offset(8, 5));
+    // Lignes de guidage magnétique actives
+    if (s.activeGuidelineX != null) {
+      final scrX = s._scr(s.activeGuidelineX!.dx, 0).dx;
+      c.drawLine(Offset(scrX, 0), Offset(scrX, size.height), Paint()..color = const Color(0xFF00ACC1)..strokeWidth = 1.5);
+    }
+    if (s.activeGuidelineY != null) {
+      final scrY = s._scr(0, s.activeGuidelineY!.dy).dy;
+      c.drawLine(Offset(0, scrY), Offset(size.width, scrY), Paint()..color = const Color(0xFF00ACC1)..strokeWidth = 1.5);
     }
     final pts = s.pts;
     if (pts.isEmpty) return;
@@ -518,25 +586,98 @@ class _ShapePainter extends CustomPainter {
         ..strokeWidth = 6
         ..color = _orange);
     }
-    // cotes et noms des murs
+    // cotes et lignes de rappel architecturales sur chaque mur
+    final dimPaint = Paint()..color = const Color(0xFF5A626A)..strokeWidth = 1.0;
+    final selDimPaint = Paint()..color = _orange..strokeWidth = 1.8;
+    final placedBadgeCenters = <Offset>[];
     for (var i = 0; i < n; i++) {
-      final seg = s._seg(i);
-      final mid = seg.length == 2 ? (seg[0] + seg[1]) / 2 : seg[seg.length ~/ 2];
-      final a = pts[i], b = pts[(i + 1) % pts.length];
+      final aMm = pts[i], bMm = pts[(i + 1) % pts.length];
       final l = s._len(i);
       if (l < 1) continue;
-      final nx = -(b.y - a.y) / l * s._orient, ny = (b.x - a.x) / l * s._orient; // vers l'intérieur
-      final at = s._scr(mid.dx - nx * 260, mid.dy - ny * 260);
-      final txt = '${s.closed ? '${Room.outlineId(i)} · ' : ''}${l.round()}${a.bulge.abs() >= 0.5 ? ' (arc)' : ''}';
+      final aScr = s._scr(aMm.x, aMm.y), bScr = s._scr(bMm.x, bMm.y);
+      final dir = bScr - aScr;
+      final dist = dir.distance;
+      if (dist < 2) continue;
+      final u = dir / dist;
+      // Normale vers l'extérieur du polygone
+      final norm = Offset(-u.dy, u.dx) * (s._orient > 0 ? -1 : 1);
+      var offDist = math.max(24.0, 150 * s._k);
+      // Anti-collision entre étiquettes de cotes sur murs voisins
+      for (var tries = 0; tries < 4; tries++) {
+        final candMid = (aScr + bScr) / 2 + norm * offDist;
+        if (placedBadgeCenters.any((bc) => (bc - candMid).distance < 44)) {
+          offDist += 24.0;
+        } else {
+          break;
+        }
+      }
+      final p0 = aScr + norm * offDist;
+      final p1 = bScr + norm * offDist;
+      final isSel = se == i;
+      final pLine = isSel ? selDimPaint : dimPaint;
+
+      // Lignes de rappel
+      c.drawLine(aScr + norm * 4, p0 + norm * 5, Paint()..color = const Color(0x665A626A)..strokeWidth = 0.8);
+      c.drawLine(bScr + norm * 4, p1 + norm * 5, Paint()..color = const Color(0x665A626A)..strokeWidth = 0.8);
+
+      // Ligne de cote
+      c.drawLine(p0, p1, pLine);
+
+      // Ticks à 45°
+      final tick = (u + norm) * 4.5;
+      c.drawLine(p0 - tick, p0 + tick, pLine);
+      c.drawLine(p1 - tick, p1 + tick, pLine);
+
+      // Badge de la cote
+      final mid = (p0 + p1) / 2;
+      placedBadgeCenters.add(mid);
+      final txt = '${s.closed ? '${Room.outlineId(i)} : ' : ''}${l.round()} mm${aMm.bulge.abs() >= 0.5 ? ' (arc)' : ''}';
       final tp = TextPainter(
-          text: TextSpan(text: txt, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: se == i ? _orange : const Color(0xFF3D4650))),
+          text: TextSpan(text: txt, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isSel ? _orange : const Color(0xFF2C3238))),
           textDirection: TextDirection.ltr)
         ..layout();
-      final r = Rect.fromCenter(center: at, width: tp.width + 10, height: tp.height + 4);
-      c.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(4)), Paint()..color = Colors.white);
-      tp.paint(c, r.topLeft + const Offset(5, 2));
+      final r = Rect.fromCenter(center: mid, width: tp.width + 12, height: tp.height + 6);
+      c.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(5)), Paint()..color = Colors.white);
+      c.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(5)), Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSel ? 1.5 : 1.0
+        ..color = isSel ? _orange : const Color(0xFFCBD2D9));
+      tp.paint(c, r.topLeft + const Offset(6, 3));
     }
-    // coins
+
+    // Équerres et angles aux coins (quand la pièce est fermée)
+    if (s.closed && pts.length >= 3) {
+      for (var i = 0; i < pts.length; i++) {
+        final prev = pts[(i - 1 + pts.length) % pts.length];
+        final curr = pts[i];
+        final next = pts[(i + 1) % pts.length];
+        final pScr = s._scr(curr.x, curr.y);
+        final v1 = Offset(prev.x - curr.x, prev.y - curr.y);
+        final v2 = Offset(next.x - curr.x, next.y - curr.y);
+        if (v1.distanceSquared == 0 || v2.distanceSquared == 0) continue;
+        final u1 = v1 / v1.distance;
+        final u2 = v2 / v2.distance;
+        final dot = (u1.dx * u2.dx + u1.dy * u2.dy).clamp(-1.0, 1.0);
+        final angRad = math.acos(dot);
+        final angDeg = (angRad * 180 / math.pi).round();
+
+        // Équerre 90° parfaite (à ±1.5°)
+        if ((angDeg - 90).abs() <= 1) {
+          final s1 = u1 * 14.0;
+          final s2 = u2 * 14.0;
+          final cornerPath = Path()
+            ..moveTo(pScr.dx + s1.dx, pScr.dy + s1.dy)
+            ..lineTo(pScr.dx + s1.dx + s2.dx, pScr.dy + s1.dy + s2.dy)
+            ..lineTo(pScr.dx + s2.dx, pScr.dy + s2.dy);
+          c.drawPath(cornerPath, Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2
+            ..color = const Color(0xFF00897B));
+        }
+      }
+    }
+
+    // Coins (sommets)
     for (var i = 0; i < pts.length; i++) {
       final q = s._scr(pts[i].x, pts[i].y);
       final sel = s.selVertex == i;
@@ -545,6 +686,36 @@ class _ShapePainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
         ..color = const Color(0xFF3D4650));
+    }
+
+    // HUD en temps réel lors du déplacement d'un point
+    if (s._dragging != null && s._dragging! < pts.length) {
+      final i = s._dragging!;
+      final prev = (i - 1 + pts.length) % pts.length;
+      final q = s._scr(pts[i].x, pts[i].y);
+      final lPrev = s._len(prev).round();
+      final lCurr = s._len(i).round();
+      final pPrev = pts[prev], pCurr = pts[i], pNext = pts[(i + 1) % pts.length];
+      final v1 = Offset(pPrev.x - pCurr.x, pPrev.y - pCurr.y);
+      final v2 = Offset(pNext.x - pCurr.x, pNext.y - pCurr.y);
+      var angleStr = '';
+      if (v1.distanceSquared > 0 && v2.distanceSquared > 0) {
+        final dot = (v1.dx * v2.dx + v1.dy * v2.dy) / (v1.distance * v2.distance);
+        final deg = (math.acos(dot.clamp(-1.0, 1.0)) * 180 / math.pi).round();
+        angleStr = ' · $deg°';
+      }
+      final hudText = 'Mur ${Room.outlineId(prev)}: $lPrev mm · Mur ${Room.outlineId(i)}: $lCurr mm$angleStr';
+      final tp = TextPainter(
+        text: TextSpan(
+          text: hudText,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final hudCenter = q + const Offset(0, -32);
+      final hudRect = Rect.fromCenter(center: hudCenter, width: tp.width + 16, height: tp.height + 8);
+      c.drawRRect(RRect.fromRectAndRadius(hudRect, const Radius.circular(6)), Paint()..color = const Color(0xEE1E2328));
+      tp.paint(c, hudRect.topLeft + const Offset(8, 4));
     }
   }
 

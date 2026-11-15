@@ -233,6 +233,60 @@
           "top_luggage_bedding_shelf_height_from_floor": 2000
         }
       }
+    },
+    "laundry": {
+      "standard_ceiling_heights": [2500, 2600, 2800],
+      "most_common_room_presets": [
+        {
+          "id": "laundry_compact_niche",
+          "name": "Buanderie Compacte / Cellier en Niche (2.5 m²)",
+          "layout_type": "I_shape",
+          "room_width_X": 2000,
+          "room_depth_Y": 1300,
+          "area_m2": 2.6
+        },
+        {
+          "id": "laundry_standard_parallel",
+          "name": "Buanderie Standard Moderne (4.5 m²)",
+          "layout_type": "I_shape",
+          "room_width_X": 2700,
+          "room_depth_Y": 1800,
+          "area_m2": 4.86
+        },
+        {
+          "id": "laundry_large_utility_room",
+          "name": "Grande Buanderie Familiale et Repassage (7.5 m²)",
+          "layout_type": "L_shape",
+          "room_width_X": 3200,
+          "room_depth_Y": 2400,
+          "area_m2": 7.68
+        }
+      ],
+      "ergonomic_and_normative_rules": {
+        "normative_references": [
+          "NKBA Laundry & Utility Guidelines",
+          "ANSI/ICC A117.1 Accessible and Usable Buildings",
+          "NF C 15-100 (Volumes électriques et circuits dédiés machines 20A / chauffe-eau)"
+        ],
+        "work_aisles_and_walkways": {
+          "walkway_min_traffic": 914,
+          "work_aisle_loading_unloading_optimal": 1200,
+          "passage_in_front_of_washer_dryer_min": 1000
+        },
+        "appliances_and_utilities": {
+          "standard_front_load_width": 600,
+          "standard_front_load_depth": 650,
+          "stacked_tower_width": 650,
+          "rear_plumbing_and_vent_clearance": 100,
+          "folding_counter_height_optimal": 900,
+          "water_heater_front_maintenance_clearance": 600
+        },
+        "sink_and_ergonomics": {
+          "utility_sink_center_from_sidewall_min": 450,
+          "deep_basin_depth": 500,
+          "wall_detergent_storage_above_counter": 500
+        }
+      }
     }
   }
 }

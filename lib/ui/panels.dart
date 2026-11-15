@@ -1,6 +1,8 @@
 // Panneaux : menu du catalogue en colonnes, liste de produits, finitions, fiche de l'élément
 // sélectionné (caisson ou ouverture), contrôles et récapitulatif.
 
+import 'quote_ui.dart';
+import 'quote_pdf.dart' show money;
 import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -358,6 +360,19 @@ class StylePanel extends StatelessWidget {
                 selected: {KitchenFixtures.sink(st.sink).mounting.contains(st.sinkMount) ? st.sinkMount : KitchenFixtures.sink(st.sink).mounting.first},
                 onSelectionChanged: (v) => state.edit(() => st.sinkMount = v.first),
               ),
+              const SizedBox(height: Tokens.s3),
+              Text(tr('Finition de l’évier'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: Tokens.s2),
+              SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 'inox', label: Text(tr('Inox brossé'))),
+                  ButtonSegment(value: 'noir_quartz', label: Text(tr('Noir quartz'))),
+                  ButtonSegment(value: 'blanc_ceramique', label: Text(tr('Blanc céramique'))),
+                ],
+                selected: {st.sinkFinish},
+                onSelectionChanged: (v) => state.edit(() => st.sinkFinish = v.first),
+              ),
               const SizedBox(height: Tokens.s4),
               Text(tr('Mitigeur'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: Tokens.s2),
@@ -369,6 +384,60 @@ class StylePanel extends StatelessWidget {
                     onSelected: (_) => state.edit(() => st.faucet = f.id),
                   ),
               ]),
+              const SizedBox(height: Tokens.s3),
+              Text(tr('Finition de la robinetterie'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: Tokens.s2),
+              SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 'chrome', label: Text(tr('Chrome poli'))),
+                  ButtonSegment(value: 'noir_mat', label: Text(tr('Noir mat'))),
+                  ButtonSegment(value: 'or_brosse', label: Text(tr('Laiton doré'))),
+                  ButtonSegment(value: 'inox_brosse', label: Text(tr('Inox brossé'))),
+                ],
+                selected: {st.faucetFinish},
+                onSelectionChanged: (v) => state.edit(() => st.faucetFinish = v.first),
+              ),
+              const SizedBox(height: Tokens.s4),
+              Text(tr('Plaque de cuisson'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: Tokens.s2),
+              SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 'induction', label: Text(tr('Induction'))),
+                  ButtonSegment(value: 'gaz', label: Text(tr('Gaz (grilles fonte)'))),
+                  ButtonSegment(value: 'vitro', label: Text(tr('Vitrocéramique'))),
+                ],
+                selected: {st.hobType},
+                onSelectionChanged: (v) => state.edit(() => st.hobType = v.first),
+              ),
+              const SizedBox(height: Tokens.s3),
+              Text(tr('Largeur de la plaque'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: Tokens.s2),
+              SegmentedButton<int>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 0, label: Text(tr('Auto'))),
+                  ButtonSegment(value: 60, label: Text('60 cm')),
+                  ButtonSegment(value: 80, label: Text('80 cm')),
+                  ButtonSegment(value: 90, label: Text('90 cm')),
+                ],
+                selected: {st.hobWidth},
+                onSelectionChanged: (v) => state.edit(() => st.hobWidth = v.first),
+              ),
+              const SizedBox(height: Tokens.s4),
+              Text(tr('Four encastrable'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: Tokens.s2),
+              SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 'black_inox', label: Text(tr('Inox & Verre noir'))),
+                  ButtonSegment(value: 'full_black', label: Text(tr('Full Black'))),
+                  ButtonSegment(value: 'blanc', label: Text(tr('Blanc épuré'))),
+                ],
+                selected: {st.ovenFinish},
+                onSelectionChanged: (v) => state.edit(() => st.ovenFinish = v.first),
+              ),
             ],
           ])
         ),
@@ -730,15 +799,24 @@ class _CabinetForm extends StatelessWidget {
           ]),
         ]),
       if (m.heights.values.length > 1) _Section('Hauteur (mm)', [chips(m.heights.values, item.height, (v) => _resize(h: v))]),
-      if (m.openingOptions.length > 1)
-        _Section('Ouverture', [
-          Wrap(spacing: Tokens.s2, runSpacing: Tokens.s2, children: [
-            for (final o in m.openingOptions)
-              ChoiceChip(
-                  label: Text(optionLabel(o)),
-                  selected: item.opening == o,
-                  onSelected: editable ? (_) => state.edit(() => item.opening = o) : null),
-          ]),
+      if (m.hasDoors || m.openingOptions.isNotEmpty || (m.isCarcass && !m.kind.isCorner && item.width <= 700))
+        _Section('Sens d’ouverture', [
+          SegmentedButton<String>(
+            segments: [
+              ButtonSegment(
+                value: 'hinged_left',
+                label: Text(tr('Charnières à gauche')),
+                icon: const Icon(Icons.arrow_back, size: 16),
+              ),
+              ButtonSegment(
+                value: 'hinged_right',
+                label: Text(tr('Charnières à droite')),
+                icon: const Icon(Icons.arrow_forward, size: 16),
+              ),
+            ],
+            selected: {item.opening == 'hinged_right' ? 'hinged_right' : 'hinged_left'},
+            onSelectionChanged: editable ? (s) => state.edit(() => item.opening = s.first) : null,
+          ),
         ]),
       if (m.variants.length > 1)
         _Section('Variante', [
@@ -748,6 +826,41 @@ class _CabinetForm extends StatelessWidget {
                   label: Text(optionLabel(o)),
                   selected: item.variant == o,
                   onSelected: editable ? (_) => state.edit(() => item.variant = o) : null),
+          ]),
+        ]),
+      if (m.kind.isLow && m.isCarcass && !m.kind.isCorner && state.engine.kitchen)
+        _Section('Équipement du plan', [
+          Wrap(spacing: Tokens.s2, runSpacing: Tokens.s2, children: [
+            FilterChip(
+              avatar: const Icon(Icons.water_drop_outlined, size: 16),
+              label: Text(tr('Évier & Robinet')),
+              selected: item.appliances?.any((a) => a.contains('sink')) ?? (m.id.contains('sink') || state.engine.isWashing(m)),
+              onSelected: editable
+                  ? (active) {
+                      state.edit(() {
+                        final current = [...(item.appliances ?? defaultAppliances(m, item))];
+                        current.removeWhere((a) => a.contains('sink'));
+                        if (active) current.add('sink_1_bowl_drainer');
+                        item.appliances = current;
+                      });
+                    }
+                  : null,
+            ),
+            FilterChip(
+              avatar: const Icon(Icons.microwave_outlined, size: 16),
+              label: Text(tr('Plaque de cuisson')),
+              selected: item.appliances?.any((a) => a.contains('cooktop')) ?? (m.id.contains('cooktop') || state.engine.isCooking(m)),
+              onSelected: editable
+                  ? (active) {
+                      state.edit(() {
+                        final current = [...(item.appliances ?? defaultAppliances(m, item))];
+                        current.removeWhere((a) => a.contains('cooktop'));
+                        if (active) current.add('cooktop_4_burners_60');
+                        item.appliances = current;
+                      });
+                    }
+                  : null,
+            ),
           ]),
         ]),
       if (state.db != null && appliancesOf(m, item).isNotEmpty)
@@ -1167,6 +1280,17 @@ class SummaryPanel extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall),
         ],
         if (state.db != null) _SupplySections(state: state),
+        if (state.db != null) ...[
+          const SizedBox(height: Tokens.s3),
+          FilledButton.icon(
+            key: const ValueKey('open_quote'),
+            onPressed: () => showQuoteDialog(context, state, (m) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(m)))),
+            icon: const Icon(Icons.request_quote_outlined),
+            label: Text(state.quoteValidated
+                ? trp('Devis validé · {0} MAD TTC', [money(state.quote.total)])
+                : trp('Devis final · {0} MAD TTC', [money(state.quote.total)])),
+          ),
+        ],
         if (state.supplierEstimate != null && state.project.specs.gamme != 'luxe') _SupplierCompare(state: state),
         const SizedBox(height: Tokens.s5),
         Text(tr('Contrôles'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
@@ -1321,7 +1445,7 @@ class _SupplySections extends StatelessWidget {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(tr(l.name), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
-                  if (l.detail.isNotEmpty) Text(l.detail, style: t.bodySmall),
+                  if (l.detail.isNotEmpty) Text(trParts(l.detail), style: t.bodySmall),
                 ]),
               ),
               Text(l.unitPrice.isZero ? tr('à chiffrer') : _mad(l.total), style: t.bodySmall),

@@ -90,6 +90,7 @@ Future<void> showAppSettings(BuildContext context, void Function(String) onMessa
   final s = AppSettings.instance;
   final prefixes = {for (final k in DocKind.values) k: TextEditingController(text: s.prefix[k])};
   final nexts = {for (final k in DocKind.values) k: TextEditingController(text: '${s.next[k]}')};
+  AppLang? docLang = s.docLang;
   var lang = s.lang, unit = s.unit, numbering = s.numbering, withYear = s.withYear, digits = s.digits;
   return showDialog<void>(
     context: context,
@@ -118,10 +119,24 @@ Future<void> showAppSettings(BuildContext context, void Function(String) onMessa
               Text(tr('Langue'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
               SegmentedButton<AppLang>(
-                segments: [for (final l in AppLang.values) ButtonSegment(value: l, label: Text(l.label))],
+                segments: [for (final l in AppLang.values) ButtonSegment(value: l, label: Text(tr(l.localizedName)))],
                 selected: {lang},
                 onSelectionChanged: (v) => setD(() => lang = v.first),
               ),
+              const SizedBox(height: Tokens.s3),
+              Text(tr('Langue des documents (PDF)'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              SegmentedButton<String>(
+                key: const ValueKey('doc_lang'),
+                segments: [
+                  ButtonSegment(value: '', label: Text(tr("Comme l'interface"))),
+                  for (final l in AppLang.values) ButtonSegment(value: l.code, label: Text(tr(l.localizedName))),
+                ],
+                selected: {docLang?.code ?? ''},
+                onSelectionChanged: (v) => setD(() => docLang = AppLang.values.where((l) => l.code == v.first).firstOrNull),
+              ),
+              const SizedBox(height: 4),
+              Text(tr("Plans d'exécution, plans de découpe et devis : par exemple une interface en arabe et des documents en français pour le client."), style: t.bodySmall),
               const SizedBox(height: Tokens.s4),
               Text(tr('Unité des cotes'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
@@ -203,6 +218,7 @@ Future<void> showAppSettings(BuildContext context, void Function(String) onMessa
               s.update((s) {
                 s
                   ..lang = lang
+                  ..docLang = docLang
                   ..unit = unit
                   ..numbering = numbering
                   ..withYear = withYear

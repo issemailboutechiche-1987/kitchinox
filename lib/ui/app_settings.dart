@@ -16,6 +16,11 @@ enum AppLang {
   final String label, code;
   const AppLang(this.label, this.code);
   bool get rtl => this == AppLang.ar;
+  String get localizedName => switch (this) {
+    AppLang.fr => 'Français',
+    AppLang.en => 'English',
+    AppLang.ar => 'العربية',
+  };
 }
 
 enum LenUnit {
@@ -30,7 +35,8 @@ enum LenUnit {
 /// Type de document numéroté.
 enum DocKind {
   exec('PE', "plan d'exécution"),
-  cut('PD', 'plan de découpe');
+  cut('PD', 'plan de découpe'),
+  quote('DV', 'devis');
 
   final String defaultPrefix, label;
   const DocKind(this.defaultPrefix, this.label);
@@ -42,6 +48,9 @@ class AppSettings extends ChangeNotifier {
   static const _key = 'kitchinox.settings';
 
   AppLang lang = AppLang.fr;
+
+  /// Langue des documents (PDF) ; null : celle de l'interface.
+  AppLang? docLang;
   LenUnit unit = LenUnit.mm;
 
   // numérotation automatique : PE-2026-0001, PD-2026-0001…
@@ -52,12 +61,17 @@ class AppSettings extends ChangeNotifier {
   final Map<DocKind, int> next = {for (final k in DocKind.values) k: 1};
   int counterYear = DateTime.now().year;
 
-  void load() {
+  /// [deviceLang] : langue de l'appareil (« fr », « en », « ar »), prise au premier lancement.
+  void load({String? deviceLang}) {
     final raw = storeGet(_key);
-    if (raw == null) return;
+    if (raw == null) {
+      lang = AppLang.values.firstWhere((l) => l.code == deviceLang, orElse: () => AppLang.fr);
+      return;
+    }
     try {
       final j = jsonDecode(raw) as Map<String, dynamic>;
       lang = AppLang.values.firstWhere((l) => l.code == j['lang'], orElse: () => AppLang.fr);
+      docLang = AppLang.values.where((l) => l.code == j['doc_lang']).firstOrNull;
       unit = LenUnit.values.firstWhere((u) => u.name == j['unit'] || u.symbol == j['unit'], orElse: () => LenUnit.mm);
       numbering = j['numbering'] as bool? ?? true;
       withYear = j['with_year'] as bool? ?? true;
@@ -77,6 +91,7 @@ class AppSettings extends ChangeNotifier {
         _key,
         jsonEncode({
           'lang': lang.code,
+          if (docLang != null) 'doc_lang': docLang!.code,
           'unit': unit.name,
           'numbering': numbering,
           'with_year': withYear,

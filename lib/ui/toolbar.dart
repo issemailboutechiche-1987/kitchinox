@@ -1,20 +1,21 @@
 // Barre d'outils de chaque étape, fenêtre de choix de la forme de pièce,
 // sélecteur de vue (en bas au centre) et commandes de zoom (en bas à droite).
 
-import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
 import 'brands_ui.dart';
-import 'client_ui.dart';
+import 'quote_ui.dart';
 import 'web_io.dart';
 import 'busy.dart';
 import 'net_symbols.dart';
 import 'openings_ui.dart';
 import 'room_shape_editor.dart';
 import 'scene3d.dart';
+import 'diagnostic_pdf.dart';
 import 'header.dart';
+import 'kitchen_heights_dialog.dart';
 import 'theme.dart';
 import 'i18n.dart';
 
@@ -101,6 +102,8 @@ class StepToolbar extends StatelessWidget {
       case PlanStep.layout:
         tiles.addAll([
           if (state.engine.kitchen)
+            ToolTile(icon: Icons.height, label: tr('Hauteurs & Crédence'), onTap: () => showKitchenHeightsDialog(context, state, onMessage)),
+          if (state.engine.kitchen)
             ToolTile(icon: Icons.dashboard_customize_outlined, label: tr('Disposition des meubles'), onTap: () => showShapeDialog(context, state)),
           ToolTile(
             icon: Icons.kitchen_outlined,
@@ -125,18 +128,27 @@ class StepToolbar extends StatelessWidget {
           else if (universeTemplates[state.project.universe]?.isNotEmpty ?? false)
             ToolTile(icon: Icons.auto_awesome_outlined, label: tr('Propositions'), onTap: () => showProposalsDialog(context, state, onMessage)),
           if (state.engine.kitchen)
-          ToolTile(
-            icon: Icons.table_restaurant_outlined,
-            label: state.project.room.island == null ? tr('Ajouter un îlot') : tr('Îlot'),
-            active: state.project.room.island != null,
-            onTap: () {
-              if (state.project.room.island == null) {
-                onMessage(state.addIsland() ?? tr('Îlot ajouté : choisissez « Îlot » en vue de face ou glissez-le en vue du dessus'));
-              } else {
-                showIslandDialog(context, state, onMessage);
-              }
-            },
-          ),
+            ToolTile(
+              icon: Icons.table_restaurant_outlined,
+              label: state.project.room.island == null ? tr('Ajouter un îlot') : tr('Îlot'),
+              active: state.project.room.island != null,
+              onTap: () {
+                if (state.project.room.island == null) {
+                  final area = state.project.room.area;
+                  if (area < 8.5) {
+                    onMessage(trp('Attention : pièce compacte ({0} m²). Un îlot nécessite idéalement 9 m² ou plus.', [area.toStringAsFixed(1)]));
+                  }
+                  final res = state.addIsland();
+                  if (res == null) {
+                    onMessage(tr('Îlot central optimal ajouté au centre de la pièce avec dégagements de circulation'));
+                  } else {
+                    onMessage(res);
+                  }
+                } else {
+                  showIslandDialog(context, state, onMessage);
+                }
+              },
+            ),
           _networksMenu(context),
           ToolTile(
             icon: Icons.add_box_outlined,
@@ -171,21 +183,17 @@ class StepToolbar extends StatelessWidget {
         tiles.addAll([
           ToolTile(icon: Icons.picture_as_pdf_outlined, label: tr("Plan d'exécution (PDF)"), active: true, onTap: onExportPdf),
           ToolTile(icon: Icons.grid_on, label: tr('Plan de découpe (PDF)'), active: true, onTap: onCutPdf),
+          if (state.db != null) ToolTile(icon: Icons.request_quote_outlined, label: tr('Devis final'), active: true, onTap: () => showQuoteDialog(context, state, onMessage)),
           ToolTile(icon: Icons.content_cut, label: tr('Fichiers SketchCut (.sct)'), onTap: onSct),
-          ToolTile(icon: Icons.tune, label: tr('Réglages du débit'), onTap: onCutSettings),
           if (onManualCut != null) ToolTile(icon: Icons.edit_note, label: tr('Débit manuel'), onTap: onManualCut!),
           ToolTile(icon: Icons.table_view_outlined, label: tr('Exporter la liste (CSV)'), onTap: onExportCsv),
-          ToolTile(icon: Icons.save_outlined, label: tr('Enregistrer le projet'), onTap: onSave),
-          ToolTile(icon: Icons.badge_outlined, label: tr('Fiche client'), onTap: () => showClientDialog(context, state, onMessage)),
-          ToolTile(icon: Icons.sell_outlined, label: tr('Marques et prix'), onTap: () => showBrandsDialog(context, state, onMessage)),
           ToolTile(
-              icon: Icons.speed,
-              label: tr('Diagnostic'),
-              onTap: () {
-                // journal des temps de calcul (débit, nesting, PDF, contrôles) et de la mémoire, pour le support
-                downloadBytes('${state.project.name}_diagnostic_performance.json', utf8.encode(PerformanceProfiler.instance.exportJson()),
-                    mime: 'application/json');
-                onMessage(tr('Diagnostic de performance téléchargé'));
+              icon: Icons.verified_outlined,
+              label: tr('Rapport diagnostic (PDF)'),
+              onTap: () async {
+                final bytes = await buildDiagnosticPdf(state);
+                downloadBytes('${state.project.name}_diagnostic_technique.pdf', bytes, mime: 'application/pdf');
+                onMessage(tr('Rapport de diagnostic technique téléchargé (PDF)'));
               }),
           ToolTile(icon: Icons.rule, label: tr('Contrôles'), onTap: onIssues),
         ]);
@@ -224,8 +232,16 @@ class StepToolbar extends StatelessWidget {
             state.setNetworks(!on);
             onMessage(on ? tr('Réseaux masqués') : tr('Réseaux posés d’après l’implantation : ils suivent les meubles (vue de face pour les cotes)'));
           case 'regen':
+          case 'sync:appliances':
             state.regenerateNetworks(all: true);
-            onMessage(tr('Réseaux recalculés (points manuels remplacés)'));
+            onMessage(tr('Réseaux synchronisés et placés précisément sur les appareils'));
+          case 'sync:snap_sink':
+            final moved = state.snapSinkToExistingWater();
+            if (moved) {
+              onMessage(tr('Meuble sous-évier aligné sur l’arrivée d’eau existante'));
+            } else {
+              onMessage(tr('Aucune arrivée d’eau existante trouvée dans la pièce'));
+            }
           case 'gas':
           case 'electric':
             state.setHobEnergy(v);
@@ -248,8 +264,17 @@ class StepToolbar extends StatelessWidget {
       itemBuilder: (_) => [
         CheckedPopupMenuItem(value: 'toggle', checked: on, child: Text(tr('Afficher les réseaux'))),
         PopupMenuItem(
-            value: 'regen',
-            child: ListTile(leading: Icon(Icons.refresh), title: Text(tr('Tout recalculer')), subtitle: Text(tr('repart de l’implantation')))),
+            value: 'sync:appliances',
+            child: ListTile(
+                leading: const Icon(Icons.sync),
+                title: Text(tr('Positionner les réseaux sur les appareils')),
+                subtitle: Text(tr('eau, évacuation et 32A/gaz centrés sous les machines')))),
+        PopupMenuItem(
+            value: 'sync:snap_sink',
+            child: ListTile(
+                leading: const Icon(Icons.align_horizontal_center),
+                title: Text(tr('Aligner l’évier sur l’arrivée existante')),
+                subtitle: Text(tr('glisse le meuble face aux tuyaux d’attente')))),
         const PopupMenuDivider(),
         PopupMenuItem(
             value: 'exist:water',
@@ -590,6 +615,19 @@ class ViewSwitcher extends StatelessWidget {
           ],
           if (state.view == ViewMode.view3d) ...[
             Container(width: 1, height: 28, margin: const EdgeInsets.symmetric(horizontal: 6), color: scheme.outlineVariant),
+            for (final (i, icon, label) in [
+              (0, Icons.view_in_ar_outlined, 'Vue en perspective'),
+              (1, Icons.grid_view_outlined, 'Vue de dessus'),
+              (2, Icons.accessibility_new, "Vue à hauteur d'œil"),
+            ])
+              IconButton(
+                key: ValueKey('cam3d_$i'),
+                tooltip: tr(label),
+                isSelected: state.camera3d == i,
+                onPressed: () => state.setCamera3d(i),
+                icon: Icon(icon),
+                style: state.camera3d == i ? IconButton.styleFrom(backgroundColor: scheme.primary.withValues(alpha: 0.16)) : null,
+              ),
             IconButton(tooltip: tr('Tourner à gauche'), onPressed: () => state.rotate3d(-0.35), icon: const Icon(Icons.rotate_left)),
             IconButton(tooltip: tr('Tourner à droite'), onPressed: () => state.rotate3d(0.35), icon: const Icon(Icons.rotate_right)),
             IconButton(
@@ -626,7 +664,13 @@ class ZoomControls extends StatelessWidget {
 
 // ------------------------------------------------------------------ propositions d'implantation
 
-const _universeTitles = {'dressing': 'du dressing', 'bain': 'de salle de bain', 'tv': 'de meuble TV', 'interieur': 'd’intérieur'};
+const _universeTitles = {
+  'dressing': 'du dressing',
+  'bain': 'de salle de bain',
+  'buanderie': 'de buanderie',
+  'tv': 'de meuble TV',
+  'interieur': 'd’intérieur',
+};
 
 Future<void> showProposalsDialog(BuildContext context, AppState state, void Function(String) onMessage) async {
   final kitchen = state.engine.kitchen;

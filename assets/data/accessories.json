@@ -16,14 +16,18 @@
   },
   "kitchen_plumbing_fixtures": {
     "sinks": [
-      { "id": "sink_1_bowl_drainer", "name": "Évier 1 Bac avec Égouttoir", "dimensions": { "L": 860, "P": 500, "H": 200 }, "mounting": ["inset", "undermount"] },
-      { "id": "sink_2_bowls", "name": "Évier 2 Bacs", "dimensions": { "L": 860, "P": 500, "H": 200 }, "mounting": ["inset", "undermount"] },
-      { "id": "sink_1_bowl_compact", "name": "Évier 1 Bac Compact", "dimensions": { "L": 450, "P": 450, "H": 200 }, "mounting": ["undermount"] }
+      { "id": "sink_1_bowl_compact", "name": "Évier 1 Bac Compact 45cm", "dimensions": { "L": 450, "P": 450, "H": 200 }, "mounting": ["inset", "undermount"] },
+      { "id": "sink_1_bowl_large", "name": "Évier Cuve XXL Simple 60cm", "dimensions": { "L": 600, "P": 500, "H": 200 }, "mounting": ["inset", "undermount"] },
+      { "id": "sink_1_bowl_drainer", "name": "Évier 1 Bac avec Égouttoir 86cm", "dimensions": { "L": 860, "P": 500, "H": 200 }, "mounting": ["inset", "undermount"] },
+      { "id": "sink_2_bowls", "name": "Évier 2 Bacs Double Cuve 86cm", "dimensions": { "L": 860, "P": 500, "H": 200 }, "mounting": ["inset", "undermount"] },
+      { "id": "sink_2_bowls_drainer", "name": "Évier 2 Bacs avec Égouttoir 100cm", "dimensions": { "L": 1000, "P": 500, "H": 200 }, "mounting": ["inset", "undermount"] }
     ],
     "faucets": [
-      { "id": "faucet_mixer_standard", "name": "Mitigeur Cuisine Standard (Bec orientable)", "height": 350, "hole_diameter": 35 },
-      { "id": "faucet_mixer_pullout", "name": "Mitigeur avec Douchette Extractible", "height": 450, "hole_diameter": 35 },
-      { "id": "faucet_spring_pro", "name": "Mitigeur Type Industriel (Ressort)", "height": 550, "hole_diameter": 35 }
+      { "id": "faucet_mixer_swan", "name": "Mitigeur Col de Cygne Épuré", "height": 360, "hole_diameter": 35 },
+      { "id": "faucet_mixer_standard", "name": "Mitigeur Cuisine Bec L Orientable", "height": 320, "hole_diameter": 35 },
+      { "id": "faucet_mixer_pullout", "name": "Mitigeur avec Douchette Extractible", "height": 420, "hole_diameter": 35 },
+      { "id": "faucet_spring_pro", "name": "Mitigeur Chef Pro à Ressort Hélicoïdal", "height": 540, "hole_diameter": 35 },
+      { "id": "faucet_square_modern", "name": "Mitigeur Contemporain Carré Biseauté", "height": 330, "hole_diameter": 35 }
     ]
   }
 }

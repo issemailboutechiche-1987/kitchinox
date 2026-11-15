@@ -21,6 +21,7 @@ import 'room_objects.dart';
 import 'manual_cut.dart';
 import 'materials.dart';
 import 'networks.dart';
+import 'quote.dart';
 import 'standards.dart';
 
 const _eps = 0.5;
@@ -495,7 +496,12 @@ class KitchenStyle {
   String lighting; // 'aucun' | 'led_hauts' | 'led_hauts_plinthes'
   String? sink; // modèle d'évier (null : évier 1 bac avec égouttoir)
   String? faucet; // modèle de mitigeur (null : mitigeur standard)
+  String faucetFinish; // 'chrome' | 'noir_mat' | 'or_brosse' | 'inox_brosse'
   String sinkMount; // 'inset' (à poser) | 'undermount' (sous plan)
+  String sinkFinish; // 'inox' | 'noir_quartz' | 'blanc_ceramique'
+  String hobType; // 'induction' | 'gaz' | 'vitro'
+  int hobWidth; // 0 (auto), 60, 80, 90
+  String ovenFinish; // 'black_inox' | 'full_black' | 'inox_brosse' | 'blanc'
   final List<CustomTexture> textures; // textures ajoutées par l'utilisateur
 
   KitchenStyle({
@@ -516,7 +522,12 @@ class KitchenStyle {
     this.lighting = 'aucun',
     this.sink,
     this.faucet,
+    this.faucetFinish = 'chrome',
     this.sinkMount = 'inset',
+    this.sinkFinish = 'inox',
+    this.hobType = 'induction',
+    this.hobWidth = 0,
+    this.ovenFinish = 'black_inox',
     List<CustomTexture>? textures,
   }) : textures = textures ?? [];
 
@@ -541,7 +552,12 @@ class KitchenStyle {
         if (lighting != 'aucun') 'lighting': lighting,
         if (sink != null) 'sink': sink,
         if (faucet != null) 'faucet': faucet,
+        if (faucetFinish != 'chrome') 'faucet_finish': faucetFinish,
         if (sinkMount != 'inset') 'sink_mount': sinkMount,
+        if (sinkFinish != 'inox') 'sink_finish': sinkFinish,
+        if (hobType != 'induction') 'hob_type': hobType,
+        if (hobWidth != 0) 'hob_width': hobWidth,
+        if (ovenFinish != 'black_inox') 'oven_finish': ovenFinish,
         if (textures.isNotEmpty) 'textures': [for (final t in textures) t.toJson()],
       };
 
@@ -563,7 +579,12 @@ class KitchenStyle {
         lighting: j['lighting'] as String? ?? 'aucun',
         sink: j['sink'] as String?,
         faucet: j['faucet'] as String?,
+        faucetFinish: j['faucet_finish'] as String? ?? 'chrome',
         sinkMount: j['sink_mount'] as String? ?? 'inset',
+        sinkFinish: j['sink_finish'] as String? ?? 'inox',
+        hobType: j['hob_type'] as String? ?? 'induction',
+        hobWidth: (j['hob_width'] as num?)?.toInt() ?? 0,
+        ovenFinish: j['oven_finish'] as String? ?? 'black_inox',
         textures: [for (final t in (j['textures'] as List? ?? const [])) CustomTexture.fromJson((t as Map).cast<String, dynamic>())],
       );
 }
@@ -647,6 +668,7 @@ class ClientInfo {
 class Project {
   String name;
   ClientInfo client = ClientInfo();
+  QuoteSettings quote = QuoteSettings(); // devis final : choix par poste, remise, TVA, validation
   String universe; // 'cuisine' | 'dressing' | 'bain' | 'tv' | 'interieur'
   Room room;
   KitchenStandards standards;
@@ -735,6 +757,7 @@ class Project {
         if (points.isNotEmpty) 'points': points.map((x) => x.toJson()).toList(),
         if (networks) 'networks': true,
         if (!client.isEmpty || client.numbers.isNotEmpty) 'client': client.toJson(),
+        if (!quote.isDefault) 'quote': quote.toJson(),
         if (manual.parts.isNotEmpty) 'manual_cut': manual.toJson(),
         if (!art.isEmpty) 'art': art.toJson(),
         if (furniture.values.any((f) => f.items.isNotEmpty)) 'furniture': {for (final e in furniture.entries) e.key: e.value.toJson()},
@@ -757,6 +780,7 @@ class Project {
       )
         ..objects.addAll([for (final o in (j['objects'] as List? ?? const [])) RoomObject.fromJson((o as Map).cast<String, dynamic>())])
         ..client = ClientInfo.fromJson((j['client'] as Map?)?.cast<String, dynamic>() ?? const {})
+        ..quote = QuoteSettings.fromJson((j['quote'] as Map?)?.cast<String, dynamic>() ?? const {})
         ..art = ArtProject.fromJson((j['art'] as Map?)?.cast<String, dynamic>() ?? const {})
         ..manual = ManualCut.fromJson((j['manual_cut'] as Map?)?.cast<String, dynamic>() ?? const {})
         ..furniture.addAll({

@@ -59,9 +59,13 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
     final c = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFFEEF1F3))
+      ..setOnConsoleMessage((cm) {
+        debugPrint('3D console [${cm.level.name}]: ${cm.message}');
+      })
       ..addJavaScriptChannel('Bridge', onMessageReceived: (m) => _onMessage(m.message));
-    await c.loadRequest(Uri.parse('$base/index.html'));
     if (mounted) setState(() => _c = c);
+    await c.loadRequest(Uri.parse('$base/index.html'));
+    if (mounted && _ready) _schedule();
   }
 
   /// Un menu ou une fenêtre est ouvert par-dessus : le geste ne concerne pas la 3D.

@@ -66,7 +66,7 @@ List<V3> boxCorners(ArtPanel p) => [
 
 List<Face> facesOf(ArtPanel p) => [for (var a = 0; a < 3; a++) for (final s in const [-1, 1]) Face(p, a, s)];
 
-class ArtCamera {
+class ArtCamera extends ChangeNotifier {
   V3 target;
   double yaw, pitch, dist;
   bool ortho;
@@ -119,22 +119,28 @@ class ArtCamera {
   Offset screenDir(V3 at, V3 dir) => project(at + dir * 100).$1 - project(at).$1;
 
   void orbit(Offset delta) {
-    yaw -= delta.dx * 0.008;
-    pitch = (pitch + delta.dy * 0.006).clamp(-1.45, 1.45);
+    yaw -= delta.dx * 0.012;
+    pitch = (pitch + delta.dy * 0.009).clamp(-1.45, 1.45);
+    notifyListeners();
   }
 
   void pan(Offset delta) {
     final s = ortho ? orthoScale : focal / dist;
     target = target - right * (delta.dx / s) + up * (delta.dy / s);
+    notifyListeners();
   }
 
-  void zoomAt(double factor) => dist = (dist * factor).clamp(300.0, 60000.0);
+  void zoomAt(double factor) {
+    dist = (dist * factor).clamp(300.0, 60000.0);
+    notifyListeners();
+  }
 
   /// Cadre tout le modèle (Zoom étendu).
   void fit(List<ArtPanel> panels) {
     if (panels.isEmpty) {
       target = const V3(1000, 700, 200);
       dist = 5200;
+      notifyListeners();
       return;
     }
     var lo = const V3(1e9, 1e9, 1e9), hi = const V3(-1e9, -1e9, -1e9);
@@ -145,6 +151,7 @@ class ArtCamera {
     target = (lo + hi) * 0.5;
     final r = (hi - lo).length / 2;
     dist = math.max(800, r / math.sin(fov / 2) * 1.15);
+    notifyListeners();
   }
 
   /// Vues standard.
@@ -175,6 +182,7 @@ class ArtCamera {
         pitch = 0;
         ortho = true;
     }
+    notifyListeners();
   }
 }
 

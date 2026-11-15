@@ -62,6 +62,7 @@ class _ArtPageState extends State<ArtPage> {
   Offset? _last;
   Offset? _downAt;
   bool _moved = false;
+  double _lastScale = 1.0;
 
   ArtBox? get box => art.boxes.isEmpty ? null : art.boxes[boxIndex.clamp(0, art.boxes.length - 1)];
 
@@ -248,6 +249,13 @@ class _ArtPageState extends State<ArtPage> {
     );
   }
 
+  void _saveKin() {
+    Session.autosave('art', () => jsonEncode(art.toJson()));
+    final kinBytes = KinFormat.encode(widget.state.exportJson(), projectName: art.name);
+    downloadBytes('${art.name}.kin', kinBytes, mime: 'application/octet-stream');
+    _msg(trp('{0}.kin enregistré', [art.name]));
+  }
+
   Widget _topBar(TextTheme t, ColorScheme scheme) {
     Widget view(String id, String label) => TextButton(
           style: TextButton.styleFrom(minimumSize: const Size(44, 40), padding: const EdgeInsets.symmetric(horizontal: 10)),
@@ -265,6 +273,30 @@ class _ArtPageState extends State<ArtPage> {
         const SizedBox(width: 48, height: 40, child: LogoMark()),
         const SizedBox(width: 8),
         Text(tr('Atelier'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(width: 6),
+        IconButton(
+          tooltip: tr('Ajouter un caisson'),
+          icon: const Icon(Icons.add_box_outlined),
+          onPressed: _chooseBase,
+        ),
+        if (box != null)
+          IconButton(
+            tooltip: tr('Dupliquer le caisson vers la droite'),
+            icon: const Icon(Icons.control_point_duplicate_outlined),
+            onPressed: () {
+              final b = box;
+              if (b == null) return;
+              final clone = b.copy();
+              clone.name = '${b.name} (copie)';
+              _addBox(clone);
+              _msg(tr('Caisson dupliqué avec succès'));
+            },
+          ),
+        IconButton(
+          tooltip: tr('Enregistrer (.kin)'),
+          icon: const Icon(Icons.save_outlined),
+          onPressed: _saveKin,
+        ),
         const Spacer(),
         Flexible(
           flex: 6,
@@ -272,10 +304,10 @@ class _ArtPageState extends State<ArtPage> {
             scrollDirection: Axis.horizontal,
             reverse: true,
             child: Row(children: [
-              view('iso', '3D'),
-              view('face', 'Face'),
-              view('dessus', 'Dessus'),
-              view('droite', 'Côté'),
+              view('iso', tr('3D')),
+              view('face', tr('Face')),
+              view('dessus', tr('Dessus')),
+              view('droite', tr('Côté')),
               const SizedBox(width: 6),
               FilterChip(label: Text(tr('Façades')), selected: showFronts, onSelected: (v) => setState(() => showFronts = v)),
               const SizedBox(width: 6),
@@ -297,28 +329,32 @@ class _ArtPageState extends State<ArtPage> {
   // ---------------------------------------------------------------- 3D
   Widget _viewport() => LayoutBuilder(builder: (context, c) {
         cam.size = c.biggest;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Listener(
           onPointerSignal: (e) {
-            if (e is PointerScrollEvent) setState(() => cam.zoomAt(e.scrollDelta.dy > 0 ? 1.12 : 0.89));
+            if (e is PointerScrollEvent) cam.zoomAt(e.scrollDelta.dy > 0 ? 1.12 : 0.89);
           },
           child: GestureDetector(
             onScaleStart: (d) {
               _last = d.localFocalPoint;
               _downAt = d.localFocalPoint;
               _moved = false;
+              _lastScale = 1.0;
             },
             onScaleUpdate: (d) {
               final delta = d.localFocalPoint - (_last ?? d.localFocalPoint);
               _last = d.localFocalPoint;
               if ((d.localFocalPoint - (_downAt ?? d.localFocalPoint)).distance > 6) _moved = true;
-              setState(() {
-                if (d.pointerCount >= 2) {
-                  cam.pan(delta);
-                  if (d.scale != 1) cam.zoomAt(1 / math.pow(d.scale, 0.05));
-                } else {
-                  cam.orbit(delta);
+              if (d.pointerCount >= 2) {
+                cam.pan(delta);
+                if (d.scale != 1.0) {
+                  final factor = d.scale / _lastScale;
+                  _lastScale = d.scale;
+                  if ((factor - 1.0).abs() > 0.0001) cam.zoomAt(1.0 / factor);
                 }
-              });
+              } else {
+                cam.orbit(delta);
+              }
             },
             onScaleEnd: (_) {
               if (!_moved && _downAt != null) _tap(_downAt!);
@@ -336,7 +372,8 @@ class _ArtPageState extends State<ArtPage> {
                     showDims: showDims && !exploded,
                     exploded: exploded,
                     byComp: byComp || focus != null,
-                    focus: focus),
+                    focus: focus,
+                    isDark: isDark),
               ),
               if (!art.isEmpty) Positioned(left: 12, top: 12, child: _legend()),
             ]),
@@ -946,7 +983,7 @@ class _PresetDialog extends StatelessWidget {
 
 // ------------------------------------------------------------------ rendu 3D
 
-void _paintPanels(Canvas c, ArtCamera cam, List<ArtPanel> panels, {double edge = 1, bool byComp = false, Comp? focus}) {
+void _paintPanels(Canvas c, ArtCamera cam, List<ArtPanel> panels, {double edge = 1, bool byComp = false, Comp? focus, bool isDark = false}) {
   final faces = <(double, Face)>[];
   for (final panel in panels) {
     for (final f in facesOf(panel)) {
@@ -957,20 +994,25 @@ void _paintPanels(Canvas c, ArtCamera cam, List<ArtPanel> panels, {double edge =
   }
   faces.sort((a, b) => b.$1.compareTo(a.$1));
   final light = const V3(-0.35, 0.85, -0.4).unit;
+  final fillLight = const V3(0.4, 0.3, 0.5).unit;
   for (final (_, f) in faces) {
     final cs = f.corners.map((v) => cam.project(v).$1).toList();
     final path = Path()..addPolygon(cs, true);
     final comp = f.panel.comp;
     final base = byComp && comp != null ? Color(comp.color) : artColor(f.panel.finish);
     final hsl = HSLColor.fromColor(base);
-    final lum = 0.62 + 0.38 * math.max(0.0, f.normal.dot(light));
+    final direct = math.max(0.0, f.normal.dot(light));
+    final fill = math.max(0.0, f.normal.dot(fillLight)) * 0.15;
+    final lum = 0.58 + 0.34 * direct + fill;
     final ghost = focus != null && comp != focus;
-    final fill = hsl.withLightness((hsl.lightness * lum + 0.04).clamp(0.0, 1.0)).toColor();
-    c.drawPath(path, Paint()..color = ghost ? fill.withValues(alpha: 0.12) : fill);
+    final fillColor = hsl.withLightness((hsl.lightness * lum + 0.03).clamp(0.0, 1.0)).toColor();
+    c.drawPath(path, Paint()..color = ghost ? fillColor.withValues(alpha: 0.12) : fillColor);
     c.drawPath(path, Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = edge
-      ..color = ghost ? const Color(0x221F1A17) : const Color(0xCC1F1A17));
+      ..color = ghost
+          ? (isDark ? const Color(0x22FFFFFF) : const Color(0x221F1A17))
+          : (isDark ? const Color(0x77FFFFFF) : const Color(0xBB1F1A17)));
   }
 }
 
@@ -979,7 +1021,7 @@ class _ScenePainter extends CustomPainter {
   final ArtProject art;
   final int boxIndex;
   final String? zoneId;
-  final bool showFronts, showDims, exploded, byComp;
+  final bool showFronts, showDims, exploded, byComp, isDark;
   final Comp? focus;
   _ScenePainter({
     required this.cam,
@@ -991,7 +1033,8 @@ class _ScenePainter extends CustomPainter {
     this.exploded = false,
     this.byComp = false,
     this.focus,
-  });
+    this.isDark = false,
+  }) : super(repaint: cam);
 
   /// Vue éclatée : chaque composant s'écarte du centre de son caisson dans sa direction naturelle.
   List<ArtPanel> _explode(List<ArtPanel> ps) {
@@ -1040,23 +1083,51 @@ class _ScenePainter extends CustomPainter {
 
   @override
   void paint(Canvas c, Size size) {
+    // Fond adapté au thème
+    final bgColors = isDark
+        ? const [Color(0xFF1E222A), Color(0xFF121418)]
+        : const [Color(0xFFEDEFF1), Color(0xFFF8F5F1)];
     c.drawRect(
-        Offset.zero & size,
-        Paint()
-          ..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFEDEFF1), Color(0xFFF8F5F1)])
-              .createShader(Offset.zero & size));
-    // sol : grille de 50 cm
+      Offset.zero & size,
+      Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: bgColors).createShader(Offset.zero & size),
+    );
+
+    // Sol : grille
+    final gridColor = isDark ? const Color(0x1FFFFFFF) : const Color(0x18000000);
     final g = Paint()
-      ..color = const Color(0x18000000)
+      ..color = gridColor
       ..strokeWidth = 1;
     const ext = 4000.0;
     for (var v = -ext; v <= ext; v += 500) {
       c.drawLine(p(V3(v, 0, -ext)), p(V3(v, 0, ext)), g);
       c.drawLine(p(V3(-ext, 0, v)), p(V3(ext, 0, v)), g);
     }
+
+    // Ombres de contact au sol sous les caissons
+    if (!art.isEmpty && !exploded) {
+      final xs = art.boxOrigins;
+      for (var i = 0; i < art.boxes.length; i++) {
+        final b = art.boxes[i];
+        final ox = xs[i];
+        // Passes douces d'ombre de contact au sol
+        for (var pass = 1; pass <= 3; pass++) {
+          final pad = pass * 14.0;
+          final shadowPts = [
+            V3(ox - pad, 0, -pad),
+            V3(ox + b.w + pad, 0, -pad),
+            V3(ox + b.w + pad, 0, b.d + pad),
+            V3(ox - pad, 0, b.d + pad),
+          ].map(p).toList();
+          final sPath = Path()..addPolygon(shadowPts, true);
+          final opacity = isDark ? 0.09 / pass : 0.05 / pass;
+          c.drawPath(sPath, Paint()..color = (isDark ? Colors.black : const Color(0xFF1B2028)).withValues(alpha: opacity));
+        }
+      }
+    }
+
     if (art.isEmpty) {
       final tp = TextPainter(
-          text: const TextSpan(text: 'Choisissez une base à gauche', style: TextStyle(fontSize: 16, color: Color(0xFF6B7178), fontWeight: FontWeight.w600)),
+          text: TextSpan(text: tr('Choisissez une base à gauche'), style: TextStyle(fontSize: 16, color: isDark ? const Color(0xFF9EABB8) : const Color(0xFF6B7178), fontWeight: FontWeight.w600)),
           textDirection: TextDirection.ltr)
         ..layout();
       tp.paint(c, size.center(Offset(-tp.width / 2, -tp.height / 2)));
@@ -1064,12 +1135,61 @@ class _ScenePainter extends CustomPainter {
     }
     var panels = art.panels.where((x) => showFronts || exploded || !(x.comp?.isFront ?? x.role.isFront)).toList();
     if (exploded) panels = _explode(panels);
-    _paintPanels(c, cam, panels, byComp: byComp, focus: focus);
+    _paintPanels(c, cam, panels, byComp: byComp, focus: focus, isDark: isDark);
+
+    // Surbrillance du caisson actif ou de la zone sélectionnée en 3D
+    final frontNormal = const V3(0, 0, -1);
+    final xs = art.boxOrigins;
+    if (!exploded && focus == null && boxIndex < art.boxes.length) {
+      final b = art.boxes[boxIndex];
+      final ox = xs[boxIndex];
+      final zFront = showFronts ? -b.tFront - 1 : 0.0;
+      final toCam = cam.ortho ? cam.forward * -1 : (cam.eye - V3(ox + b.w / 2, b.y0 + b.h / 2, zFront));
+      final isFacingFront = frontNormal.dot(toCam) > 0;
+
+      // On n'affiche le contour de façade que si la face avant fait face à la caméra (backface culling)
+      if (isFacingFront) {
+        if (zoneId != null) {
+          final z = b.zones.where((x) => x.id == zoneId).firstOrNull;
+          if (z != null) {
+            final pts = [
+              V3(ox + z.fx0, z.fy0, zFront),
+              V3(ox + z.fx1, z.fy0, zFront),
+              V3(ox + z.fx1, z.fy1, zFront),
+              V3(ox + z.fx0, z.fy1, zFront),
+            ].map(p).toList();
+            final path = Path()..addPolygon(pts, true);
+            c.drawPath(path, Paint()..color = _orange.withValues(alpha: 0.12));
+            c.drawPath(path, Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2.2
+              ..color = _orange);
+          }
+        } else {
+          final boxFrontPts = [
+            V3(ox, b.y0, zFront),
+            V3(ox + b.w, b.y0, zFront),
+            V3(ox + b.w, b.y0 + b.h, zFront),
+            V3(ox, b.y0 + b.h, zFront),
+          ].map(p).toList();
+          final bPath = Path()..addPolygon(boxFrontPts, true);
+          c.drawPath(bPath, Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.0
+            ..color = _orange.withValues(alpha: 0.5));
+        }
+      }
+    }
     // poignées
     if (showFronts && !exploded && focus == null) {
       for (var i = 0; i < art.boxes.length; i++) {
         final b = art.boxes[i];
         if (b.handle == 'push') continue;
+        final ox = xs[i];
+        final zFront = -b.tFront;
+        final toCam = cam.ortho ? cam.forward * -1 : (cam.eye - V3(ox + b.w / 2, b.y0 + b.h / 2, zFront));
+        if (frontNormal.dot(toCam) <= 0) continue; // Face cachée par l'arrière ou côté du caisson
+
         for (final pn in panels.where((x) => x.id.startsWith('b${i}_') && x.role.isFront)) {
           final z = pn.z - 1;
           if (b.handle == 'gola') {
@@ -1080,12 +1200,27 @@ class _ScenePainter extends CustomPainter {
           }
           final door = pn.role == ArtRole.porte;
           final hx = door ? (pn.hinge == 'left' ? pn.right - 40 : pn.x + 40) : pn.x + pn.w / 2;
-          final cy = door ? pn.y + pn.h / 2 : pn.top - math.min(60, pn.h / 2);
+          final double cy;
+          if (door) {
+            if (b.base == BaseType.wall) {
+              // Meuble haut : poignée en bas de porte
+              cy = pn.y + math.min(90.0, pn.h / 3);
+            } else if (pn.top <= 1200) {
+              // Meuble bas ou sous-bac : poignée en haut de porte
+              cy = pn.top - math.min(90.0, pn.h / 3);
+            } else {
+              // Armoire / dressing pleine hauteur : hauteur de préhension (~1050 mm)
+              cy = math.max(pn.y + 80, math.min(pn.top - 80, 1050.0));
+            }
+          } else {
+            // Tiroir : centré
+            cy = pn.top - math.min(50.0, pn.h / 2);
+          }
           if (b.handle == 'knob') {
             c.drawCircle(p(V3(hx, cy, z)), 3.5, Paint()..color = const Color(0xFF6B7178));
           } else {
-            final a = door ? V3(hx, cy - 80, z) : V3(hx - 80, cy, z);
-            final e = door ? V3(hx, cy + 80, z) : V3(hx + 80, cy, z);
+            final a = door ? V3(hx, cy - 60, z) : V3(hx - 60, cy, z);
+            final e = door ? V3(hx, cy + 60, z) : V3(hx + 60, cy, z);
             c.drawLine(p(a), p(e), Paint()
               ..color = const Color(0xFF6B7178)
               ..strokeWidth = 3
@@ -1095,7 +1230,6 @@ class _ScenePainter extends CustomPainter {
       }
     }
     // tringles
-    final xs = art.boxOrigins;
     for (var i = 0; i < art.boxes.length; i++) {
       final b = art.boxes[i];
       for (final z in b.zones) {
@@ -1107,38 +1241,42 @@ class _ScenePainter extends CustomPainter {
           ..strokeWidth = 3);
       }
     }
-    // zone choisie
-    if (!exploded && focus == null && boxIndex < art.boxes.length && zoneId != null) {
-      final b = art.boxes[boxIndex];
-      final z = b.zones.where((x) => x.id == zoneId).firstOrNull;
-      if (z != null) {
-        final ox = xs[boxIndex], zf = -b.tFront - 2;
-        final pts = [V3(ox + z.fx0, z.fy0, zf), V3(ox + z.fx1, z.fy0, zf), V3(ox + z.fx1, z.fy1, zf), V3(ox + z.fx0, z.fy1, zf)].map(p).toList();
-        final path = Path()..addPolygon(pts, true);
-        c.drawPath(path, Paint()..color = _orange.withValues(alpha: 0.14));
-        c.drawPath(path, Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.5
-          ..color = _orange);
-      }
-    }
     // cotes du caisson choisi
     if (showDims && boxIndex < art.boxes.length) {
       final b = art.boxes[boxIndex];
       final ox = xs[boxIndex];
       const col = Color(0xFF1D4ED8);
-      _dim(c, V3(ox, b.y0, -b.tFront - 60), V3(ox + b.w, b.y0, -b.tFront - 60), '${b.w.round()}', col);
-      _dim(c, V3(ox - 60, b.y0, -b.tFront), V3(ox - 60, b.y0 + b.h, -b.tFront), '${b.h.round()}', col);
-      _dim(c, V3(ox + b.w + 60, b.y0, 0), V3(ox + b.w + 60, b.y0, b.d), '${b.d.round()}', col);
-      if (b.y0 > 0) _dim(c, V3(ox + b.w + 60, 0, -b.tFront), V3(ox + b.w + 60, b.y0, -b.tFront), '${b.y0.round()}', const Color(0xFF6B7178));
+      final zFront = showFronts ? -b.tFront : 0.0;
+      // Largeur (width) avec lignes de rappel vers les angles
+      _dim(c, V3(ox, b.y0, zFront - 60), V3(ox + b.w, b.y0, zFront - 60), '${b.w.round()}', col,
+          anchorA: V3(ox, b.y0, zFront), anchorB: V3(ox + b.w, b.y0, zFront));
+      // Hauteur (height) avec lignes de rappel
+      _dim(c, V3(ox - 60, b.y0, zFront), V3(ox - 60, b.y0 + b.h, zFront), '${b.h.round()}', col,
+          anchorA: V3(ox, b.y0, zFront), anchorB: V3(ox, b.y0 + b.h, zFront));
+      // Profondeur (depth) avec lignes de rappel
+      _dim(c, V3(ox + b.w + 60, b.y0, 0), V3(ox + b.w + 60, b.y0, b.d), '${b.d.round()}', col,
+          anchorA: V3(ox + b.w, b.y0, 0), anchorB: V3(ox + b.w, b.y0, b.d));
+      if (b.y0 > 0) {
+        _dim(c, V3(ox - 60, 0, zFront), V3(ox - 60, b.y0, zFront), '${b.y0.round()}', const Color(0xFF6B7178),
+            anchorA: V3(ox, 0, zFront), anchorB: V3(ox, b.y0, zFront));
+      }
     }
   }
 
-  void _dim(Canvas c, V3 a, V3 b, String text, Color col) {
+  void _dim(Canvas c, V3 a, V3 b, String text, Color col, {V3? anchorA, V3? anchorB}) {
     final pa = p(a), pb = p(b);
     final paint = Paint()
       ..color = col
       ..strokeWidth = 1.4;
+    // Lignes de rappel (witness lines) vers les angles réels du meuble
+    if (anchorA != null) {
+      final pAnchor = p(anchorA);
+      c.drawLine(pAnchor, pa, Paint()..color = col.withValues(alpha: 0.35)..strokeWidth = 1);
+    }
+    if (anchorB != null) {
+      final pAnchor = p(anchorB);
+      c.drawLine(pAnchor, pb, Paint()..color = col.withValues(alpha: 0.35)..strokeWidth = 1);
+    }
     c.drawLine(pa, pb, paint);
     final dir = pb - pa;
     final n = dir.distance == 0 ? Offset.zero : Offset(-dir.dy, dir.dx) / dir.distance * 5;

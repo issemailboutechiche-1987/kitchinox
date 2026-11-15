@@ -48,6 +48,9 @@ class LayoutProposal {
 List<(String, String, Set<String>, bool, String, String)> _candidates(Room r) {
   final out = <(String, String, Set<String>, bool, String, String)>[];
   String n(String w) => Room.wallNames[w]!.toLowerCase();
+  final areaM2 = (r.width * r.depth) / 1e6;
+  final allowIsland = areaM2 >= 8.5 && r.width >= 2800 && r.depth >= 2800;
+
   // murs droits de la pièce (une pièce à contour libre peut en avoir plus de 4)
   final order = [for (final w in r.order) if (r.outline == null || r.wall(w).orthogonal) w];
   final k = order.length;
@@ -55,8 +58,10 @@ List<(String, String, Set<String>, bool, String, String)> _candidates(Room r) {
   for (final w in order) {
     if (r.wall(w).length >= 2400) {
       out.add(('lin_$w', 'Linéaire · ${n(w)}', {w}, false, 'mixte', 'Tout sur un mur : simple et économique, idéal pour les petites pièces.'));
-      out.add(('lini_$w', 'Linéaire + îlot · ${n(w)}', {w}, true, 'tiroirs',
-          'Le mur porte les colonnes et l\'évier, l\'îlot donne du plan de travail et un coin repas.'));
+      if (allowIsland) {
+        out.add(('lini_$w', 'Linéaire + îlot · ${n(w)}', {w}, true, 'tiroirs',
+            'Le mur porte les colonnes et l\'évier, l\'îlot donne du plan de travail et un coin repas.'));
+      }
     }
   }
   // en L : deux murs voisins
@@ -64,7 +69,9 @@ List<(String, String, Set<String>, bool, String, String)> _candidates(Room r) {
     final a = order[i], b = order[(i + 1) % k];
     if (r.nextOf(a) != b) continue; // pas voisins (un arc ou un mur oblique entre les deux)
     out.add(('l_$a$b', 'En L · ${n(a)} + ${n(b)}', {a, b}, false, 'mixte', 'La forme la plus polyvalente : triangle compact, angle exploité.'));
-    out.add(('li_$a$b', 'En L + îlot · ${n(a)} + ${n(b)}', {a, b}, true, 'tiroirs', 'Le L ferme l\'espace de travail, l\'îlot ouvre sur la pièce.'));
+    if (allowIsland) {
+      out.add(('li_$a$b', 'En L + îlot · ${n(a)} + ${n(b)}', {a, b}, true, 'tiroirs', 'Le L ferme l\'espace de travail, l\'îlot ouvre sur la pièce.'));
+    }
   }
   // en U : trois murs
   for (var i = 0; i < (k >= 3 ? k : 0); i++) {
@@ -175,11 +182,33 @@ List<LayoutProposal> proposeLayouts(LayoutEngine base, {int max = 6, String? fil
       score -= drain / 150;
       if (drain <= 1500) strengths.add('Évier près de l’évacuation existante');
     }
-    // pièce : les formes trop « lourdes » pour la surface perdent des points
+    // Adéquation exacte avec la surface de la pièce
     final area = p.room.width * p.room.depth / 1e6;
-    if (walls.length == 3 && area < 9) score -= 10;
-    if (island && area < 14) score -= 12;
-    if (walls.length == 1 && !island && area > 14) score -= 6;
+    if (area < 7.0) {
+      if (walls.length == 1 && !island) {
+        score += 25;
+        strengths.add('Idéal pour petite surface (< 7 m²)');
+      } else if (walls.length == 2 && !island) {
+        score += 15;
+      }
+    } else if (area >= 7.0 && area < 12.0) {
+      if (walls.length == 2) {
+        score += 25;
+        strengths.add('Parfait pour surface moyenne (${area.toStringAsFixed(1)} m²)');
+      } else if (walls.length == 3) {
+        score += 20;
+      }
+    } else {
+      if (island) {
+        score += 30;
+        strengths.add('Configuration royale pour grande surface (${area.toStringAsFixed(1)} m²)');
+      } else if (walls.length == 3) {
+        score += 20;
+      }
+    }
+    if (walls.length == 3 && area < 8.5) score -= 18;
+    if (island && area < 9.5) score -= 25;
+    if (walls.length == 1 && !island && area > 14) score -= 12;
 
     results.add(LayoutProposal(
       id: id,

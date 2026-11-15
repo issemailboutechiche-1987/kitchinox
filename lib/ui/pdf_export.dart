@@ -207,7 +207,7 @@ Future<Uint8List> buildExecutionPdf(LayoutEngine e,
 
   List<PlacedCabinet> sortedItems(Iterable<PlacedCabinet> it) => [...it]..sort((a, b) => reps[a.uid]!.compareTo(reps[b.uid]!));
 
-  final doc = pw.Document(theme: await pdfTheme(), title: _t(trp('Plan d\'exécution - {0}', [tr(p.name)])), author: 'kitchinox', creator: 'kitchinox planner');
+  final doc = pw.Document(theme: await pdfTheme(), title: _t(trp('Plan d\'exécution - {0}', [trName(p.name)])), author: 'kitchinox', creator: 'kitchinox planner');
   var i = 0;
 
   // ---- 1. couverture

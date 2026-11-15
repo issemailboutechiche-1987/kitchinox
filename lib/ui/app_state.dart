@@ -478,6 +478,48 @@ class AppState extends ChangeNotifier {
   List<SupplyLine> get estimateLines =>
       db == null ? const [] : _cached('estimate', () => quoteLines(engine, db!, project.specs, cutPlan, bom, supplier, gloss: frontsGloss));
   void setGamme(String g) => edit(() => project.specs.gamme = g);
+
+  // ---- devis final
+  /// Devis du projet tel qu'il se calcule maintenant (choix de gamme, prix saisis, remise, TVA).
+  Quote get liveQuote => buildQuote(estimateLines, project.quote);
+
+  /// Devis affiché : la version validée si elle existe, sinon le calcul en cours.
+  Quote get quote => project.quote.validated?.quote ?? liveQuote;
+  bool get quoteValidated => project.quote.validated != null;
+
+  /// Le projet a changé depuis la validation : le devis validé ne correspond plus.
+  bool get quoteStale {
+    final v = project.quote.validated;
+    return v != null && (v.quote.total - liveQuote.total).abs() >= 1;
+  }
+
+  void setQuoteLevel(String section, int level) => edit(() => project.quote.levels[section] = level.clamp(0, 2));
+  void setQuotePrice(String key, double? price) => edit(() {
+        if (price == null) {
+          project.quote.prices.remove(key);
+        } else {
+          project.quote.prices[key] = price;
+        }
+      });
+  void setQuoteIncluded(String key, bool included) => edit(() {
+        if (included) {
+          project.quote.excluded.remove(key);
+        } else {
+          project.quote.excluded.add(key);
+        }
+      });
+  void setQuoteTerms({double? discount, double? vat}) => edit(() {
+        if (discount != null) project.quote.discount = discount.clamp(0, 100).toDouble();
+        if (vat != null) project.quote.vat = vat.clamp(0, 100).toDouble();
+      });
+  void setApplianceTier(int tier) => edit(() => project.specs.applianceTier = tier.clamp(0, 2));
+
+  /// Fige le devis : il ne bouge plus tant qu'il n'est pas rouvert.
+  void validateQuote(String? number, DateTime now) => edit(() {
+        final d = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+        project.quote.validated = ValidatedQuote(number, d, liveQuote);
+      });
+  void reopenQuote() => edit(() => project.quote.validated = null);
   Bom get bom => _cached('bom', () => buildBom(engine));
 
   // ---- historique
@@ -722,7 +764,7 @@ class AppState extends ChangeNotifier {
   }
 
   /// La pièce a-t-elle besoin d'eau (cuisine, salle de bain) ?
-  bool get needsWater => project.universe == 'cuisine' || project.universe == 'bain';
+  bool get needsWater => project.universe == 'cuisine' || project.universe == 'bain' || project.universe == 'buanderie';
 
   /// Arrivées d'eau et évacuations existantes placées dans la pièce.
   int existingCount(bool drain) => project.points
@@ -806,6 +848,20 @@ class AppState extends ChangeNotifier {
         project.networks = true;
         applyNetworks(engine);
       });
+
+  /// Aligne le meuble sous-évier sur l'arrivée d'eau ou l'évacuation existante si présente.
+  bool snapSinkToExistingWater() {
+    final existPt = project.points.where((x) => x.use == existingUse && (x.kind == NetKind.waterCold || x.kind == NetKind.drain)).firstOrNull;
+    if (existPt == null) return false;
+    final sinkCab = project.items.where((c) => engine.isWashing(engine.modelOf(c)) && c.wallId == existPt.wallId).firstOrNull;
+    if (sinkCab == null) return false;
+    final targetS = (existPt.s - sinkCab.width / 2).clamp(0.0, project.room.wall(sinkCab.wallId).length - sinkCab.width);
+    edit(() {
+      sinkCab.s = targetS;
+      if (project.networks) applyNetworks(engine);
+    });
+    return true;
+  }
 
   void setHobEnergy(String energy) => edit(() => project.specs.hobEnergy = energy);
 
@@ -900,6 +956,14 @@ class AppState extends ChangeNotifier {
     panX = 0;
     panY = 0;
     if (notify) notifyListeners();
+  }
+
+  /// Point de vue de la 3D : 0 perspective, 1 dessus, 2 à hauteur d'œil.
+  int camera3d = 0;
+  void setCamera3d(int v) {
+    if (camera3d == v) return;
+    camera3d = v;
+    notifyListeners();
   }
 
   void rotate3d(double d) {

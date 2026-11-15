@@ -203,9 +203,9 @@ class SceneExporter {
       final cells = openableCells(m, c);
       final all = cellsOf(rowsOf(m, c) ?? seedRows(m, c), c.height);
       final apps = appliancesOf(m, c);
-      Future<String> frontImg(String what, double wMm, double hMm, List<FrontCell>? cs, {String? opening}) async {
+      Future<String> frontImg(String what, double wMm, double hMm, List<FrontCell>? cs, {String? opening, bool? handleTop}) async {
         final key = 'front|${m.id}|$what|${wMm.round()}x${hMm.round()}|${fr.id}|${style.handle}|${style.handleId}|${style.handleSize}|'
-            '${style.handleFinish}|${style.tallXxl}|${opening ?? c.opening}|${c.variant}|${apps.join(',')}|${carcass.id}|${fr.textured}';
+            '${style.handleFinish}|${style.tallXxl}|${opening ?? c.opening}|${c.variant}|${apps.join(',')}|${carcass.id}|${fr.textured}|$handleTop';
         final img = await _image(key, wMm, hMm, (cv) {
           paintFront(cv, Rect.fromLTWH(0, 0, wMm, hMm), m,
               fill: fr.color,
@@ -223,7 +223,8 @@ class SceneExporter {
               pxPerMm: 1,
               appliances: apps,
               carcass: carcass.color,
-              gloss: fr.gloss);
+              gloss: fr.gloss,
+              handleTop: handleTop);
         });
         return img.key;
       }
@@ -268,6 +269,14 @@ class SceneExporter {
             for (final (ls, lw, hinge) in halves) {
               final single = FrontCell(cell.kind == CellKind.door2 ? CellKind.door : cell.kind, 0, h, hinge, cell.index);
               final m2 = m.id == 'base_integrated_dishwasher_door' ? null : [single];
+              // Hauteur de poignée ergonomique :
+              // - Sur meuble haut : poignée en bas (handleTop = false)
+              // - Sur meuble bas : poignée en haut (handleTop = true)
+              // - Sur colonne (tall) :
+              //   * Porte du haut (au-dessus de 1100 mm) : poignée en bas de cette porte (handleTop = false)
+              //   * Porte du bas (en dessous de 1100 mm) : poignée en haut de cette porte (handleTop = true)
+              //   * Porte unique pleine hauteur : poignée à hauteur ergonomique 1050 mm
+              final isLower = m.kind == CabinetKind.tall ? (cell.y + cell.h / 2 > height * 0.45) : !m.kind.isHigh;
               parts.add({
                 'kind': kind,
                 'hinge': hinge,
@@ -275,7 +284,7 @@ class SceneExporter {
                 's1': ls + lw,
                 'z0': zTop - h,
                 'z1': zTop,
-                'img': await frontImg('${cell.kind.name}-$hinge', lw, h, m2, opening: hinge == 'left' ? 'hinged_left' : 'hinged_right'),
+                'img': await frontImg('${cell.kind.name}-$hinge', lw, h, m2, opening: hinge == 'left' ? 'hinged_left' : 'hinged_right', handleTop: isLower),
                 if (kind != 'static') 'inside': await interiorImg(cell, lw, h),
                 if (kind != 'static') 'insideT': 19.0,
               });
@@ -348,46 +357,111 @@ class SceneExporter {
         solids.add({..._box(box(a, b, 0, 540, 0, std.plinthHeight.toDouble())), 'mat': plinthMat});
       }
     }
-    // appareils visibles : plaque, évier et robinet, hotte
+    // appareils visibles : plaque, évier et robinet, four, hotte
     final steel = _plain(const Color(0xFFC4C8CC), rough: 0.35, metal: 0.35);
+    final kitchenFixtures = <Map<String, dynamic>>[];
+
+    // Détection automatique et robuste du caisson évier et du caisson plaque dans la cuisine
+    PlacedCabinet? designatedSink;
+    PlacedCabinet? designatedHob;
+    if (e.kitchen) {
+      designatedSink = p.items.where((c) {
+        final m = e.modelOf(c);
+        return m.id.contains('sink') || m.id.contains('evier') || e.isWashing(m) ||
+            (c.appliances?.any((a) => a.contains('sink')) ?? false);
+      }).firstOrNull;
+      designatedSink ??= p.items.where((c) {
+        final m = e.modelOf(c);
+        final isCook = m.id == 'base_cooktop_oven' || m.id == 'base_oven_built_in' || e.isCooking(m) || m.id.contains('cooktop');
+        return m.kind.isLow && m.isCarcass && !m.kind.isCorner && !isCook && c.width >= 600;
+      }).firstOrNull;
+
+      designatedHob = p.items.where((c) {
+        final m = e.modelOf(c);
+        return m.id == 'base_cooktop_oven' || (c.appliances?.any((a) => a.contains('cooktop')) ?? false);
+      }).firstOrNull;
+      designatedHob ??= p.items.where((c) {
+        final m = e.modelOf(c);
+        return (m.id == 'base_oven_built_in' || m.id.contains('oven')) && m.kind.isLow;
+      }).firstOrNull;
+    }
+
     for (final c in p.items) {
       final m = e.modelOf(c);
       final w = room.wall(c.wallId);
       final topZ = std.worktopTop.toDouble();
-      Box3 at(double s0, double width, double t0, double t1, double z, double h) {
-        final (ax, ay) = w.toPlan(s0, t0);
-        final (bx, by) = w.toPlan(s0 + width, t1);
-        return Box3(math.min(ax, bx), math.min(ay, by), z, math.max(ax, bx), math.max(ay, by), z + h);
-      }
-
       const wd = worktopDepth * 1.0;
-      if (m.id == 'base_cooktop_oven') {
-        final hd = c.width >= 750 ? 520.0 : 510.0;
-        final t0 = (wd - hd) / 2;
-        final b = at(c.s + 30, c.width - 60.0, t0, t0 + hd, topZ, 6);
-        solids.add({..._box(b), 'mat': _plain(const Color(0xFF17181A), rough: 0.15)});
-        final img = await _image('top|hob|${(b.x1 - b.x0).round()}x${(b.y1 - b.y0).round()}', b.x1 - b.x0, b.y1 - b.y0,
-            (cv) => paintTopDecor(cv, Rect.fromLTWH(0, 0, b.x1 - b.x0, b.y1 - b.y0), 'hob', const Color(0xFF1F2124)));
-        tops.add({..._box(b), 'img': img.key});
-      } else if (m.id == 'base_sink') {
+      final isCookBase = (c == designatedHob) || m.id == 'base_cooktop_oven' || m.id == 'base_oven_built_in' || (e.isCooking(m) && m.kind.isLow) || m.id.contains('cooktop') || (c.appliances?.any((a) => a.contains('cooktop')) ?? false);
+      final isSinkBase = (c == designatedSink) || m.id == 'base_sink' || e.isWashing(m) || m.id.contains('sink') || m.id.contains('evier') || (c.appliances?.any((a) => a.contains('sink')) ?? false);
+      final isHoodUnit = m.id == 'wall_integrated_hood' || m.id.contains('hood') || m.id.contains('hotte');
+
+      if (isCookBase) {
+        final hasHob = !m.id.contains('sans_plaque');
+        if (hasHob) {
+          final hw = style.hobWidth > 0
+              ? style.hobWidth.toDouble() * 10
+              : (c.width >= 800 ? (c.width >= 900 ? 880.0 : 770.0) : 590.0);
+          final hd = 515.0;
+          final (cx, cy) = w.toPlan(c.s + c.width / 2, wd / 2);
+          kitchenFixtures.add({
+            'uid': 'hob:${c.uid}',
+            'pick': 'item:${c.uid}',
+            'kind': 'fixture',
+            'type': 'kitchen_hob',
+            'x': cx, 'y': cy, 'z': topZ,
+            'rot': w.rot,
+            'w': hw, 'd': hd, 'h': 40.0,
+            'hobType': style.hobType,
+          });
+        }
+        // Four encastrable
+        final (ox, oy) = w.toPlan(c.s + c.width / 2, c.depth.toDouble());
+        kitchenFixtures.add({
+          'uid': 'oven:${c.uid}',
+          'pick': 'item:${c.uid}',
+          'kind': 'fixture',
+          'type': 'kitchen_oven',
+          'x': ox, 'y': oy, 'z': std.plinthHeight.toDouble() + c.height * 0.28,
+          'rot': w.rot,
+          'w': c.width.toDouble() - 4, 'd': 550.0, 'h': 595.0,
+          'finish': style.ovenFinish,
+        });
+      } else if (isSinkBase) {
         final sk = KitchenFixtures.sink(style.sink), fc = KitchenFixtures.faucet(style.faucet);
-        final bw = math.min(c.width - 60.0, sk.length.toDouble());
-        final sd = math.min(sk.depth.toDouble(), wd - 110);
-        const front = 70.0;
-        final t0 = wd - front - sd;
-        final b = at(c.s + (c.width - bw) / 2, bw, t0, t0 + sd, topZ, 4);
-        final img = await _image('top|sink-${sk.layout}|${(b.x1 - b.x0).round()}x${(b.y1 - b.y0).round()}', b.x1 - b.x0, b.y1 - b.y0,
-            (cv) => paintTopDecor(cv, Rect.fromLTWH(0, 0, b.x1 - b.x0, b.y1 - b.y0), 'sink:${sk.layout}', const Color(0xFFBFC5CA)));
-        solids.add({..._box(b), 'mat': steel});
-        tops.add({..._box(b), 'img': img.key});
-        // mitigeur au-dessus du bac (pas de l'égouttoir), à la hauteur du modèle
-        final mid = sk.layout == 'drainer' ? c.s + (c.width - bw) / 2 + bw * 0.28 : c.s + c.width / 2;
-        final fh = fc.height.toDouble();
-        solids.add({..._box(at(mid - 18, 36, t0 - 75, t0 - 40, topZ, fh - 30)), 'mat': steel});
-        solids.add({..._box(at(mid - 15, 30, t0 - 75, t0 + (fc.spring ? 200 : 160), topZ + fh - 60, 30)), 'mat': steel});
-        if (fc.pullout || fc.spring) solids.add({..._box(at(mid - 22, 44, t0 + 120, t0 + 175, topZ + fh - 150, 120)), 'mat': steel});
-      } else if (m.id == 'wall_integrated_hood') {
+        final bw = math.min(c.width - 40.0, sk.length.toDouble());
+        final sd = math.min(sk.depth.toDouble(), wd - 80);
+        final (cx, cy) = w.toPlan(c.s + c.width / 2, wd / 2);
+        kitchenFixtures.add({
+          'uid': 'sink:${c.uid}',
+          'pick': 'item:${c.uid}',
+          'kind': 'fixture',
+          'type': 'kitchen_sink',
+          'x': cx, 'y': cy, 'z': topZ,
+          'rot': w.rot,
+          'w': bw, 'd': sd, 'h': 200.0,
+          'mount': style.sinkMount,
+          'layout': sk.layout,
+          'sinkFinish': style.sinkFinish,
+          'faucet': fc.id,
+          'faucetFinish': style.faucetFinish,
+          'faucetHeight': fc.height.toDouble(),
+          'spring': fc.spring,
+          'pullout': fc.pullout,
+          'swan': fc.swan,
+          'square': fc.square,
+        });
+      } else if (isHoodUnit) {
         solids.add({..._box(w.strip(c.s + 40, c.width - 80.0, 480, c.z - 70, 70)), 'mat': steel});
+        final (hx, hy) = w.toPlan(c.s + c.width / 2, c.depth / 2);
+        kitchenFixtures.add({
+          'uid': 'hood:${c.uid}',
+          'pick': 'item:${c.uid}',
+          'kind': 'fixture',
+          'type': 'kitchen_hood',
+          'x': hx, 'y': hy, 'z': c.z.toDouble(),
+          'rot': w.rot,
+          'w': c.width.toDouble(), 'd': c.depth.toDouble(), 'h': c.height.toDouble(),
+        });
       }
     }
 
@@ -463,6 +537,7 @@ class SceneExporter {
               };
             }(),
       ],
+      'kitchenFixtures': kitchenFixtures,
       // points de réseau (prises, interrupteurs, sorties, arrivées d'eau…) : plaques et appareils sur les murs
       'netPoints': !p.networks
           ? const []
@@ -491,6 +566,7 @@ class SceneExporter {
       },
       'yaw': st.yaw,
       'zoom': st.zoom,
+      'cam': st.camera3d,
       'editable': st.step == PlanStep.layout || st.step == PlanStep.style,
     };
   }

@@ -944,7 +944,7 @@ class LayoutEngine {
       final before = project.items.length;
       try {
         final c = add(id, wall, s: s, width: width);
-        if ((c.s - s).abs() > 1) {
+        if ((c.s - s).abs() > std.snapTolerance + 1) {
           remove(c.uid); // déplacé par le moteur : pas la place voulue
           return false;
         }
@@ -1133,7 +1133,7 @@ class LayoutEngine {
       try {
         final h = add('wall_integrated_hood', wallId,
             s: hob.s, width: math.min(hob.width, 600));
-        if ((h.s - hob.s).abs() > 1) {
+        if (!_overlapS(h, hob) || (h.s - hob.s).abs() > std.snapTolerance + 1) {
           remove(h.uid);
         } else {
           count++;
@@ -1527,9 +1527,9 @@ class LayoutEngine {
   /// Bornes du triangle d'activité (mm) : chaque côté et le périmètre.
   static const triangleLegMin = 1200, triangleLegMax = 2700, trianglePerimeterMin = 4000, trianglePerimeterMax = 7900;
 
-  bool isWashing(CabinetModel m) => m.id == 'base_sink' || m.zone == 'wash';
-  bool isCooking(CabinetModel m) => m.id == 'base_cooktop_oven' || m.zone == 'cook';
-  bool isCooling(CabinetModel m) => m.id == 'tall_integrated_fridge' || m.zone == 'cool';
+  bool isWashing(CabinetModel m) => m.id.startsWith('base_sink') || m.id.contains('sink') || m.id.contains('evier') || m.zone == 'wash';
+  bool isCooking(CabinetModel m) => m.id.startsWith('base_cooktop') || m.id.contains('cooktop') || m.id.contains('oven') || m.zone == 'cook';
+  bool isCooling(CabinetModel m) => m.id.contains('fridge') || m.id.contains('refrigerateur') || m.zone == 'cool';
 
   /// Point de travail d'un élément : milieu de sa façade, au sol (vue de dessus).
   (double, double) workPoint(PlacedCabinet c) {

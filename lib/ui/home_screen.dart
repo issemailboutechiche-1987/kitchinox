@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 
 import 'app_state.dart';
 import 'art_page.dart';
+import 'brands_ui.dart';
 import 'furniture_page.dart';
 import 'logo.dart';
 import 'manual_cut_page.dart';
+import 'saved_projects_dialog.dart';
 import 'theme.dart';
 import 'i18n.dart';
 
@@ -15,7 +17,18 @@ class HomeScreen extends StatefulWidget {
   final AppState state;
   final VoidCallback onKitchen;
   final void Function(String universe)? onUniverse; // dressing, bain, tv, interieur : même planificateur
-  const HomeScreen({super.key, required this.state, required this.onKitchen, this.onUniverse});
+  final VoidCallback? onSettings;
+  final ThemeMode? themeMode;
+  final ValueChanged<ThemeMode>? onThemeMode;
+  const HomeScreen({
+    super.key,
+    required this.state,
+    required this.onKitchen,
+    this.onUniverse,
+    this.onSettings,
+    this.themeMode,
+    this.onThemeMode,
+  });
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -52,8 +65,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       (Icons.wc_outlined, 'Salle de bain et WC', 'Meubles vasque, colonnes, armoires miroir, dessus WC', () => widget.onUniverse != null ? widget.onUniverse!('bain') : openFurniture(context, widget.state, 'bain')),
       (Icons.tv_outlined, 'Meuble TV', 'Bancs TV, colonnes, ponts, panneaux muraux, cheminée', () => widget.onUniverse != null ? widget.onUniverse!('tv') : openFurniture(context, widget.state, 'tv')),
       (Icons.weekend_outlined, 'Intérieur', 'Entrée, bibliothèque, bureau, chambre, claustras', () => widget.onUniverse != null ? widget.onUniverse!('interieur') : openFurniture(context, widget.state, 'interieur')),
+      (Icons.local_laundry_service_outlined, 'Buanderie', 'Lave-linge, sèche-linge, colonnes, bac à laver et tri sélectif', () => widget.onUniverse != null ? widget.onUniverse!('buanderie') : openFurniture(context, widget.state, 'buanderie')),
       (Icons.palette_outlined, 'Art', 'Création libre : dessinez vos meubles, 3D et débit', () => openArt(context, widget.state)),
       (Icons.content_cut, 'Débitage', 'Débit manuel, fichiers SketchCut (.sct) ou kitchinox', () => openManualCut(context, widget.state, offerOpen: true)),
+      (Icons.sell_outlined, 'Marques et tarifs', 'Catalogues quincaillerie, panneaux et prix fournisseurs', () => showBrandsDialog(context, widget.state, (m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m))))),
+      (Icons.folder_special_outlined, 'Projets enregistrés', 'Consultez, ouvrez et dupliquez vos conceptions horodatées', () => showSavedProjectsDialog(context, widget.state, onOpenProject: (universe, proj) {
+        widget.state.project = proj;
+        widget.state.refresh();
+        if (universe == 'cuisine') {
+          widget.onKitchen();
+        } else if (widget.onUniverse != null) {
+          widget.onUniverse!(universe);
+        } else {
+          openFurniture(context, widget.state, universe);
+        }
+      })),
     ];
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -68,6 +94,47 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             final size = big + (small - big) * shrink;
             final top = (box.maxHeight - big) / 2 + ((box.maxHeight * 0.06) - (box.maxHeight - big) / 2) * shrink;
             return Stack(children: [
+              Positioned(
+                top: Tokens.s3,
+                right: Tokens.s3,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.onThemeMode != null && widget.themeMode != null)
+                      IconButton(
+                        tooltip: tr(widget.themeMode == ThemeMode.dark ? 'Thème clair' : 'Thème sombre'),
+                        icon: Icon(widget.themeMode == ThemeMode.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+                        onPressed: () => widget.onThemeMode!(widget.themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark),
+                      ),
+                    IconButton(
+                      tooltip: tr('Projets enregistrés'),
+                      icon: const Icon(Icons.folder_special_outlined),
+                      onPressed: () => showSavedProjectsDialog(context, widget.state, onOpenProject: (universe, proj) {
+                        widget.state.project = proj;
+                        widget.state.refresh();
+                        if (universe == 'cuisine') {
+                          widget.onKitchen();
+                        } else if (widget.onUniverse != null) {
+                          widget.onUniverse!(universe);
+                        } else {
+                          openFurniture(context, widget.state, universe);
+                        }
+                      }),
+                    ),
+                    IconButton(
+                      tooltip: tr('Marques et tarifs'),
+                      icon: const Icon(Icons.sell_outlined),
+                      onPressed: () => showBrandsDialog(context, widget.state, (m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)))),
+                    ),
+                    if (widget.onSettings != null)
+                      IconButton(
+                        tooltip: tr('Paramètres'),
+                        icon: const Icon(Icons.settings_outlined),
+                        onPressed: widget.onSettings,
+                      ),
+                  ],
+                ),
+              ),
               Positioned(
                 left: (box.maxWidth - size) / 2,
                 top: top,

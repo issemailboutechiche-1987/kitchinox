@@ -8,8 +8,16 @@ Future<void> showReplaceDialog(BuildContext context, AppState state, PlacedCabin
   final models = state.engine.replacementsFor(item);
   final current = state.engine.modelOf(item);
   final f = frontOfItem(state.project.style, item, current);
+  final isSinkCurrent = current.id.contains('sink') || state.engine.isWashing(current);
   final byCat = <String, List<CabinetModel>>{};
+  if (isSinkCurrent) {
+    final sinkModels = models.where((m) => m.id.contains('sink') || state.engine.isWashing(m)).toList();
+    if (sinkModels.isNotEmpty) {
+      byCat['Sous-évier & Lavage'] = sinkModels;
+    }
+  }
   for (final m in models) {
+    if (isSinkCurrent && (m.id.contains('sink') || state.engine.isWashing(m))) continue;
     byCat.putIfAbsent(m.categoryName, () => []).add(m);
   }
   final chosen = await showDialog<String>(
@@ -74,7 +82,27 @@ Future<void> showReplaceDialog(BuildContext context, AppState state, PlacedCabin
     },
   );
   if (chosen == null) return;
+  final hadSink = state.engine.isWashing(current) || current.id.contains('sink') || (item.appliances?.any((a) => a.contains('sink')) ?? false);
+  final hadHob = state.engine.isCooking(current) || current.id.contains('cooktop') || (item.appliances?.any((a) => a.contains('cooktop')) ?? false);
   final err = state.replaceItem(item.uid, chosen);
+  if (err == null) {
+    final newItem = state.project.byUid(item.uid);
+    if (newItem != null) {
+      final newM = state.catalog[chosen];
+      if (hadSink && !newM.id.contains('sink')) {
+        // Conserve l'évier sur ce nouveau caisson pour qu'il reste sur le plan
+        final apps = [...(newItem.appliances ?? defaultAppliances(newM, newItem))];
+        if (!apps.any((a) => a.contains('sink'))) apps.add('sink_1_bowl_drainer');
+        newItem.appliances = apps;
+      }
+      if (hadHob && !newM.id.contains('cooktop') && !newM.id.contains('oven')) {
+        // Conserve la plaque de cuisson sur ce nouveau caisson
+        final apps = [...(newItem.appliances ?? defaultAppliances(newM, newItem))];
+        if (!apps.any((a) => a.contains('cooktop'))) apps.add('cooktop_4_burners_60');
+        newItem.appliances = apps;
+      }
+    }
+  }
   onMessage(err ?? trp('{0} remplacé par {1}', [tr(current.name), tr(state.catalog[chosen].name)]));
 }
 

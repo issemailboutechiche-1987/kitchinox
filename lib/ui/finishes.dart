@@ -81,16 +81,24 @@ const floors = [
   Finish('terrazzo_sol', 'Terrazzo', Color(0xFFE5DED3), tex: 'terrazzo', tile: 1000),
 ];
 
-/// Murs : peintures, briques, béton.
+/// Murs : peintures intérieures, papier peint, carrelage, briques, béton.
 const walls = [
   Finish('blanc_casse', 'Blanc cassé', Color(0xFFF1EFEA)),
   Finish('gris_perle', 'Gris perle', Color(0xFFD9D9D6)),
   Finish('beige_sable', 'Beige sable', Color(0xFFE6D8C3)),
+  Finish('lin_naturel', 'Lin naturel', Color(0xFFDDD4C5)),
   Finish('vert_sauge_mur', 'Vert sauge', Color(0xFFB7C4AA)),
-  Finish('terracotta_mur', 'Terracotta', Color(0xFFD49A7C)),
+  Finish('vert_foret', 'Vert forêt', Color(0xFF2C4A3E)),
   Finish('bleu_ciel', 'Bleu ciel', Color(0xFFC9DCE6)),
-  Finish('brique', 'Brique', Color(0xFFA5533A), tex: 'brick', tile: 900),
-  Finish('beton_mur', 'Béton', Color(0xFF9FA09C), tex: 'concrete', tile: 2000),
+  Finish('bleu_canard', 'Bleu canard', Color(0xFF144D58)),
+  Finish('terracotta_mur', 'Terracotta', Color(0xFFD49A7C)),
+  Finish('rose_poudre', 'Rose poudré', Color(0xFFE8CBC4)),
+  Finish('anthracite_mur', 'Gris anthracite', Color(0xFF383C40)),
+  Finish('brique', 'Brique rouge', Color(0xFFA5533A), tex: 'brick', tile: 900),
+  Finish('beton_mur', 'Béton ciré mural', Color(0xFF9FA09C), tex: 'concrete', tile: 2000),
+  Finish('carrelage_faience', 'Faïence blanche brillante', Color(0xFFF5F6F8), tex: 'subway', tile: 600),
+  Finish('carrelage_marbre_mur', 'Carrelage Marbre mural', Color(0xFFEBE8E3), tex: 'marble_white', tile: 1200),
+  Finish('zellige_mural', 'Zellige artisanal', Color(0xFF2E6B57), tex: 'zellige_green', tile: 500),
 ];
 
 /// Crédences : carreaux métro, zellige, carreaux de ciment, marbre, inox, brique.

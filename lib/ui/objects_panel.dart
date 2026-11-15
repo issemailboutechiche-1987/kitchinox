@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../engine/engine.dart';
 import 'app_state.dart';
 import 'theme.dart';
-import 'web_io.dart' show nativeIoEnabled;
+import 'web_io.dart';
 import 'i18n.dart';
 
 class ObjectsPanel extends StatefulWidget {
@@ -17,30 +17,104 @@ class ObjectsPanel extends StatefulWidget {
 }
 
 class _ObjectsPanelState extends State<ObjectsPanel> {
-  String cat = 'Sanitaires';
+  static const Map<String, List<String>> _universeCats = {
+    'dressing': ['Chambre', 'Décoration', 'Éclairage', 'Importés'],
+    'cuisine': ['Électroménager', 'Repas', 'Décoration', 'Éclairage', 'Importés'],
+    'bain': ['Sanitaires', 'Salle de bain', 'Éclairage', 'Décoration', 'Importés'],
+    'buanderie': ['Électroménager', 'Sanitaires', 'Décoration', 'Éclairage', 'Importés'],
+    'tv': ['Salon', 'Décoration', 'Éclairage', 'Importés'],
+    'interieur': ['Tous', 'Salon', 'Repas', 'Bureau', 'Chambre', 'Décoration', 'Éclairage', 'Sanitaires', 'Importés'],
+  };
+
+  String? cat;
   String query = '';
+
+  Future<void> _importObject() async {
+    final f = await pickFile(accept: '.glb,.gltf,.obj,.3ds');
+    if (f == null) return;
+    try {
+      final safeName = f.name.replaceAll(RegExp(r'\.(glb|gltf|obj|3ds)$', caseSensitive: false), '');
+      final objId = 'custom_${DateTime.now().millisecondsSinceEpoch}';
+      final path = 'imported/${f.name}';
+      saveImportedAsset(f.name, f.bytes);
+
+      final newObj = CatalogObject(
+        objId,
+        safeName,
+        'Importés',
+        path,
+        'objects/polyhaven/thumbs/sofa_02.png',
+        600,
+        800,
+        600,
+        false,
+        source: 'import',
+      );
+
+      widget.state.objectCatalog.add(newObj);
+      setState(() => cat = 'Importés');
+      widget.onMessage(trp('Modèle 3D {0} importé avec succès', [f.name]));
+      widget.state.addObject(objId);
+    } catch (e) {
+      widget.onMessage(trp('Erreur d\'import : {0}', [e]));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final st = widget.state;
     final t = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
+    final universe = st.project.universe;
+    final allowedCats = _universeCats[universe] ?? ['Salon', 'Repas', 'Bureau', 'Chambre', 'Décoration', 'Éclairage'];
     final visible = st.objectCatalog.where((o) => !o.hidden).toList();
-    final cats = ['Sanitaires', ...{for (final o in visible) o.category}];
+    final hasImported = visible.any((o) => o.category == 'Importés');
+
+    // Pour bain uniquement : Sanitaires est inclus en premier. Pour les autres univers : catégories de l'univers uniquement.
+    final cats = [
+      if (universe == 'bain') 'Sanitaires',
+      for (final c in allowedCats)
+        if (c != 'Sanitaires' && (visible.any((o) => o.category == c) || c == allowedCats.first)) c,
+      if (hasImported) 'Importés',
+    ];
+
+    if (cat == null || !cats.contains(cat)) {
+      cat = cats.isNotEmpty ? cats.first : 'Décoration';
+    }
+
     final q = query.toLowerCase();
-    final fixtures = cat == 'Sanitaires' ? fixtureTypes.where((f) => q.isEmpty || f.name.toLowerCase().contains(q)).toList() : <FixtureType>[];
-    final objs = visible.where((o) => (cat == 'Sanitaires' ? o.category == 'Salle de bain' : o.category == cat) && (q.isEmpty || o.name.toLowerCase().contains(q))).toList();
+    final currentCat = cat!;
+    final fixtures = ((currentCat == 'Sanitaires' || currentCat == 'Tous') && (universe == 'bain' || universe == 'interieur'))
+        ? fixtureTypes.where((f) => q.isEmpty || f.name.toLowerCase().contains(q) || tr(f.name).toLowerCase().contains(q)).toList()
+        : <FixtureType>[];
+    final objs = visible.where((o) {
+      if (currentCat == 'Tous') {
+        return q.isEmpty || o.name.toLowerCase().contains(q) || tr(o.name).toLowerCase().contains(q);
+      }
+      if (currentCat == 'Sanitaires') {
+        return o.category == 'Salle de bain' && (q.isEmpty || o.name.toLowerCase().contains(q) || tr(o.name).toLowerCase().contains(q));
+      }
+      return o.category == currentCat && (q.isEmpty || o.name.toLowerCase().contains(q) || tr(o.name).toLowerCase().contains(q));
+    }).toList();
+
     Widget tile({required Widget icon, required String name, required String dims, required VoidCallback onTap}) => Card(
           margin: EdgeInsets.zero,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+          ),
           child: InkWell(
+            borderRadius: BorderRadius.circular(10),
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.all(Tokens.s2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
               child: Column(children: [
                 Expanded(child: Center(child: FittedBox(child: icon))),
                 const SizedBox(height: 4),
                 Text(name, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
-                Text(dims, style: t.labelSmall),
+                const SizedBox(height: 2),
+                Text(dims, style: t.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
               ]),
             ),
           ),
@@ -57,13 +131,23 @@ class _ObjectsPanelState extends State<ObjectsPanel> {
           padding: const EdgeInsets.fromLTRB(Tokens.s4, Tokens.s3, Tokens.s2, 0),
           child: Row(children: [
             Expanded(child: Text(tr('Objets'), style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800))),
+            IconButton(
+              tooltip: tr('Importer un objet 3D (.glb, .obj, .3ds)'),
+              icon: const Icon(Icons.file_upload_outlined),
+              onPressed: _importObject,
+            ),
             IconButton(tooltip: tr('Fermer'), onPressed: () => st.openObjects(false), icon: const Icon(Icons.close)),
           ]),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: Tokens.s4),
           child: TextField(
-            decoration: InputDecoration(prefixIcon: Icon(Icons.search), hintText: tr('Rechercher (WC, canapé, lampe…)'), isDense: true, border: OutlineInputBorder()),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: tr('Rechercher…'),
+              isDense: true,
+              border: const OutlineInputBorder(),
+            ),
             onChanged: (v) => setState(() => query = v),
           ),
         ),
@@ -74,34 +158,51 @@ class _ObjectsPanelState extends State<ObjectsPanel> {
             for (final c in cats)
               Padding(
                 padding: const EdgeInsets.only(right: 6),
-                child: ChoiceChip(label: Text(c), selected: cat == c, onSelected: (_) => setState(() => cat = c)),
+                child: ChoiceChip(
+                  label: Text(tr(c)),
+                  selected: currentCat == c,
+                  onSelected: (_) => setState(() => cat = c),
+                ),
               ),
           ]),
         ),
         Expanded(
-          child: GridView.extent(
-            padding: const EdgeInsets.all(Tokens.s3),
-            maxCrossAxisExtent: 160,
-            mainAxisSpacing: Tokens.s2,
-            crossAxisSpacing: Tokens.s2,
-            childAspectRatio: 0.85,
-            children: [
-              for (final f in fixtures)
-                tile(
-                  icon: SizedBox(width: 64, height: 64, child: CustomPaint(painter: FixtureIcon(f.id))),
-                  name: f.name,
-                  dims: f.sizes.map((s) => '${s.$1}×${s.$2}').take(2).join(' · '),
-                  onTap: () => add('fixture:${f.id}'),
+          child: (fixtures.isEmpty && objs.isEmpty)
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Tokens.s4),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.search_off_outlined, size: 48, color: scheme.outline),
+                      const SizedBox(height: Tokens.s2),
+                      Text(tr('Aucun objet trouvé'), style: t.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                    ]),
+                  ),
+                )
+              : GridView.extent(
+                  padding: const EdgeInsets.all(Tokens.s3),
+                  maxCrossAxisExtent: 160,
+                  mainAxisSpacing: Tokens.s2,
+                  crossAxisSpacing: Tokens.s2,
+                  childAspectRatio: 0.78,
+                  children: [
+                    for (final f in fixtures)
+                      tile(
+                        icon: SizedBox(width: 64, height: 64, child: CustomPaint(painter: FixtureIcon(f.id))),
+                        name: tr(f.name),
+                        dims: f.sizes.map((s) => '${s.$1}×${s.$2}').take(2).join(' · '),
+                        onTap: () => add('fixture:${f.id}'),
+                      ),
+                    for (final o in objs)
+                      tile(
+                        icon: (nativeIoEnabled
+                            ? Image.asset('web/${o.thumb}', height: 66, fit: BoxFit.contain, errorBuilder: (_, _, _) => Icon(Icons.chair_outlined, size: 40, color: scheme.outline))
+                            : Image.network(o.thumb, height: 66, fit: BoxFit.contain, errorBuilder: (_, _, _) => Icon(Icons.chair_outlined, size: 40, color: scheme.outline))),
+                        name: tr(o.name),
+                        dims: '${o.w}×${o.d} · H${o.h}',
+                        onTap: () => add(o.id),
+                      ),
+                  ],
                 ),
-              for (final o in objs)
-                tile(
-                  icon: (nativeIoEnabled ? Image.asset('web/${o.thumb}', height: 66, fit: BoxFit.contain, errorBuilder: (_, _, _) => Icon(Icons.chair_outlined, size: 40, color: scheme.outline)) : Image.network(o.thumb, height: 66, fit: BoxFit.contain, errorBuilder: (_, _, _) => Icon(Icons.chair_outlined, size: 40, color: scheme.outline))),
-                  name: o.name,
-                  dims: '${o.w}×${o.d} · H${o.h}',
-                  onTap: () => add(o.id),
-                ),
-            ],
-          ),
         ),
         Padding(
           padding: const EdgeInsets.all(Tokens.s3),

@@ -11,7 +11,13 @@ class SinkModel {
   const SinkModel(this.id, this.name, this.length, this.depth, this.height, this.mounting);
 
   /// Disposition dessinée : bac + égouttoir, deux bacs, ou un bac.
-  String get layout => id.contains('drainer') ? 'drainer' : (id.contains('2_bowls') ? '2' : 'compact');
+  String get layout => id.contains('2_bowls_drainer')
+      ? '2_drainer'
+      : (id.contains('drainer')
+          ? 'drainer'
+          : (id.contains('2_bowls')
+              ? '2'
+              : 'compact'));
 }
 
 class FaucetModel {
@@ -20,6 +26,8 @@ class FaucetModel {
   const FaucetModel(this.id, this.name, this.height, this.hole);
   bool get pullout => id.contains('pullout');
   bool get spring => id.contains('spring');
+  bool get swan => id.contains('swan');
+  bool get square => id.contains('square');
 }
 
 class KitchenFixtures {
@@ -27,8 +35,8 @@ class KitchenFixtures {
   static final List<FaucetModel> faucets = [];
   static final List<String> brands = []; // appareillage électrique courant au Maroc
 
-  static const defaultSink = SinkModel('sink_1_bowl_drainer', 'Évier 1 bac avec égouttoir', 860, 500, 200, ['inset', 'undermount']);
-  static const defaultFaucet = FaucetModel('faucet_mixer_standard', 'Mitigeur cuisine standard (bec orientable)', 350, 35);
+  static const defaultSink = SinkModel('sink_1_bowl_drainer', 'Évier 1 Bac avec Égouttoir 86cm', 860, 500, 200, ['inset', 'undermount']);
+  static const defaultFaucet = FaucetModel('faucet_mixer_swan', 'Mitigeur Col de Cygne Épuré', 360, 35);
 
   static void parse(String src) {
     final j = jsonDecode(src) as Map<String, dynamic>;

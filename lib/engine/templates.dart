@@ -71,17 +71,17 @@ const kitchenTemplates = <KitchenTemplate>[
   KitchenTemplate(
       id: 'tetouan', name: 'Tétouan', family: 'Blanches',
       description: 'Blanc mat sans poignée, plan quartz, bas tout en tiroirs : épurée, rangements cachés.',
-      shapes: {'l', 'li', 'u'}, fill: 'tiroirs', front: 'blanc_mat', worktop: 'quartz_blanc', handle: 'gola',
+      shapes: {'l', 'lin', 'li', 'u'}, fill: 'tiroirs', front: 'blanc_mat', worktop: 'quartz_blanc', handle: 'gola',
       floor: 'beton_cire', splash: null),
   KitchenTemplate(
       id: 'saidia', name: 'Saïdia', family: 'Blanches',
       description: 'Blanc brillant laqué, plan granit noir en contraste, grands volumes de rangement.',
-      shapes: {'u', 'l', 'p'}, fill: 'tiroirs', front: 'blanc_brillant', worktop: 'granit_noir', handle: 'edgeFull',
+      shapes: {'u', 'l', 'lin', 'p'}, fill: 'tiroirs', front: 'blanc_brillant', worktop: 'granit_noir', handle: 'edgeFull',
       handleId: 'edge_pull_full_width_bar', handleFinish: 'Alu anodisé brossé', floor: 'carrelage_blanc', splash: 'inox_cred'),
   KitchenTemplate(
       id: 'rabat', name: 'Rabat', family: 'Blanches',
       description: 'Ouverte sur la vie de famille : îlot avec coin repas, blanc et marbre.',
-      shapes: {'li', 'lini'}, fill: 'mixte', front: 'blanc_mat', frontLower: 'blanc_mat', worktop: 'marbre',
+      shapes: {'li', 'lini', 'l', 'lin'}, fill: 'mixte', front: 'blanc_mat', frontLower: 'blanc_mat', worktop: 'marbre',
       handle: 'bar', handleId: 'handle_d_pull_flat', handleFinish: 'Noir mat', floor: 'parquet_chene', splash: 'metro_blanc'),
   KitchenTemplate(
       id: 'essaouira', name: 'Essaouira', family: 'Blanches',
@@ -92,18 +92,18 @@ const kitchenTemplates = <KitchenTemplate>[
   KitchenTemplate(
       id: 'tanger', name: 'Tanger', family: 'Blanches',
       description: 'Traditionnelle chaleureuse : façades blanches, vitrines aux extrémités, plan bois.',
-      shapes: {'u', 'l'}, fill: 'portes', uppers: Uppers.glassEnds, front: 'blanc_mat', worktop: 'marbre',
+      shapes: {'u', 'l', 'lin'}, fill: 'portes', uppers: Uppers.glassEnds, front: 'blanc_mat', worktop: 'marbre',
       handle: 'cup', handleId: 'cup_handle_shell_shaker', handleFinish: 'Noir vieilli', floor: 'tomettes', splash: 'metro_blanc'),
   // ---------------------------------------------------------------- bois
   KitchenTemplate(
       id: 'atlas', name: 'Atlas', family: 'Bois',
       description: 'Chêne naturel, plan céramique effet béton, îlot pour se retrouver.',
-      shapes: {'li', 'lini', 'l'}, fill: 'tiroirs', front: 'chene', worktop: 'beton', handle: 'gola',
+      shapes: {'li', 'lini', 'l', 'lin'}, fill: 'tiroirs', front: 'chene', worktop: 'beton', handle: 'gola',
       floor: 'beton_cire', splash: null),
   KitchenTemplate(
       id: 'ifrane', name: 'Ifrane', family: 'Bois',
       description: 'Esprit chalet scandinave : chêne clair, boutons, étagères ouvertes, plan quartz.',
-      shapes: {'l', 'u'}, fill: 'mixte', uppers: Uppers.open, front: 'chene_clair', worktop: 'quartz_blanc', handle: 'knob',
+      shapes: {'l', 'lin', 'u'}, fill: 'mixte', uppers: Uppers.open, front: 'chene_clair', worktop: 'quartz_blanc', handle: 'knob',
       handleId: 'knob_cylinder_knurled', handleFinish: 'Noir mat', floor: 'parquet_clair', splash: 'metro_blanc'),
   KitchenTemplate(
       id: 'cedre', name: 'Cèdre', family: 'Bois',
@@ -114,13 +114,13 @@ const kitchenTemplates = <KitchenTemplate>[
   KitchenTemplate(
       id: 'chef', name: 'Toubkal', family: 'Bois',
       description: 'Pour gastronome : noyer, plan granit noir, grand plan de travail en U, tiroirs à casseroles.',
-      shapes: {'u', 'p', 'li'}, fill: 'tiroirs', front: 'noyer', worktop: 'granit_noir', handle: 'bar',
+      shapes: {'u', 'p', 'li', 'lin'}, fill: 'tiroirs', front: 'noyer', worktop: 'granit_noir', handle: 'bar',
       handleId: 'handle_knurled_industrial', handleFinish: 'Noir carbone', floor: 'carrelage_gris', splash: 'inox_cred'),
   // ---------------------------------------------------------------- colorées
   KitchenTemplate(
       id: 'chefchaouen', name: 'Chefchaouen', family: 'Colorées',
       description: 'Bleu nuit sur mesure, poignées dorées, plan marbre blanc, îlot.',
-      shapes: {'li', 'lini', 'l'}, fill: 'tiroirs', front: 'bleu_nuit', worktop: 'marbre', handle: 'bar',
+      shapes: {'li', 'lini', 'l', 'lin'}, fill: 'tiroirs', front: 'bleu_nuit', worktop: 'marbre', handle: 'bar',
       handleId: 'handle_d_pull_flat', handleFinish: 'Or brossé', floor: 'carrelage_marbre', splash: 'zellige_bleu'),
   KitchenTemplate(
       id: 'oasis', name: 'Oasis', family: 'Colorées',
@@ -130,7 +130,7 @@ const kitchenTemplates = <KitchenTemplate>[
   KitchenTemplate(
       id: 'fes', name: 'Fès', family: 'Colorées',
       description: 'Vert forêt et bois, crédence en zellige vert, sol en carreaux de ciment : esprit médina.',
-      shapes: {'l', 'u'}, fill: 'mixte', front: 'vert_foret', frontUpper: 'chene', worktop: 'marbre', handle: 'bar',
+      shapes: {'l', 'lin', 'u'}, fill: 'mixte', front: 'vert_foret', frontUpper: 'chene', worktop: 'marbre', handle: 'bar',
       handleId: 'handle_tubular_t_bar', handleFinish: 'Doré / Laiton brossé', floor: 'carreaux_ciment', splash: 'zellige_vert'),
   KitchenTemplate(
       id: 'marrakech', name: 'Marrakech', family: 'Colorées',
@@ -241,6 +241,9 @@ List<(KitchenTemplate, LayoutProposal)> buildTemplates(LayoutEngine base) {
     final project = Project.fromJson(pr.project.toJson());
     final e = LayoutEngine(base.catalog, project);
     _applyUppers(e, t.uppers);
+    for (final w in project.room.walls.where((w) => w.enabled)) {
+      e.placeHoods(w.id);
+    }
     t.applyStyle(project.style);
     out.add((
       t,

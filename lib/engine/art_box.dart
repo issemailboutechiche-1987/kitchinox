@@ -331,7 +331,12 @@ class ArtBox {
     // façades
     for (final z in zones) {
       final cv = coverOf(z);
-      final fx0 = z.fx0 + gap / 2, fx1 = z.fx1 - gap / 2, fy0 = z.fy0 + gap / 2, fy1 = z.fy1 - gap / 2;
+      final colZones = zones.where((x) => x.col == z.col).toList();
+      final isBottomZone = z.row == 0;
+      final isTopZone = z.row == colZones.length - 1;
+      final fx0 = z.fx0 + gap / 2, fx1 = z.fx1 - gap / 2;
+      final fy0 = isBottomZone ? z.fy0 : z.fy0 + gap / 2;
+      final fy1 = isTopZone ? z.fy1 - gap / 2 : z.fy1 - gap / 2;
       switch (cv.type) {
         case CoverType.door:
           final double2 = cv.hinge == 'double' || (cv.hinge != 'left' && cv.hinge != 'right' && fx1 - fx0 > 600);
@@ -371,6 +376,8 @@ class ArtBox {
     switch (base) {
       case BaseType.legs:
         add('Plinthe', ArtRole.decor, 0, 0, 50, w, baseH - 3, 16, front);
+        add('Plinthe côté', ArtRole.decor, 0, 0, 50, 16, baseH - 3, cd - 100, front);
+        add('Plinthe côté', ArtRole.decor, w - 16, 0, 50, 16, baseH - 3, cd - 100, front);
       case BaseType.socle:
         add('Socle avant', ArtRole.decor, t, 0, 50, w - 2 * t, baseH, t, carcass);
         add('Socle arrière', ArtRole.decor, t, 0, cd - 80, w - 2 * t, baseH, t, carcass);
@@ -776,6 +783,18 @@ final artPresets = <ArtPreset>[
       'c1z0': ArtCover(type: CoverType.door, hinge: 'double'),
       'c0z1': ArtCover(type: CoverType.drawers, count: 1),
       'c1z1': ArtCover(type: CoverType.drawers, count: 1),
+    });
+  }),
+  ArtPreset('Colonne Buanderie', '700 x 2100 x 650, niche lave-linge / sèche-linge, tablette coulissante et placard haut.', () {
+    return ArtBox(name: 'Colonne Buanderie 700', w: 700, h: 2100, d: 650, base: BaseType.legs, baseH: 100, shelves: {
+      0: [ArtShelf(880, fixed: true), ArtShelf(1760, fixed: true)],
+    }, covers: {
+      'c0z2': ArtCover(type: CoverType.door, hinge: 'double'),
+    });
+  }),
+  ArtPreset('Meuble Sous-Bac Buanderie', '800 x 860 x 600, deux portes battantes pour bac à laver profond.', () {
+    return ArtBox(name: 'Sous-Bac 800', w: 800, h: 860, d: 600, top: TopType.stretchers, base: BaseType.legs, baseH: 100, handle: 'bar', covers: {
+      'c0z0': ArtCover(type: CoverType.door, hinge: 'double'),
     });
   }),
 ];

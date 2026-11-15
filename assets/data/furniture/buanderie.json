@@ -1,0 +1,186 @@
+{
+  "database": "morocco_laundry_utility_system",
+  "unit": "mm",
+  "currency": "MAD",
+  "mandatory_materials": [
+    "MDF Hydrofuge 18mm",
+    "Contreplaqué Marine CTBX 18mm",
+    "Compact HPL 12mm"
+  ],
+  "standard_depths": [
+    600,
+    650,
+    700
+  ],
+  "mounting_types": [
+    "floor_standing_legs",
+    "wall_hung_floating"
+  ],
+  "modules": [
+    {
+      "id": "laundry_washer_dryer_column",
+      "name": "Colonne Lave-Linge et Sèche-Linge Superposés (Niche 650 renforcée + tablette coulissante)",
+      "available_widths": [
+        650,
+        700
+      ],
+      "available_heights": [
+        2000,
+        2100,
+        2200
+      ],
+      "depth": 650,
+      "pullout_laundry_shelf": true,
+      "vibration_isolation_pads": true
+    },
+    {
+      "id": "laundry_washer_dryer_side_by_side",
+      "name": "Meuble Bas Duo Électroménager Sous Plan Continu (2 Machines)",
+      "available_widths": [
+        1300,
+        1400
+      ],
+      "available_heights": [
+        860,
+        900
+      ],
+      "depth": 650,
+      "continuous_worktop": true
+    },
+    {
+      "id": "laundry_sink_deep_basin",
+      "name": "Meuble Sous-Bac à Laver Cuve Profonde (1 ou 2 Portes)",
+      "available_widths": [
+        600,
+        800
+      ],
+      "available_heights": [
+        860,
+        900
+      ],
+      "depth": 600,
+      "water_drain_cabinet": true
+    },
+    {
+      "id": "laundry_broom_vacuum_tower",
+      "name": "Armoire Balais et Aspirateur (Niche haute 1500mm + Étagères détergents)",
+      "available_widths": [
+        450,
+        600
+      ],
+      "available_heights": [
+        2000,
+        2100,
+        2200
+      ],
+      "depth": 600
+    },
+    {
+      "id": "laundry_sorting_baskets_cabinet",
+      "name": "Meuble Bas 2 Bacs à Linge Tri Sélectif Basculants",
+      "available_widths": [
+        600,
+        800
+      ],
+      "available_heights": [
+        860,
+        900
+      ],
+      "depth": 600,
+      "tilt_out_baskets": true
+    },
+    {
+      "id": "laundry_ironing_board_drawer",
+      "name": "Meuble Bas avec Table à Repasser Escamotable Pliante en tiroir",
+      "available_widths": [
+        450,
+        600
+      ],
+      "available_heights": [
+        860,
+        900
+      ],
+      "depth": 600,
+      "fold_out_ironing": true
+    },
+    {
+      "id": "laundry_detergent_wall_unit",
+      "name": "Meuble Haut Relevable Sécurisé Produits Ménagers et Lessive",
+      "available_widths": [
+        600,
+        800,
+        1000
+      ],
+      "available_heights": [
+        400,
+        600,
+        720
+      ],
+      "depth": 350,
+      "lift_up_door": true
+    },
+    {
+      "id": "laundry_drying_rack_hanging_rod",
+      "name": "Module Séchage Mural avec Tringle Penderie et Étagère Ouverte",
+      "available_widths": [
+        600,
+        800,
+        1000
+      ],
+      "available_heights": [
+        720,
+        900
+      ],
+      "depth": 350,
+      "clothes_hanging_rod": true
+    },
+    {
+      "id": "laundry_linen_tower",
+      "name": "Colonne Lingère Buanderie (Tablettes serviettes et draps)",
+      "available_widths": [
+        450,
+        600
+      ],
+      "available_heights": [
+        2000,
+        2100,
+        2200
+      ],
+      "depth": 600
+    }
+  ],
+  "accessories": [
+    {
+      "id": "acc_pullout_sorting_baskets",
+      "name": "Système de paniers à linge coulissants double compartiment",
+      "category": "Quincaillerie de tri",
+      "unit": "kit",
+      "min": 450,
+      "max": 950
+    },
+    {
+      "id": "acc_fold_ironing_hardware",
+      "name": "Mécanisme tiroir table à repasser télescopique pivotante",
+      "category": "Repassage escamotable",
+      "unit": "kit",
+      "min": 650,
+      "max": 1400
+    },
+    {
+      "id": "acc_deep_laundry_sink_faucet",
+      "name": "Robinet mitigeur col de cygne avec douchette extractible pour bac",
+      "category": "Robinetterie buanderie",
+      "unit": "pièce",
+      "min": 550,
+      "max": 1200
+    },
+    {
+      "id": "acc_drying_rack_ceiling_wall",
+      "name": "Étendoir séchoir suspendu relevable inox ou aluminium",
+      "category": "Séchage intérieur",
+      "unit": "kit",
+      "min": 380,
+      "max": 850
+    }
+  ]
+}

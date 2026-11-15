@@ -10,12 +10,17 @@ import 'logo.dart';
 import 'theme.dart';
 import 'i18n.dart';
 import 'app_settings.dart';
+import 'project_settings_dialog.dart';
+import 'saved_projects_dialog.dart';
 
 class StepHeader extends StatelessWidget {
   final AppState state;
   final VoidCallback onOpen, onSave, onIssues;
-  final VoidCallback? onDownload; // fichier du projet (.json)
-  final VoidCallback? onClient, onSettings; // fiche client, paramètres (langue, unités, numérotation)
+  final VoidCallback? onSaveAs;
+  final VoidCallback? onNew;
+  final VoidCallback? onQuit;
+  final VoidCallback? onDownload; // fichier du projet (.kin)
+  final VoidCallback? onClient; // fiche client
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeMode;
   const StepHeader({
@@ -23,9 +28,11 @@ class StepHeader extends StatelessWidget {
     required this.state,
     required this.onOpen,
     required this.onSave,
+    this.onSaveAs,
+    this.onNew,
+    this.onQuit,
     this.onDownload,
     this.onClient,
-    this.onSettings,
     required this.onIssues,
     required this.themeMode,
     required this.onThemeMode,
@@ -80,8 +87,15 @@ class StepHeader extends StatelessWidget {
         if (!phone) ...[
           IconButton(tooltip: tr('Annuler (Ctrl+Z)'), onPressed: state.canUndo ? state.undo : null, icon: const Icon(Icons.undo)),
           IconButton(tooltip: tr('Rétablir (Ctrl+Y)'), onPressed: state.canRedo ? state.redo : null, icon: const Icon(Icons.redo)),
+          IconButton(tooltip: tr('Paramètres du projet'), onPressed: () => showProjectSettingsDialog(context, state, (m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)))), icon: const Icon(Icons.tune)),
           IconButton(tooltip: tr('Enregistrer le projet'), onPressed: onSave, icon: const Icon(Icons.save_outlined)),
         ],
+        // bascule rapide mode sombre / mode clair
+        IconButton(
+          tooltip: tr(themeMode == ThemeMode.dark ? 'Thème clair' : 'Thème sombre'),
+          icon: Icon(themeMode == ThemeMode.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+          onPressed: () => onThemeMode(themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark),
+        ),
         PopupMenuButton<String>(
           tooltip: tr('Plus'),
           icon: const Icon(Icons.more_vert),
@@ -91,43 +105,65 @@ class StepHeader extends StatelessWidget {
                 state.undo();
               case 'redo':
                 state.redo();
-              case 'save':
-                onSave();
+              case 'new':
+                if (onNew != null) {
+                  onNew!();
+                } else {
+                  state.newProject();
+                  onClient?.call();
+                }
               case 'open':
                 onOpen();
+              case 'saved_projects':
+                showSavedProjectsDialog(context, state);
+              case 'save':
+                onSave();
+              case 'save_as':
+                if (onSaveAs != null) {
+                  onSaveAs!();
+                } else {
+                  onSave();
+                }
+              case 'client':
+              case 'settings':
+                showProjectSettingsDialog(context, state, (m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m))));
+              case 'quit':
+                if (onQuit != null) {
+                  onQuit!();
+                } else {
+                  Navigator.of(context).maybePop();
+                }
               case 'download':
                 onDownload?.call();
-              case 'client':
-                onClient?.call();
-              case 'settings':
-                onSettings?.call();
-              case 'new':
-                state.newProject();
-              case 'light':
-                onThemeMode(ThemeMode.light);
-              case 'dark':
-                onThemeMode(ThemeMode.dark);
-              case 'system':
-                onThemeMode(ThemeMode.system);
+              case 'lang:fr' || 'lang:en' || 'lang:ar':
+                AppSettings.instance.update((s) => s.lang = AppLang.values.firstWhere((l) => 'lang:${l.code}' == v));
+                state.refresh();
             }
           },
           itemBuilder: (_) => [
-            if (phone) ...[
-              PopupMenuItem(value: 'undo', enabled: state.canUndo, child: ListTile(leading: Icon(Icons.undo), title: Text(tr('Annuler')))),
-              PopupMenuItem(value: 'redo', enabled: state.canRedo, child: ListTile(leading: Icon(Icons.redo), title: Text(tr('Rétablir')))),
-              PopupMenuItem(value: 'save', child: ListTile(leading: Icon(Icons.save_outlined), title: Text(tr('Enregistrer')))),
-              const PopupMenuDivider(),
-            ],
-            PopupMenuItem(value: 'open', child: ListTile(leading: Icon(Icons.folder_open_outlined), title: Text(tr('Ouvrir un projet…')))),
-            if (onDownload != null)
-              PopupMenuItem(value: 'download', child: ListTile(leading: Icon(Icons.download_outlined), title: Text(tr('Télécharger le fichier du projet')))),
-            if (onClient != null) PopupMenuItem(value: 'client', child: ListTile(leading: const Icon(Icons.badge_outlined), title: Text(tr('Fiche client')))),
-            if (onSettings != null) PopupMenuItem(value: 'settings', child: ListTile(leading: const Icon(Icons.settings_outlined), title: Text(tr('Paramètres')))),
-            PopupMenuItem(value: 'new', child: ListTile(leading: Icon(Icons.delete_sweep_outlined), title: Text(tr('Vider la cuisine')))),
+            PopupMenuItem(value: 'new', child: ListTile(leading: const Icon(Icons.add_box_outlined), title: Text(tr('Nouveau projet')))),
+            PopupMenuItem(value: 'open', child: ListTile(leading: const Icon(Icons.folder_open_outlined), title: Text(tr('Ouvrir un projet (.kin)…')))),
+            PopupMenuItem(value: 'saved_projects', child: ListTile(leading: const Icon(Icons.folder_special_outlined), title: Text(tr('Projets enregistrés')))),
+            PopupMenuItem(value: 'save', child: ListTile(leading: const Icon(Icons.save_outlined), title: Text(tr('Enregistrer')))),
+            PopupMenuItem(value: 'save_as', child: ListTile(leading: const Icon(Icons.save_as_outlined), title: Text(tr('Enregistrer sous (.kin)')))),
             const PopupMenuDivider(),
-            CheckedPopupMenuItem(value: 'light', checked: themeMode == ThemeMode.light, child: Text(tr('Thème clair'))),
-            CheckedPopupMenuItem(value: 'dark', checked: themeMode == ThemeMode.dark, child: Text(tr('Thème sombre'))),
-            CheckedPopupMenuItem(value: 'system', checked: themeMode == ThemeMode.system, child: Text(tr('Thème du système'))),
+            PopupMenuItem(
+              value: 'settings',
+              child: ListTile(
+                leading: const Icon(Icons.tune),
+                title: Text(tr('Paramètres du projet')),
+                subtitle: Text(tr('Client, débit et standards')),
+              ),
+            ),
+            const PopupMenuDivider(),
+            if (phone) ...[
+              PopupMenuItem(value: 'undo', enabled: state.canUndo, child: ListTile(leading: const Icon(Icons.undo), title: Text(tr('Annuler')))),
+              PopupMenuItem(value: 'redo', enabled: state.canRedo, child: ListTile(leading: const Icon(Icons.redo), title: Text(tr('Rétablir')))),
+            ],
+            if (onDownload != null)
+              PopupMenuItem(value: 'download', child: ListTile(leading: const Icon(Icons.download_outlined), title: Text(tr('Exporter le projet (.kin)')))),
+            const PopupMenuDivider(),
+            PopupMenuItem(value: 'quit', child: ListTile(leading: const Icon(Icons.exit_to_app_outlined), title: Text(tr('Quitter')))),
           ],
         ),
         const SizedBox(width: Tokens.s3),
@@ -139,7 +175,7 @@ class StepHeader extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: Tokens.s2, vertical: Tokens.s1),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(tr(state.project.name), style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+                Text(trName(state.project.name), style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(trp('{0} caissons', [bom.cabinetCount]), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(width: Tokens.s2),

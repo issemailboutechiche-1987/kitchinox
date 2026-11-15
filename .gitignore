@@ -47,3 +47,5 @@ app.*.map.json
 # Sorties de tests (regenerees)
 /test/out/
 /test/failures/
+
+scratch/

@@ -1,13 +1,15 @@
 import 'dart:convert';
 
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'engine/engine.dart';
+import 'engine/saved_projects.dart';
 import 'ui/app_state.dart';
 import 'ui/nest_service.dart';
-import 'ui/art_page.dart';
 import 'ui/session.dart';
 import 'ui/busy.dart';
 import 'ui/canvas_view.dart';
@@ -27,6 +29,7 @@ import 'ui/web_io.dart';
 import 'ui/i18n.dart';
 import 'ui/app_settings.dart';
 import 'ui/client_ui.dart';
+import 'ui/project_start_dialog.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +37,7 @@ Future<void> main() async {
   AppState.backgroundNest = true;
   await initPlatformIo(); // iPad : sauvegarde dans l'app, fichiers par le menu Partager
   onStoreFailure = (e) => Session.onFailure(trp('Enregistrement impossible sur l’appareil : {0}', [e]));
-  AppSettings.instance.load(); // langue, unités, numérotation des plans
+  AppSettings.instance.load(deviceLang: PlatformDispatcher.instance.locale.languageCode); // langue, unités, numérotation des plans
   translateHook = tr; // messages du moteur (contrôles, erreurs de pose) dans la langue choisie
   // app installée (iPad) : orientation verrouillée en paysage
   await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
@@ -139,6 +142,39 @@ class _KitchenAppState extends State<KitchenApp> {
     }
   }
 
+  Future<void> _openKitchen(BuildContext ctx) async {
+    final s = widget.state;
+    final hasWork = s.project.items.isNotEmpty;
+    await ProjectStartDialog.show(
+      context: ctx,
+      universeId: 'cuisine',
+      universeTitle: tr('Cuisine'),
+      universeIcon: Icons.kitchen_outlined,
+      state: s,
+      hasWorkInProgress: hasWork,
+      currentProjectName: s.project.name,
+      currentCabinetCount: s.project.items.length,
+      onNewProject: (fresh) {
+        s.project = fresh;
+        s.engine = LayoutEngine(s.catalog, fresh);
+        s.step = PlanStep.space;
+        s.refresh();
+        Session.route = 'cuisine';
+        Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded('cuisine', s)));
+      },
+      onOpenKin: (kinJson) {
+        s.importJson(kinJson);
+        s.refresh();
+        Session.route = 'cuisine';
+        Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded('cuisine', s)));
+      },
+      onResume: () {
+        Session.route = 'cuisine';
+        Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded('cuisine', s)));
+      },
+    );
+  }
+
   /// Ouvre un univers dans le même planificateur que la cuisine, avec son catalogue.
   Future<void> _openUniverse(BuildContext ctx, String id) async {
     var ust = _universes[id];
@@ -159,8 +195,45 @@ class _KitchenAppState extends State<KitchenApp> {
     }
     if (!ctx.mounted) return;
     final s = ust;
-    Session.route = id;
-    await Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded(id, s)));
+    final uTitle = FurnitureUniverse.names[id] ?? (id == 'interieur' ? 'Intérieur' : id);
+    final uIcon = switch (id) {
+      'dressing' => Icons.checkroom_outlined,
+      'bain' => Icons.wc_outlined,
+      'tv' => Icons.tv_outlined,
+      'interieur' => Icons.weekend_outlined,
+      'buanderie' => Icons.local_laundry_service_outlined,
+      _ => Icons.home_outlined,
+    };
+    final hasWork = s.project.items.isNotEmpty || s.project.furniture.isNotEmpty;
+
+    await ProjectStartDialog.show(
+      context: ctx,
+      universeId: id,
+      universeTitle: tr(uTitle),
+      universeIcon: uIcon,
+      state: s,
+      hasWorkInProgress: hasWork,
+      currentProjectName: s.project.name,
+      currentCabinetCount: s.project.items.length + s.project.furniture.length,
+      onNewProject: (fresh) {
+        s.project = fresh;
+        s.engine = LayoutEngine(s.catalog, fresh);
+        s.step = PlanStep.space;
+        s.refresh();
+        Session.route = id;
+        Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded(id, s)));
+      },
+      onOpenKin: (kinJson) {
+        s.importJson(kinJson);
+        s.refresh();
+        Session.route = id;
+        Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded(id, s)));
+      },
+      onResume: () {
+        Session.route = id;
+        Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded(id, s)));
+      },
+    );
   }
 
   final _fresh = <String, Project Function()>{};
@@ -180,26 +253,9 @@ class _KitchenAppState extends State<KitchenApp> {
         child: PlannerScreen(state: s, themeMode: mode, onThemeMode: (m) => setState(() => mode = m)),
       );
 
-  /// Au retour dans l'app : rouvre l'écran où l'on était.
-  bool _resumed = false;
+  /// Au démarrage de l'app : toujours afficher l'écran d'accueil avec les univers (Cuisine, Dressing, Buanderie, etc.)
   void _resume(BuildContext ctx) {
-    if (_resumed) return;
-    _resumed = true;
-    final r = Session.route;
-    if (r == 'home') return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!ctx.mounted) return;
-      switch (r) {
-        case 'cuisine':
-          Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded('cuisine', widget.state)));
-        case 'art':
-          openArt(ctx, widget.state);
-        case 'debit':
-          openManualCut(ctx, widget.state);
-        default:
-          _openUniverse(ctx, r);
-      }
-    });
+    // Ne pas forcer l'ouverture automatique d'une cuisine en cours au démarrage
   }
 
   @override
@@ -222,13 +278,19 @@ class _KitchenAppState extends State<KitchenApp> {
                 builder: (ctx) {
                   _resume(ctx);
                   return HomeScreen(
-                  state: widget.state,
-                  onKitchen: () {
-                    Session.route = 'cuisine';
-                    Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded('cuisine', widget.state)));
-                  },
-                  onUniverse: (id) => _openUniverse(ctx, id),
-                );
+                    state: widget.state,
+                    themeMode: mode,
+                    onThemeMode: (m) => setState(() => mode = m),
+                    onKitchen: () => _openKitchen(ctx),
+                    onUniverse: (id) => _openUniverse(ctx, id),
+                    onSettings: () => showAppSettings(ctx, (msg) {
+                      final sm = ScaffoldMessenger.maybeOf(ctx);
+                      if (sm != null) {
+                        sm.hideCurrentSnackBar();
+                        sm.showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 2), behavior: SnackBarBehavior.floating));
+                      }
+                    }),
+                  );
                 },
               )
             : PlannerScreen(state: widget.state, themeMode: mode, onThemeMode: (m) => setState(() => mode = m)),
@@ -310,25 +372,85 @@ class _PlannerScreenState extends State<PlannerScreen> {
   }
 
   Future<void> _open() async {
-    final f = await pickFile(accept: '.json');
+    final f = await pickFile(accept: '.kin,.json');
     if (f == null) return;
     try {
-      st.importJson(utf8.decode(f.bytes));
+      final jsonStr = KinFormat.decode(f.bytes);
+      st.importJson(jsonStr);
       _msg(trp('{0} ouvert', [tr(f.name)]));
     } catch (e) {
       _msg(trp('Fichier illisible : {0}', [e]));
     }
   }
 
-  /// Enregistre le travail dans l'app (retrouvé au prochain lancement) ; le fichier se télécharge depuis le menu.
+  void _newProjectWithClient() {
+    ProjectStartDialog.show(
+      context: context,
+      universeId: st.project.universe,
+      universeTitle: FurnitureUniverse.names[st.project.universe] ?? (st.project.universe == 'cuisine' ? 'Cuisine' : st.project.universe),
+      universeIcon: st.project.universe == 'cuisine' ? Icons.kitchen_outlined : Icons.folder_open_outlined,
+      state: st,
+      hasWorkInProgress: false,
+      currentProjectName: st.project.name,
+      currentCabinetCount: st.project.items.length,
+      onNewProject: (fresh) {
+        st.project = fresh;
+        st.engine = LayoutEngine(st.catalog, fresh);
+        st.step = PlanStep.space;
+        st.refresh();
+        _msg(trp('Nouveau projet « {0} » créé', [fresh.name]));
+      },
+      onOpenKin: (kinJson) {
+        st.importJson(kinJson);
+        st.refresh();
+        _msg(tr('Projet ouvert avec succès'));
+      },
+      onResume: () {},
+    );
+  }
+
+  Future<void> _saveAs() async {
+    final controller = TextEditingController(text: st.project.name);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr('Enregistrer sous')),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: tr('Nom du projet'),
+            suffixText: '.kin',
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('Annuler'))),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('Enregistrer'))),
+        ],
+      ),
+    );
+    if (ok == true && controller.text.trim().isNotEmpty) {
+      final newName = controller.text.trim();
+      st.project.name = newName;
+      st.refresh();
+      _save();
+    }
+  }
+
+  /// Enregistre le travail dans l'app et sauvegarde le fichier crypté .kin
   void _save() {
     Session.commit(st.project.universe, projectWorkJson(st.project.toJson()));
-    _msg(tr('Travail enregistré'));
+    SavedProjectsManager.saveProject(st.project, universe: st.project.universe);
+    final kinBytes = KinFormat.encode(st.exportJson(), projectName: st.project.name);
+    downloadBytes('${st.project.name}.kin', kinBytes, mime: 'application/octet-stream');
+    _msg(tr('Projet enregistré et horodaté (.kin)'));
   }
 
   void _download() {
-    downloadBytes('${st.project.name}.kitchinox.json', utf8.encode(st.exportJson()), mime: 'application/json');
-    _msg(tr('Fichier du projet téléchargé'));
+    final kinBytes = KinFormat.encode(st.exportJson(), projectName: st.project.name);
+    downloadBytes('${st.project.name}.kin', kinBytes, mime: 'application/octet-stream');
+    _msg(tr('Fichier .kin téléchargé'));
   }
 
   void _exportCsv() {
@@ -753,9 +875,11 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
                 state: st,
                 onOpen: _open,
                 onSave: _save,
+                onSaveAs: _saveAs,
+                onNew: _newProjectWithClient,
+                onQuit: () => Navigator.of(context).maybePop(),
                 onDownload: _download,
                 onClient: () => showClientDialog(context, st, _msg),
-                onSettings: () => showAppSettings(context, _msg),
                 onIssues: _issues,
                 themeMode: widget.themeMode,
                 onThemeMode: widget.onThemeMode,

@@ -49,6 +49,29 @@ const templateObjects = <String, List<ObjSpec>>{
   'chefchaouen': [ObjSpec('kenney_benchCushionLow', spot: Spot.opposite, w: 1200, h: 400, d: 380), ObjSpec('kenney_rugRound', spot: Spot.center, w: 1600, h: 10, d: 1600)],
   'kenitra': [ObjSpec('ph_potted_plant_02', spot: Spot.side, corner: true, w: 701, h: 841, d: 657)],
   'medina': [ObjSpec('kenney_bedSingle', spot: Spot.opposite, corner: true, w: 940, h: 500, d: 2040, clear: 500), ObjSpec('kenney_desk', spot: Spot.side, w: 1200, h: 750, d: 600, clear: 600)],
+  // buanderie : lave-linge, sèche-linge, chauffe-eau, lavabo/bac, paniers
+  'buand_duo': [
+    ObjSpec('${_f}chauffe_eau', spot: Spot.side),
+    ObjSpec('kenney_washer', spot: Spot.opposite, w: 600, h: 850, d: 600),
+    ObjSpec('kenney_dryer', spot: Spot.opposite, w: 600, h: 850, d: 600),
+    ObjSpec('kenney_laundryHamper', spot: Spot.side, corner: true, w: 400, h: 600, d: 400),
+  ],
+  'buand_tour': [
+    ObjSpec('${_f}chauffe_eau', spot: Spot.side),
+    ObjSpec('${_f}lavabo', spot: Spot.side),
+    ObjSpec('kenney_washerDryerStacked', spot: Spot.opposite, w: 600, h: 1700, d: 600),
+  ],
+  'buand_expert': [
+    ObjSpec('${_f}chauffe_eau', spot: Spot.side, corner: true),
+    ObjSpec('${_f}lavabo', spot: Spot.side),
+    ObjSpec('kenney_washer', spot: Spot.opposite, w: 600, h: 850, d: 600),
+    ObjSpec('kenney_dryer', spot: Spot.opposite, w: 600, h: 850, d: 600),
+    ObjSpec('ph_potted_plant_01', spot: Spot.side, corner: true, w: 450, h: 650, d: 450),
+  ],
+  'buand_compact': [
+    ObjSpec('${_f}chauffe_eau', spot: Spot.side),
+    ObjSpec('kenney_washerDryerStacked', spot: Spot.side, w: 600, h: 1700, d: 600),
+  ],
 };
 
 /// Objets du salon pour toutes les compositions TV : téléviseur sur le meuble, canapé face à l'écran, table basse, tapis, plante.

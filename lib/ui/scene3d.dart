@@ -348,19 +348,29 @@ class Scene3dPainter {
       }
 
       const wd = worktopDepth * 1.0;
-      if (m.id == 'base_cooktop_oven') {
+      final isCook = m.id == 'base_cooktop_oven' || m.id == 'base_oven_built_in' || (e.isCooking(m) && m.kind.isLow) || m.id.contains('cooktop') || (c.appliances?.any((a) => a.contains('cooktop')) ?? false);
+      final isSink = m.id.startsWith('base_sink') || m.id.contains('sink') || m.id.contains('evier') || e.isWashing(m) || (c.appliances?.any((a) => a.contains('sink')) ?? false);
+      final isHood = m.id == 'wall_integrated_hood' || m.id.contains('hood') || m.id.contains('hotte');
+
+      if (isCook && !m.id.contains('sans_plaque')) {
         final hd = c.width >= 750 ? 520.0 : 510.0;
         final t0 = (wd - hd) / 2;
-        solids.add(_Solid(at(c.s + 30, c.width - 60.0, t0, t0 + hd, topZ, 6), const Color(0xFF1F2124), decor: 'hob'));
-      } else if (m.id == 'base_sink') {
-        final bw = math.min(c.width - 140.0, 760.0);
-        const sd = 440.0, front = 70.0;
-        const t0 = wd - front - sd;
-        solids.add(_Solid(at(c.s + (c.width - bw) / 2, bw, t0, t0 + sd, topZ, 4), const Color(0xFFBFC5CA), decor: 'sink'));
-        final mid = c.s + c.width / 2;
-        solids.add(_Solid(at(mid - 18, 36, t0 - 75, t0 - 40, topZ, 320), const Color(0xFFA9AFB5), decor: 'steel'));
-        solids.add(_Solid(at(mid - 15, 30, t0 - 75, t0 + 140, topZ + 290, 30), const Color(0xFFA9AFB5), decor: 'steel'));
-      } else if (m.id == 'wall_integrated_hood') {
+        solids.add(_Solid(at(c.s + 30, c.width - 60.0, t0, t0 + hd, topZ + 1.0, 8), const Color(0xFF1F2124), decor: 'hob'));
+      } else if (isSink) {
+        final sk = KitchenFixtures.sink(p.style.sink);
+        final fc = KitchenFixtures.faucet(p.style.faucet);
+        final bw = math.min(c.width - 60.0, sk.length.toDouble());
+        final sd = math.min(sk.depth.toDouble(), wd - 80.0);
+        final t0 = (wd - sd) / 2;
+        final sinkColor = p.style.sinkFinish == 'noir_quartz' ? const Color(0xFF222528) : (p.style.sinkFinish == 'blanc_ceramique' ? const Color(0xFFF0F1F2) : const Color(0xFFBFC5CA));
+        solids.add(_Solid(at(c.s + (c.width - bw) / 2, bw, t0, t0 + sd, topZ + 1.0, 6), sinkColor, decor: 'sink:${sk.layout}'));
+        final mid = sk.layout == 'drainer' ? c.s + (c.width - bw) / 2 + bw * 0.28 : c.s + c.width / 2;
+        final fColor = p.style.faucetFinish == 'noir_mat' ? const Color(0xFF222426) : (p.style.faucetFinish == 'or_brosse' ? const Color(0xFFD4AF37) : const Color(0xFFA9AFB5));
+        final fh = fc.height.toDouble().clamp(280.0, 440.0);
+        solids.add(_Solid(at(mid - 16, 32, t0 - 55, t0 - 25, topZ + 2.0, fh - 20), fColor, decor: 'steel'));
+        solids.add(_Solid(at(mid - 14, 28, t0 - 55, t0 + (fc.spring ? 180 : 150), topZ + fh - 40, 26), fColor, decor: 'steel'));
+        if (fc.pullout || fc.spring) solids.add(_Solid(at(mid - 20, 40, t0 + 100, t0 + 155, topZ + fh - 130, 90), fColor, decor: 'steel'));
+      } else if (isHood) {
         solids.add(_Solid(w.strip(c.s + 40, c.width - 80.0, 480, c.z - 70, 70), const Color(0xFFA9AFB5), decor: 'steel'));
       }
     }
@@ -397,7 +407,19 @@ class Scene3dPainter {
     }
 
     final ordered = _depthOrder(solids);
+    // 1. Dessiner d'abord tous les solides de base (caissons, plinthes, murs, plan de travail...)
+    // sauf les équipements de surface (plaque, évier, robinet) qui doivent impérativement
+    // se peindre au-dessus du plan de travail pour ne jamais être recouverts.
+    final surfaceAppliances = <_Solid>[];
     for (final s in ordered) {
+      if (s.decor == 'hob' || (s.decor?.startsWith('sink') ?? false) || (s.box.z0 >= std.baseTop && s.model == null && s.finish == null && s.decor == 'steel')) {
+        surfaceAppliances.add(s);
+      } else {
+        _paintSolid(canvas, s, hits, carcass.color);
+      }
+    }
+    // 2. Dessiner les équipements de surface (évier, cuves, mitigeur, plaque) au premier plan
+    for (final s in surfaceAppliances) {
       _paintSolid(canvas, s, hits, carcass.color);
     }
     _paintOpenParts(canvas, carcass.color);
@@ -1052,8 +1074,16 @@ void paintTopDecor(Canvas canvas, Rect r, String decor, Color color) {
           canvas.drawLine(q + Offset(math.cos(ang), math.sin(ang)) * rad * 0.35, q + Offset(math.cos(ang), math.sin(ang)) * rad, grid);
         }
       }
-    case 'sink' || 'sink:compact' || 'sink:drainer' || 'sink:2':
+    case 'sink' || 'sink:compact' || 'sink:drainer' || 'sink:2' || 'sink:2_drainer':
       canvas.drawRect(r, texturePaint('steel', const Color(0xFFC6CACE), 500));
+      // Bordure périphérique inox
+      canvas.drawRect(
+        r,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = const Color(0xFF7A8188),
+      );
       final m = math.min(la, lb) * 0.1;
       void basin(Rect b) {
         canvas.drawRRect(RRect.fromRectAndRadius(b, const Radius.circular(40)), Paint()..color = const Color(0xFF8E959C));
@@ -1062,6 +1092,7 @@ void paintTopDecor(Canvas canvas, Rect r, String decor, Color color) {
           Paint()..shader = const LinearGradient(colors: [Color(0xFF737980), Color(0xFFB4BAC0)]).createShader(b),
         );
         canvas.drawCircle(b.center, 28, Paint()..color = const Color(0xFF4A4F55));
+        canvas.drawCircle(b.center, 14, Paint()..color = const Color(0xFFC8CDD2));
       }
 
       final inner = r.deflate(m);
@@ -1075,9 +1106,9 @@ void paintTopDecor(Canvas canvas, Rect r, String decor, Color color) {
             ..color = const Color(0xFF9AA0A6)
             ..strokeWidth = 6);
         }
-      } else if (decor == 'sink:2') {
-        basin(Rect.fromLTRB(inner.left, inner.top, inner.left + inner.width * 0.56, inner.bottom));
-        basin(Rect.fromLTRB(inner.left + inner.width * 0.6, inner.top + inner.height * 0.15, inner.right, inner.bottom));
+      } else if (decor == 'sink:2' || decor == 'sink:2_drainer') {
+        basin(Rect.fromLTRB(inner.left, inner.top, inner.left + inner.width * 0.48, inner.bottom));
+        basin(Rect.fromLTRB(inner.left + inner.width * 0.52, inner.top, inner.right, inner.bottom));
       } else {
         basin(inner);
       }

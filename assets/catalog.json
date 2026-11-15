@@ -115,6 +115,73 @@
           }
         },
         {
+          "id": "base_sink_1door",
+          "name": "Bas sous-évier 1 porte",
+          "category": "base_sink",
+          "zone": "wash",
+          "available_widths": [
+            450,
+            500,
+            600
+          ],
+          "height": 800,
+          "depth": 600,
+          "back_panel": "recessed_plumbing",
+          "internal_config": [
+            "open_plumbing"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "base_sink_2doors",
+          "name": "Bas sous-évier 2 portes",
+          "category": "base_sink",
+          "zone": "wash",
+          "available_widths": [
+            800,
+            900,
+            1000,
+            1200
+          ],
+          "height": 800,
+          "depth": 600,
+          "back_panel": "recessed_plumbing",
+          "internal_config": [
+            "open_plumbing",
+            "waste_sorter"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "base_sink_drawers",
+          "name": "Bas sous-évier 2 tiroirs (passage siphon)",
+          "category": "base_sink",
+          "zone": "wash",
+          "available_widths": [
+            600,
+            800,
+            900,
+            1000
+          ],
+          "height": 800,
+          "depth": 600,
+          "front_layout": "1_drawer_bottom_1_door",
+          "back_panel": "recessed_plumbing",
+          "internal_config": [
+            "siphon_notched_drawers"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
           "id": "base_cooktop_oven",
           "name": "Bas pour four encastré et table de cuisson",
           "available_widths": [

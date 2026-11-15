@@ -169,21 +169,42 @@ class CabinetCategory {
 }
 
 class Catalog {
+  static final Map<String, CabinetModel> _masterRegistry = {};
+
   final String system;
   final String unit;
   final List<CabinetCategory> categories;
   final Map<String, CabinetModel> _byId;
 
   Catalog(this.system, this.unit, this.categories)
-      : _byId = {for (final c in categories) for (final m in c.items) m.id: m};
-
-  CabinetModel operator [](String id) {
-    final m = _byId[id];
-    if (m == null) throw ArgumentError('modèle inconnu : $id');
-    return m;
+      : _byId = {for (final c in categories) for (final m in c.items) m.id: m} {
+    for (final m in _byId.values) {
+      _masterRegistry[m.id] = m;
+    }
   }
 
-  CabinetModel? tryGet(String id) => _byId[id];
+  CabinetModel operator [](String id) {
+    final m = _byId[id] ?? _masterRegistry[id];
+    if (m != null) return m;
+    // Fallback synthétique si le modèle provient d'un autre univers ou fichier .kin
+    final isWall = id.contains('wall') || id.contains('haut') || id.contains('suspendu');
+    final isTall = id.contains('tall') || id.contains('colonne') || id.contains('armoire');
+    final fallback = CabinetModel(
+      id: id,
+      name: id,
+      categoryId: isTall ? 'tall_cabinets' : (isWall ? 'wall_cabinets' : 'base_cabinets'),
+      categoryName: isTall ? 'Colonnes' : (isWall ? 'Meubles hauts' : 'Meubles bas'),
+      kind: isTall ? CabinetKind.tall : (isWall ? CabinetKind.wall : CabinetKind.base),
+      shape: CabinetShape.rect,
+      widths: const SizeOptions.range(100, 2400),
+      heights: const SizeOptions.range(200, 2800),
+      depth: isWall ? 350 : 600,
+    );
+    _masterRegistry[id] = fallback;
+    return fallback;
+  }
+
+  CabinetModel? tryGet(String id) => _byId[id] ?? _masterRegistry[id];
   Iterable<CabinetModel> get models => _byId.values;
 
   static Catalog parse(String jsonText, {KitchenStandards standards = const KitchenStandards()}) =>
