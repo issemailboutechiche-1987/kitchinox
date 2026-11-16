@@ -470,6 +470,7 @@ class SceneExporter {
           'rot': w.rot,
           'w': c.width.toDouble() - 4, 'd': ovenD, 'h': 595.0,
           'finish': style.ovenFinish,
+          'handle': style.ovenHandle,
         });
       } else if (m.kind == CabinetKind.tall && (m.id.contains('oven') || (c.appliances?.any((a) => a.contains('oven')) ?? false))) {
         // Four dans colonne haute (hauteur ergonomique)
@@ -484,6 +485,7 @@ class SceneExporter {
           'rot': w.rot,
           'w': c.width.toDouble() - 4, 'd': ovenD, 'h': 595.0,
           'finish': style.ovenFinish,
+          'handle': style.ovenHandle,
         });
       } else if (isSinkBase) {
         final sk = KitchenFixtures.sink(style.sink), fc = KitchenFixtures.faucet(style.faucet);
@@ -503,6 +505,7 @@ class SceneExporter {
           'sinkFinish': style.sinkFinish,
           'faucet': fc.id,
           'faucetFinish': style.faucetFinish,
+          'faucetLever': style.faucetLever,
           'faucetHeight': fc.height.toDouble(),
           'spring': fc.spring,
           'pullout': fc.pullout,

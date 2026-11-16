@@ -656,22 +656,64 @@ function mixerRealistic(m, x, y, z, options = {}) {
   const height = options.height || 360;
   const isSpring = options.spring === true;
   const isSquare = options.square === true;
+  const lever = options.faucetLever || 'side_pin';
 
   // Base collet
   m.add(at(mesh(new THREE.CylinderGeometry(24, 26, 12, 32), mat), x, y + 6, z));
   // Corps principal
   const bodyH = isSpring ? 180 : 130;
   m.add(at(mesh(new THREE.CylinderGeometry(20, 20, bodyH, 32), mat), x, y + 12 + bodyH / 2, z));
-  // Levier de commande inclinable
-  const leverHub = mesh(new THREE.CylinderGeometry(13, 13, 26, 24), mat);
-  leverHub.rotation.z = Math.PI / 2;
-  leverHub.position.set(x + 22, y + 60, z);
-  m.add(leverHub);
-  const leverPin = mesh(new THREE.CylinderGeometry(4, 5, 65, 16), mat);
-  leverPin.position.set(x + 35, y + 80, z - 10 * toward);
-  leverPin.rotation.x = -0.3 * toward;
-  leverPin.rotation.z = -0.35;
-  m.add(leverPin);
+
+  if (lever === 'side_flat') {
+    // Manette ergonomique plate / palette contemporaine
+    const leverHub = mesh(new THREE.CylinderGeometry(14, 14, 22, 24), mat);
+    leverHub.rotation.z = Math.PI / 2;
+    leverHub.position.set(x + 22, y + 60, z);
+    m.add(leverHub);
+    const flatBlade = mesh(new THREE.BoxGeometry(7, 18, 70), mat);
+    flatBlade.position.set(x + 36, y + 78, z - 8 * toward);
+    flatBlade.rotation.x = -0.3 * toward;
+    flatBlade.rotation.z = -0.35;
+    m.add(flatBlade);
+  } else if (lever === 'top_lever') {
+    // Levier supérieur centré au-dessus du col
+    const topCap = mesh(new THREE.CylinderGeometry(18, 20, 16, 28), mat);
+    topCap.position.set(x, y + 12 + bodyH + 8, z);
+    m.add(topCap);
+    const topPin = mesh(new THREE.BoxGeometry(10, 8, 75), mat);
+    topPin.position.set(x, y + 12 + bodyH + 16, z + toward * 32);
+    topPin.rotation.x = -0.15 * toward;
+    m.add(topPin);
+  } else if (lever === 'retro_cross') {
+    // Double commande rétro croisillons / têtes étoiles latérales
+    for (const sx of [-1, 1]) {
+      const armX = x + sx * 45;
+      const arm = mesh(new THREE.CylinderGeometry(8, 8, 30, 16), mat);
+      arm.rotation.z = Math.PI / 2;
+      arm.position.set(x + sx * 25, y + 55, z);
+      m.add(arm);
+      const crossHub = mesh(new THREE.CylinderGeometry(10, 10, 14, 20), mat);
+      crossHub.rotation.z = Math.PI / 2;
+      crossHub.position.set(armX, y + 55, z);
+      m.add(crossHub);
+      const c1 = mesh(new THREE.BoxGeometry(6, 32, 6), mat);
+      c1.position.set(armX, y + 55, z);
+      const c2 = mesh(new THREE.BoxGeometry(6, 6, 32), mat);
+      c2.position.set(armX, y + 55, z);
+      m.add(c1, c2);
+    }
+  } else {
+    // Manette latérale tige fine (par défaut)
+    const leverHub = mesh(new THREE.CylinderGeometry(13, 13, 26, 24), mat);
+    leverHub.rotation.z = Math.PI / 2;
+    leverHub.position.set(x + 22, y + 60, z);
+    m.add(leverHub);
+    const leverPin = mesh(new THREE.CylinderGeometry(4, 5, 65, 16), mat);
+    leverPin.position.set(x + 35, y + 80, z - 10 * toward);
+    leverPin.rotation.x = -0.3 * toward;
+    leverPin.rotation.z = -0.35;
+    m.add(leverPin);
+  }
 
   if (isSpring) {
     // Mitigeur chef pro à ressort hélicoïdal
@@ -1062,6 +1104,7 @@ function buildFixture(o, sceneData) {
         pullout: o.pullout === true,
         swan: o.swan === true || (!o.spring && !o.square),
         square: o.square === true,
+        faucetLever: o.faucetLever,
         toward: 1,
       });
       break;
@@ -1137,9 +1180,11 @@ function buildFixture(o, sceneData) {
     case 'kitchen_oven': {
       const isBlack = o.finish === 'full_black';
       const isWhite = o.finish === 'blanc';
+      const isBlackGold = o.finish === 'black_gold';
+      const handleStyle = o.handle || 'bar';
       const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1f2124, roughness: 0.5 });
       const fasciaMat = isWhite ? new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.25 })
-                      : isBlack ? new THREE.MeshStandardMaterial({ color: 0x181a1c, roughness: 0.35 })
+                      : (isBlack || isBlackGold) ? new THREE.MeshStandardMaterial({ color: 0x181a1c, roughness: 0.35 })
                       : new THREE.MeshStandardMaterial({ color: 0xb5bcc4, roughness: 0.3, metalness: 0.85 });
       const glassDoorMat = isWhite
           ? new THREE.MeshPhysicalMaterial({ color: 0xf0f2f5, roughness: 0.1, clearcoat: 0.9 })
@@ -1154,17 +1199,50 @@ function buildFixture(o, sceneData) {
       door.position.set(0, doorH / 2, d + 9);
       m.add(door);
 
-      const barMat = isBlack ? tapBlack : (isWhite ? tapSteel : chrome);
+      const barMat = isBlackGold ? tapGold : (isBlack ? tapBlack : (isWhite ? tapSteel : chrome));
       const barLen = w * 0.76;
-      const bar = mesh(new THREE.CylinderGeometry(9, 9, barLen, 24), barMat);
-      bar.rotation.z = Math.PI / 2;
-      bar.position.set(0, doorH - 35, d + 38);
-      m.add(bar);
-      for (const sx of [-barLen * 0.44, barLen * 0.44]) {
-        const standoff = mesh(new THREE.CylinderGeometry(7, 7, 26, 16), barMat);
-        standoff.rotation.x = Math.PI / 2;
-        standoff.position.set(sx, doorH - 35, d + 22);
-        m.add(standoff);
+
+      if (handleStyle === 'square') {
+        // Profilé carré contemporain
+        const barSq = mesh(new THREE.BoxGeometry(barLen, 16, 16), barMat);
+        barSq.position.set(0, doorH - 35, d + 38);
+        m.add(barSq);
+        for (const sx of [-barLen * 0.44, barLen * 0.44]) {
+          const standoff = mesh(new THREE.BoxGeometry(16, 16, 26), barMat);
+          standoff.position.set(sx, doorH - 35, d + 22);
+          m.add(standoff);
+        }
+      } else if (handleStyle === 'retro') {
+        // Poignée cintrée classique aux extrémités avec sphères décoratives
+        const barR = mesh(new THREE.CylinderGeometry(8, 10, barLen * 0.9, 24), barMat);
+        barR.rotation.z = Math.PI / 2;
+        barR.position.set(0, doorH - 35, d + 42);
+        m.add(barR);
+        for (const sx of [-barLen * 0.45, barLen * 0.45]) {
+          const ball = mesh(new THREE.SphereGeometry(13, 20, 20), barMat);
+          ball.position.set(sx, doorH - 35, d + 38);
+          const standoff = mesh(new THREE.CylinderGeometry(8, 11, 24, 16), barMat);
+          standoff.rotation.x = Math.PI / 2;
+          standoff.position.set(sx, doorH - 35, d + 22);
+          m.add(ball, standoff);
+        }
+      } else if (handleStyle === 'integrated') {
+        // Poignée affleurante intégrée / profil minimaliste
+        const profile = mesh(new THREE.BoxGeometry(w - 24, 12, 22), barMat);
+        profile.position.set(0, doorH - 12, d + 12);
+        m.add(profile);
+      } else {
+        // Barre ronde tubulaire moderne par défaut
+        const bar = mesh(new THREE.CylinderGeometry(9, 9, barLen, 24), barMat);
+        bar.rotation.z = Math.PI / 2;
+        bar.position.set(0, doorH - 35, d + 38);
+        m.add(bar);
+        for (const sx of [-barLen * 0.44, barLen * 0.44]) {
+          const standoff = mesh(new THREE.CylinderGeometry(7, 7, 26, 16), barMat);
+          standoff.rotation.x = Math.PI / 2;
+          standoff.position.set(sx, doorH - 35, d + 22);
+          m.add(standoff);
+        }
       }
 
       const bandH = h - doorH;

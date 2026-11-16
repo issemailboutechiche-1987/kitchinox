@@ -398,6 +398,20 @@ class StylePanel extends StatelessWidget {
                 selected: {st.faucetFinish},
                 onSelectionChanged: (v) => state.edit(() => st.faucetFinish = v.first),
               ),
+              const SizedBox(height: Tokens.s3),
+              Text(tr('Style de levier du mitigeur'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: Tokens.s2),
+              SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 'side_pin', label: Text(tr('Manette fine'))),
+                  ButtonSegment(value: 'side_flat', label: Text(tr('Palette plate'))),
+                  ButtonSegment(value: 'top_lever', label: Text(tr('Levier haut'))),
+                  ButtonSegment(value: 'retro_cross', label: Text(tr('Croisillons'))),
+                ],
+                selected: {st.faucetLever},
+                onSelectionChanged: (v) => state.edit(() => st.faucetLever = v.first),
+              ),
               const SizedBox(height: Tokens.s4),
               Text(tr('Plaque de cuisson'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: Tokens.s2),
@@ -428,15 +442,32 @@ class StylePanel extends StatelessWidget {
               const SizedBox(height: Tokens.s4),
               Text(tr('Four encastrable'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: Tokens.s2),
+              Text(tr('Finition'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: Tokens.s1),
               SegmentedButton<String>(
                 showSelectedIcon: false,
                 segments: [
                   ButtonSegment(value: 'black_inox', label: Text(tr('Inox & Verre noir'))),
                   ButtonSegment(value: 'full_black', label: Text(tr('Full Black'))),
-                  ButtonSegment(value: 'blanc', label: Text(tr('Blanc épuré'))),
+                  ButtonSegment(value: 'blanc', label: Text(tr('Blanc'))),
+                  ButtonSegment(value: 'black_gold', label: Text(tr('Noir & Or'))),
                 ],
                 selected: {st.ovenFinish},
                 onSelectionChanged: (v) => state.edit(() => st.ovenFinish = v.first),
+              ),
+              const SizedBox(height: Tokens.s3),
+              Text(tr('Poignée / Levier de four'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: Tokens.s1),
+              SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 'bar', label: Text(tr('Barre ronde'))),
+                  ButtonSegment(value: 'square', label: Text(tr('Profilé carré'))),
+                  ButtonSegment(value: 'retro', label: Text(tr('Cintrée classique'))),
+                  ButtonSegment(value: 'integrated', label: Text(tr('Intégrée'))),
+                ],
+                selected: {st.ovenHandle},
+                onSelectionChanged: (v) => state.edit(() => st.ovenHandle = v.first),
               ),
             ],
           ])
@@ -1379,6 +1410,10 @@ class _ApplianceSection extends StatelessWidget {
     final db = state.db!;
     final t = Theme.of(context).textTheme;
     final ids = appliancesOf(model, item);
+    final hasSink = ids.any((a) => a.contains('sink')) || (item.appliances?.any((a) => a.contains('sink')) ?? false) || model.id.contains('sink');
+    final hasOven = ids.any((a) => a.contains('oven')) || (item.appliances?.any((a) => a.contains('oven')) ?? false) || model.id.contains('oven');
+    final st = state.project.style;
+
     return _Section('Électroménager', [
       for (var i = 0; i < ids.length; i++)
         if (db.appliances[ids[i]] != null)
@@ -1408,6 +1443,83 @@ class _ApplianceSection extends StatelessWidget {
               if (db.appliances[ids[i]]!.cutoutNote != null) Text(db.appliances[ids[i]]!.cutoutNote!, style: t.bodySmall),
             ]),
           ),
+      if (hasSink) ...[
+        const Divider(height: Tokens.s4),
+        Text(tr('Style Évier & Robinetterie'), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: Tokens.s2),
+        Text(tr('Finition de l’évier'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: Tokens.s1),
+        SegmentedButton<String>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(value: 'inox', label: Text(tr('Inox'))),
+            ButtonSegment(value: 'noir_quartz', label: Text(tr('Noir quartz'))),
+            ButtonSegment(value: 'blanc_ceramique', label: Text(tr('Blanc'))),
+          ],
+          selected: {st.sinkFinish},
+          onSelectionChanged: editable ? (v) => state.edit(() => st.sinkFinish = v.first) : null,
+        ),
+        const SizedBox(height: Tokens.s3),
+        Text(tr('Finition de la robinetterie'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: Tokens.s1),
+        SegmentedButton<String>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(value: 'chrome', label: Text(tr('Chrome'))),
+            ButtonSegment(value: 'noir_mat', label: Text(tr('Noir mat'))),
+            ButtonSegment(value: 'or_brosse', label: Text(tr('Laiton'))),
+            ButtonSegment(value: 'inox_brosse', label: Text(tr('Inox'))),
+          ],
+          selected: {st.faucetFinish},
+          onSelectionChanged: editable ? (v) => state.edit(() => st.faucetFinish = v.first) : null,
+        ),
+        const SizedBox(height: Tokens.s3),
+        Text(tr('Style de levier du mitigeur'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: Tokens.s1),
+        SegmentedButton<String>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(value: 'side_pin', label: Text(tr('Manette fine'))),
+            ButtonSegment(value: 'side_flat', label: Text(tr('Palette plate'))),
+            ButtonSegment(value: 'top_lever', label: Text(tr('Levier haut'))),
+            ButtonSegment(value: 'retro_cross', label: Text(tr('Croisillons'))),
+          ],
+          selected: {st.faucetLever},
+          onSelectionChanged: editable ? (v) => state.edit(() => st.faucetLever = v.first) : null,
+        ),
+      ],
+      if (hasOven) ...[
+        const Divider(height: Tokens.s4),
+        Text(tr('Style Four encastrable'), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: Tokens.s2),
+        Text(tr('Finition de façade'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: Tokens.s1),
+        SegmentedButton<String>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(value: 'black_inox', label: Text(tr('Inox/Verre'))),
+            ButtonSegment(value: 'full_black', label: Text(tr('Full Black'))),
+            ButtonSegment(value: 'blanc', label: Text(tr('Blanc'))),
+            ButtonSegment(value: 'black_gold', label: Text(tr('Noir & Or'))),
+          ],
+          selected: {st.ovenFinish},
+          onSelectionChanged: editable ? (v) => state.edit(() => st.ovenFinish = v.first) : null,
+        ),
+        const SizedBox(height: Tokens.s3),
+        Text(tr('Poignée / Levier de four'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: Tokens.s1),
+        SegmentedButton<String>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(value: 'bar', label: Text(tr('Barre ronde'))),
+            ButtonSegment(value: 'square', label: Text(tr('Profilé carré'))),
+            ButtonSegment(value: 'retro', label: Text(tr('Cintrée classique'))),
+            ButtonSegment(value: 'integrated', label: Text(tr('Intégrée'))),
+          ],
+          selected: {st.ovenHandle},
+          onSelectionChanged: editable ? (v) => state.edit(() => st.ovenHandle = v.first) : null,
+        ),
+      ],
     ]);
   }
 }

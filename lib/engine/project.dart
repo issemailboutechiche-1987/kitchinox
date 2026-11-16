@@ -504,11 +504,13 @@ class KitchenStyle {
   String? sink; // modèle d'évier (null : évier 1 bac avec égouttoir)
   String? faucet; // modèle de mitigeur (null : mitigeur standard)
   String faucetFinish; // 'chrome' | 'noir_mat' | 'or_brosse' | 'inox_brosse'
+  String faucetLever; // 'side_pin' | 'side_flat' | 'top_lever' | 'retro_cross'
   String sinkMount; // 'inset' (à poser) | 'undermount' (sous plan)
   String sinkFinish; // 'inox' | 'noir_quartz' | 'blanc_ceramique'
   String hobType; // 'induction' | 'gaz' | 'vitro'
   int hobWidth; // 0 (auto), 60, 80, 90
-  String ovenFinish; // 'black_inox' | 'full_black' | 'inox_brosse' | 'blanc'
+  String ovenFinish; // 'black_inox' | 'full_black' | 'blanc' | 'inox_brosse' | 'black_gold'
+  String ovenHandle; // 'bar' | 'square' | 'retro' | 'integrated'
   final List<CustomTexture> textures; // textures ajoutées par l'utilisateur
 
   KitchenStyle({
@@ -530,11 +532,13 @@ class KitchenStyle {
     this.sink,
     this.faucet,
     this.faucetFinish = 'chrome',
+    this.faucetLever = 'side_pin',
     this.sinkMount = 'inset',
     this.sinkFinish = 'inox',
     this.hobType = 'induction',
     this.hobWidth = 0,
     this.ovenFinish = 'black_inox',
+    this.ovenHandle = 'bar',
     List<CustomTexture>? textures,
   }) : textures = textures ?? [];
 
@@ -560,11 +564,13 @@ class KitchenStyle {
         if (sink != null) 'sink': sink,
         if (faucet != null) 'faucet': faucet,
         if (faucetFinish != 'chrome') 'faucet_finish': faucetFinish,
+        if (faucetLever != 'side_pin') 'faucet_lever': faucetLever,
         if (sinkMount != 'inset') 'sink_mount': sinkMount,
         if (sinkFinish != 'inox') 'sink_finish': sinkFinish,
         if (hobType != 'induction') 'hob_type': hobType,
         if (hobWidth != 0) 'hob_width': hobWidth,
         if (ovenFinish != 'black_inox') 'oven_finish': ovenFinish,
+        if (ovenHandle != 'bar') 'oven_handle': ovenHandle,
         if (textures.isNotEmpty) 'textures': [for (final t in textures) t.toJson()],
       };
 
@@ -587,11 +593,13 @@ class KitchenStyle {
         sink: j['sink'] as String?,
         faucet: j['faucet'] as String?,
         faucetFinish: j['faucet_finish'] as String? ?? 'chrome',
+        faucetLever: j['faucet_lever'] as String? ?? 'side_pin',
         sinkMount: j['sink_mount'] as String? ?? 'inset',
         sinkFinish: j['sink_finish'] as String? ?? 'inox',
         hobType: j['hob_type'] as String? ?? 'induction',
         hobWidth: (j['hob_width'] as num?)?.toInt() ?? 0,
         ovenFinish: j['oven_finish'] as String? ?? 'black_inox',
+        ovenHandle: j['oven_handle'] as String? ?? 'bar',
         textures: [for (final t in (j['textures'] as List? ?? const [])) CustomTexture.fromJson((t as Map).cast<String, dynamic>())],
       );
 }
