@@ -7,9 +7,11 @@ import 'i18n_hook.dart';
 import 'dart:math' as math;
 
 import 'access.dart';
+import 'brands_sizes.dart';
 import 'clearance.dart';
 import 'layout_engine.dart';
 import 'materials.dart';
+import 'catalog.dart';
 import 'networks.dart';
 import 'project.dart';
 import 'room_objects.dart';
@@ -97,13 +99,65 @@ IssueFix fixFor(LayoutEngine e, Issue i, {MaterialsDb? db}) {
         return false;
       });
     case 'sink_hob_close':
-      return IssueFix(L('Éloigne la plaque de l\'évier pour laisser 300 mm de plan. S\'il n\'y a pas de place, insérez un caisson de 300 mm entre les deux (ou échangez la plaque avec un voisin).'), label: L('Éloigner'), apply: () {
-        final sink = item(0), hob = item(1);
-        if (sink == null || hob == null) return false;
-        final gap = math.max(hob.s - sink.right, sink.s - hob.right);
-        final dir = hob.s >= sink.s ? 1.0 : -1.0;
-        return moved(e.move(hob.uid, s: hob.s + dir * (300 - gap)));
-      });
+      final minDist = (SizeCatalog.rule('cuisine', ['safety_landing_zones', 'min_distance_sink_to_cooktop']) ?? 600).round();
+      return IssueFix(
+        L('Éloigne la plaque de l\'évier pour laisser {0} mm de plan (échange avec un meuble voisin).', [minDist]),
+        label: L('Échanger'),
+        apply: () {
+          final sink = item(0), hob = item(1);
+          if (sink == null || hob == null) return false;
+          final minD = minDist.toDouble();
+          final curGap = hob.s >= sink.right ? hob.s - sink.right : (sink.s >= hob.right ? sink.s - hob.right : 0.0);
+          if (curGap >= minD) return false;
+
+          // Stratégie 1 : échanger la plaque avec un meuble bas voisin à l'opposé de l'évier
+          final dir = hob.s >= sink.s ? 1 : -1;
+          PlacedCabinet? neighbor;
+          if (dir > 0) {
+            neighbor = p.items.where((b) {
+              if (b.uid == hob.uid || b.uid == sink.uid || b.wallId != hob.wallId) return false;
+              final mb = e.modelOf(b);
+              if (mb.kind.isCorner || mb.kind.isFiller || mb.kind != CabinetKind.base) return false;
+              if (e.isCooking(mb) || e.isWashing(mb)) return false;
+              return (b.s - hob.right).abs() < 25;
+            }).firstOrNull;
+          } else {
+            neighbor = p.items.where((b) {
+              if (b.uid == hob.uid || b.uid == sink.uid || b.wallId != hob.wallId) return false;
+              final mb = e.modelOf(b);
+              if (mb.kind.isCorner || mb.kind.isFiller || mb.kind != CabinetKind.base) return false;
+              if (e.isCooking(mb) || e.isWashing(mb)) return false;
+              return (hob.s - b.right).abs() < 25;
+            }).firstOrNull;
+          }
+
+          if (neighbor != null) {
+            final res = e.trySwap(hob.uid, neighbor.s + neighbor.width / 2);
+            if (res != null && res.moved) {
+              // Réaligner la hotte si présente au-dessus de la plaque
+              for (final hood in p.items.where((h) => h.wallId == hob.wallId && e.modelOf(h).id == 'wall_integrated_hood')) {
+                e.move(hood.uid, s: hob.s + hob.width / 2 - hood.width / 2);
+              }
+              return true;
+            }
+          }
+
+          // Stratégie 2 : si la plaque est en bout de linéaire avec espace libre à l'opposé
+          final needed = minD - curGap;
+          if (needed > 0) {
+            final targetS = hob.s + dir * needed;
+            final res = e.move(hob.uid, s: targetS);
+            if (res.moved) {
+              for (final hood in p.items.where((h) => h.wallId == hob.wallId && e.modelOf(h).id == 'wall_integrated_hood')) {
+                e.move(hood.uid, s: hob.s + hob.width / 2 - hood.width / 2);
+              }
+              return true;
+            }
+          }
+
+          return false;
+        },
+      );
     case 'oven_fridge':
       return IssueFix(L('Séparez le four du réfrigérateur par un caisson (150 à 300 mm) ou échangez l\'un des deux avec un voisin (glissez l\'un sur l\'autre).'));
     case 'wall_too_low':

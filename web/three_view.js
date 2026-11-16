@@ -1007,6 +1007,11 @@ function buildFixture(o, sceneData) {
       const sinkMat = o.sinkFinish === 'noir_quartz' ? tapBlack
                     : o.sinkFinish === 'blanc_ceramique' ? ceramic
                     : new THREE.MeshStandardMaterial({ color: 0xc8cdd2, roughness: 0.22, metalness: 0.88 });
+      const sinkMatBowl = o.sinkFinish === 'noir_quartz'
+                    ? new THREE.MeshStandardMaterial({ color: 0x1f2124, roughness: 0.45, side: THREE.DoubleSide })
+                    : o.sinkFinish === 'blanc_ceramique'
+                    ? ceramicIn
+                    : new THREE.MeshStandardMaterial({ color: 0xc8cdd2, roughness: 0.22, metalness: 0.88, side: THREE.DoubleSide });
       const isUndermount = mount === 'undermount';
       // Sous-plan : lèvre fine biseautée au ras du plan ; Encastré : cadre avec lèvre 5mm au-dessus du plan
       const topY = isUndermount ? 1.5 : 5.0;
@@ -1056,7 +1061,7 @@ function buildFixture(o, sceneData) {
           }
         }
         // Cuve profonde
-        m.add(mesh(bowl(bowlX, cz, bowlW / 2 - 15, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMat));
+        m.add(mesh(bowl(bowlX, cz, bowlW / 2 - 15, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMatBowl));
         // Bonde panier inox 90 mm + bouchon filtre
         m.add(at(mesh(new THREE.CylinderGeometry(45, 42, 5, 32), chrome), bowlX, topY - 188, cz));
         m.add(at(mesh(new THREE.CylinderGeometry(18, 18, 8, 24), darkMat), bowlX, topY - 185, cz));
@@ -1073,18 +1078,18 @@ function buildFixture(o, sceneData) {
         divider.position.set(0, topY - rimH / 2, deckDepth + (d - deckDepth - 30) / 2);
         m.add(divider);
 
-        m.add(mesh(bowl(b1X, cz, singleW / 2 - 10, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMat));
+        m.add(mesh(bowl(b1X, cz, singleW / 2 - 10, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMatBowl));
         m.add(at(mesh(new THREE.CylinderGeometry(45, 42, 5, 32), chrome), b1X, topY - 188, cz));
         m.add(at(mesh(new THREE.CylinderGeometry(18, 18, 8, 24), darkMat), b1X, topY - 185, cz));
 
-        m.add(mesh(bowl(b2X, cz, singleW / 2 - 10, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMat));
+        m.add(mesh(bowl(b2X, cz, singleW / 2 - 10, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMatBowl));
         m.add(at(mesh(new THREE.CylinderGeometry(45, 42, 5, 32), chrome), b2X, topY - 188, cz));
         m.add(at(mesh(new THREE.CylinderGeometry(18, 18, 8, 24), darkMat), b2X, topY - 185, cz));
       } else {
         // 1 bac simple / compact
         const bowlW = w - 60;
         const bowlX = 0;
-        m.add(mesh(bowl(bowlX, cz, bowlW / 2 - 10, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMat));
+        m.add(mesh(bowl(bowlX, cz, bowlW / 2 - 10, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMatBowl));
         m.add(at(mesh(new THREE.CylinderGeometry(45, 42, 5, 32), chrome), bowlX, topY - 188, cz));
         m.add(at(mesh(new THREE.CylinderGeometry(18, 18, 8, 24), darkMat), bowlX, topY - 185, cz));
         const overFlow = mesh(new THREE.BoxGeometry(32, 12, 4), chrome);
