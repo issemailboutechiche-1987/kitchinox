@@ -117,6 +117,13 @@ class Wall {
     return Box3(math.min(ax, bx), math.min(ay, by), z, math.max(ax, bx), math.max(ay, by), z + height);
   }
 
+  /// Boîte occupée par un rectangle (s0..s0+width) et profondeur (t0..t1) le long du mur.
+  Box3 stripRange(double s, double width, double t0, double t1, double z, double height) {
+    final (ax, ay) = toPlan(s, t0);
+    final (bx, by) = toPlan(s + width, t1);
+    return Box3(math.min(ax, bx), math.min(ay, by), z, math.max(ax, bx), math.max(ay, by), z + height);
+  }
+
   /// Boîte du plan exprimée en intervalles (s, t) de ce mur.
   (double, double, double, double) boxToWall(Box3 b) {
     final (s0, t0) = toWall(b.x0, b.y0);

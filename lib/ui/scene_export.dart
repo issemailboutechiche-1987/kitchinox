@@ -170,11 +170,20 @@ class SceneExporter {
             return Box3(math.min(ax, bx), math.min(ay, by), za, math.max(ax, bx), math.max(ay, by), zb);
           }
 
+          final topPanels = m.kind.isLow
+              ? [
+                  at(s0 + 18, s1 - 18, t0, t0 + 70, b.z1 - 18, b.z1), // traverse arrière
+                  at(s0 + 18, s1 - 18, tf - 70, tf, b.z1 - 18, b.z1), // traverse avant
+                ]
+              : [
+                  at(s0 + 18, s1 - 18, t0, tf, b.z1 - 18, b.z1), // dessus plein (hauts et colonnes)
+                ];
+
           for (final bx in [
             at(s0, s0 + 18, t0, tf, b.z0, b.z1), // côtés
             at(s1 - 18, s1, t0, tf, b.z0, b.z1),
             at(s0 + 18, s1 - 18, t0, tf, b.z0, b.z0 + 18), // dessous
-            at(s0 + 18, s1 - 18, t0, tf, b.z1 - 18, b.z1), // dessus
+            ...topPanels,
             at(s0 + 18, s1 - 18, t0, t0 + 18, b.z0 + 18, b.z1 - 18), // dos
           ]) {
             solids.add({..._box(bx), 'mat': carcassMat, 'uid': c.uid});
@@ -329,38 +338,6 @@ class SceneExporter {
       }
     }
 
-    // plans de travail et plinthes
-    final topMat = await _mat(top, rough: top.tex?.startsWith('marble') ?? false ? 0.3 : 0.55);
-    final plinthMat = _plain(shade(lowFront.color, -0.12), rough: 0.6);
-    for (final w in room.walls.where((w) => w.enabled)) {
-      for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
-        solids.add({..._box(w.strip(a, b - a, worktopDepth.toDouble(), std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
-      }
-      for (final (a, b) in e.runs(w.id, (m) => m.floorSupport)) {
-        solids.add({..._box(w.strip(a, b - a, 540, 0, std.plinthHeight.toDouble())), 'mat': plinthMat});
-      }
-    }
-    final isl = room.island;
-    if (isl != null) {
-      final w = room.wall('I');
-      Box3 box(double s0, double s1, double t0, double t1, double z0, double z1) {
-        final (ax, ay) = w.toPlan(s0, t0);
-        final (bx, by) = w.toPlan(s1, t1);
-        return Box3(math.min(ax, bx), math.min(ay, by), z0, math.max(ax, bx), math.max(ay, by), z1);
-      }
-
-      for (final (a, b) in e.runs('I', (m) => e.kitchen && m.kind.isLow)) {
-        solids.add({..._box(box(a, b, -isl.overhang, Island.depth + 20, std.baseTop.toDouble(), std.worktopTop.toDouble())), 'mat': topMat, 'top': true});
-        solids.add({..._box(box(a, b, -18, 0, 0, std.baseTop.toDouble())), 'mat': await _mat(lowFront, vertical: true)});
-      }
-      for (final (a, b) in e.runs('I', (m) => m.floorSupport)) {
-        solids.add({..._box(box(a, b, 0, 540, 0, std.plinthHeight.toDouble())), 'mat': plinthMat});
-      }
-    }
-    // appareils visibles : plaque, évier et robinet, four, hotte
-    final steel = _plain(const Color(0xFFC4C8CC), rough: 0.35, metal: 0.35);
-    final kitchenFixtures = <Map<String, dynamic>>[];
-
     // Détection automatique et robuste du caisson évier et du caisson plaque dans la cuisine
     PlacedCabinet? designatedSink;
     PlacedCabinet? designatedHob;
@@ -386,6 +363,73 @@ class SceneExporter {
       }).firstOrNull;
     }
 
+    // Réservations / découpes précises du plan de travail pour l'évier et la plaque (vrais trous)
+    final cutoutsByWall = <String, List<({double s0, double s1, double t0, double t1})>>{};
+    const wd = worktopDepth * 1.0;
+    for (final c in p.items) {
+      final m = e.modelOf(c);
+      if (!m.kind.isLow || !m.isCarcass || m.kind.isCorner) continue;
+      final isCook = (c == designatedHob) || m.id == 'base_cooktop_oven' || m.id == 'base_oven_built_in' || (e.isCooking(m) && m.kind.isLow) || m.id.contains('cooktop') || (c.appliances?.any((a) => a.contains('cooktop')) ?? false);
+      final isSink = (c == designatedSink) || m.id == 'base_sink' || e.isWashing(m) || m.id.contains('sink') || m.id.contains('evier') || (c.appliances?.any((a) => a.contains('sink')) ?? false);
+
+      if (isSink) {
+        final sk = KitchenFixtures.sink(style.sink);
+        final bw = math.min(c.width - 40.0, sk.length.toDouble());
+        final sd = math.min(sk.depth.toDouble(), wd - 80.0);
+        final s0 = c.s + (c.width - bw) / 2;
+        final t0 = (wd - sd) / 2;
+        cutoutsByWall.putIfAbsent(c.wallId, () => []).add((s0: s0, s1: s0 + bw, t0: t0, t1: t0 + sd));
+      } else if (isCook && !m.id.contains('sans_plaque')) {
+        final hw = style.hobWidth > 0
+            ? style.hobWidth.toDouble() * 10
+            : (c.width >= 800 ? (c.width >= 900 ? 880.0 : 770.0) : 590.0);
+        final hd = 515.0;
+        final s0 = c.s + (c.width - hw) / 2;
+        final t0 = (wd - hd) / 2;
+        cutoutsByWall.putIfAbsent(c.wallId, () => []).add((s0: s0, s1: s0 + hw, t0: t0, t1: t0 + hd));
+      }
+    }
+
+    // plans de travail et plinthes (avec découpes réelles autour des appareils)
+    final topMat = await _mat(top, rough: top.tex?.startsWith('marble') ?? false ? 0.3 : 0.55);
+    final plinthMat = _plain(shade(lowFront.color, -0.12), rough: 0.6);
+    for (final w in room.walls.where((w) => w.enabled)) {
+      final cuts = (cutoutsByWall[w.id] ?? [])..sort((a, b) => a.s0.compareTo(b.s0));
+      for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
+        final inRun = cuts.where((x) => x.s0 < b - 20 && x.s1 > a + 20).toList();
+        if (inRun.isEmpty) {
+          solids.add({..._box(w.strip(a, b - a, worktopDepth.toDouble(), std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
+        } else {
+          var curS = a;
+          for (final cut in inRun) {
+            final cs0 = math.max(a, cut.s0);
+            final cs1 = math.min(b, cut.s1);
+            if (cs0 > curS + 5) {
+              solids.add({..._box(w.stripRange(curS, cs0 - curS, 0, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
+            }
+            // Bande arrière de plan (crédence / dosseret de robinetterie)
+            if (cut.t0 > 5) {
+              solids.add({..._box(w.stripRange(cs0, cs1 - cs0, 0, cut.t0, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
+            }
+            // Bande avant de plan (nez de marche / chant avant)
+            if (wd - cut.t1 > 5) {
+              solids.add({..._box(w.stripRange(cs0, cs1 - cs0, cut.t1, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
+            }
+            // Entre cut.t0 et cut.t1 : le trou d'encastrement reste ouvert et creux !
+            curS = cs1;
+          }
+          if (b > curS + 5) {
+            solids.add({..._box(w.stripRange(curS, b - curS, 0, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
+          }
+        }
+      }
+      for (final (a, b) in e.runs(w.id, (m) => m.floorSupport)) {
+        solids.add({..._box(w.strip(a, b - a, 540, 0, std.plinthHeight.toDouble())), 'mat': plinthMat});
+      }
+    }
+
+    final steel = _plain(const Color(0xFFC4C8CC), rough: 0.35, metal: 0.35);
+    final kitchenFixtures = <Map<String, dynamic>>[];
     for (final c in p.items) {
       final m = e.modelOf(c);
       final w = room.wall(c.wallId);
@@ -414,16 +458,31 @@ class SceneExporter {
             'hobType': style.hobType,
           });
         }
-        // Four encastrable
-        final (ox, oy) = w.toPlan(c.s + c.width / 2, c.depth.toDouble());
+        // Four encastrable parfaitement aligné dans le caisson (non saillant)
+        const ovenD = 550.0;
+        final (ox, oy) = w.toPlan(c.s + c.width / 2, c.depth - ovenD / 2);
         kitchenFixtures.add({
           'uid': 'oven:${c.uid}',
           'pick': 'item:${c.uid}',
           'kind': 'fixture',
           'type': 'kitchen_oven',
-          'x': ox, 'y': oy, 'z': std.plinthHeight.toDouble() + c.height * 0.28,
+          'x': ox, 'y': oy, 'z': std.plinthHeight.toDouble() + math.max(120.0, c.height - 595.0 - 20.0),
           'rot': w.rot,
-          'w': c.width.toDouble() - 4, 'd': 550.0, 'h': 595.0,
+          'w': c.width.toDouble() - 4, 'd': ovenD, 'h': 595.0,
+          'finish': style.ovenFinish,
+        });
+      } else if (m.kind == CabinetKind.tall && (m.id.contains('oven') || (c.appliances?.any((a) => a.contains('oven')) ?? false))) {
+        // Four dans colonne haute (hauteur ergonomique)
+        const ovenD = 550.0;
+        final (ox, oy) = w.toPlan(c.s + c.width / 2, c.depth - ovenD / 2);
+        kitchenFixtures.add({
+          'uid': 'oven:${c.uid}',
+          'pick': 'item:${c.uid}',
+          'kind': 'fixture',
+          'type': 'kitchen_oven',
+          'x': ox, 'y': oy, 'z': std.plinthHeight.toDouble() + 750.0,
+          'rot': w.rot,
+          'w': c.width.toDouble() - 4, 'd': ovenD, 'h': 595.0,
           'finish': style.ovenFinish,
         });
       } else if (isSinkBase) {

@@ -305,11 +305,58 @@ class Scene3dPainter {
         );
       }
     }
+    // Collecter les réservations / trous dans le plan de travail (évier, plaque de cuisson)
+    final cutoutsByWall = <String, List<({double s0, double s1, double t0, double t1})>>{};
+    const wd = worktopDepth * 1.0;
+    for (final c in p.items) {
+      final m = e.modelOf(c);
+      if (!m.kind.isLow || !m.isCarcass || m.kind.isCorner) continue;
+      final isCook = m.id == 'base_cooktop_oven' || m.id == 'base_oven_built_in' || (e.isCooking(m) && m.kind.isLow) || m.id.contains('cooktop') || (c.appliances?.any((a) => a.contains('cooktop')) ?? false);
+      final isSink = m.id.startsWith('base_sink') || m.id.contains('sink') || m.id.contains('evier') || e.isWashing(m) || (c.appliances?.any((a) => a.contains('sink')) ?? false);
+
+      if (isSink) {
+        final sk = KitchenFixtures.sink(p.style.sink);
+        final bw = math.min(c.width - 60.0, sk.length.toDouble());
+        final sd = math.min(sk.depth.toDouble(), wd - 80.0);
+        final s0 = c.s + (c.width - bw) / 2;
+        final t0 = (wd - sd) / 2;
+        cutoutsByWall.putIfAbsent(c.wallId, () => []).add((s0: s0, s1: s0 + bw, t0: t0, t1: t0 + sd));
+      } else if (isCook && !m.id.contains('sans_plaque')) {
+        final hd = c.width >= 750 ? 520.0 : 510.0;
+        final s0 = c.s + 30.0;
+        final t0 = (wd - hd) / 2;
+        cutoutsByWall.putIfAbsent(c.wallId, () => []).add((s0: s0, s1: s0 + (c.width - 60.0), t0: t0, t1: t0 + hd));
+      }
+    }
+
     for (final w in room.walls.where((w) => w.enabled)) {
+      final cuts = (cutoutsByWall[w.id] ?? [])..sort((a, b) => a.s0.compareTo(b.s0));
       for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
-        solids.add(
-          _Solid(w.strip(a, b - a, worktopDepth.toDouble(), std.baseTop.toDouble(), std.worktopThickness.toDouble()), top.color, finish: top),
-        );
+        final inRun = cuts.where((x) => x.s0 < b - 20 && x.s1 > a + 20).toList();
+        if (inRun.isEmpty) {
+          solids.add(
+            _Solid(w.strip(a, b - a, worktopDepth.toDouble(), std.baseTop.toDouble(), std.worktopThickness.toDouble()), top.color, finish: top),
+          );
+        } else {
+          var curS = a;
+          for (final cut in inRun) {
+            final cs0 = math.max(a, cut.s0);
+            final cs1 = math.min(b, cut.s1);
+            if (cs0 > curS + 5) {
+              solids.add(_Solid(w.stripRange(curS, cs0 - curS, 0, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble()), top.color, finish: top));
+            }
+            if (cut.t0 > 5) {
+              solids.add(_Solid(w.stripRange(cs0, cs1 - cs0, 0, cut.t0, std.baseTop.toDouble(), std.worktopThickness.toDouble()), top.color, finish: top));
+            }
+            if (wd - cut.t1 > 5) {
+              solids.add(_Solid(w.stripRange(cs0, cs1 - cs0, cut.t1, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble()), top.color, finish: top));
+            }
+            curS = cs1;
+          }
+          if (b > curS + 5) {
+            solids.add(_Solid(w.stripRange(curS, b - curS, 0, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble()), top.color, finish: top));
+          }
+        }
       }
       for (final (a, b) in e.runs(w.id, (m) => m.floorSupport)) {
         solids.add(_Solid(w.strip(a, b - a, 540, 0, std.plinthHeight.toDouble()), shade(lowFront.color, -0.12)));
