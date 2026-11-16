@@ -171,19 +171,61 @@ class Scene3dPainter {
             canvas.drawRect(Rect.fromLTWH(0, 0, w.length, room.height), wf.paint());
           });
         }
-        // crédence derrière les linéaires bas, jusqu'au bas des hauts (60 cm par défaut)
+        // crédence derrière les linéaires bas, jusqu'au bas des hauts (découpée autour des ouvertures)
         if (style.splash != null || sf != wf) {
-          for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
-            var zTop = std.worktopTop + 600.0;
-            for (final c in p.items.where((c) => c.wallId == w.id && e.modelOf(c).kind.isHigh && c.s < b && a < c.right)) {
-              zTop = math.min(zTop, c.z);
-            }
-            final (sx, sy) = w.toPlan(a, 1);
-            _onPlane(canvas, (sx, sy, zTop), (w.dx, w.dy, 0), (0, 0, -1), () {
-              final r = Rect.fromLTWH(0, 0, b - a, zTop - std.worktopTop);
+          void drawSplash(double s0, double s1, double z0, double z1) {
+            if (s1 <= s0 + 0.5 || z1 <= z0 + 0.5) return;
+            final (sx, sy) = w.toPlan(s0, 1);
+            _onPlane(canvas, (sx, sy, z1), (w.dx, w.dy, 0), (0, 0, -1), () {
+              final r = Rect.fromLTWH(0, 0, s1 - s0, z1 - z0);
               canvas.drawRect(r, sf.paint());
               canvas.drawRect(Rect.fromLTWH(0, r.bottom - 4, r.width, 4), Paint()..color = Colors.black.withValues(alpha: 0.12));
             });
+          }
+
+          for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
+            final zBottom = std.worktopTop.toDouble();
+            var zTop = zBottom + 600.0;
+            for (final c in p.items.where((c) => c.wallId == w.id && e.modelOf(c).kind.isHigh && c.s < b && a < c.right)) {
+              zTop = math.min(zTop, c.z);
+            }
+            if (zTop <= zBottom) continue;
+
+            final wallOps = p.openings
+                .where((o) => o.wallId == w.id && o.right > a && o.s < b && o.z < zTop && o.z + o.height > zBottom)
+                .toList()
+              ..sort((x, y) => x.s.compareTo(y.s));
+
+            if (wallOps.isEmpty) {
+              drawSplash(a, b, zBottom, zTop);
+            } else {
+              var curS = a;
+              for (final o in wallOps) {
+                final os0 = math.max(a, o.s);
+                final os1 = math.min(b, o.right);
+                if (os0 > curS + 1.0) {
+                  var segZ = zBottom + 600.0;
+                  for (final c in p.items.where((c) => c.wallId == w.id && e.modelOf(c).kind.isHigh && c.s < os0 && curS < c.right)) {
+                    segZ = math.min(segZ, c.z);
+                  }
+                  drawSplash(curS, os0, zBottom, segZ);
+                }
+                if (!o.isDoor && o.z > zBottom + 5.0) {
+                  drawSplash(os0, os1, zBottom, math.min(zTop, o.z));
+                }
+                if (!o.isDoor && o.z + o.height < zTop - 5.0) {
+                  drawSplash(os0, os1, o.z + o.height, zTop);
+                }
+                curS = math.max(curS, os1);
+              }
+              if (b > curS + 1.0) {
+                var segZ = zBottom + 600.0;
+                for (final c in p.items.where((c) => c.wallId == w.id && e.modelOf(c).kind.isHigh && c.s < b && curS < c.right)) {
+                  segZ = math.min(segZ, c.z);
+                }
+                drawSplash(curS, b, zBottom, segZ);
+              }
+            }
           }
         }
         canvas.drawPath(

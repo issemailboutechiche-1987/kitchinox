@@ -523,6 +523,23 @@ class StylePanel extends StatelessWidget {
             swatches(splashFinishes(st), st.splash ?? '', (v) => state.setRoomFinish(splash: v)),
             const SizedBox(height: Tokens.s3),
             _TextureLibrary(state: state, target: 'wall'),
+            const SizedBox(height: Tokens.s5),
+            Text(tr('Appareillage électrique (Prises & Interrupteurs)'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: Tokens.s1),
+            Text(tr('Finition des plaques et mécanismes'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: Tokens.s2),
+            SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(value: 'blanc', label: Text(tr('Blanc'))),
+                ButtonSegment(value: 'noir_mat', label: Text(tr('Noir mat'))),
+                ButtonSegment(value: 'anthracite', label: Text(tr('Anthracite'))),
+                ButtonSegment(value: 'alu_brosse', label: Text(tr('Alu'))),
+                ButtonSegment(value: 'or_brosse', label: Text(tr('Laiton/Or'))),
+              ],
+              selected: {st.socketFinish},
+              onSelectionChanged: (v) => state.edit(() => st.socketFinish = v.first),
+            ),
           ])
         ),
       StyleSection.handles when state.db != null && state.db!.handles.items.isNotEmpty => ('Poignées', _HandlePicker(state: state, cat: state.db!.handles)),

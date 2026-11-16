@@ -44,7 +44,7 @@ void paintNetSymbol(Canvas c, Offset o, NetKind k, double r, {bool selected = fa
   }
   c.drawCircle(o + Offset(r * 0.12, r * 0.18), r, Paint()..color = Colors.black.withValues(alpha: 0.18));
   switch (k) {
-    case NetKind.switch_:
+    case NetKind.switch_ || NetKind.switchDouble || NetKind.switchTriple:
       final rr = RRect.fromRectAndRadius(Rect.fromCircle(center: o, radius: r * 0.9), Radius.circular(r * 0.25));
       c.drawRRect(rr, fill);
       c.drawRRect(rr, stroke);

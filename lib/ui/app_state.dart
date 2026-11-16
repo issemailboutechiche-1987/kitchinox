@@ -872,8 +872,8 @@ class AppState extends ChangeNotifier {
     final len = w == 'I' ? project.room.island!.length : project.room.wall(w).length;
     final z = switch (kind) {
       // prises : au-dessus du plan en cuisine, à 300 mm du sol dans les autres pièces
-      NetKind.socketDouble || NetKind.socket => engine.kitchen ? std.worktopTop + NetHeights.aboveWorktop : 300,
-      NetKind.switch_ || NetKind.switchDouble || NetKind.usb => NetHeights.switchZ,
+      NetKind.socket || NetKind.socketDouble || NetKind.socketTriple || NetKind.socketQuad => engine.kitchen ? std.worktopTop + NetHeights.aboveWorktop : 300,
+      NetKind.switch_ || NetKind.switchDouble || NetKind.switchTriple || NetKind.usb => NetHeights.switchZ,
       NetKind.rj45 || NetKind.tvSat => 300,
       NetKind.waterCold || NetKind.waterHot => NetHeights.waterSupply,
       NetKind.drain => NetHeights.drain,

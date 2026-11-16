@@ -1394,11 +1394,19 @@ const pvc = new THREE.MeshStandardMaterial({ color: 0x9ea3a8, roughness: 0.6 });
 const brass = new THREE.MeshStandardMaterial({ color: 0xd4a017, roughness: 0.3, metalness: 0.7 });
 
 /** Appareillage en mm dans un repère local : x le long du mur, y vers le haut, z vers la pièce (0 = mur). */
-function buildNetPoint(p) {
+function buildNetPoint(p, d) {
   const g = new THREE.Group();
   const m = new THREE.Group();
   m.scale.set(S, S, S);
   g.add(m);
+
+  const sf = p.finish || d?.socketFinish || 'blanc';
+  const customPlate = sf === 'noir_mat' ? new THREE.MeshStandardMaterial({ color: 0x1e2022, roughness: 0.5 })
+                    : sf === 'anthracite' ? new THREE.MeshStandardMaterial({ color: 0x3a3d42, roughness: 0.45 })
+                    : sf === 'alu_brosse' ? new THREE.MeshStandardMaterial({ color: 0xc0c3c7, roughness: 0.25, metalness: 0.85 })
+                    : sf === 'or_brosse' ? new THREE.MeshStandardMaterial({ color: 0xd4a017, roughness: 0.3, metalness: 0.75 })
+                    : plateMat;
+
   const box = (w, h, d, mat, x = 0, y = 0, z = 0) => {
     const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
     b.position.set(x, y, z + d / 2);
@@ -1415,8 +1423,8 @@ function buildNetPoint(p) {
   };
   // plaque de 86 x 86 (prise, interrupteur) : socle, enjoliveur
   const plate = (x = 0) => {
-    box(86, 86, 9, plateMat, x, 0, 0);
-    box(70, 70, 2, plateMat, x, 0, 9);
+    box(86, 86, 9, customPlate, x, 0, 0);
+    box(70, 70, 2, customPlate, x, 0, 9);
   };
   const socket = (x = 0) => {
     plate(x);
@@ -1431,9 +1439,27 @@ function buildNetPoint(p) {
       if (p.kind === 'socket20') box(14, 6, 1, new THREE.MeshStandardMaterial({ color: 0xe8590c }), 0, -33, 11);
       break;
     case 'socketDouble':
-      box(157, 86, 9, plateMat, 0, 0, 0);
+      box(157, 86, 9, customPlate, 0, 0, 0);
       for (const x of [-36, 36]) {
-        box(64, 64, 2, plateMat, x, 0, 9);
+        box(64, 64, 2, customPlate, x, 0, 9);
+        cyl(22, 3, plateGrey, x, 0, 10);
+        cyl(2.6, 2, plateDark, x - 9, 0, 12.5);
+        cyl(2.6, 2, plateDark, x + 9, 0, 12.5);
+      }
+      break;
+    case 'socketTriple':
+      box(228, 86, 9, customPlate, 0, 0, 0);
+      for (const x of [-71, 0, 71]) {
+        box(64, 64, 2, customPlate, x, 0, 9);
+        cyl(22, 3, plateGrey, x, 0, 10);
+        cyl(2.6, 2, plateDark, x - 9, 0, 12.5);
+        cyl(2.6, 2, plateDark, x + 9, 0, 12.5);
+      }
+      break;
+    case 'socketQuad':
+      box(299, 86, 9, customPlate, 0, 0, 0);
+      for (const x of [-106.5, -35.5, 35.5, 106.5]) {
+        box(64, 64, 2, customPlate, x, 0, 9);
         cyl(22, 3, plateGrey, x, 0, 10);
         cyl(2.6, 2, plateDark, x - 9, 0, 12.5);
         cyl(2.6, 2, plateDark, x + 9, 0, 12.5);
@@ -1441,13 +1467,19 @@ function buildNetPoint(p) {
       break;
     case 'switch_':
       plate();
-      box(44, 56, 4, plateMat, 0, 0, 11);
+      box(44, 56, 4, customPlate, 0, 0, 11);
       box(30, 2, 1, plateGrey, 0, -20, 15);
       break;
     case 'switchDouble':
       plate();
-      box(26, 56, 4, plateMat, -15, 0, 11);
-      box(26, 56, 4, plateMat, 15, 0, 11);
+      box(26, 56, 4, customPlate, -15, 0, 11);
+      box(26, 56, 4, customPlate, 15, 0, 11);
+      break;
+    case 'switchTriple':
+      plate();
+      box(18, 56, 4, customPlate, -22, 0, 11);
+      box(18, 56, 4, customPlate, 0, 0, 11);
+      box(18, 56, 4, customPlate, 22, 0, 11);
       break;
     case 'usb':
       plate();
@@ -1532,7 +1564,7 @@ function buildNetPoint(p) {
 
 function buildNetPoints(d) {
   const g = new THREE.Group();
-  for (const p of d.netPoints || []) g.add(buildNetPoint(p));
+  for (const p of d.netPoints || []) g.add(buildNetPoint(p, d));
   return g;
 }
 
@@ -1720,7 +1752,7 @@ function applyScene(d) {
   }
   sync('others', JSON.stringify([d.solids.filter((x) => !x.uid), d.tops]), () => bakeStatic(buildOthers(d)));
   syncObjects(d);
-  sync('netPoints', JSON.stringify(d.netPoints || []), () => buildNetPoints(d));
+  sync('netPoints', JSON.stringify([d.netPoints || [], d.socketFinish]), () => buildNetPoints(d));
   sync('ao', JSON.stringify([d.room, d.floorPoly || null, groundFootprints(d)]), () => buildAO(d));
   // sélection : boîte orange
   if (selBox) {

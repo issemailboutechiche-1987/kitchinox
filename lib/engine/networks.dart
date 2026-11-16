@@ -20,10 +20,13 @@ import 'room_objects.dart';
 enum NetKind {
   socket('Prise 16 A', 'elec'),
   socketDouble('Prise double 16 A', 'elec'),
+  socketTriple('Prise triple 16 A', 'elec'),
+  socketQuad('Prise quadruple 16 A', 'elec'),
   socket20('Prise 20 A spécialisée', 'elec'),
   out32('Sortie de câble 32 A', 'elec'),
   switch_('Interrupteur', 'elec'),
   switchDouble('Interrupteur double', 'elec'),
+  switchTriple('Interrupteur triple', 'elec'),
   usb('Prise chargeur USB-A + USB-C', 'elec'),
   rj45('Prise réseau Ethernet RJ45', 'data'),
   tvSat('Prise TV / satellite', 'data'),
@@ -44,16 +47,20 @@ enum NetKind {
 
   static NetKind parse(String s) => NetKind.values.firstWhere((k) => k.name == s, orElse: () => NetKind.socket);
 
-  bool get isSocket => this == socket || this == socketDouble || this == socket20;
+  bool get isSocket => this == socket || this == socketDouble || this == socketTriple || this == socketQuad || this == socket20;
+  bool get isSwitch => this == switch_ || this == switchDouble || this == switchTriple;
 
   /// Abréviation dessinée dans le symbole.
   String get tag => switch (this) {
         socket => 'P',
         socketDouble => 'P2',
+        socketTriple => 'P3',
+        socketQuad => 'P4',
         socket20 => '20',
         out32 => '32',
         switch_ => 'I',
         switchDouble => 'I2',
+        switchTriple => 'I3',
         usb => 'USB',
         rj45 => 'RJ',
         tvSat => 'TV',

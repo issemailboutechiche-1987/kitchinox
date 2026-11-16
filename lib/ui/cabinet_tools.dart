@@ -541,7 +541,7 @@ String netUseLabel(String use) => switch (use) {
 
 /// Repères de pose usuels affichés sous le formulaire.
 String netHint(NetKind k, KitchenStandards std) => switch (k) {
-      NetKind.socket || NetKind.socketDouble =>
+      NetKind.socket || NetKind.socketDouble || NetKind.socketTriple || NetKind.socketQuad =>
         'Au-dessus du plan : ${std.worktopTop + 200} mm environ (8 cm au moins au-dessus du plan), jamais au-dessus de l\'évier ni de la plaque.',
       NetKind.socket20 => 'Circuit spécialisé 20 A. Lave-vaisselle et four : dans le meuble voisin, pas derrière l\'appareil.',
       NetKind.out32 => 'Sortie de câble 32 A (6 mm²) derrière le meuble de la plaque électrique.',
@@ -552,8 +552,9 @@ String netHint(NetKind k, KitchenStandards std) => switch (k) {
       NetKind.valveMachine => 'Robinet machine pour le lave-vaisselle, accessible dans le meuble voisin.',
       NetKind.gas => 'Robinet gaz accessible dans le meuble de la plaque, flexible à date de validité.',
       NetKind.duct => 'Sortie de hotte Ø125 au-dessus du meuble hotte.',
-      NetKind.switch_ => 'Interrupteur (simple ou va-et-vient) près de la porte, vers 1100 mm.',
+      NetKind.switch_ => 'Interrupteur simple (ou va-et-vient) près de la porte, vers 1100 mm.',
       NetKind.switchDouble => 'Interrupteur double (deux circuits) près de la porte, vers 1100 mm.',
+      NetKind.switchTriple => 'Interrupteur triple (trois circuits) près de la porte, vers 1100 mm.',
       NetKind.usb => 'Prise chargeur USB-A + USB-C, vers 1100 mm (plan de travail, chevet, bureau).',
       NetKind.rj45 => 'Prise réseau RJ45 à 300 mm du sol (derrière le meuble TV, bureau).',
       NetKind.tvSat => 'Prise TV / satellite à 300 mm du sol, ou juste au-dessus du meuble TV.',
@@ -596,6 +597,56 @@ class _PointForm extends StatelessWidget {
           onChanged: editable ? (k) => state.updatePoint(x.uid, kind: k) : null,
         ),
       ]),
+      if (x.kind == NetKind.socket || x.kind == NetKind.socketDouble || x.kind == NetKind.socketTriple || x.kind == NetKind.socketQuad)
+        _Section('Nombre de prises', [
+          SegmentedButton<int>(
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(value: 1, label: Text(tr('1 simple'))),
+              ButtonSegment(value: 2, label: Text(tr('2 double'))),
+              ButtonSegment(value: 3, label: Text(tr('3 triple'))),
+              ButtonSegment(value: 4, label: Text(tr('4 quadruple'))),
+            ],
+            selected: {
+              x.kind == NetKind.socket ? 1 : (x.kind == NetKind.socketDouble ? 2 : (x.kind == NetKind.socketTriple ? 3 : 4))
+            },
+            onSelectionChanged: editable
+                ? (v) {
+                    final target = switch (v.first) {
+                      1 => NetKind.socket,
+                      2 => NetKind.socketDouble,
+                      3 => NetKind.socketTriple,
+                      _ => NetKind.socketQuad,
+                    };
+                    state.updatePoint(x.uid, kind: target);
+                  }
+                : null,
+          ),
+        ]),
+      if (x.kind == NetKind.switch_ || x.kind == NetKind.switchDouble || x.kind == NetKind.switchTriple)
+        _Section('Nombre de touches', [
+          SegmentedButton<int>(
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(value: 1, label: Text(tr('1 simple'))),
+              ButtonSegment(value: 2, label: Text(tr('2 double'))),
+              ButtonSegment(value: 3, label: Text(tr('3 triple'))),
+            ],
+            selected: {
+              x.kind == NetKind.switch_ ? 1 : (x.kind == NetKind.switchDouble ? 2 : 3)
+            },
+            onSelectionChanged: editable
+                ? (v) {
+                    final target = switch (v.first) {
+                      1 => NetKind.switch_,
+                      2 => NetKind.switchDouble,
+                      _ => NetKind.switchTriple,
+                    };
+                    state.updatePoint(x.uid, kind: target);
+                  }
+                : null,
+          ),
+        ]),
       if (!x.onCeiling)
         _Section('Mur', [
           _wallPicker(state, x.wallId, (w) {

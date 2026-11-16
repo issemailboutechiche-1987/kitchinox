@@ -67,38 +67,55 @@ const carcasses = [
   Finish('noir', 'Noir', Color(0xFF2B2B2B)),
 ];
 
-/// Sols : parquets, carrelages, carreaux de ciment, béton ciré, terrazzo.
+/// Sols : parquets, carrelages, carreaux de ciment, béton ciré, terrazzo, pierre.
 const floors = [
   Finish('parquet_clair', 'Parquet chêne clair', Color(0xFFE2C9A4), tex: 'parquet_light', tile: 2160),
-  Finish('parquet_chene', 'Parquet chêne', Color(0xFFC9A273), tex: 'parquet_oak', tile: 2160),
+  Finish('parquet_chene', 'Parquet chêne naturel', Color(0xFFC9A273), tex: 'parquet_oak', tile: 2160),
   Finish('parquet_noyer', 'Parquet noyer', Color(0xFF6E4A31), tex: 'parquet_walnut', tile: 2160),
+  Finish('parquet_blanchi', 'Parquet chêne blanchi', Color(0xFFEDE3D4), tex: 'parquet_light', tile: 2160),
+  Finish('parquet_fume', 'Parquet chêne fumé', Color(0xFF5A4638), tex: 'wood_smoked', tile: 2160),
   Finish('carrelage_blanc', 'Carrelage blanc 60 x 60', Color(0xFFEDECE8), tex: 'tile_white', tile: 1200),
   Finish('carrelage_gris', 'Carrelage gris 60 x 60', Color(0xFF9A9B97), tex: 'tile_grey', tile: 1200),
-  Finish('carrelage_marbre', 'Carrelage effet marbre', Color(0xFFE9E6E0), tex: 'tile_marble', tile: 1200),
+  Finish('carrelage_anthracite', 'Carrelage ardoise anthracite', Color(0xFF3B3D40), tex: 'concrete_dark', tile: 1200),
+  Finish('carrelage_marbre', 'Carrelage marbre Calacatta', Color(0xFFE9E6E0), tex: 'tile_marble', tile: 1200),
+  Finish('carrelage_marbre_noir', 'Carrelage marbre noir Marquina', Color(0xFF242426), tex: 'marble_black', tile: 1200),
+  Finish('carrelage_travertin', 'Carrelage travertin beige', Color(0xFFDFD7CA), tex: 'tile_marble', tile: 1200),
   Finish('tomettes', 'Tomettes terre cuite', Color(0xFFB8653F), tex: 'tile_terracotta', tile: 800),
   Finish('carreaux_ciment', 'Carreaux de ciment', Color(0xFFD9D2C4), tex: 'cement', tile: 800),
-  Finish('beton_cire', 'Béton ciré', Color(0xFFA3A39E), tex: 'concrete_smooth', tile: 3000),
-  Finish('terrazzo_sol', 'Terrazzo', Color(0xFFE5DED3), tex: 'terrazzo', tile: 1000),
+  Finish('beton_cire', 'Béton ciré clair', Color(0xFFA3A39E), tex: 'concrete_smooth', tile: 3000),
+  Finish('beton_cire_sombre', 'Béton ciré anthracite', Color(0xFF424447), tex: 'concrete_dark', tile: 3000),
+  Finish('terrazzo_sol', 'Terrazzo classique', Color(0xFFE5DED3), tex: 'terrazzo', tile: 1000),
+  Finish('terrazzo_blanc', 'Terrazzo blanc éclat', Color(0xFFF0EEE9), tex: 'terrazzo', tile: 1000),
 ];
 
-/// Murs : peintures intérieures, papier peint, carrelage, briques, béton.
+/// Murs : peintures intérieures, papier peint, carrelage, briques, béton, zellige.
 const walls = [
   Finish('blanc_casse', 'Blanc cassé', Color(0xFFF1EFEA)),
+  Finish('blanc_pur', 'Blanc pur éclatant', Color(0xFFF8F9FA)),
   Finish('gris_perle', 'Gris perle', Color(0xFFD9D9D6)),
   Finish('beige_sable', 'Beige sable', Color(0xFFE6D8C3)),
+  Finish('greige_moderne', 'Greige contemporain', Color(0xFFD2CBC1)),
   Finish('lin_naturel', 'Lin naturel', Color(0xFFDDD4C5)),
   Finish('vert_sauge_mur', 'Vert sauge', Color(0xFFB7C4AA)),
   Finish('vert_foret', 'Vert forêt', Color(0xFF2C4A3E)),
+  Finish('vert_olive', 'Vert olive', Color(0xFF556B47)),
   Finish('bleu_ciel', 'Bleu ciel', Color(0xFFC9DCE6)),
   Finish('bleu_canard', 'Bleu canard', Color(0xFF144D58)),
-  Finish('terracotta_mur', 'Terracotta', Color(0xFFD49A7C)),
+  Finish('bleu_nuit', 'Bleu nuit profond', Color(0xFF1B2838)),
+  Finish('terracotta_mur', 'Terracotta toscane', Color(0xFFD49A7C)),
+  Finish('argile_rose', 'Terre d\'argile', Color(0xFFC48674)),
   Finish('rose_poudre', 'Rose poudré', Color(0xFFE8CBC4)),
+  Finish('ocre_soleil', 'Ocre chaleureux', Color(0xFFD4973B)),
   Finish('anthracite_mur', 'Gris anthracite', Color(0xFF383C40)),
-  Finish('brique', 'Brique rouge', Color(0xFFA5533A), tex: 'brick', tile: 900),
+  Finish('brique', 'Brique rouge loft', Color(0xFFA5533A), tex: 'brick', tile: 900),
+  Finish('brique_blanche', 'Brique blanche peinte', Color(0xFFEAE7E1), tex: 'subway', tile: 900),
   Finish('beton_mur', 'Béton ciré mural', Color(0xFF9FA09C), tex: 'concrete', tile: 2000),
   Finish('carrelage_faience', 'Faïence blanche brillante', Color(0xFFF5F6F8), tex: 'subway', tile: 600),
   Finish('carrelage_marbre_mur', 'Carrelage Marbre mural', Color(0xFFEBE8E3), tex: 'marble_white', tile: 1200),
-  Finish('zellige_mural', 'Zellige artisanal', Color(0xFF2E6B57), tex: 'zellige_green', tile: 500),
+  Finish('marbre_noir_mural', 'Marbre noir Marquina', Color(0xFF242426), tex: 'marble_black', tile: 1200),
+  Finish('zellige_mural', 'Zellige vert émeraude', Color(0xFF2E6B57), tex: 'zellige_green', tile: 500),
+  Finish('zellige_blanc_mural', 'Zellige blanc nacré', Color(0xFFF2EFE6), tex: 'zellige_white', tile: 500),
+  Finish('zellige_bleu_mural', 'Zellige bleu indigo', Color(0xFF2E5E86), tex: 'zellige_blue', tile: 500),
 ];
 
 /// Crédences : carreaux métro, zellige, carreaux de ciment, marbre, inox, brique.

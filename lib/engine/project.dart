@@ -511,6 +511,7 @@ class KitchenStyle {
   int hobWidth; // 0 (auto), 60, 80, 90
   String ovenFinish; // 'black_inox' | 'full_black' | 'blanc' | 'inox_brosse' | 'black_gold'
   String ovenHandle; // 'bar' | 'square' | 'retro' | 'integrated'
+  String socketFinish; // 'blanc' | 'noir_mat' | 'anthracite' | 'alu_brosse' | 'or_brosse'
   final List<CustomTexture> textures; // textures ajoutées par l'utilisateur
 
   KitchenStyle({
@@ -539,6 +540,7 @@ class KitchenStyle {
     this.hobWidth = 0,
     this.ovenFinish = 'black_inox',
     this.ovenHandle = 'bar',
+    this.socketFinish = 'blanc',
     List<CustomTexture>? textures,
   }) : textures = textures ?? [];
 
@@ -571,6 +573,7 @@ class KitchenStyle {
         if (hobWidth != 0) 'hob_width': hobWidth,
         if (ovenFinish != 'black_inox') 'oven_finish': ovenFinish,
         if (ovenHandle != 'bar') 'oven_handle': ovenHandle,
+        if (socketFinish != 'blanc') 'socket_finish': socketFinish,
         if (textures.isNotEmpty) 'textures': [for (final t in textures) t.toJson()],
       };
 
@@ -600,6 +603,7 @@ class KitchenStyle {
         hobWidth: (j['hob_width'] as num?)?.toInt() ?? 0,
         ovenFinish: j['oven_finish'] as String? ?? 'black_inox',
         ovenHandle: j['oven_handle'] as String? ?? 'bar',
+        socketFinish: j['socket_finish'] as String? ?? 'blanc',
         textures: [for (final t in (j['textures'] as List? ?? const [])) CustomTexture.fromJson((t as Map).cast<String, dynamic>())],
       );
 }
