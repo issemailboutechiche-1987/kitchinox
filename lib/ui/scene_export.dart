@@ -404,21 +404,21 @@ class SceneExporter {
           for (final cut in inRun) {
             final cs0 = math.max(a, cut.s0);
             final cs1 = math.min(b, cut.s1);
-            if (cs0 > curS + 5) {
+            if (cs0 > curS + 0.5) {
               solids.add({..._box(w.stripRange(curS, cs0 - curS, 0, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
             }
             // Bande arrière de plan (crédence / dosseret de robinetterie)
-            if (cut.t0 > 5) {
+            if (cut.t0 > 0.5) {
               solids.add({..._box(w.stripRange(cs0, cs1 - cs0, 0, cut.t0, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
             }
             // Bande avant de plan (nez de marche / chant avant)
-            if (wd - cut.t1 > 5) {
+            if (wd - cut.t1 > 0.5) {
               solids.add({..._box(w.stripRange(cs0, cs1 - cs0, cut.t1, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
             }
             // Entre cut.t0 et cut.t1 : le trou d'encastrement reste ouvert et creux !
             curS = cs1;
           }
-          if (b > curS + 5) {
+          if (b > curS + 0.5) {
             solids.add({..._box(w.stripRange(curS, b - curS, 0, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
           }
         }
@@ -428,13 +428,30 @@ class SceneExporter {
       }
     }
 
+    final isl = room.island;
+    if (isl != null) {
+      final w = room.wall('I');
+      Box3 box(double s0, double s1, double t0, double t1, double z0, double z1) {
+        final (ax, ay) = w.toPlan(s0, t0);
+        final (bx, by) = w.toPlan(s1, t1);
+        return Box3(math.min(ax, bx), math.min(ay, by), z0, math.max(ax, bx), math.max(ay, by), z1);
+      }
+
+      for (final (a, b) in e.runs('I', (m) => e.kitchen && m.kind.isLow)) {
+        solids.add({..._box(box(a, b, -isl.overhang, Island.depth + 20, std.baseTop.toDouble(), std.worktopTop.toDouble())), 'mat': topMat, 'top': true});
+        solids.add({..._box(box(a, b, -18, 0, 0, std.baseTop.toDouble())), 'mat': await _mat(lowFront, vertical: true)});
+      }
+      for (final (a, b) in e.runs('I', (m) => m.floorSupport)) {
+        solids.add({..._box(box(a, b, 0, 540, 0, std.plinthHeight.toDouble())), 'mat': plinthMat});
+      }
+    }
+
     final steel = _plain(const Color(0xFFC4C8CC), rough: 0.35, metal: 0.35);
     final kitchenFixtures = <Map<String, dynamic>>[];
     for (final c in p.items) {
       final m = e.modelOf(c);
       final w = room.wall(c.wallId);
       final topZ = std.worktopTop.toDouble();
-      const wd = worktopDepth * 1.0;
       final isCookBase = (c == designatedHob) || m.id == 'base_cooktop_oven' || m.id == 'base_oven_built_in' || (e.isCooking(m) && m.kind.isLow) || m.id.contains('cooktop') || (c.appliances?.any((a) => a.contains('cooktop')) ?? false);
       final isSinkBase = (c == designatedSink) || m.id == 'base_sink' || e.isWashing(m) || m.id.contains('sink') || m.id.contains('evier') || (c.appliances?.any((a) => a.contains('sink')) ?? false);
       final isHoodUnit = m.id == 'wall_integrated_hood' || m.id.contains('hood') || m.id.contains('hotte');

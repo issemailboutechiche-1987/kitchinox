@@ -448,6 +448,7 @@ class StylePanel extends StatelessWidget {
                 showSelectedIcon: false,
                 segments: [
                   ButtonSegment(value: 'black_inox', label: Text(tr('Inox & Verre noir'))),
+                  ButtonSegment(value: 'inox_brosse', label: Text(tr('Inox brossé'))),
                   ButtonSegment(value: 'full_black', label: Text(tr('Full Black'))),
                   ButtonSegment(value: 'blanc', label: Text(tr('Blanc'))),
                   ButtonSegment(value: 'black_gold', label: Text(tr('Noir & Or'))),
@@ -1413,6 +1414,7 @@ class _ApplianceSection extends StatelessWidget {
     final hasSink = ids.any((a) => a.contains('sink')) || (item.appliances?.any((a) => a.contains('sink')) ?? false) || model.id.contains('sink');
     final hasOven = ids.any((a) => a.contains('oven')) || (item.appliances?.any((a) => a.contains('oven')) ?? false) || model.id.contains('oven');
     final st = state.project.style;
+    final styleEditable = editable || state.step == PlanStep.style;
 
     return _Section('Électroménager', [
       for (var i = 0; i < ids.length; i++)
@@ -1457,7 +1459,7 @@ class _ApplianceSection extends StatelessWidget {
             ButtonSegment(value: 'blanc_ceramique', label: Text(tr('Blanc'))),
           ],
           selected: {st.sinkFinish},
-          onSelectionChanged: editable ? (v) => state.edit(() => st.sinkFinish = v.first) : null,
+          onSelectionChanged: styleEditable ? (v) => state.edit(() => st.sinkFinish = v.first) : null,
         ),
         const SizedBox(height: Tokens.s3),
         Text(tr('Finition de la robinetterie'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
@@ -1471,7 +1473,7 @@ class _ApplianceSection extends StatelessWidget {
             ButtonSegment(value: 'inox_brosse', label: Text(tr('Inox'))),
           ],
           selected: {st.faucetFinish},
-          onSelectionChanged: editable ? (v) => state.edit(() => st.faucetFinish = v.first) : null,
+          onSelectionChanged: styleEditable ? (v) => state.edit(() => st.faucetFinish = v.first) : null,
         ),
         const SizedBox(height: Tokens.s3),
         Text(tr('Style de levier du mitigeur'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
@@ -1485,7 +1487,7 @@ class _ApplianceSection extends StatelessWidget {
             ButtonSegment(value: 'retro_cross', label: Text(tr('Croisillons'))),
           ],
           selected: {st.faucetLever},
-          onSelectionChanged: editable ? (v) => state.edit(() => st.faucetLever = v.first) : null,
+          onSelectionChanged: styleEditable ? (v) => state.edit(() => st.faucetLever = v.first) : null,
         ),
       ],
       if (hasOven) ...[
@@ -1498,12 +1500,13 @@ class _ApplianceSection extends StatelessWidget {
           showSelectedIcon: false,
           segments: [
             ButtonSegment(value: 'black_inox', label: Text(tr('Inox/Verre'))),
+            ButtonSegment(value: 'inox_brosse', label: Text(tr('Inox pro'))),
             ButtonSegment(value: 'full_black', label: Text(tr('Full Black'))),
             ButtonSegment(value: 'blanc', label: Text(tr('Blanc'))),
             ButtonSegment(value: 'black_gold', label: Text(tr('Noir & Or'))),
           ],
           selected: {st.ovenFinish},
-          onSelectionChanged: editable ? (v) => state.edit(() => st.ovenFinish = v.first) : null,
+          onSelectionChanged: styleEditable ? (v) => state.edit(() => st.ovenFinish = v.first) : null,
         ),
         const SizedBox(height: Tokens.s3),
         Text(tr('Poignée / Levier de four'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
@@ -1517,7 +1520,7 @@ class _ApplianceSection extends StatelessWidget {
             ButtonSegment(value: 'integrated', label: Text(tr('Intégrée'))),
           ],
           selected: {st.ovenHandle},
-          onSelectionChanged: editable ? (v) => state.edit(() => st.ovenHandle = v.first) : null,
+          onSelectionChanged: styleEditable ? (v) => state.edit(() => st.ovenHandle = v.first) : null,
         ),
       ],
     ]);

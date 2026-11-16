@@ -35,7 +35,10 @@
             window.kitchen3d.setScene(s);
             Bridge.postMessage(JSON.stringify({ h: 'done', a: [id] }));
           })
-          .catch((e) => Bridge.postMessage(JSON.stringify({ h: 'error', a: [id, String(e)] })));
+          .catch((e) => {
+            Bridge.postMessage(JSON.stringify({ h: 'error', a: [id, String(e)] }));
+            return Promise.resolve();
+          });
       },
     };
     window.kitchen3d.mount(document.getElementById('host'));

@@ -670,18 +670,19 @@ function mixerRealistic(m, x, y, z, options = {}) {
     leverHub.rotation.z = Math.PI / 2;
     leverHub.position.set(x + 22, y + 60, z);
     m.add(leverHub);
-    const flatBlade = mesh(new THREE.BoxGeometry(7, 18, 70), mat);
-    flatBlade.position.set(x + 36, y + 78, z - 8 * toward);
+    const flatBlade = mesh(new THREE.BoxGeometry(7, 65, 16), mat);
+    flatBlade.position.set(x + 35, y + 80, z - 8 * toward);
     flatBlade.rotation.x = -0.3 * toward;
     flatBlade.rotation.z = -0.35;
     m.add(flatBlade);
   } else if (lever === 'top_lever') {
-    // Levier supérieur centré au-dessus du col
-    const topCap = mesh(new THREE.CylinderGeometry(18, 20, 16, 28), mat);
-    topCap.position.set(x, y + 12 + bodyH + 8, z);
+    // Levier supérieur incliné vers l'avant sur le col
+    const topCap = mesh(new THREE.CylinderGeometry(16, 18, 14, 28), mat);
+    topCap.position.set(x, y + 12 + bodyH + 4, z + toward * 16);
+    topCap.rotation.x = 0.25 * toward;
     m.add(topCap);
-    const topPin = mesh(new THREE.BoxGeometry(10, 8, 75), mat);
-    topPin.position.set(x, y + 12 + bodyH + 16, z + toward * 32);
+    const topPin = mesh(new THREE.BoxGeometry(8, 10, 65), mat);
+    topPin.position.set(x, y + 12 + bodyH + 12, z + toward * 42);
     topPin.rotation.x = -0.15 * toward;
     m.add(topPin);
   } else if (lever === 'retro_cross') {
@@ -1214,9 +1215,9 @@ function buildFixture(o, sceneData) {
         }
       } else if (handleStyle === 'retro') {
         // Poignée cintrée classique aux extrémités avec sphères décoratives
-        const barR = mesh(new THREE.CylinderGeometry(8, 10, barLen * 0.9, 24), barMat);
+        const barR = mesh(new THREE.CylinderGeometry(9, 9, barLen * 0.9, 24), barMat);
         barR.rotation.z = Math.PI / 2;
-        barR.position.set(0, doorH - 35, d + 42);
+        barR.position.set(0, doorH - 35, d + 38);
         m.add(barR);
         for (const sx of [-barLen * 0.45, barLen * 0.45]) {
           const ball = mesh(new THREE.SphereGeometry(13, 20, 20), barMat);
@@ -1548,8 +1549,8 @@ function syncObjects(d) {
       const cur = objectGroups.get(o.uid);
       if (cur && cur.sig === sig) continue;
       if (cur) {
-        // simple déplacement ou rotation : on garde le contenu
-        const same = cur.o.kind === o.kind && cur.o.type === o.type && cur.o.w === o.w && cur.o.h === o.h && cur.o.d === o.d;
+        // simple déplacement ou rotation d'un modèle 3D du catalogue libre dont la géométrie ne change pas
+        const same = cur.o.kind === 'model' && cur.o.type === o.type && cur.o.file === o.file && cur.o.w === o.w && cur.o.h === o.h && cur.o.d === o.d;
         if (same) {
           cur.obj.position.copy(P(o.x, o.y, o.z));
           cur.obj.rotation.y = -o.rot * Math.PI / 180;

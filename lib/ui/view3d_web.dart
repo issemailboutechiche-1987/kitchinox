@@ -47,6 +47,8 @@ void _register() {
   if (_registered) return;
   _registered = true;
   ui_web.platformViewRegistry.registerViewFactory(_viewType, (int id) {
+    final existing = _hosts[id];
+    if (existing != null) return existing;
     final div = web.document.createElement('div') as web.HTMLDivElement;
     div.style
       ..width = '100%'
@@ -81,6 +83,10 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
     st.addListener(_schedule);
     TextureBank.instance.addListener(_schedule);
     _installHandlers();
+    if (_hosts.isNotEmpty) {
+      _host = _hosts.values.last;
+      _tryMount();
+    }
   }
 
   @override
@@ -94,7 +100,6 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
   @override
   void dispose() {
     _host?.style.pointerEvents = 'auto';
-    _hosts.removeWhere((_, d) => identical(d, _host));
     st.removeListener(_schedule);
     TextureBank.instance.removeListener(_schedule);
     _retry?.cancel();
@@ -144,6 +149,7 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
   /// La vue three.js est un module chargé en parallèle : on attend qu'elle soit prête.
   void _tryMount() {
     if (!mounted) return;
+    _host ??= _hosts.values.lastOrNull;
     final k = _k3d;
     final host = _host;
     if (k == null || host == null) {

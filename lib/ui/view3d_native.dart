@@ -59,6 +59,14 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
     final c = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFFEEF1F3))
+      ..setNavigationDelegate(NavigationDelegate(
+        onWebResourceError: (err) {
+          debugPrint('3D web resource error: ${err.description}');
+        },
+        onPageFinished: (_) {
+          if (mounted && _ready) _schedule();
+        },
+      ))
       ..setOnConsoleMessage((cm) {
         debugPrint('3D console [${cm.level.name}]: ${cm.message}');
       })
@@ -92,6 +100,10 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
         final failed = _pending.remove(a.isEmpty || a[0] is! num ? -1 : (a[0] as num).toInt());
         failed?.forEach(LocalServer.instance.remove);
         debugPrint('3D : ${a.length > 1 ? a[1] : u}');
+        if (mounted && _ready) {
+          _dirty = true;
+          _schedule();
+        }
       case 'pick':
         if (_covered) return;
         if (u != null && u.startsWith('obj:')) {
