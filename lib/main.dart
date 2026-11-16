@@ -29,6 +29,7 @@ import 'ui/web_io.dart';
 import 'ui/i18n.dart';
 import 'ui/app_settings.dart';
 import 'ui/client_ui.dart';
+import 'ui/excel_export.dart';
 import 'ui/project_start_dialog.dart';
 
 Future<void> main() async {
@@ -455,7 +456,17 @@ class _PlannerScreenState extends State<PlannerScreen> {
 
   void _exportCsv() {
     downloadBytes('${st.project.name}_liste.csv', utf8.encode(st.bom.toCsv()), mime: 'text/csv');
-    _msg(tr('Liste exportée'));
+    _msg(tr('Liste exportée (CSV)'));
+  }
+
+  void _exportExcel() {
+    final bytes = buildExcelExport(st);
+    downloadBytes(
+      '${st.project.name}_export.xlsx',
+      bytes,
+      mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    _msg(tr('Classeur Excel (.xlsx) téléchargé avec succès'));
   }
 
   bool _pdfBusy = false;
@@ -894,6 +905,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
                   setState(() => _styleSection = s);
                 },
                 onExportCsv: _exportCsv,
+                onExportExcel: _exportExcel,
                 onExportPdf: _exportPdf,
                 onCutPdf: _cutPdf,
                 onSct: _sct,

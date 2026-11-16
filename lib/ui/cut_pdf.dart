@@ -610,6 +610,356 @@ Future<Uint8List> buildCutPdf(LayoutEngine e, CutPlan plan,
       ));
     }
   }
+
+  // ---- 4. ATELIER : MANIFESTE DE CONTRÔLE & CODE QR DU PROJET
+  await step(0.80, tr("Génération de la fiche atelier et QR code projet"));
+  final allParts = plan.parts;
+  final manifestBuffer = StringBuffer();
+  manifestBuffer.writeln('KITCHINOX ATELIER');
+  manifestBuffer.writeln('PROJET: ${p.name}');
+  if (p.client.name.isNotEmpty) manifestBuffer.writeln('CLIENT: ${p.client.name}');
+  manifestBuffer.writeln('TOTAL: ${plan.partCount} pieces (${allParts.length} types) - ${plan.sheets.length} panneaux');
+  manifestBuffer.writeln('--- LISTE DES PIECES ---');
+  for (var i = 0; i < allParts.length; i++) {
+    final pt = allParts[i];
+    final num = i + 1;
+    final grv = pt.grooveLength > 0 ? (pt.grooveLong > 0 ? 'R.Long' : 'R.Larg') : 'Sans R';
+    manifestBuffer.writeln('#$num: ${pt.name} [${pt.cabinet}] - ${pt.length}x${pt.width}mm - Qte: ${pt.qty} - Chants: ${pt.edgeText.isEmpty ? "0" : pt.edgeText} - $grv');
+  }
+  final manifestData = manifestBuffer.toString();
+
+  // Page de Manifeste de Contrôle d'Atelier
+  doc.addPage(pw.Page(
+    textDirection: pdfDirection,
+    pageFormat: format,
+    margin: const pw.EdgeInsets.all(margin),
+    build: (ctx) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.stretch, children: [
+      header(tr("Fiche Suivi d'Atelier & Contrôle Débit"), ctx.pageNumber),
+      pw.SizedBox(height: 6),
+      pw.Container(
+        padding: const pw.EdgeInsets.all(8),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey700, width: 0.8),
+          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+        ),
+        child: pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
+          pw.BarcodeWidget(
+            barcode: pw.Barcode.qrCode(),
+            data: manifestData,
+            width: 100,
+            height: 100,
+          ),
+          pw.SizedBox(width: 12),
+          pw.Expanded(
+            child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text(_t('MANIFESTE DE DÉBIT & CODE QR PROJET'), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF2D3748))),
+              pw.SizedBox(height: 3),
+              pw.Text(_t('Scanner ce code avec un lecteur ou smartphone pour afficher instantanément la liste complète des pièces et le nombre d’exemplaires semblables.'), style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+              pw.SizedBox(height: 6),
+              pw.Row(children: [
+                pw.Text(_t('Projet : ${p.name}   |   '), style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                pw.Text(_t('Client : ${p.client.name.isNotEmpty ? p.client.name : "-"}   |   '), style: const pw.TextStyle(fontSize: 9)),
+                pw.Text(_t('Total : ${plan.partCount} pièces débitées'), style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFFC53030))),
+              ]),
+            ]),
+          ),
+        ]),
+      ),
+      pw.SizedBox(height: 8),
+      pw.Text(_t('Tableau de pointage atelier (cocher à la découpe ou au placage des chants) :'), style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
+      pw.SizedBox(height: 4),
+      pw.Expanded(
+        child: pw.Table(
+          border: pw.TableBorder.all(width: 0.5),
+          columnWidths: const {
+            0: pw.FixedColumnWidth(26),
+            1: pw.FixedColumnWidth(22),
+            2: pw.FlexColumnWidth(2.5),
+            3: pw.FlexColumnWidth(2.5),
+            4: pw.FixedColumnWidth(60),
+            5: pw.FixedColumnWidth(34),
+            6: pw.FlexColumnWidth(1.8),
+            7: pw.FixedColumnWidth(38),
+            8: pw.FixedColumnWidth(70),
+          },
+          children: [
+            pw.TableRow(decoration: const pw.BoxDecoration(color: _head), children: [
+              for (final h in ['Pointage', '#', 'Désignation', 'Meuble', 'Cotes (mm)', 'Qté', 'Chants', 'Rainure', 'Code-barres'])
+                cell(tx(h, fs: 7.5, bold: true)),
+            ]),
+            for (var i = 0; i < math.min(allParts.length, 22); i++) () {
+              final pt = allParts[i];
+              final num = i + 1;
+              final bcode = 'KIT-P${num.toString().padLeft(2, '0')}';
+              final grv = pt.grooveLength > 0 ? (pt.grooveLong > 0 ? 'Long.' : 'Larg.') : '-';
+              return pw.TableRow(children: [
+                cell(apBox()),
+                cell(tx('$num', fs: 8.5, bold: true)),
+                cell(tx(pt.name, fs: 7.5), align: pw.Alignment.centerLeft),
+                cell(tx(pt.cabinet, fs: 7), align: pw.Alignment.centerLeft),
+                cell(tx('${pt.length} x ${pt.width}', fs: 8)),
+                cell(tx('${pt.qty}', fs: 8.5, bold: true)),
+                cell(tx(pt.edgeText.isEmpty ? '-' : pt.edgeText, fs: 6.5)),
+                cell(tx(grv, fs: 7.5)),
+                cell(tx(bcode, fs: 7.5, bold: true)),
+              ]);
+            }(),
+          ],
+        ),
+      ),
+      pw.SizedBox(height: 4),
+      pageNo(ctx),
+    ]),
+  ));
+
+  // ---- 5. ATELIER : ÉTIQUETTES ILLUSTRÉES AVEC CODE-BARRES & SCHÉMA
+  await step(0.83, tr("Génération des étiquettes atelier illustrées"));
+  // Construction de la liste des étiquettes physiques (une par exemplaire)
+  final labelList = <({CutPart part, int partNum, int copyIndex, int totalCopies})>[];
+  for (var i = 0; i < allParts.length; i++) {
+    final pt = allParts[i];
+    final pNum = i + 1;
+    for (var cIdx = 0; cIdx < pt.qty; cIdx++) {
+      labelList.add((part: pt, partNum: pNum, copyIndex: cIdx, totalCopies: pt.qty));
+    }
+  }
+
+  const labelsPerPage = 6;
+  final totalLabelPages = (labelList.length / labelsPerPage).ceil();
+
+  for (var lp = 0; lp < totalLabelPages; lp++) {
+    final pageLabels = labelList.skip(lp * labelsPerPage).take(labelsPerPage).toList();
+    doc.addPage(pw.Page(
+      textDirection: pdfDirection,
+      pageFormat: format,
+      margin: const pw.EdgeInsets.all(margin),
+      build: (ctx) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.stretch, children: [
+        header(trp("Étiquettes de Débit & Atelier ({0} / {1})", [lp + 1, totalLabelPages]), ctx.pageNumber),
+        pw.SizedBox(height: 6),
+        pw.Expanded(
+          child: pw.Column(
+            children: [
+              for (var rowIdx = 0; rowIdx < 3; rowIdx++)
+                pw.Expanded(
+                  child: pw.Row(
+                    children: [
+                      for (var colIdx = 0; colIdx < 2; colIdx++) () {
+                        final itemIdx = rowIdx * 2 + colIdx;
+                        if (itemIdx < pageLabels.length) {
+                          final item = pageLabels[itemIdx];
+                          final isFront = isFrontPart(item.part);
+                          final thick = isFront ? cs.doorThickness : cs.carcassThickness;
+                          final numStr = item.partNum.toString().padLeft(2, '0');
+                          final barcodeData = 'KIT-P$numStr-${item.copyIndex + 1}_${item.totalCopies}';
+                          final pieceQrData = 'P#${item.partNum} | ${item.part.name} | ${item.part.cabinet} | ${item.part.length}x${item.part.width}x$thick mm | C:${item.part.edgeText} | R:${item.part.grooveLength > 0 ? "OUI" : "NON"} | ${p.name}';
+
+                          return pw.Expanded(
+                            child: pw.Container(
+                              margin: const pw.EdgeInsets.all(3),
+                              padding: const pw.EdgeInsets.all(5),
+                              decoration: pw.BoxDecoration(
+                                border: pw.Border.all(color: PdfColors.grey700, width: 0.8),
+                                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                              ),
+                              child: pw.Column(
+                                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // En-tête : Badge n° pièce + Nom + Meuble + Exemplaire
+                                  pw.Row(
+                                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                                    children: [
+                                      pw.Container(
+                                        padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                        decoration: const pw.BoxDecoration(
+                                          color: PdfColor.fromInt(0xFF2D3748),
+                                          borderRadius: pw.BorderRadius.all(pw.Radius.circular(3)),
+                                        ),
+                                        child: pw.Text(
+                                          '#${item.partNum}',
+                                          style: pw.TextStyle(color: PdfColors.white, fontSize: 10, fontWeight: pw.FontWeight.bold),
+                                        ),
+                                      ),
+                                      pw.SizedBox(width: 4),
+                                      pw.Expanded(
+                                        child: pw.Column(
+                                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                          children: [
+                                            pw.Text(_t(item.part.name.toUpperCase()), style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold), maxLines: 1),
+                                            pw.Text(_t(item.part.cabinet), style: const pw.TextStyle(fontSize: 6.5, color: PdfColors.grey700), maxLines: 1),
+                                          ],
+                                        ),
+                                      ),
+                                      pw.Column(
+                                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                                        children: [
+                                          pw.Container(
+                                            padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                            decoration: const pw.BoxDecoration(
+                                              color: PdfColors.grey200,
+                                              borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
+                                            ),
+                                            child: pw.Text(
+                                              'Ex. ${item.copyIndex + 1}/${item.totalCopies}',
+                                              style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
+                                            ),
+                                          ),
+                                          pw.Text(_t(p.name), style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey600)),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  pw.Divider(height: 3, thickness: 0.5, color: PdfColors.grey400),
+                                  // Matériau
+                                  pw.Row(
+                                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      pw.Expanded(child: pw.Text(_t('Panneau : ${item.part.material}'), style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF1A365D)), maxLines: 1)),
+                                      pw.Text(_t('Ép. $thick mm'), style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold)),
+                                    ],
+                                  ),
+                                  pw.SizedBox(height: 2),
+                                  // Corps : Schéma illustré à gauche, QR Code et infos à droite
+                                  pw.Expanded(
+                                    child: pw.Row(
+                                      children: [
+                                        // Schéma technique
+                                        pw.Expanded(
+                                          flex: 5,
+                                          child: pw.Container(
+                                            padding: const pw.EdgeInsets.all(2),
+                                            decoration: const pw.BoxDecoration(
+                                              color: PdfColors.grey100,
+                                              borderRadius: pw.BorderRadius.all(pw.Radius.circular(3)),
+                                            ),
+                                            child: pw.Column(
+                                              mainAxisAlignment: pw.MainAxisAlignment.center,
+                                              children: [
+                                                pw.Text('${item.part.width} mm', style: const pw.TextStyle(fontSize: 6.5, color: PdfColors.grey800)),
+                                                pw.SizedBox(height: 1),
+                                                pw.Stack(
+                                                  alignment: pw.Alignment.center,
+                                                  children: [
+                                                    pw.Container(
+                                                      width: 82,
+                                                      height: 44,
+                                                      decoration: pw.BoxDecoration(
+                                                        color: PdfColors.white,
+                                                        border: pw.Border(
+                                                          top: pw.BorderSide(
+                                                            color: item.part.edgeShort > 0 ? const PdfColor.fromInt(0xFFE53E3E) : PdfColors.grey400,
+                                                            width: item.part.edgeShort > 0 ? 2.5 : 0.6,
+                                                            style: item.part.edgeShort > 0 ? pw.BorderStyle.solid : pw.BorderStyle.dashed,
+                                                          ),
+                                                          bottom: pw.BorderSide(
+                                                            color: item.part.edgeShort > 1 ? const PdfColor.fromInt(0xFFE53E3E) : PdfColors.grey400,
+                                                            width: item.part.edgeShort > 1 ? 2.5 : 0.6,
+                                                            style: item.part.edgeShort > 1 ? pw.BorderStyle.solid : pw.BorderStyle.dashed,
+                                                          ),
+                                                          left: pw.BorderSide(
+                                                            color: item.part.edgeLong > 0 ? const PdfColor.fromInt(0xFFE53E3E) : PdfColors.grey400,
+                                                            width: item.part.edgeLong > 0 ? 2.5 : 0.6,
+                                                            style: item.part.edgeLong > 0 ? pw.BorderStyle.solid : pw.BorderStyle.dashed,
+                                                          ),
+                                                          right: pw.BorderSide(
+                                                            color: item.part.edgeLong > 1 ? const PdfColor.fromInt(0xFFE53E3E) : PdfColors.grey400,
+                                                            width: item.part.edgeLong > 1 ? 2.5 : 0.6,
+                                                            style: item.part.edgeLong > 1 ? pw.BorderStyle.solid : pw.BorderStyle.dashed,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      child: pw.Center(
+                                                        child: pw.Text(
+                                                          '${item.part.length} x ${item.part.width}',
+                                                          style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    if (item.part.grooveLength > 0)
+                                                      pw.Positioned(
+                                                        left: 8,
+                                                        top: 3,
+                                                        bottom: 3,
+                                                        child: pw.Container(
+                                                          width: 1.5,
+                                                          decoration: const pw.BoxDecoration(
+                                                            border: pw.Border(left: pw.BorderSide(width: 1.5, color: PdfColor.fromInt(0xFF2B6CB0), style: pw.BorderStyle.dashed)),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                                pw.SizedBox(height: 1),
+                                                pw.Row(
+                                                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                                                  children: [
+                                                    if (item.part.edgeLength > 0)
+                                                      pw.Text('Chant rouge = plaqué ', style: const pw.TextStyle(fontSize: 5.5, color: PdfColor.fromInt(0xFFC53030))),
+                                                    if (item.part.grooveLength > 0)
+                                                      pw.Text('Bleu = Rainure', style: const pw.TextStyle(fontSize: 5.5, color: PdfColor.fromInt(0xFF2B6CB0))),
+                                                    if (item.part.edgeLength == 0 && item.part.grooveLength == 0)
+                                                      pw.Text('4 chants bruts', style: const pw.TextStyle(fontSize: 5.5, color: PdfColors.grey600)),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        pw.SizedBox(width: 4),
+                                        // QR Code et détails
+                                        pw.Expanded(
+                                          flex: 4,
+                                          child: pw.Column(
+                                            crossAxisAlignment: pw.CrossAxisAlignment.center,
+                                            mainAxisAlignment: pw.MainAxisAlignment.center,
+                                            children: [
+                                              pw.BarcodeWidget(
+                                                barcode: pw.Barcode.qrCode(),
+                                                data: pieceQrData,
+                                                width: 38,
+                                                height: 38,
+                                              ),
+                                              pw.SizedBox(height: 2),
+                                              pw.Text('Chants: ${item.part.edgeText.isEmpty ? "0" : item.part.edgeText}', style: const pw.TextStyle(fontSize: 6), maxLines: 1),
+                                              if (item.part.grooveLength > 0)
+                                                pw.Text('Rainure 8x8', style: pw.TextStyle(fontSize: 6, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF2B6CB0))),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  pw.SizedBox(height: 2),
+                                  // Code-barres Code 128
+                                  pw.Container(
+                                    height: 24,
+                                    child: pw.BarcodeWidget(
+                                      barcode: pw.Barcode.code128(),
+                                      data: barcodeData,
+                                      drawText: true,
+                                      textStyle: const pw.TextStyle(fontSize: 6.5),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        } else {
+                          return pw.Expanded(child: pw.Container());
+                        }
+                      }(),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 3),
+        pageNo(ctx),
+      ]),
+    ));
+  }
   await step(0.85, tr('Assemblage du PDF'));
   final bytes = await prof.measureAsync('pdf_debit_assemblage', () => doc.save(), info: {'feuilles': plan.sheets.length});
   await step(1, tr('Terminé'));

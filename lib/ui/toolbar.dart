@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
+import 'client_ui.dart';
 import 'brands_ui.dart';
 import 'quote_ui.dart';
 import 'web_io.dart';
@@ -28,6 +29,7 @@ class StepToolbar extends StatelessWidget {
   final ValueChanged<StyleSection> onStyleSection;
   final VoidCallback onExportCsv, onExportPdf, onCutPdf, onSct, onCutSettings, onSave, onIssues;
   final VoidCallback? onManualCut;
+  final VoidCallback? onExportExcel;
 
   const StepToolbar({
     super.key,
@@ -40,6 +42,7 @@ class StepToolbar extends StatelessWidget {
     required this.onCutPdf,
     required this.onSct,
     this.onManualCut,
+    this.onExportExcel,
     required this.onCutSettings,
     required this.onSave,
     required this.onIssues,
@@ -55,6 +58,12 @@ class StepToolbar extends StatelessWidget {
     switch (state.step) {
       case PlanStep.space:
         tiles.addAll([
+          ToolTile(
+            icon: Icons.badge_outlined,
+            label: tr('Fiche client'),
+            active: state.project.client.name.isNotEmpty,
+            onTap: () => showClientDialog(context, state, onMessage),
+          ),
           ToolTile(
               icon: Icons.polyline_outlined,
               label: room.outline == null ? tr('Forme de la pièce') : trp('Forme ({0} murs)', [room.order.length]),
@@ -182,10 +191,11 @@ class StepToolbar extends StatelessWidget {
       case PlanStep.summary:
         tiles.addAll([
           ToolTile(icon: Icons.picture_as_pdf_outlined, label: tr("Plan d'exécution (PDF)"), active: true, onTap: onExportPdf),
-          ToolTile(icon: Icons.grid_on, label: tr('Plan de découpe (PDF)'), active: true, onTap: onCutPdf),
+          ToolTile(icon: Icons.grid_on, label: tr('Plan de découpe & Étiquettes (PDF)'), active: true, onTap: onCutPdf),
           if (state.db != null) ToolTile(icon: Icons.request_quote_outlined, label: tr('Devis final'), active: true, onTap: () => showQuoteDialog(context, state, onMessage)),
           ToolTile(icon: Icons.content_cut, label: tr('Fichiers SketchCut (.sct)'), onTap: onSct),
           if (onManualCut != null) ToolTile(icon: Icons.edit_note, label: tr('Débit manuel'), onTap: onManualCut!),
+          if (onExportExcel != null) ToolTile(icon: Icons.table_chart_outlined, label: tr('Exporter vers Excel (.xlsx)'), onTap: onExportExcel!),
           ToolTile(icon: Icons.table_view_outlined, label: tr('Exporter la liste (CSV)'), onTap: onExportCsv),
           ToolTile(
               icon: Icons.verified_outlined,
