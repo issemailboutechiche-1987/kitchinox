@@ -30,6 +30,7 @@ class StepToolbar extends StatelessWidget {
   final VoidCallback onExportCsv, onExportPdf, onCutPdf, onSct, onCutSettings, onSave, onIssues;
   final VoidCallback? onManualCut;
   final VoidCallback? onExportExcel;
+  final VoidCallback? onGenerateCodes;
 
   const StepToolbar({
     super.key,
@@ -40,6 +41,7 @@ class StepToolbar extends StatelessWidget {
     required this.onExportCsv,
     required this.onExportPdf,
     required this.onCutPdf,
+    this.onGenerateCodes,
     required this.onSct,
     this.onManualCut,
     this.onExportExcel,
@@ -191,7 +193,9 @@ class StepToolbar extends StatelessWidget {
       case PlanStep.summary:
         tiles.addAll([
           ToolTile(icon: Icons.picture_as_pdf_outlined, label: tr("Plan d'exécution (PDF)"), active: true, onTap: onExportPdf),
-          ToolTile(icon: Icons.grid_on, label: tr('Plan de découpe & Étiquettes (PDF)'), active: true, onTap: onCutPdf),
+          ToolTile(icon: Icons.grid_on, label: tr('Plan de découpe (PDF)'), active: true, onTap: onCutPdf),
+          if (onGenerateCodes != null)
+            ToolTile(icon: Icons.qr_code_2, label: tr('Générer codes (PDF)'), active: true, onTap: onGenerateCodes!),
           if (state.db != null) ToolTile(icon: Icons.request_quote_outlined, label: tr('Devis final'), active: true, onTap: () => showQuoteDialog(context, state, onMessage)),
           ToolTile(icon: Icons.content_cut, label: tr('Fichiers SketchCut (.sct)'), onTap: onSct),
           if (onManualCut != null) ToolTile(icon: Icons.edit_note, label: tr('Débit manuel'), onTap: onManualCut!),

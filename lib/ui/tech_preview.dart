@@ -11,7 +11,8 @@ import 'theme.dart';
 
 class TechPreview extends StatefulWidget {
   final AppState state;
-  const TechPreview({super.key, required this.state});
+  final Widget? real3dView;
+  const TechPreview({super.key, required this.state, this.real3dView});
   @override
   State<TechPreview> createState() => _TechPreviewState();
 }
@@ -40,7 +41,12 @@ class _TechPreviewState extends State<TechPreview> {
             showSelectedIcon: false,
             segments: [for (final (id, label) in sheets) ButtonSegment(value: id, label: Text(label))],
             selected: {sheet},
-            onSelectionChanged: (v) => setState(() => sheet = v.first),
+            onSelectionChanged: (v) {
+              setState(() => sheet = v.first);
+              if (v.first == '3d' && widget.state.view != ViewMode.view3d) {
+                widget.state.setView(ViewMode.view3d);
+              }
+            },
           ),
         ),
         const SizedBox(height: Tokens.s3),
@@ -51,10 +57,12 @@ class _TechPreviewState extends State<TechPreview> {
               border: Border.all(color: scheme.outlineVariant),
               boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 4))],
             ),
-            child: Semantics(
-              label: trp('Aperçu de la planche {0}', [sheets.firstWhere((s) => s.$1 == sheet).$2]),
-              child: CustomPaint(painter: _SheetPainter(e, sheet, widget.state.yaw), size: Size.infinite),
-            ),
+            child: (sheet == '3d' && widget.real3dView != null)
+                ? widget.real3dView!
+                : Semantics(
+                    label: trp('Aperçu de la planche {0}', [sheets.firstWhere((s) => s.$1 == sheet).$2]),
+                    child: CustomPaint(painter: _SheetPainter(e, sheet, widget.state.yaw), size: Size.infinite),
+                  ),
           ),
         ),
       ]),

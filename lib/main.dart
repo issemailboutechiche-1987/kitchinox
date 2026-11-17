@@ -20,6 +20,7 @@ import 'ui/manual_cut_page.dart';
 import 'ui/objects_panel.dart';
 import 'ui/panels.dart';
 import 'ui/cut_pdf.dart';
+import 'ui/labels_pdf.dart';
 import 'ui/pdf_export.dart';
 import 'ui/tech_preview.dart';
 import 'ui/textures.dart';
@@ -532,6 +533,33 @@ class _PlannerScreenState extends State<PlannerScreen> {
     }
   }
 
+  Future<void> _generateCodes() async {
+    if (_pdfBusy) return;
+    setState(() => _pdfBusy = true);
+    _msg(tr('Génération des codes et étiquettes…'));
+    try {
+      final progress = BusyProgress();
+      final bytes = await runBusy(
+        context,
+        tr('Génération des codes…'),
+        () => inPdfLanguage(() => buildLabelsPdf(st, onProgress: progress.set)),
+        progress: progress,
+      );
+      progress.dispose();
+      final numSetting = AppSettings.instance.numberFor(st.project, DocKind.exec);
+      final digitsOnly = (numSetting ?? '').replaceAll(RegExp(r'\D'), '');
+      final projId = digitsOnly.length >= 4
+          ? digitsOnly.substring(digitsOnly.length - 4)
+          : (st.project.name.hashCode.abs() % 9000 + 1000).toString();
+      downloadBytes('etiquettes_$projId.pdf', bytes, mime: 'application/pdf');
+      _msg(tr('Étiquettes et codes-barres générés (PDF)'));
+    } catch (e) {
+      _msg(trp('Échec de génération des codes : {0}', [e]));
+    } finally {
+      if (mounted) setState(() => _pdfBusy = false);
+    }
+  }
+
   Future<void> _sct() async {
     final plan = await _plan();
     if (plan.parts.isEmpty) {
@@ -826,7 +854,13 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         final inspectorOpen = hasSelection && !st.megaMenu && leftPanel == null;
         final side = inspectorOpen && width < 1300 ? 380 + Tokens.s3 * 2 : 0.0;
         final stage = Stack(children: [
-          Positioned(left: 0, top: 0, bottom: 0, right: side, child: st.step == PlanStep.summary ? TechPreview(state: st) : canvas),
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            right: side,
+            child: st.step == PlanStep.summary ? TechPreview(state: st, real3dView: canvas) : canvas,
+          ),
           if (narrow && leftPanel != null)
             Positioned(left: 0, top: 0, bottom: 0, width: width.clamp(0, 380).toDouble(), child: leftPanel),
           if (st.megaMenu)
@@ -908,6 +942,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
                 onExportExcel: _exportExcel,
                 onExportPdf: _exportPdf,
                 onCutPdf: _cutPdf,
+                onGenerateCodes: _generateCodes,
                 onSct: _sct,
                 onManualCut: () => openManualCut(context, st),
                 onCutSettings: _cutSettings,
