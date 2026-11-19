@@ -6,6 +6,7 @@ library;
 import 'dart:math' as math;
 
 import 'art_box.dart';
+import 'art_cad.dart';
 import 'cutting.dart';
 
 /// Rôle d'un panneau : détermine le dessin, la matière par défaut, les chants et la quincaillerie.
@@ -32,16 +33,91 @@ class ArtPanel {
   String finish; // finition (id de la façade ou du caisson)
   String hinge; // porte : 'left' | 'right'
   Comp? comp; // composant universel (caissons paramétriques)
-  ArtPanel({required this.id, required this.role, required this.x, required this.y, this.z = 0, required this.w, required this.h, required this.d, this.finish = 'blanc_mat', this.hinge = 'left', this.comp});
+
+  // Usinages & menuiserie : chants et rainures
+  int edgeLong; // chants sur côtés longs (0, 1, 2)
+  int edgeShort; // chants sur côtés courts (0, 1, 2)
+  double edgeThickness; // épaisseur chant (0.4, 1.0, 2.0 mm)
+  bool hasGroove; // rainure présente
+  double grooveOffset; // décalage depuis l'arête (mm)
+  double grooveDepth; // profondeur (mm)
+  double grooveWidth; // largeur (mm)
+  int grooveLong; // rainure sur longueur (0, 1, 2)
+  int grooveShort; // rainure sur largeur (0, 1, 2)
+
+  ArtPanel({
+    required this.id,
+    required this.role,
+    required this.x,
+    required this.y,
+    this.z = 0,
+    required this.w,
+    required this.h,
+    required this.d,
+    this.finish = 'blanc_mat',
+    this.hinge = 'left',
+    this.comp,
+    this.edgeLong = 0,
+    this.edgeShort = 0,
+    this.edgeThickness = 1.0,
+    this.hasGroove = false,
+    this.grooveOffset = 10,
+    this.grooveDepth = 8,
+    this.grooveWidth = 6,
+    this.grooveLong = 0,
+    this.grooveShort = 0,
+  });
 
   double get right => x + w;
   double get top => y + h;
   double get back => z + d;
   double get thickness => [w, h, d].reduce(math.min);
 
-  ArtPanel copy({String? id}) => ArtPanel(id: id ?? this.id, role: role, x: x, y: y, z: z, w: w, h: h, d: d, finish: finish, hinge: hinge, comp: comp);
+  ArtPanel copy({String? id}) => ArtPanel(
+        id: id ?? this.id,
+        role: role,
+        x: x,
+        y: y,
+        z: z,
+        w: w,
+        h: h,
+        d: d,
+        finish: finish,
+        hinge: hinge,
+        comp: comp,
+        edgeLong: edgeLong,
+        edgeShort: edgeShort,
+        edgeThickness: edgeThickness,
+        hasGroove: hasGroove,
+        grooveOffset: grooveOffset,
+        grooveDepth: grooveDepth,
+        grooveWidth: grooveWidth,
+        grooveLong: grooveLong,
+        grooveShort: grooveShort,
+      );
 
-  Map<String, dynamic> toJson() => {'id': id, 'role': role.name, 'x': x, 'y': y, 'z': z, 'w': w, 'h': h, 'd': d, 'finish': finish, 'hinge': hinge};
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'role': role.name,
+        'x': x,
+        'y': y,
+        'z': z,
+        'w': w,
+        'h': h,
+        'd': d,
+        'finish': finish,
+        'hinge': hinge,
+        'edge_long': edgeLong,
+        'edge_short': edgeShort,
+        'edge_th': edgeThickness,
+        'groove': hasGroove,
+        'groove_off': grooveOffset,
+        'groove_depth': grooveDepth,
+        'groove_w': grooveWidth,
+        'groove_l': grooveLong,
+        'groove_s': grooveShort,
+      };
+
   factory ArtPanel.fromJson(Map<String, dynamic> j) => ArtPanel(
         id: '${j['id']}',
         role: ArtRole.values.firstWhere((r) => r.name == j['role'], orElse: () => ArtRole.decor),
@@ -53,6 +129,15 @@ class ArtPanel {
         d: (j['d'] as num).toDouble(),
         finish: j['finish'] as String? ?? 'blanc_mat',
         hinge: j['hinge'] as String? ?? 'left',
+        edgeLong: (j['edge_long'] as num?)?.toInt() ?? 0,
+        edgeShort: (j['edge_short'] as num?)?.toInt() ?? 0,
+        edgeThickness: (j['edge_th'] as num?)?.toDouble() ?? 1.0,
+        hasGroove: j['groove'] == true,
+        grooveOffset: (j['groove_off'] as num?)?.toDouble() ?? 10.0,
+        grooveDepth: (j['groove_depth'] as num?)?.toDouble() ?? 8.0,
+        grooveWidth: (j['groove_w'] as num?)?.toDouble() ?? 6.0,
+        grooveLong: (j['groove_l'] as num?)?.toInt() ?? 0,
+        grooveShort: (j['groove_s'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -63,10 +148,24 @@ class ArtProject {
   final List<ArtBox> boxes;
   /// Panneaux libres (anciens projets, planches ajoutées à la main).
   final List<ArtPanel> free;
+  /// Esquisses 2D (lignes, rectangles, cercles, polygones, arcs, main levée).
+  final List<CadShape> sketches;
+  /// Lignes de cotes / mesures enregistrées.
+  final List<CadDimension> dimensions;
   int _next = 1;
-  ArtProject({this.name = 'Création libre', this.wallWidth = 3000, this.wallHeight = 2600, List<ArtPanel>? panels, List<ArtBox>? boxes})
-      : free = panels ?? [],
-        boxes = boxes ?? [] {
+
+  ArtProject({
+    this.name = 'Création libre',
+    this.wallWidth = 3000,
+    this.wallHeight = 2600,
+    List<ArtPanel>? panels,
+    List<ArtBox>? boxes,
+    List<CadShape>? sketches,
+    List<CadDimension>? dimensions,
+  })  : free = panels ?? [],
+        boxes = boxes ?? [],
+        sketches = sketches ?? [],
+        dimensions = dimensions ?? [] {
     for (final p in free) {
       final n = int.tryParse(p.id.replaceAll(RegExp(r'\D'), '')) ?? 0;
       if (n >= _next) _next = n + 1;
@@ -97,7 +196,7 @@ class ArtProject {
     return [...out, ...free];
   }
 
-  bool get isEmpty => boxes.isEmpty && free.isEmpty;
+  bool get isEmpty => boxes.isEmpty && free.isEmpty && sketches.isEmpty;
 
   Map<String, dynamic> toJson() => {
         'name': name,
@@ -105,13 +204,18 @@ class ArtProject {
         'wall_height': wallHeight,
         if (boxes.isNotEmpty) 'boxes': [for (final b in boxes) b.toJson()],
         'panels': [for (final p in free) p.toJson()],
+        if (sketches.isNotEmpty) 'sketches': [for (final s in sketches) s.toJson()],
+        if (dimensions.isNotEmpty) 'dimensions': [for (final d in dimensions) d.toJson()],
       };
+
   factory ArtProject.fromJson(Map<String, dynamic> j) => ArtProject(
         name: j['name'] as String? ?? 'Création libre',
         wallWidth: (j['wall_width'] as num?)?.toDouble() ?? 3000,
         wallHeight: (j['wall_height'] as num?)?.toDouble() ?? 2600,
         panels: [for (final p in (j['panels'] as List? ?? const [])) ArtPanel.fromJson((p as Map).cast<String, dynamic>())],
         boxes: [for (final b in (j['boxes'] as List? ?? const [])) ArtBox.fromJson((b as Map).cast<String, dynamic>())],
+        sketches: [for (final s in (j['sketches'] as List? ?? const [])) CadShape.fromJson((s as Map).cast<String, dynamic>())],
+        dimensions: [for (final d in (j['dimensions'] as List? ?? const [])) CadDimension.fromJson((d as Map).cast<String, dynamic>())],
       );
 
   /// Encombrement (x0, y0, x1, y1) en vue de face.
@@ -195,8 +299,23 @@ class ArtProject {
       final a = dims[2].round(), b = dims[1].round();
       if (a <= 0 || b <= 0) continue;
       final front = p.role.isFront || p.role == ArtRole.decor || p.role == ArtRole.plateau;
-      final c = CutPart(materialOf(p), p.role.label, 'Art', a, b, 1,
-          canRotate: !front, edgeLong: p.role == ArtRole.fond ? 0 : (front ? 2 : 1), edgeShort: p.role == ArtRole.fond ? 0 : (front ? 2 : 0));
+      final defEdgeL = p.role == ArtRole.fond ? 0 : (front ? 2 : 1);
+      final defEdgeS = p.role == ArtRole.fond ? 0 : (front ? 2 : 0);
+      final eLong = p.edgeLong > 0 ? p.edgeLong : defEdgeL;
+      final eShort = p.edgeShort > 0 ? p.edgeShort : defEdgeS;
+      final c = CutPart(
+        materialOf(p),
+        p.role.label,
+        'Art',
+        a,
+        b,
+        1,
+        canRotate: !front,
+        edgeLong: eLong,
+        edgeShort: eShort,
+        grooveLong: p.hasGroove ? math.max(1, p.grooveLong) : 0,
+        grooveShort: p.hasGroove ? p.grooveShort : 0,
+      );
       parts.containsKey(c.key) ? parts[c.key]!.qty++ : parts[c.key] = c;
     }
     return parts.values.toList();
