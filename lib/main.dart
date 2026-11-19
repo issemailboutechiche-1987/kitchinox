@@ -493,7 +493,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
       final (pdfBytes, number) = bytes;
       downloadBytes('${number == null ? '' : '${number}_'}${st.project.name}_plan_execution.pdf', pdfBytes, mime: 'application/pdf');
       _msg(trp('Plan d\'exécution {0} téléchargé ({1} Ko)', [number ?? '', pdfBytes.length ~/ 1024]));
-    } catch (e) {
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('PDF exécution ERREUR: $e\n$st');
       _msg(trp('Échec de la génération du PDF : {0}', [e]));
     } finally {
       if (mounted) setState(() => _pdfBusy = false);
@@ -526,7 +528,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
       progress.dispose();
       downloadBytes('${number == null ? '' : '${number}_'}${st.project.name}_plan_de_decoupe.pdf', bytes, mime: 'application/pdf');
       _msg(trp('Plan de découpe : {0} pièces sur {1} panneau(x)', [plan.partCount, plan.sheets.length]));
-    } catch (e) {
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('PDF découpe ERREUR: $e\n$st');
       _msg(trp('Échec du plan de découpe : {0}', [e]));
     } finally {
       if (mounted) setState(() => _pdfBusy = false);
@@ -578,9 +582,12 @@ class _PlannerScreenState extends State<PlannerScreen> {
 
   Future<void> _cutSettings() async {
     final cs = st.project.cut;
+    final (fL, fW) = cs.sheetDimensionsFor(cs.frontMaterial);
     final fields = <String, TextEditingController>{
-      'Longueur du panneau (mm)': TextEditingController(text: '${cs.sheetLength}'),
-      'Largeur du panneau (mm)': TextEditingController(text: '${cs.sheetWidth}'),
+      'Longueur feuille caissons (mm)': TextEditingController(text: '${cs.sheetLength}'),
+      'Largeur feuille caissons (mm)': TextEditingController(text: '${cs.sheetWidth}'),
+      'Longueur feuille façades (mm)': TextEditingController(text: '$fL'),
+      'Largeur feuille façades (mm)': TextEditingController(text: '$fW'),
       'Trait de scie (mm)': TextEditingController(text: '${cs.kerf}'),
       'Recoupe des bords (mm)': TextEditingController(text: '${cs.trim}'),
       'Épaisseur caisson (mm)': TextEditingController(text: '${cs.carcassThickness}'),
@@ -605,16 +612,90 @@ class _PlannerScreenState extends State<PlannerScreen> {
     var brand = sp.hardwareBrand;
     var tier = sp.applianceTier;
     var panel = sp.carcassPanel;
-    final carcass = TextEditingController(text: cs.carcassMaterial);
-    final front = TextEditingController(text: cs.frontMaterial);
+    var carcassMat = cs.carcassMaterial;
+    var frontMat = cs.frontMaterial;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(tr('Réglages du débit et tarifs')),
         content: SizedBox(
-          width: 420,
+          width: 440,
           child: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: Tokens.s3),
+                child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  initialValue: carcassMaterialChoices.contains(carcassMat) ? carcassMat : carcassMaterialChoices.first,
+                  decoration: InputDecoration(labelText: tr('Matériau des caissons'), border: const OutlineInputBorder(), isDense: true),
+                  items: [for (final m in carcassMaterialChoices) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    carcassMat = v;
+                    final cat = v.contains('Latté') ? 'Latté (Blockboard)' : v.contains('Stratifié') ? 'Stratifié / Mélaminé' : 'MDF';
+                    final p = woodSheetPresets[cat]?.first;
+                    if (p != null) {
+                      fields['Longueur feuille caissons (mm)']!.text = '${p.length}';
+                      fields['Largeur feuille caissons (mm)']!.text = '${p.width}';
+                    }
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: Tokens.s3),
+                child: DropdownButtonFormField<SheetPreset>(
+                  isExpanded: true,
+                  hint: Text(tr('Choisir un format prédéfini de caisson')),
+                  decoration: InputDecoration(labelText: tr('Presets feuille caissons'), border: const OutlineInputBorder(), isDense: true),
+                  items: [
+                    for (final entry in woodSheetPresets.entries)
+                      ...entry.value.map((p) => DropdownMenuItem(value: p, child: Text('${entry.key}: ${p.label}', overflow: TextOverflow.ellipsis))),
+                  ],
+                  onChanged: (p) {
+                    if (p != null) {
+                      fields['Longueur feuille caissons (mm)']!.text = '${p.length}';
+                      fields['Largeur feuille caissons (mm)']!.text = '${p.width}';
+                    }
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: Tokens.s3),
+                child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  initialValue: frontMaterialChoices.contains(frontMat) ? frontMat : frontMaterialChoices.first,
+                  decoration: InputDecoration(labelText: tr('Matériau des façades'), border: const OutlineInputBorder(), isDense: true),
+                  items: [for (final m in frontMaterialChoices) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    frontMat = v;
+                    final cat = v.contains('High Gloss') || v.contains('Acrylique') || v.contains('PET') ? 'High Gloss / Acrylique' : 'MDF';
+                    final p = woodSheetPresets[cat]?.first;
+                    if (p != null) {
+                      fields['Longueur feuille façades (mm)']!.text = '${p.length}';
+                      fields['Largeur feuille façades (mm)']!.text = '${p.width}';
+                    }
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: Tokens.s3),
+                child: DropdownButtonFormField<SheetPreset>(
+                  isExpanded: true,
+                  hint: Text(tr('Choisir un format prédéfini de façade')),
+                  decoration: InputDecoration(labelText: tr('Presets feuille façades'), border: const OutlineInputBorder(), isDense: true),
+                  items: [
+                    for (final entry in woodSheetPresets.entries)
+                      ...entry.value.map((p) => DropdownMenuItem(value: p, child: Text('${entry.key}: ${p.label}', overflow: TextOverflow.ellipsis))),
+                  ],
+                  onChanged: (p) {
+                    if (p != null) {
+                      fields['Longueur feuille façades (mm)']!.text = '${p.length}';
+                      fields['Largeur feuille façades (mm)']!.text = '${p.width}';
+                    }
+                  },
+                ),
+              ),
               for (final e in fields.entries)
                 Padding(
                   padding: const EdgeInsets.only(bottom: Tokens.s3),
@@ -625,15 +706,6 @@ class _PlannerScreenState extends State<PlannerScreen> {
                     decoration: InputDecoration(labelText: e.key, border: const OutlineInputBorder(), isDense: true),
                   ),
                 ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: Tokens.s3),
-                child: TextField(
-                    controller: carcass,
-                    decoration: InputDecoration(labelText: tr('Matériau des caissons'), border: OutlineInputBorder(), isDense: true)),
-              ),
-              TextField(
-                  controller: front,
-                  decoration: InputDecoration(labelText: tr('Matériau des façades'), border: OutlineInputBorder(), isDense: true)),
               if (st.db != null) ...[
                 const SizedBox(height: Tokens.s4),
                 DropdownButtonFormField<String>(
@@ -646,8 +718,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
                     final pt = st.db!.panel(v)!;
                     // format proposé : 2800 x 2100 si le panneau existe dans ce format, sinon le premier
                     final sheet = pt.sheets.contains((2800, 2100)) ? (2800, 2100) : pt.sheets.first;
-                    fields['Longueur du panneau (mm)']!.text = '${sheet.$1}';
-                    fields['Largeur du panneau (mm)']!.text = '${sheet.$2}';
+                    fields['Longueur feuille caissons (mm)']!.text = '${sheet.$1}';
+                    fields['Largeur feuille caissons (mm)']!.text = '${sheet.$2}';
                   },
                 ),
                 const SizedBox(height: Tokens.s3),
@@ -668,8 +740,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
                       final p = PublicPrices.byId(v ?? '');
                       if (p == null) return;
                       prices[_kSheetPrice]!.text = '${p.price.round()}';
-                      fields['Longueur du panneau (mm)']!.text = '${p.length}';
-                      fields['Largeur du panneau (mm)']!.text = '${p.width}';
+                      fields['Longueur feuille caissons (mm)']!.text = '${p.length}';
+                      fields['Largeur feuille caissons (mm)']!.text = '${p.width}';
                       fields['Épaisseur caisson (mm)']!.text = '${p.thickness}';
                       final e = PublicPrices.edgeRange;
                       if (e != null) {
@@ -777,8 +849,10 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
 
     st.edit(() {
       cs
-        ..sheetLength = v('Longueur du panneau (mm)', cs.sheetLength)
-        ..sheetWidth = v('Largeur du panneau (mm)', cs.sheetWidth)
+        ..sheetLength = v('Longueur feuille caissons (mm)', cs.sheetLength)
+        ..sheetWidth = v('Largeur feuille caissons (mm)', cs.sheetWidth)
+        ..frontSheetLength = v('Longueur feuille façades (mm)', fL)
+        ..frontSheetWidth = v('Largeur feuille façades (mm)', fW)
         ..kerf = v('Trait de scie (mm)', cs.kerf)
         ..trim = int.tryParse(fields['Recoupe des bords (mm)']!.text) ?? cs.trim
         ..carcassThickness = v('Épaisseur caisson (mm)', cs.carcassThickness)
@@ -797,8 +871,8 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         ..drawerSystem = drawers
         ..machine = machine
         ..method = method
-        ..carcassMaterial = carcass.text.trim().isEmpty ? cs.carcassMaterial : carcass.text.trim()
-        ..frontMaterial = front.text.trim().isEmpty ? cs.frontMaterial : front.text.trim();
+        ..carcassMaterial = carcassMat
+        ..frontMaterial = frontMat;
       double? pv(String k) => double.tryParse(prices[k]!.text.replaceAll(',', '.'));
       sp
         ..carcassPanel = panel

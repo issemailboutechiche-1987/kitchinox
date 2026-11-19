@@ -508,6 +508,15 @@ class AppState extends ChangeNotifier {
           project.quote.excluded.add(key);
         }
       });
+  void setQuoteSectionIncluded(String section, bool included) => edit(() {
+        for (final l in quote.of(section)) {
+          if (included) {
+            project.quote.excluded.remove(l.key);
+          } else {
+            project.quote.excluded.add(l.key);
+          }
+        }
+      });
   void setQuoteTerms({double? discount, double? vat}) => edit(() {
         if (discount != null) project.quote.discount = discount.clamp(0, 100).toDouble();
         if (vat != null) project.quote.vat = vat.clamp(0, 100).toDouble();

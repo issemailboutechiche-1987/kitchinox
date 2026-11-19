@@ -368,7 +368,10 @@ Future<Uint8List> buildCutPdf(LayoutEngine e, CutPlan plan,
     final parts = plan.parts.where((x) => x.material == mat).toList();
     final count = parts.fold<int>(0, (a, x) => a + x.qty);
     final partsArea = parts.fold<double>(0, (a, x) => a + x.area * x.qty) / 1e6;
-    final sheetArea = cs.sheetLength * cs.sheetWidth / 1e6;
+    // Utiliser les dimensions réelles de la première feuille de ce matériau (pas les dims globales)
+    final sheetL = sheets.isNotEmpty ? sheets.first.length.toDouble() : cs.sheetLength.toDouble();
+    final sheetW = sheets.isNotEmpty ? sheets.first.width.toDouble() : cs.sheetWidth.toDouble();
+    final sheetArea = sheetL * sheetW / 1e6;
     final allArea = sheetArea * sheets.length;
     final remn = sheets.expand((s) => s.remnants).fold<double>(0, (a, r) => a + r.$3 * r.$4) / 1e6;
     final waste = math.max(0.0, allArea - partsArea - remn);
@@ -396,7 +399,7 @@ Future<Uint8List> buildCutPdf(LayoutEngine e, CutPlan plan,
             border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey600),
             columnWidths: const {0: pw.FlexColumnWidth(3), 1: pw.FlexColumnWidth(2), 2: pw.FlexColumnWidth(3), 3: pw.FlexColumnWidth(2)},
             children: [
-              row('Format de feuille', '${cs.sheetLength} X ${cs.sheetWidth}', 'Nombre de pièces', '$count'),
+              row('Format de feuille', '${sheetL.toInt()} X ${sheetW.toInt()}', 'Nombre de pièces', '$count'),
               row('Nombre de feuilles', '${sheets.length}', 'Surface des pièces', _m2(partsArea)),
               row('Surface d\'une feuille', _m2(sheetArea), 'Surface des chutes', _m2(remn)),
               row('Surface de toutes les feuilles', _m2(allArea), 'Surface de déchet', _m2(waste)),

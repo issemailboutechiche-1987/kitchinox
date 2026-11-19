@@ -668,6 +668,26 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
   }
   out.addAll(hardwareList(e, db, specs, plan.parts, bom.plinthLength));
   out.addAll(assemblySupplyLines(e, plan.parts)); // visserie, fixations et pose
+  if (e.project.items.isNotEmpty) {
+    out.add(const SupplyLine(
+      'Pose',
+      'Pose des caissons de cuisine',
+      'Menuiserie, mise à niveau et fixations murales (1 000 MAD éco à 6 000 MAD luxe)',
+      1,
+      'forfait',
+      PriceRange(1000, 6000),
+    ));
+    if (bom.worktopLength > 0) {
+      out.add(const SupplyLine(
+        'Pose',
+        'Pose et façonnage du plan de travail',
+        'Marbrerie, découpes encastrement évier/plaque, joints et retombées (800 MAD kitchenette à 4 000 MAD luxe)',
+        1,
+        'forfait',
+        PriceRange(800, 4000),
+      ));
+    }
+  }
   out.addAll(applianceList(e, db, specs));
   out.addAll(fixtureSupplyLines(e));
   return out;

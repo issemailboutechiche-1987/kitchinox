@@ -46,7 +46,9 @@ Future<Uint8List> buildLabelsPdf(AppState state, {void Function(double, String)?
 
   // ---- PAGE 1 : QR CODE PROJET
   onProgress?.call(0.05, tr('Génération du QR code projet…'));
-  final qrData = 'KXD1|$projId|${p.name}|${p.client.name}|$totalPartCount';
+  final safeProj = p.name.length > 25 ? p.name.substring(0, 25) : p.name;
+  final safeClient = p.client.name.length > 20 ? p.client.name.substring(0, 20) : p.client.name;
+  final qrData = 'KXD1|$projId|$safeProj|$safeClient|$totalPartCount';
 
   doc.addPage(
     pw.Page(

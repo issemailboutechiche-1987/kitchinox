@@ -44,15 +44,19 @@ Future<PickedFile?> pickFile({String accept = '.sct'}) {
 
 /// Propose le fichier au téléchargement.
 void downloadBytes(String name, List<int> bytes, {String mime = 'application/octet-stream'}) {
-  final blob = web.Blob([Uint8List.fromList(bytes).toJS].toJS, web.BlobPropertyBag(type: mime));
+  final cleanName = name.trim().replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+  // 'application/octet-stream' garantit que Chrome télécharge directement le fichier (.pdf, .xlsx, etc.)
+  // dans le dossier Téléchargements au lieu de bloquer ou d'intercepter avec le visualiseur intégré.
+  final effectiveMime = (mime == 'application/pdf') ? 'application/octet-stream' : mime;
+  final blob = web.Blob([Uint8List.fromList(bytes).toJS].toJS, web.BlobPropertyBag(type: effectiveMime));
   final url = web.URL.createObjectURL(blob);
   final a = web.HTMLAnchorElement()
     ..href = url
-    ..download = name;
+    ..download = cleanName;
   web.document.body!.append(a);
   a.click();
   a.remove();
-  Timer(const Duration(seconds: 5), () => web.URL.revokeObjectURL(url));
+  Timer(const Duration(seconds: 60), () => web.URL.revokeObjectURL(url));
 }
 
 /// Stockage local du navigateur (survit à la fermeture de l'onglet et au rechargement de la page).

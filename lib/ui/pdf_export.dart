@@ -185,7 +185,7 @@ Future<Uint8List> buildExecutionPdf(LayoutEngine e,
             pw.Padding(
               padding: const pw.EdgeInsets.only(bottom: 4),
               child: pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                badge(reps[c.uid]!),
+                badge(reps[c.uid] ?? 0),
                 pw.SizedBox(width: 6),
                 pw.Expanded(
                   child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
@@ -205,7 +205,8 @@ Future<Uint8List> buildExecutionPdf(LayoutEngine e,
         child: pw.Text(_t(s), style: pw.TextStyle(fontSize: 8, fontWeight: strong ? pw.FontWeight.bold : pw.FontWeight.normal)),
       );
 
-  List<PlacedCabinet> sortedItems(Iterable<PlacedCabinet> it) => [...it]..sort((a, b) => reps[a.uid]!.compareTo(reps[b.uid]!));
+  List<PlacedCabinet> sortedItems(Iterable<PlacedCabinet> it) =>
+      [...it]..sort((a, b) => (reps[a.uid] ?? 0).compareTo(reps[b.uid] ?? 0));
 
   final doc = pw.Document(theme: await pdfTheme(), title: _t(trp('Plan d\'exécution - {0}', [trName(p.name)])), author: 'kitchinox', creator: 'kitchinox planner');
   var i = 0;

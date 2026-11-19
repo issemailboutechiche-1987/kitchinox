@@ -19,9 +19,59 @@ import 'end_panels.dart';
 import 'front_layout.dart';
 import 'layout_engine.dart';
 
+class SheetPreset {
+  final String label;
+  final int length;
+  final int width;
+  const SheetPreset(this.label, this.length, this.width);
+}
+
+const carcassMaterialChoices = [
+  'Latté (Blockboard)',
+  'MDF Mélaminé Blanc',
+  'MDF Mélaminé Hydrofuge (Âme verte)',
+  'MDF Stratifié HPL',
+];
+
+const frontMaterialChoices = [
+  'MDF',
+  'MDF High Gloss (Brillant)',
+  'MDF Acrylique / PET Ultra-Mat',
+  'MDF Laqué',
+];
+
+const woodSheetPresets = <String, List<SheetPreset>>{
+  'Latté (Blockboard)': [
+    SheetPreset('2440 × 1220 mm (Standard 8×4 pieds - Plus répandu)', 2440, 1220),
+    SheetPreset('2500 × 1220 mm', 2500, 1220),
+    SheetPreset('2500 × 1250 mm', 2500, 1250),
+    SheetPreset('2800 × 2070 mm (Grand format)', 2800, 2070),
+  ],
+  'MDF': [
+    SheetPreset('2800 × 2100 mm (Standard atelier - Plus répandu)', 2800, 2100),
+    SheetPreset('2800 × 2070 mm (Standard européen)', 2800, 2070),
+    SheetPreset('2440 × 1220 mm (Panneau 8×4)', 2440, 1220),
+    SheetPreset('3660 × 2100 mm (Très grand format)', 3660, 2100),
+  ],
+  'Stratifié / Mélaminé': [
+    SheetPreset('2800 × 2070 mm (Standard HPL)', 2800, 2070),
+    SheetPreset('2800 × 2100 mm', 2800, 2100),
+    SheetPreset('3050 × 1300 mm (Feuille compacte)', 3050, 1300),
+    SheetPreset('2440 × 1220 mm', 2440, 1220),
+  ],
+  'High Gloss / Acrylique': [
+    SheetPreset('2800 × 1220 mm (Standard High Gloss AGT / Alvic)', 2800, 1220),
+    SheetPreset('2440 × 1220 mm (Standard 8×4)', 2440, 1220),
+    SheetPreset('2750 × 1220 mm', 2750, 1220),
+    SheetPreset('2800 × 2100 mm (Grand format)', 2800, 2100),
+  ],
+};
+
 class CutSettings {
   int sheetLength;
   int sheetWidth;
+  int? frontSheetLength;
+  int? frontSheetWidth;
   int kerf; // trait de scie
   int trim; // recoupe des bords du panneau
   int carcassThickness;
@@ -45,9 +95,25 @@ class CutSettings {
   int method; // méthode SketchCut : 1 par longueur, 2 par largeur, 3 optimale
   String machine; // 'scie' (scie à panneaux : bandes puis tronçons) | 'cnc' (imbrication libre)
 
+  (int, int) sheetDimensionsFor(String material) {
+    final isFront = material == frontMaterial ||
+        material.contains('Façade') ||
+        material.contains('Porte') ||
+        material.contains('High Gloss') ||
+        material.contains('Acrylique') ||
+        material.contains('PET') ||
+        material.contains('Laqué');
+    if (isFront && frontSheetLength != null && frontSheetWidth != null) {
+      return (frontSheetLength!, frontSheetWidth!);
+    }
+    return (sheetLength, sheetWidth);
+  }
+
   CutSettings({
     this.sheetLength = 2800,
     this.sheetWidth = 2100,
+    this.frontSheetLength,
+    this.frontSheetWidth,
     this.kerf = 4,
     this.trim = 4,
     this.carcassThickness = 18,
@@ -75,6 +141,8 @@ class CutSettings {
   Map<String, dynamic> toJson() => {
     'sheet_length': sheetLength,
     'sheet_width': sheetWidth,
+    if (frontSheetLength != null) 'front_sheet_length': frontSheetLength,
+    if (frontSheetWidth != null) 'front_sheet_width': frontSheetWidth,
     'kerf': kerf,
     'trim': trim,
     'carcass_thickness': carcassThickness,
@@ -105,6 +173,8 @@ class CutSettings {
     return CutSettings(
       sheetLength: j['sheet_length'] ?? d.sheetLength,
       sheetWidth: j['sheet_width'] ?? d.sheetWidth,
+      frontSheetLength: j['front_sheet_length'],
+      frontSheetWidth: j['front_sheet_width'],
       kerf: j['kerf'] ?? d.kerf,
       trim: j['trim'] ?? d.trim,
       carcassThickness: j['carcass_thickness'] ?? d.carcassThickness,
@@ -680,9 +750,10 @@ CutPlan _nestWith(List<CutPart> parts, CutSettings cs, {required bool areaFit, r
   final sheets = <CutSheet>[];
   final notPlaced = <CutPart>[];
   final kerf = cs.kerf.toDouble();
-  final usableL = cs.sheetLength - 2 * cs.trim, usableW = cs.sheetWidth - 2 * cs.trim;
 
   for (final mat in {for (final p in parts) p.material}) {
+    final (sL, sW) = cs.sheetDimensionsFor(mat);
+    final usableL = sL - 2 * cs.trim, usableW = sW - 2 * cs.trim;
     final own = <CutSheet>[];
     // une entrée par pièce physique, les plus grandes d'abord
     final pieces =
@@ -707,7 +778,7 @@ CutPlan _nestWith(List<CutPart> parts, CutSettings cs, {required bool areaFit, r
       }
       var placed = false;
       for (final sheet in [...own, null]) {
-        final s = sheet ?? (CutSheet(sheets.length + 1, mat, cs.sheetLength, cs.sheetWidth, cs.trim));
+        final s = sheet ?? (CutSheet(sheets.length + 1, mat, sL, sW, cs.trim));
         // meilleur rectangle libre (plus petit reste sur le côté court)
         _Free? best;
         var bestScore = double.infinity;
@@ -758,13 +829,14 @@ CutPlan _nestWith(List<CutPart> parts, CutSettings cs, {required bool areaFit, r
 /// Fichier .sct d'un matériau : les pièces sont « non découpées », SketchCut calcule le plan.
 String toSct(CutPlan plan, String material, {String order = 'kitchinox', String thickness = '18', DateTime? date}) {
   final cs = plan.settings;
+  final (sL, sW) = cs.sheetDimensionsFor(material);
   final d = date ?? DateTime.now();
   String b(bool v) => v ? '1' : '0';
   final parts = plan.parts.where((p) => p.material == material).toList();
   final out = <String>[
     '<V3.0>',
     '1',
-    '${cs.sheetLength}X${cs.sheetWidth}_0',
+    '${sL}X${sW}_0',
     '${cs.method}X${cs.kerf}X${cs.trim}_True',
     order,
     '${d.month}/${d.day}/${d.year}',
@@ -924,12 +996,13 @@ CutPlan _stripsAlong(List<CutPart> parts, CutSettings cs, List<bool> along) {
 
 CutPlan _stripRun(List<CutPart> parts, CutSettings cs, {required bool alongLength, required String order}) {
   final kerf = cs.kerf.toDouble(), trim = cs.trim.toDouble();
-  final stripLen = (alongLength ? cs.sheetLength : cs.sheetWidth) - 2 * trim;
-  final across = (alongLength ? cs.sheetWidth : cs.sheetLength) - 2 * trim;
   final sheets = <CutSheet>[];
   final notPlaced = <CutPart>[];
 
   for (final mat in {for (final p in parts) p.material}) {
+    final (sL, sW) = cs.sheetDimensionsFor(mat);
+    final stripLen = (alongLength ? sL : sW) - 2 * trim;
+    final across = (alongLength ? sW : sL) - 2 * trim;
     final pieces = <(CutPart, int)>[
       for (var i = 0; i < parts.length; i++)
         if (parts[i].material == mat)
@@ -1028,7 +1101,7 @@ CutPlan _stripRun(List<CutPart> parts, CutSettings cs, {required bool alongLengt
 
     // feuilles réelles : placements, chutes et longueur de coupe
     for (final sh in own) {
-      final s = CutSheet(sheets.length + 1, mat, cs.sheetLength, cs.sheetWidth, cs.trim);
+      final s = CutSheet(sheets.length + 1, mat, sL, sW, cs.trim);
       s._free.clear();
       s.strips = sh.strips.length;
       // (x le long de la bande, y en travers) → coordonnées de la feuille
@@ -1097,8 +1170,9 @@ CutPlan _guillRun(
   bool wideStrip = false, int maxSheets = 1 << 30,
 }) {
   final k = cs.kerf.toDouble(), trim = cs.trim.toDouble();
-  final L = (alongLength ? cs.sheetLength : cs.sheetWidth) - 2 * trim;
-  final W = (alongLength ? cs.sheetWidth : cs.sheetLength) - 2 * trim;
+  final (sL, sW) = cs.sheetDimensionsFor(mat);
+  final L = (alongLength ? sL : sW) - 2 * trim;
+  final W = (alongLength ? sW : sL) - 2 * trim;
   final own = <_GSheet>[];
   final notPlaced = <CutPart>[];
 
@@ -1198,7 +1272,7 @@ CutPlan _guillRun(
 
   final sheets = <CutSheet>[];
   for (final g in own) {
-    final s = CutSheet(firstNumber + sheets.length, mat, cs.sheetLength, cs.sheetWidth, cs.trim);
+    final s = CutSheet(firstNumber + sheets.length, mat, sL, sW, cs.trim);
     s._free.clear();
     s.strips = g.strips;
     s.cutLen = g.cut;

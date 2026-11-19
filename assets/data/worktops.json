@@ -11,25 +11,8 @@
   ],
   "worktop_materials": [
     {
-      "id": "marbre_naturel",
-      "name": "Marbre Naturel",
-      "heat_resistance": "Bonne",
-      "scratch_resistance": "Moyenne (pierre calcaire)",
-      "stain_resistance": "Sensible aux acides (citron, vinaigre) : hydrofuge recommandé",
-      "thickness_options_mm": [
-        20,
-        30
-      ],
-      "edge_profiles": [
-        "Droit poli",
-        "Biseauté (Chanfrein)",
-        "Retombée d'onglet 40-60mm (Mitred edge)"
-      ],
-      "particularity": "Prix au mètre linéaire à demander au marbrier selon la carrière"
-    },
-    {
       "id": "granit_naturel",
-      "name": "Granit Naturel",
+      "name": "Granit Naturel (Zellijj Granit)",
       "heat_resistance": "Excellente (jusqu'à 300°C+)",
       "scratch_resistance": "Très élevée",
       "thickness_options_mm": [
@@ -43,6 +26,20 @@
       ],
       "popular_variants_morocco": [
         {
+          "name": "Gris Guéldaman / Perla / Blanc Cristal (Économique)",
+          "price_per_ml_mad": {
+            "min": 650,
+            "max": 950
+          }
+        },
+        {
+          "name": "Rosa Porrino (Économique)",
+          "price_per_ml_mad": {
+            "min": 700,
+            "max": 1000
+          }
+        },
+        {
           "name": "Noir Zimbabwe (Poli ou Cuir/Flammé)",
           "price_per_ml_mad": {
             "min": 1400,
@@ -50,31 +47,31 @@
           }
         },
         {
-          "name": "Labrador Bleu / Émeraude (Norvège)",
-          "price_per_ml_mad": {
-            "min": 1300,
-            "max": 1900
-          }
-        },
-        {
-          "name": "Noir Absolu / Noir Galaxy",
+          "name": "Noir Absolu / Noir Galaxy (Standard)",
           "price_per_ml_mad": {
             "min": 1200,
             "max": 1800
           }
         },
         {
-          "name": "Gris Perla / Blanc Cristal (Économique)",
+          "name": "Labrador Bleu / Émeraude (Norvège - Luxe)",
           "price_per_ml_mad": {
-            "min": 650,
-            "max": 950
+            "min": 1600,
+            "max": 2400
+          }
+        },
+        {
+          "name": "Granit Tranche Cuir d'Exception (Zellijj Tranche)",
+          "price_per_ml_mad": {
+            "min": 2000,
+            "max": 3200
           }
         }
       ]
     },
     {
       "id": "quartz_synthese",
-      "name": "Quartz de Synthèse (Silestone, Compac, Belenco, Çimstone)",
+      "name": "Quartz de Synthèse (Silestone, Çimstone, Compac)",
       "heat_resistance": "Moyenne (craint les chocs thermiques directs > 150°C)",
       "stain_resistance": "Excellente (Non poreux, antibactérien)",
       "thickness_options_mm": [
@@ -94,40 +91,142 @@
           }
         },
         {
-          "name": "Calacatta Gold / Veiné Marbre",
+          "name": "Gris Ciment / Gris Anthracite / Beige Sahara",
           "price_per_ml_mad": {
-            "min": 1600,
+            "min": 1100,
+            "max": 1700
+          }
+        },
+        {
+          "name": "Calacatta Gold / Veiné Marbre (Luxe)",
+          "price_per_ml_mad": {
+            "min": 1800,
+            "max": 3000
+          }
+        },
+        {
+          "name": "Çimstone / Belenco Effet Pierre",
+          "price_per_ml_mad": {
+            "min": 1400,
+            "max": 2100
+          }
+        }
+      ]
+    },
+    {
+      "id": "marbre_naturel",
+      "name": "Marbre Naturel (Zellijj Marbre)",
+      "heat_resistance": "Bonne",
+      "scratch_resistance": "Moyenne (pierre calcaire)",
+      "stain_resistance": "Sensible aux acides : traitement hydrofuge oléofuge",
+      "thickness_options_mm": [
+        20,
+        30
+      ],
+      "edge_profiles": [
+        "Droit poli",
+        "Biseauté (Chanfrein)",
+        "Retombée d'onglet 40-60mm (Mitred edge)"
+      ],
+      "popular_variants_morocco": [
+        {
+          "name": "Marbre Blanc Carrare (Italie)",
+          "price_per_ml_mad": {
+            "min": 1800,
             "max": 2800
           }
         },
         {
-          "name": "Gris Expo / Gris Anthracite / Beige",
+          "name": "Calacatta Gold / Statuario Veiné (Luxe)",
           "price_per_ml_mad": {
-            "min": 1100,
-            "max": 1700
+            "min": 2400,
+            "max": 3800
+          }
+        },
+        {
+          "name": "Noir Marquina (Espagne)",
+          "price_per_ml_mad": {
+            "min": 1700,
+            "max": 2600
+          }
+        },
+        {
+          "name": "Crema Marfil (Espagne)",
+          "price_per_ml_mad": {
+            "min": 1500,
+            "max": 2200
+          }
+        },
+        {
+          "name": "Emperador Dark / Gris Saint Laurent",
+          "price_per_ml_mad": {
+            "min": 1900,
+            "max": 2900
+          }
+        }
+      ]
+    },
+    {
+      "id": "onyx_naturel",
+      "name": "Onyx Naturel & Rétroéclairé (Luxe Exceptionnel)",
+      "heat_resistance": "Bonne",
+      "scratch_resistance": "Moyenne (pierre noble translucide)",
+      "stain_resistance": "Très sensible : poli brillant sous résine protectrice",
+      "thickness_options_mm": [
+        20,
+        30
+      ],
+      "edge_profiles": [
+        "Droit poli avec retombée d'onglet pour rétroéclairage LED",
+        "Biseauté"
+      ],
+      "popular_variants_morocco": [
+        {
+          "name": "Onyx Blanc Translucide Rétroéclairable",
+          "price_per_ml_mad": {
+            "min": 3800,
+            "max": 6500
+          }
+        },
+        {
+          "name": "Onyx Miel / Jaune Doré Translucide",
+          "price_per_ml_mad": {
+            "min": 3500,
+            "max": 5800
+          }
+        },
+        {
+          "name": "Onyx Vert d'Iran / Fantaisie Rare",
+          "price_per_ml_mad": {
+            "min": 4200,
+            "max": 7500
           }
         }
       ]
     },
     {
       "id": "ceramique_grands_formats",
-      "name": "Céramique Ultracompacte / Pierre Frittée (Dekton, Neolith, Laminam)",
+      "name": "Céramique Ultracompacte (Dekton, Neolith, Laminam)",
       "heat_resistance": "Extrême (Résiste au feu direct et casseroles brûlantes)",
       "scratch_resistance": "Inrayable",
       "thickness_options_mm": [
         12,
         20
       ],
+      "edge_profiles": [
+        "Droit poli",
+        "Retombée en coupe d'onglet 45°"
+      ],
       "popular_variants_morocco": [
         {
-          "name": "Dekton Sirius / Laurent / Entzo",
+          "name": "Dekton Laurent / Sirius / Entzo (Luxe)",
           "price_per_ml_mad": {
             "min": 2500,
             "max": 4200
           }
         },
         {
-          "name": "Grès Cérame Grands Formats (Import Espagne/Italie/Inde sur support)",
+          "name": "Grès Cérame Grands Formats (Import Espagne/Italie)",
           "price_per_ml_mad": {
             "min": 1400,
             "max": 2300
@@ -136,16 +235,56 @@
       ]
     },
     {
+      "id": "stratifie_compact_hpl",
+      "name": "Stratifié Compact HPL / Postformé (Économique)",
+      "heat_resistance": "Moyenne (jusqu'à 180°C)",
+      "scratch_resistance": "Bonne",
+      "thickness_options_mm": [
+        12,
+        20,
+        38
+      ],
+      "edge_profiles": [
+        "Chant droit PVC 2mm",
+        "Bord postformé"
+      ],
+      "popular_variants_morocco": [
+        {
+          "name": "Stratifié Compact Cœur Noir 12 mm",
+          "price_per_ml_mad": {
+            "min": 550,
+            "max": 900
+          }
+        },
+        {
+          "name": "Plan Postformé Hydrofuge 38 mm",
+          "price_per_ml_mad": {
+            "min": 380,
+            "max": 650
+          }
+        }
+      ]
+    },
+    {
       "id": "solid_surface_corian",
-      "name": "Solid Surface (Corian, Krion, Hanex)",
-      "particularity": "Joints invisibles et évier moulé dans la masse",
+      "name": "Solid Surface (Corian, Krion)",
+      "particularity": "Joints invisibles et évier thermoformé",
       "thickness_options_mm": [
         12
       ],
-      "price_per_ml_mad": {
-        "min": 2200,
-        "max": 3500
-      }
+      "edge_profiles": [
+        "Gorge congé",
+        "Bord droit avec retombée"
+      ],
+      "popular_variants_morocco": [
+        {
+          "name": "Corian Glacier White",
+          "price_per_ml_mad": {
+            "min": 2200,
+            "max": 3500
+          }
+        }
+      ]
     }
   ]
 }

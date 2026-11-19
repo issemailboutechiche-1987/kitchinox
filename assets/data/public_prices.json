@@ -26,7 +26,11 @@
     { "id": "mdf_sonoma_8", "name": "MDF sonoma 8 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 8, "price": 700, "thickness_assumed": true, "note": "Épaisseur non précisée au tarif (ligne « MDF sonoma 700 / medlack 750 »), supposée 8 mm : à confirmer." },
     { "id": "medlack_8", "name": "Medlack 8 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 8, "price": 750, "thickness_assumed": true, "note": "Épaisseur non précisée au tarif, supposée 8 mm : à confirmer." },
     { "id": "mdf_noyer_8", "name": "MDF noyer 8 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 8, "price": 750 },
-    { "id": "mdf_noyer_5", "name": "MDF noyer 5 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 5, "price": 800, "note": "Prix tel qu'indiqué au tarif (plus cher que le 8 mm) : à confirmer." }
+    { "id": "mdf_noyer_5", "name": "MDF noyer 5 mm", "family": "Panneaux minces", "length": 2800, "width": 2100, "thickness": 5, "price": 800, "note": "Prix tel qu'indiqué au tarif (plus cher que le 8 mm) : à confirmer." },
+
+    { "id": "mdf_high_gloss_blanc_18", "name": "MDF High Gloss blanc (AGT / Alvic)", "family": "High Gloss", "length": 2800, "width": 1220, "thickness": 18, "price": 850, "note": "Fourchette marché Maroc 760–950 MAD/feuille 2800×1220×18 mm (Gadimat, Panolux, Ismawood, Casablanca 2024)." },
+    { "id": "mdf_high_gloss_noir_18", "name": "MDF High Gloss noir miroir (AGT / Alvic)", "family": "High Gloss", "length": 2800, "width": 1220, "thickness": 18, "price": 900, "note": "Fourchette marché Maroc 850–950 MAD/feuille. Coloris foncé souvent légèrement plus cher." },
+    { "id": "mdf_high_gloss_decor_18", "name": "MDF High Gloss décor (bois / métal / marbre)", "family": "High Gloss", "length": 2800, "width": 1220, "thickness": 18, "price": 950, "note": "Décors premium (effet bois brillant, métallisé, marbré) : 900–1 100 MAD/feuille selon distributeur." }
   ],
   "edge_banding": [
     { "id": "chant_blanc", "name": "Bande de chant blanche", "price_per_meter": 9 },

@@ -6,133 +6,372 @@
     "saw_kerf_mm": 3.2,
     "panel_trim_margin_mm": 10,
     "edge_banding_Options": [
-      { "type": "PVC_ABS_04", "thickness_mm": 0.4, "usage": "Chants cachés caissons", "price_per_meter_mad": 5 },
-      { "type": "PVC_ABS_10", "thickness_mm": 1.0, "usage": "Chants visibles caissons / étagères", "price_per_meter_mad": 10 },
-      { "type": "PVC_ABS_20", "thickness_mm": 2.0, "usage": "Façades et portes (haute résistance aux chocs)", "price_per_meter_mad": 18 }
+      {
+        "type": "PVC_ABS_04",
+        "thickness_mm": 0.4,
+        "usage": "Chants cachés caissons",
+        "price_per_meter_mad": 5
+      },
+      {
+        "type": "PVC_ABS_10",
+        "thickness_mm": 1.0,
+        "usage": "Chants visibles caissons / étagères",
+        "price_per_meter_mad": 10
+      },
+      {
+        "type": "PVC_ABS_20",
+        "thickness_mm": 2.0,
+        "usage": "Façades et portes (haute résistance aux chocs)",
+        "price_per_meter_mad": 18
+      }
     ]
   },
   "panel_types": [
     {
       "id": "mdf_melamine_hydrofuge",
       "name": "MDF Mélaminé Hydrofuge (Âme Verte)",
-      "suppliers_morocco": ["Robelbois", "Cema Bois de l'Atlas", "Strati Décor", "Egger", "Finsa"],
-      "usage": ["Caissons bas sous-évier", "Corps de meubles", "Façades économiques"],
+      "suppliers_morocco": [
+        "Robelbois",
+        "Cema Bois de l'Atlas",
+        "Strati Décor",
+        "Egger",
+        "Finsa"
+      ],
+      "usage": [
+        "Caissons bas sous-évier",
+        "Corps de meubles",
+        "Façades économiques"
+      ],
       "moisture_resistant": true,
       "grain_direction_optional": true,
       "standard_sheets": [
-        { "length": 2440, "width": 1220, "area_m2": 2.98 },
-        { "length": 2800, "width": 2070, "area_m2": 5.80 },
-        { "length": 2800, "width": 2100, "area_m2": 5.88 },
-        { "length": 3660, "width": 1830, "area_m2": 6.70 }
+        {
+          "length": 2440,
+          "width": 1220,
+          "area_m2": 2.98
+        },
+        {
+          "length": 2800,
+          "width": 2070,
+          "area_m2": 5.80
+        },
+        {
+          "length": 2800,
+          "width": 2100,
+          "area_m2": 5.88
+        },
+        {
+          "length": 3660,
+          "width": 1830,
+          "area_m2": 6.70
+        }
       ],
-      "available_thicknesses_mm": [8, 12, 16, 18, 19, 22, 25],
+      "available_thicknesses_mm": [
+        8,
+        12,
+        16,
+        18,
+        19,
+        22,
+        25
+      ],
       "standard_carcass_thickness": 18,
       "pricing_mad_2440x1220_18mm": {
-        "white_matte": { "min": 480, "max": 650 },
-        "wood_decor_or_unicolor": { "min": 650, "max": 950 }
+        "white_matte": {
+          "min": 480,
+          "max": 650
+        },
+        "wood_decor_or_unicolor": {
+          "min": 650,
+          "max": 950
+        }
       }
     },
     {
       "id": "mdf_stratidecor_hpl",
       "name": "MDF Stratifié HPL (Type Strati Décor / Pore Synchronisé)",
-      "suppliers_morocco": ["Strati Décor", "Kronospan", "Egger", "Alvic"],
-      "usage": ["Façades haut de gamme", "Joues de finition", "Habillages muraux"],
+      "suppliers_morocco": [
+        "Strati Décor",
+        "Kronospan",
+        "Egger",
+        "Alvic"
+      ],
+      "usage": [
+        "Façades haut de gamme",
+        "Joues de finition",
+        "Habillages muraux"
+      ],
       "moisture_resistant": true,
       "grain_direction_mandatory": true,
-      "surface_finishes": ["Mat structuré", "Pore bois synchronisé", "Effet béton/pierre", "Noyer naturel"],
-      "standard_sheets": [
-        { "length": 2800, "width": 2070, "area_m2": 5.80 },
-        { "length": 2440, "width": 1220, "area_m2": 2.98 }
+      "surface_finishes": [
+        "Mat structuré",
+        "Pore bois synchronisé",
+        "Effet béton/pierre",
+        "Noyer naturel"
       ],
-      "available_thicknesses_mm": [18, 19, 22],
-      "pricing_mad_panel_18mm": { "min": 850, "max": 1450 }
+      "standard_sheets": [
+        {
+          "length": 2800,
+          "width": 2070,
+          "area_m2": 5.80
+        },
+        {
+          "length": 2440,
+          "width": 1220,
+          "area_m2": 2.98
+        }
+      ],
+      "available_thicknesses_mm": [
+        18,
+        19,
+        22
+      ],
+      "pricing_mad_panel_18mm": {
+        "min": 850,
+        "max": 1450
+      }
     },
     {
       "id": "mdf_high_gloss_acrylic_pet",
       "name": "MDF Acrylique / High Gloss / PET Ultra-Mat Anti-Traces",
-      "suppliers_morocco": ["Alvic Luxe", "Alvic Zenit", "AGT", "Gizir"],
-      "usage": ["Façades modernes sans poignées", "Portes de colonnes", "Façades îlot"],
+      "suppliers_morocco": [
+        "Alvic Luxe",
+        "Alvic Zenit",
+        "AGT",
+        "Gadimat",
+        "Gizir",
+        "Panolux",
+        "Ismawood"
+      ],
+      "usage": [
+        "Façades modernes sans poignées",
+        "Portes de colonnes",
+        "Façades îlot"
+      ],
       "moisture_resistant": true,
       "grain_direction_mandatory": false,
-      "surface_finishes": ["Ultra Brillant (Miroir)", "Super Mat Soft-Touch Anti-Traces"],
-      "standard_sheets": [
-        { "length": 2800, "width": 1220, "area_m2": 3.41 },
-        { "length": 2750, "width": 1220, "area_m2": 3.35 }
+      "surface_finishes": [
+        "Ultra Brillant (Miroir)",
+        "Super Mat Soft-Touch Anti-Traces"
       ],
-      "available_thicknesses_mm": [18],
-      "pricing_mad_panel_18mm": { "min": 950, "max": 1600 }
+      "standard_sheets": [
+        {
+          "length": 2800,
+          "width": 1220,
+          "area_m2": 3.41
+        },
+        {
+          "length": 2750,
+          "width": 1220,
+          "area_m2": 3.35
+        }
+      ],
+      "available_thicknesses_mm": [
+        18
+      ],
+      "pricing_mad_panel_18mm": {
+        "min": 760,
+        "max": 950
+      }
     },
     {
       "id": "latte_melamine_ou_plaque",
       "name": "Panneau Latté (Blockboard) Mélaminé ou Plaqué",
-      "suppliers_morocco": ["Cema Bois de l'Atlas", "Robelbois"],
-      "usage": ["Caissons robustes grands formats", "Étagères longue portée (sans fléchissement)", "Colonnes"],
+      "suppliers_morocco": [
+        "Cema Bois de l'Atlas",
+        "Robelbois"
+      ],
+      "usage": [
+        "Caissons robustes grands formats",
+        "Étagères longue portée (sans fléchissement)",
+        "Colonnes"
+      ],
       "moisture_resistant": false,
       "mechanical_advantage": "Très léger, excellente tenue des vis dans la tranche, ne fléchit pas",
       "standard_sheets": [
-        { "length": 2440, "width": 1220, "area_m2": 2.98 },
-        { "length": 2500, "width": 1250, "area_m2": 3.12 }
+        {
+          "length": 2440,
+          "width": 1220,
+          "area_m2": 2.98
+        },
+        {
+          "length": 2500,
+          "width": 1250,
+          "area_m2": 3.12
+        }
       ],
-      "available_thicknesses_mm": [16, 18, 22],
-      "pricing_mad_2440x1220_18mm": { "min": 680, "max": 980 }
+      "available_thicknesses_mm": [
+        16,
+        18,
+        22
+      ],
+      "pricing_mad_2440x1220_18mm": {
+        "min": 680,
+        "max": 980
+      }
     },
     {
       "id": "contreplaque_marine_ctbx",
       "name": "Contreplaqué Marine / Okoumé Hydrofuge (CTBX)",
-      "suppliers_morocco": ["Cema Bois de l'Atlas", "Importateurs Casablanca"],
-      "usage": ["Caissons sous-évier haute durabilité", "Structures humides"],
+      "suppliers_morocco": [
+        "Cema Bois de l'Atlas",
+        "Importateurs Casablanca"
+      ],
+      "usage": [
+        "Caissons sous-évier haute durabilité",
+        "Structures humides"
+      ],
       "moisture_resistant": true,
       "standard_sheets": [
-        { "length": 2500, "width": 1220, "area_m2": 3.05 },
-        { "length": 2440, "width": 1220, "area_m2": 2.98 }
+        {
+          "length": 2500,
+          "width": 1220,
+          "area_m2": 3.05
+        },
+        {
+          "length": 2440,
+          "width": 1220,
+          "area_m2": 2.98
+        }
       ],
-      "available_thicknesses_mm": [5, 8, 10, 12, 15, 18, 22],
-      "pricing_mad_panel_18mm": { "min": 750, "max": 1150 }
+      "available_thicknesses_mm": [
+        5,
+        8,
+        10,
+        12,
+        15,
+        18,
+        22
+      ],
+      "pricing_mad_panel_18mm": {
+        "min": 750,
+        "max": 1150
+      }
     },
     {
       "id": "mdf_plaque_essence_fine",
       "name": "MDF Plaqué Bois Naturel (Noyer Américain, Chêne, Frêne)",
-      "suppliers_morocco": ["Robelbois", "Négoce Bois Casablanca"],
-      "usage": ["Façades haut de gamme", "Niches décoratives", "Habillage îlot"],
+      "suppliers_morocco": [
+        "Robelbois",
+        "Négoce Bois Casablanca"
+      ],
+      "usage": [
+        "Façades haut de gamme",
+        "Niches décoratives",
+        "Habillage îlot"
+      ],
       "requires_varnish_or_finish": true,
       "grain_direction_mandatory": true,
       "standard_sheets": [
-        { "length": 2440, "width": 1220, "area_m2": 2.98 },
-        { "length": 2800, "width": 2070, "area_m2": 5.80 }
+        {
+          "length": 2440,
+          "width": 1220,
+          "area_m2": 2.98
+        },
+        {
+          "length": 2800,
+          "width": 2070,
+          "area_m2": 5.80
+        }
       ],
-      "available_thicknesses_mm": [18, 19],
+      "available_thicknesses_mm": [
+        18,
+        19
+      ],
       "pricing_mad_2440x1220_18mm": {
-        "chene_naturel": { "min": 750, "max": 1100 },
-        "noyer_americain": { "min": 950, "max": 1450 }
+        "chene_naturel": {
+          "min": 750,
+          "max": 1100
+        },
+        "noyer_americain": {
+          "min": 950,
+          "max": 1450
+        }
       }
     },
     {
       "id": "mdf_brut_a_laquer",
       "name": "MDF Brut Haute Densité (Pour Peinture Polyuréthane / Laque ou CNC)",
-      "suppliers_morocco": ["MDF Med", "Finsa", "Kronospan"],
-      "usage": ["Façades à cadre (Shaker)", "Façades tasseaux striées (CNC)", "Laque polyuréthane (ex: Jotun)"],
+      "suppliers_morocco": [
+        "MDF Med",
+        "Finsa",
+        "Kronospan"
+      ],
+      "usage": [
+        "Façades à cadre (Shaker)",
+        "Façades tasseaux striées (CNC)",
+        "Laque polyuréthane (ex: Jotun)"
+      ],
       "moisture_resistant_variant_available": true,
       "standard_sheets": [
-        { "length": 2440, "width": 1220, "area_m2": 2.98 },
-        { "length": 2800, "width": 2070, "area_m2": 5.80 }
+        {
+          "length": 2440,
+          "width": 1220,
+          "area_m2": 2.98
+        },
+        {
+          "length": 2800,
+          "width": 2070,
+          "area_m2": 5.80
+        }
       ],
-      "available_thicknesses_mm": [3, 6, 8, 10, 12, 16, 18, 22, 25, 30],
+      "available_thicknesses_mm": [
+        3,
+        6,
+        8,
+        10,
+        12,
+        16,
+        18,
+        22,
+        25,
+        30
+      ],
       "pricing_mad_2440x1220": {
-        "thickness_6mm_back_panel": { "min": 110, "max": 180 },
-        "thickness_18mm_standard": { "min": 280, "max": 420 },
-        "thickness_18mm_hydrofuge": { "min": 420, "max": 580 }
+        "thickness_6mm_back_panel": {
+          "min": 110,
+          "max": 180
+        },
+        "thickness_18mm_standard": {
+          "min": 280,
+          "max": 420
+        },
+        "thickness_18mm_hydrofuge": {
+          "min": 420,
+          "max": 580
+        }
       }
     },
     {
       "id": "mdf_ignifuge",
       "name": "MDF Ignifugé (Âme Rouge - Résistant au feu M1)",
-      "usage": ["Projets CHR", "Cuisines collectives", "Proximité directe foyers gaz pro"],
-      "standard_sheets": [
-        { "length": 2440, "width": 1220, "area_m2": 2.98 },
-        { "length": 2800, "width": 2070, "area_m2": 5.80 }
+      "usage": [
+        "Projets CHR",
+        "Cuisines collectives",
+        "Proximité directe foyers gaz pro"
       ],
-      "available_thicknesses_mm": [12, 16, 18, 19],
-      "pricing_mad_2440x1220_18mm": { "min": 950, "max": 1350 }
+      "standard_sheets": [
+        {
+          "length": 2440,
+          "width": 1220,
+          "area_m2": 2.98
+        },
+        {
+          "length": 2800,
+          "width": 2070,
+          "area_m2": 5.80
+        }
+      ],
+      "available_thicknesses_mm": [
+        12,
+        16,
+        18,
+        19
+      ],
+      "pricing_mad_2440x1220_18mm": {
+        "min": 950,
+        "max": 1350
+      }
     }
   ]
 }

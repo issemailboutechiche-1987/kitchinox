@@ -149,27 +149,149 @@ class _Section extends StatelessWidget {
     Widget box(Widget w, [double width = 250]) => SizedBox(width: width, child: w);
     switch (section) {
       case 'Panneaux':
-        final list = PublicPrices.structural;
-        if (sp.gamme == 'luxe' || list.isEmpty) return const [];
         final cs = st.project.cut;
-        final cur = list
-            .where((p) => p.price == sp.sheetPrice && p.length == cs.sheetLength && p.width == cs.sheetWidth && p.thickness == cs.carcassThickness)
-            .firstOrNull;
+        final carcassCategory = cs.carcassMaterial.contains('Latté')
+            ? 'Latté (Blockboard)'
+            : cs.carcassMaterial.contains('Stratifié')
+                ? 'Stratifié / Mélaminé'
+                : 'MDF';
+        final carcassPresets = woodSheetPresets[carcassCategory] ?? woodSheetPresets['MDF']!;
+        final curCarcassPreset = carcassPresets
+            .where((p) => p.length == cs.sheetLength && p.width == cs.sheetWidth)
+            .firstOrNull ?? carcassPresets.first;
+
+        final frontCategory = cs.frontMaterial.contains('High Gloss') ||
+                cs.frontMaterial.contains('Acrylique') ||
+                cs.frontMaterial.contains('PET')
+            ? 'High Gloss / Acrylique'
+            : 'MDF';
+        final (fL, fW) = cs.sheetDimensionsFor(cs.frontMaterial);
+        final frontPresets = woodSheetPresets[frontCategory] ?? woodSheetPresets['High Gloss / Acrylique']!;
+        final curFrontPreset = frontPresets
+            .where((p) => p.length == fL && p.width == fW)
+            .firstOrNull ?? frontPresets.first;
+
+        final list = PublicPrices.structural;
+        final curPublic = (sp.gamme != 'luxe' && list.isNotEmpty)
+            ? list.where((p) => p.price == sp.sheetPrice && p.length == cs.sheetLength && p.width == cs.sheetWidth && p.thickness == cs.carcassThickness).firstOrNull
+            : null;
+
         return [
           box(
+            DropdownButtonFormField<String>(
+              key: ValueKey('quote_carcass_mat_${cs.carcassMaterial}'),
+              isExpanded: true,
+              initialValue: carcassMaterialChoices.contains(cs.carcassMaterial) ? cs.carcassMaterial : carcassMaterialChoices.first,
+              decoration: deco(tr('Caissons (Matière)')),
+              items: [
+                for (final m in carcassMaterialChoices) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis)),
+              ],
+              onChanged: (v) {
+                if (v == null) return;
+                st.edit(() {
+                  cs.carcassMaterial = v;
+                  if (v.contains('Latté')) {
+                    st.project.specs.gamme = 'luxe';
+                  } else {
+                    st.project.specs.gamme = 'standard';
+                  }
+                  final cat = v.contains('Latté')
+                      ? 'Latté (Blockboard)'
+                      : v.contains('Stratifié')
+                          ? 'Stratifié / Mélaminé'
+                          : 'MDF';
+                  final p0 = woodSheetPresets[cat]?.first;
+                  if (p0 != null) {
+                    cs.sheetLength = p0.length;
+                    cs.sheetWidth = p0.width;
+                  }
+                });
+              },
+            ),
+            240,
+          ),
+          box(
+            DropdownButtonFormField<SheetPreset>(
+              key: ValueKey('quote_carcass_preset_${cs.sheetLength}_${cs.sheetWidth}'),
+              isExpanded: true,
+              initialValue: curCarcassPreset,
+              decoration: deco(tr('Format feuille caissons')),
+              items: [
+                for (final p in carcassPresets) DropdownMenuItem(value: p, child: Text(p.label, overflow: TextOverflow.ellipsis)),
+              ],
+              onChanged: (p) {
+                if (p == null) return;
+                st.edit(() {
+                  cs.sheetLength = p.length;
+                  cs.sheetWidth = p.width;
+                });
+              },
+            ),
+            260,
+          ),
+          box(
+            DropdownButtonFormField<String>(
+              key: ValueKey('quote_front_mat_${cs.frontMaterial}'),
+              isExpanded: true,
+              initialValue: frontMaterialChoices.contains(cs.frontMaterial) ? cs.frontMaterial : frontMaterialChoices.first,
+              decoration: deco(tr('Façades (Matière)')),
+              items: [
+                for (final m in frontMaterialChoices) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis)),
+              ],
+              onChanged: (v) {
+                if (v == null) return;
+                st.edit(() {
+                  cs.frontMaterial = v;
+                  final cat = v.contains('High Gloss') || v.contains('Acrylique') || v.contains('PET')
+                      ? 'High Gloss / Acrylique'
+                      : 'MDF';
+                  final p0 = woodSheetPresets[cat]?.first;
+                  if (p0 != null) {
+                    cs.frontSheetLength = p0.length;
+                    cs.frontSheetWidth = p0.width;
+                  }
+                });
+              },
+            ),
+            240,
+          ),
+          box(
+            DropdownButtonFormField<SheetPreset>(
+              key: ValueKey('quote_front_preset_${fL}_$fW'),
+              isExpanded: true,
+              initialValue: curFrontPreset,
+              decoration: deco(tr('Format feuille façades')),
+              items: [
+                for (final p in frontPresets) DropdownMenuItem(value: p, child: Text(p.label, overflow: TextOverflow.ellipsis)),
+              ],
+              onChanged: (p) {
+                if (p == null) return;
+                st.edit(() {
+                  cs.frontSheetLength = p.length;
+                  cs.frontSheetWidth = p.width;
+                });
+              },
+            ),
+            260,
+          ),
+          if (list.isNotEmpty && sp.gamme != 'luxe')
+            box(
               DropdownButtonFormField<String>(
-                key: ValueKey('quote_panel_${cur?.id}'),
+                key: ValueKey('quote_panel_${curPublic?.id}'),
                 isExpanded: true,
-                initialValue: cur?.id,
+                initialValue: curPublic?.id,
                 hint: Text(tr('Tarif de l\'atelier')),
-                decoration: deco(tr('Type de panneau')),
+                decoration: deco(tr('Tarif public panneau')),
                 items: [
                   for (final p in list)
                     DropdownMenuItem(value: p.id, child: Text('${tr(p.name)} · ${p.price.round()} MAD', overflow: TextOverflow.ellipsis)),
                 ],
-                onChanged: (id) => st.applyPublicPanel(PublicPrices.byId(id!)!),
+                onChanged: (id) {
+                  if (id != null) st.applyPublicPanel(PublicPrices.byId(id)!);
+                },
               ),
-              320),
+              260,
+            ),
         ];
       case 'Plan de travail':
         if (db == null || db.worktops.isEmpty) return const [];
@@ -273,6 +395,10 @@ class _Section extends StatelessWidget {
     final lines = quote.of(section);
     final choices = locked ? const <Widget>[] : _typeChoices(context);
     final ranged = lines.any((l) => l.ranged && !l.edited);
+    final allIncluded = lines.isNotEmpty && lines.every((l) => l.included);
+    final noneIncluded = lines.isNotEmpty && lines.every((l) => !l.included);
+    final bool? masterVal = allIncluded ? true : (noneIncluded ? false : null);
+
     return Container(
       margin: const EdgeInsets.only(bottom: Tokens.s4),
       decoration: BoxDecoration(border: Border.all(color: scheme.outlineVariant), borderRadius: BorderRadius.circular(Tokens.radius)),
@@ -282,6 +408,14 @@ class _Section extends StatelessWidget {
           decoration: BoxDecoration(
               color: scheme.primary.withValues(alpha: 0.08), borderRadius: const BorderRadius.vertical(top: Radius.circular(Tokens.radius))),
           child: Row(children: [
+            if (!locked && lines.isNotEmpty) ...[
+              Checkbox(
+                tristate: true,
+                value: masterVal,
+                onChanged: (v) => st.setQuoteSectionIncluded(section, v == true),
+              ),
+              const SizedBox(width: Tokens.s1),
+            ],
             Expanded(child: Text(tr(section), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: scheme.primary))),
             Text('${money(quote.sectionTotal(section))} MAD', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
           ]),
