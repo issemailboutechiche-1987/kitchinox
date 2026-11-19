@@ -14,8 +14,8 @@ void main() {
     expect(db.appliances['oven_standard_60']!.niche, (560, 585, 560));
     expect(db.appliances['cooktop_4_burners_60']!.cutout, (560, 490));
     expect(db.appliances['oven_standard_60']!.offers.length, 3);
-    expect(db.worktops.length, 5); // marbre, granit, quartz, céramique, solid surface
-    expect(db.worktop('granit_naturel')!.variants.length, 4);
+    expect(db.worktops.length, 7);
+    expect(db.worktop('granit_naturel')!.variants.length, 6);
     expect(db.panels.length, 8);
     expect(db.panel('mdf_melamine_hydrofuge')!.sheets, contains((2800, 2100)));
     expect(db.edgeBands.map((e) => e.thickness), [0.4, 1.0, 2.0]);

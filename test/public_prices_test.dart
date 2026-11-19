@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kitchen_planner/engine/engine.dart';
 import 'package:kitchen_planner/main.dart';
 import 'package:kitchen_planner/ui/app_state.dart';
+import 'package:kitchen_planner/ui/brands_ui.dart';
 
 MaterialsDb db() {
   String f(String n) => File('assets/data/$n.json').readAsStringSync();
@@ -26,8 +27,8 @@ void main() {
     BrandCatalog.parse(File('assets/data/brands.json').readAsStringSync());
   });
 
-  test('tarif public : 19 panneaux, prix du relevé, chants 9 à 10 MAD/m', () {
-    expect(PublicPrices.panels, hasLength(19));
+  test('tarif public : 22 panneaux, prix du relevé, chants 9 à 10 MAD/m', () {
+    expect(PublicPrices.panels, hasLength(22));
     double price(String id) => PublicPrices.byId(id)!.price;
     expect((price('mdf_blanc_18'), price('mdf_sonoma_18'), price('mdf_noyer_18'), price('mdf_chene_18')), (850, 850, 950, 900));
     expect((price('latte_blanc_bois_rouge_cp'), price('latte_blanc_bois_rouge_hydro'), price('latte_chene_bois_rouge'), price('latte_chene_normal')),
@@ -37,7 +38,7 @@ void main() {
     final strati = PublicPrices.byId('strati_blanc_18')!;
     expect((strati.length, strati.width, strati.thickness), (2550, 1830, 18));
     expect(PublicPrices.edgeRange, (9, 10));
-    expect(PublicPrices.families, ['MDF', 'Latté', 'Stratifié', 'Panneaux minces']);
+    expect(PublicPrices.families, ['MDF', 'Latté', 'Stratifié', 'Panneaux minces', 'High Gloss']);
     // fond arrière : le panneau mince blanc le plus proche en épaisseur
     expect(PublicPrices.back(6)!.id, 'mdf_blanc_5');
     expect(PublicPrices.back(8)!.id, 'mdf_blanc_8');
@@ -79,9 +80,8 @@ void main() {
     await t.pumpAndSettle();
     st.goTo(PlanStep.summary);
     await t.pumpAndSettle();
-    await t.ensureVisible(find.text('Marques et prix'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('Marques et prix'));
+    // « Marques et tarifs » s'ouvre depuis l'accueil : même fenêtre
+    showBrandsDialog(t.element(find.byType(Scaffold).first), st, (_) {});
     await t.pumpAndSettle();
     expect(find.text('Prix publics des panneaux'), findsOneWidget);
     expect(find.text('MDF noyer'), findsOneWidget);

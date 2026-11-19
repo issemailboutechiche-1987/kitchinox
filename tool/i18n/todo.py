@@ -2,7 +2,7 @@
 import io, json, os, re, sys
 
 SP = sys.argv[1]
-R = 'D:/kitchinox/kitchen_planner/'
+R = 'D:/kitchinox/V2/'
 LIT = re.compile(r"""\s*(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)")""")
 
 

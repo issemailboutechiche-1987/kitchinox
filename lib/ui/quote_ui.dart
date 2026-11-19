@@ -181,10 +181,10 @@ class _Section extends StatelessWidget {
             DropdownButtonFormField<String>(
               key: ValueKey('quote_carcass_mat_${cs.carcassMaterial}'),
               isExpanded: true,
-              initialValue: carcassMaterialChoices.contains(cs.carcassMaterial) ? cs.carcassMaterial : carcassMaterialChoices.first,
+              initialValue: cs.carcassMaterial, // matière du projet, même hors de la liste type
               decoration: deco(tr('Caissons (Matière)')),
               items: [
-                for (final m in carcassMaterialChoices) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis)),
+                for (final m in {cs.carcassMaterial, ...carcassMaterialChoices}) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis)),
               ],
               onChanged: (v) {
                 if (v == null) return;
@@ -233,10 +233,10 @@ class _Section extends StatelessWidget {
             DropdownButtonFormField<String>(
               key: ValueKey('quote_front_mat_${cs.frontMaterial}'),
               isExpanded: true,
-              initialValue: frontMaterialChoices.contains(cs.frontMaterial) ? cs.frontMaterial : frontMaterialChoices.first,
+              initialValue: cs.frontMaterial, // matière du projet, même hors de la liste type
               decoration: deco(tr('Façades (Matière)')),
               items: [
-                for (final m in frontMaterialChoices) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis)),
+                for (final m in {cs.frontMaterial, ...frontMaterialChoices}) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis)),
               ],
               onChanged: (v) {
                 if (v == null) return;

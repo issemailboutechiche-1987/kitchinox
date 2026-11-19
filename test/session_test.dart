@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'start_helper.dart';
 import 'package:kitchen_planner/engine/engine.dart';
 import 'package:kitchen_planner/main.dart';
 import 'package:kitchen_planner/ui/app_state.dart';
@@ -37,7 +39,7 @@ void main() {
     await t.pumpWidget(KitchenApp(state: st, googleFonts: false, showHome: true));
     await t.pump(const Duration(milliseconds: 3000));
     await t.tap(find.text('Cuisine'));
-    await t.pumpAndSettle();
+    await startNewProject(t);
     st.edit(() => st.engine.add('base_standard_single_door', 'A', s: 0, width: 600));
     await t.pumpAndSettle();
     await t.tap(find.byTooltip('Accueil'));
@@ -50,7 +52,7 @@ void main() {
 
     // cette fois on enregistre : plus de question au retour suivant
     await t.tap(find.text('Cuisine'));
-    await t.pumpAndSettle();
+    await startNewProject(t);
     st.edit(() => st.engine.add('base_standard_single_door', 'A', s: 0, width: 600));
     await t.pumpAndSettle();
     await t.tap(find.byTooltip('Accueil'));
@@ -61,6 +63,8 @@ void main() {
     final saved = jsonDecode(Session.saved('cuisine')!) as Map<String, dynamic>;
     expect((saved['items'] as List).length, 1);
     await t.tap(find.text('Cuisine'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Reprendre le travail en cours'));
     await t.pumpAndSettle();
     await t.tap(find.byTooltip('Accueil'));
     await t.pumpAndSettle();

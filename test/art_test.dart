@@ -27,7 +27,7 @@ void main() {
     expect(back.material, startsWith('HDF 6'));
     // porte : recouvrement total moins 2 mm de jeu, une seule (600 de large)
     final door = parts.firstWhere((p) => p.name == 'Porte');
-    expect((door.length, door.width, door.qty), (718, 598, 1));
+    expect((door.length, door.width, door.qty), (719, 598, 1)); // jeu en haut seulement : la porte du bas affleure le dessous
     // tablette mobile : 2 mm de jeu, 20 mm en retrait de l'avant
     final shelf = parts.firstWhere((p) => p.name == 'Étagère mobile');
     expect((shelf.length, shelf.width), (562, 518)); // largeur 564 - 2 ; profondeur utile 560 - 16 - 6, moins 20
@@ -150,6 +150,8 @@ void main() {
     await t.pumpAndSettle();
     expect(art.boxes.single.columns, 3);
     // toucher la zone basse de la 1re colonne dans la 3D : onglet Façades
+    await t.ensureVisible(find.text('Face'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Face'));
     await t.pumpAndSettle();
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
@@ -164,13 +166,23 @@ void main() {
     await t.pumpAndSettle();
     expect(b.covers.values.any((c) => c.type == CoverType.drawers), isTrue);
     // structure commune : vue éclatée, couleurs par composant
+    await t.ensureVisible(find.text('3D'));
+    await t.pumpAndSettle();
     await t.tap(find.text('3D'));
+    await t.ensureVisible(find.text('Éclaté'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Éclaté'));
+    await t.ensureVisible(find.text('Composants'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Composants'));
     await t.pumpAndSettle();
     expect(find.text('Structure du meuble'), findsOneWidget);
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/art_box_eclate.png'));
+    await t.ensureVisible(find.text('Éclaté'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Éclaté'));
+    await t.ensureVisible(find.text('Composants'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Composants'));
     await t.tap(find.text('Débit'));
     await t.pumpAndSettle();

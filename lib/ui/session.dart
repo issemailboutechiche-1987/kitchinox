@@ -50,6 +50,7 @@ class Session {
 
   /// Le travail diffère-t-il de la version enregistrée ?
   static bool dirty(String id, String currentJson) {
+    if (currentJson == _empty[id]) return false; // projet neuf, encore intact : rien à enregistrer
     final s = saved(id);
     if (s == null) return currentJson != (_empty[id] ?? '');
     return s != currentJson;
@@ -58,6 +59,9 @@ class Session {
   /// Contenu d'un espace vide (pour savoir s'il y a quelque chose à enregistrer).
   static final Map<String, String> _empty = {};
   static void setEmpty(String id, String json) => _empty[id] ??= json;
+
+  /// Nouveau projet créé : il devient la référence « vide » de l'espace.
+  static void resetEmpty(String id, String json) => _empty[id] = json;
 
   static void commit(String id, String json) {
     if (!storeSet('${_prefix}saved.$id', json)) {

@@ -96,9 +96,8 @@ void main() {
     expect(st.project.shape, RoomShape.lShape);
     st.goTo(PlanStep.summary);
     await t.pumpAndSettle();
-    await t.ensureVisible(find.text('Marques et prix'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('Marques et prix'));
+    // « Marques et tarifs » s'ouvre depuis l'accueil : même fenêtre
+    showBrandsDialog(t.element(find.byType(Scaffold).first), st, (_) {});
     await t.pumpAndSettle();
     await t.ensureVisible(find.text('Quincaillerie').last);
     await t.pumpAndSettle();

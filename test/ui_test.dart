@@ -115,7 +115,8 @@ void main() {
     // recherche
     await t.enterText(find.byType(TextField).first, 'évier');
     await t.pumpAndSettle();
-    expect(st.browseModels().map((m) => m.id), ['base_sink']);
+    expect(st.browseModels().map((m) => m.id), containsAll(['base_sink', 'base_sink_1door', 'base_sink_2doors']));
+    expect(st.browseModels().every((m) => m.id.startsWith('base_sink')), isTrue);
     st.openBrowse(null);
 
     // glisser en vue de face

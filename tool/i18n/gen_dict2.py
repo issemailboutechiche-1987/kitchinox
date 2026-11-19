@@ -2,7 +2,7 @@
 import glob, io, json, re, sys
 
 SP = sys.argv[1]
-R = 'D:/kitchinox/kitchen_planner/'
+R = 'D:/kitchinox/V2/'
 tr = {}
 for f in sorted(glob.glob(SP + '/translations*.json')):
     tr.update(json.load(io.open(f, encoding='utf-8')))

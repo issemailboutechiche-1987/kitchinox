@@ -74,7 +74,7 @@ void main() {
     await t.tap(find.text('Optimal'));
     await t.pump();
     expect(st.project.manual.method, 3);
-    await t.tap(find.text('Calculer'));
+    await t.tap(find.text('Recalculer'));
     for (var i = 0; i < 8; i++) {
       await t.pump(const Duration(milliseconds: 100)); // écran d'attente, calcul, fermeture
     }

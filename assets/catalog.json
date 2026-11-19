@@ -171,7 +171,16 @@
           ],
           "height": 800,
           "depth": 600,
-          "front_layout": "1_drawer_bottom_1_door",
+          "front_layout": [
+            {
+              "k": "drawer",
+              "h": 250
+            },
+            {
+              "k": "drawer",
+              "h": 0
+            }
+          ],
           "back_panel": "recessed_plumbing",
           "internal_config": [
             "siphon_notched_drawers"

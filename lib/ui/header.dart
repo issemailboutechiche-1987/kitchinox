@@ -79,7 +79,8 @@ class StepHeader extends StatelessWidget {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(children: [
-              for (final s in PlanStep.values) _StepTab(state: state, step: s, compact: !wide),
+              // libellés de toutes les étapes seulement s'il y a la place (iPad : celle en cours seulement)
+              for (final s in PlanStep.values) _StepTab(state: state, step: s, compact: MediaQuery.sizeOf(context).width < 1360),
             ]),
           ),
         ),

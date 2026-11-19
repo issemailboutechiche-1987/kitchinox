@@ -161,6 +161,7 @@ class _KitchenAppState extends State<KitchenApp> {
         s.engine = LayoutEngine(s.catalog, fresh);
         s.step = PlanStep.space;
         s.refresh();
+        Session.resetEmpty('cuisine', projectWorkJson(fresh.toJson()));
         Session.route = 'cuisine';
         Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded('cuisine', s)));
       },
@@ -222,6 +223,7 @@ class _KitchenAppState extends State<KitchenApp> {
         s.engine = LayoutEngine(s.catalog, fresh);
         s.step = PlanStep.space;
         s.refresh();
+        Session.resetEmpty(id, projectWorkJson(fresh.toJson()));
         Session.route = id;
         Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded(id, s)));
       },

@@ -225,14 +225,16 @@ class _ProjectStartDialogState extends State<ProjectStartDialog> {
               // Actions inférieures
               if (_showNewForm) ...[
                 const SizedBox(height: Tokens.s3),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                // les deux boutons passent l'un sous l'autre si la place manque (textes longs, arabe)
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: Tokens.s2,
+                  runSpacing: Tokens.s2,
                   children: [
                     TextButton(
                       onPressed: () => setState(() => _showNewForm = false),
                       child: Text(tr('Retour aux options')),
                     ),
-                    const SizedBox(width: Tokens.s2),
                     FilledButton.icon(
                       onPressed: _submitNewProject,
                       icon: const Icon(Icons.arrow_forward),
