@@ -7,6 +7,7 @@ import 'dart:math' as math;
 
 import 'art_box.dart';
 import 'art_cad.dart';
+import 'art_machining.dart';
 import 'cutting.dart';
 
 /// Rôle d'un panneau : détermine le dessin, la matière par défaut, les chants et la quincaillerie.
@@ -250,7 +251,8 @@ class ArtProject {
       ArtPanel(id: newId(), role: ArtRole.montant, x: x + w - t, y: y, w: t, h: h, d: depth, finish: carcass),
       ArtPanel(id: newId(), role: ArtRole.tablette, x: x + t, y: y, w: w - 2 * t, h: t, d: depth, finish: carcass),
       ArtPanel(id: newId(), role: ArtRole.tablette, x: x + t, y: y + h - t, w: w - 2 * t, h: t, d: depth, finish: carcass),
-      ArtPanel(id: newId(), role: ArtRole.fond, x: x + t, y: y + t, z: depth - 6, w: w - 2 * t, h: h - 2 * t, d: 6, finish: carcass),
+      // fond de 6 mm encastré de 8 mm dans des rainures, à 10 mm du dos
+      ArtPanel(id: newId(), role: ArtRole.fond, x: x + t - 8, y: y + t - 8, z: depth - 16, w: w - 2 * t + 16, h: h - 2 * t + 16, d: 6, finish: carcass),
     ];
     if (doors > 0) {
       final dw = (w - 4 - 3 * (doors - 1)) / doors;
@@ -294,15 +296,19 @@ class ArtProject {
         parts.containsKey(c.key) ? parts[c.key]!.qty += c.qty : parts[c.key] = c;
       }
     }
+    // chants et rainures déduits de l'usinage (arêtes visibles, fonds encastrés), sauf réglage manuel du panneau
+    final work = free.isEmpty ? const <String, PanelWork>{} : computeMachiningElements(panels).work;
     for (final p in free) {
       final dims = [p.w, p.h, p.d]..sort();
       final a = dims[2].round(), b = dims[1].round();
       if (a <= 0 || b <= 0) continue;
       final front = p.role.isFront || p.role == ArtRole.decor || p.role == ArtRole.plateau;
-      final defEdgeL = p.role == ArtRole.fond ? 0 : (front ? 2 : 1);
-      final defEdgeS = p.role == ArtRole.fond ? 0 : (front ? 2 : 0);
-      final eLong = p.edgeLong > 0 ? p.edgeLong : defEdgeL;
-      final eShort = p.edgeShort > 0 ? p.edgeShort : defEdgeS;
+      final w = work[p.id];
+      final manual = p.edgeLong > 0 || p.edgeShort > 0;
+      final eLong = manual ? p.edgeLong : (w?.edgeLong ?? 0).clamp(0, 2);
+      final eShort = manual ? p.edgeShort : (w?.edgeShort ?? 0).clamp(0, 2);
+      final gLong = p.hasGroove ? math.max(1, p.grooveLong) : (w?.grooveLong ?? 0);
+      final gShort = p.hasGroove ? p.grooveShort : (w?.grooveShort ?? 0);
       final c = CutPart(
         materialOf(p),
         p.role.label,
@@ -313,8 +319,8 @@ class ArtProject {
         canRotate: !front,
         edgeLong: eLong,
         edgeShort: eShort,
-        grooveLong: p.hasGroove ? math.max(1, p.grooveLong) : 0,
-        grooveShort: p.hasGroove ? p.grooveShort : 0,
+        grooveLong: gLong,
+        grooveShort: gShort,
       );
       parts.containsKey(c.key) ? parts[c.key]!.qty++ : parts[c.key] = c;
     }
@@ -354,33 +360,25 @@ class ArtProject {
         add(name, usage, q.toDouble());
       }
     }
-    for (final (a, b, len) in joints()) {
-      final thin = a.thickness < 10 || b.thickness < 10;
-      if (thin) {
-        add('Pointes / agrafes 3 x 20 mm', 'fonds minces cloués tous les 150 mm', (len / 150).ceilToDouble());
-      } else {
-        final n = math.max(2, (len / 200).ceil()).toDouble();
-        add('Vis d’assemblage Confirmat Ø7 x 50 mm', 'jonctions entre panneaux de 18 mm (une tous les 200 mm)', n);
-        add('Cache-vis Confirmat', 'têtes visibles', n);
+    // panneaux libres : quincaillerie et visserie posées par l'usinage (jonctions, façades, pieds, taquets)
+    if (free.isNotEmpty) {
+      final ids = {for (final p in free) p.id};
+      final els = computeMachiningElements(panels)
+          .elements
+          .where((e) => ids.contains(e.panelId) || ids.contains(e.partnerPanelId))
+          .toList();
+      for (final (name, usage, q) in machiningHardware(els)) {
+        add(name, usage, q.toDouble());
       }
     }
+    final pinned = free.isEmpty
+        ? const <String>{}
+        : {for (final e in computeMachiningElements(panels).elements) if (e.kind == MachiningKind.shelfPin) e.panelId};
     for (final p in free) {
       switch (p.role) {
-        case ArtRole.porte:
-          final n = p.h <= 900 ? 2 : p.h <= 1600 ? 3 : p.h <= 2000 ? 4 : 5;
-          add('Charnière 110° frein intégré Ø35', 'portes (selon la hauteur)', n.toDouble());
-          add('Vis aggloméré Ø3,5 x 16 mm', 'charnières (4 par charnière)', n * 4.0);
-          add('Poignée (vis M4 x 25 mm)', 'une par façade', 1);
-        case ArtRole.tiroir:
-          add('Paire de coulisses de tiroir', 'un tiroir par façade', 1);
-          add('Vis aggloméré Ø3,5 x 16 mm', 'coulisses et façade (10 par tiroir)', 10);
-          add('Poignée (vis M4 x 25 mm)', 'une par façade', 1);
-        case ArtRole.abattant:
-          add('Compas d’abattant freiné', 'deux par abattant', 2);
-          add('Charnière d’abattant', 'deux par abattant', 2);
         case ArtRole.tablette:
-          // tablette libre (ne touche aucun montant) : fixation murale invisible
-          if (!joints().any((j) => identical(j.$1, p) || identical(j.$2, p))) {
+          // tablette libre (ne touche aucun montant, ni posée sur taquets) : fixation murale invisible
+          if (!pinned.contains(p.id) && !joints().any((j) => identical(j.$1, p) || identical(j.$2, p))) {
             add('Tiges supports invisibles pour étagère flottante', 'tablettes fixées au mur', 2);
             add('Chevilles Ø8 + vis Ø6 x 80 mm', 'fixation murale des tablettes', 2);
           }

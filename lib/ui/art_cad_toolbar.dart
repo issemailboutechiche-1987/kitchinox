@@ -225,12 +225,27 @@ class ArtCadToolbar extends StatelessWidget {
     );
   }
 
+  static const _keys = {
+    CadTool.select: 'Espace',
+    CadTool.line: 'L',
+    CadTool.rectangle: 'R',
+    CadTool.circle: 'C',
+    CadTool.move: 'M',
+    CadTool.rotate: 'Q',
+    CadTool.tape: 'T',
+    CadTool.dimension: 'D',
+    CadTool.pushPull: 'P',
+    CadTool.edgeBand: 'B',
+    CadTool.groove: 'G',
+  };
+
   Widget _btn(CadTool tool, IconData icon, String tooltip) {
     final active = activeTool == tool;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Tooltip(
-        message: tr(tooltip),
+        // raccourci clavier façon SketchUp
+        message: _keys[tool] == null ? tr(tooltip) : '${tr(tooltip)} (${tr(_keys[tool]!)})',
         child: Material(
           color: active ? _brandOrange : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -281,6 +296,12 @@ class ArtCadContextHud extends StatelessWidget {
   final VoidCallback? onInspectPanel;
   final VoidCallback? onDeleteSelected;
   final VoidCallback? onDuplicateSelected;
+  final TextEditingController? measureController;
+  final FocusNode? measureFocus;
+  final String measureHint;
+  final ValueChanged<String>? onMeasure;
+  final ValueChanged<ArtRole>? onSetRole;
+  final VoidCallback? onToggleHinge;
 
   const ArtCadContextHud({
     super.key,
@@ -302,6 +323,12 @@ class ArtCadContextHud extends StatelessWidget {
     this.onInspectPanel,
     this.onDeleteSelected,
     this.onDuplicateSelected,
+    this.measureController,
+    this.measureFocus,
+    this.measureHint = '',
+    this.onMeasure,
+    this.onSetRole,
+    this.onToggleHinge,
   });
 
   @override
@@ -352,6 +379,34 @@ class ArtCadContextHud extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (measureController != null && measureHint.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  // boîte des cotes : on peut aussi taper directement au clavier, puis Entrée
+                  SizedBox(
+                    width: 170,
+                    child: TextField(
+                      key: const ValueKey('cad_measure'),
+                      controller: measureController,
+                      focusNode: measureFocus,
+                      textInputAction: TextInputAction.done,
+                      keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        prefixIcon: const Icon(Icons.straighten, size: 16),
+                        prefixIconConstraints: const BoxConstraints(minWidth: 28),
+                        hintText: measureHint,
+                        hintStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
+                        border: const OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      ),
+                      onSubmitted: (v) {
+                        onMeasure?.call(v);
+                        measureFocus?.unfocus();
+                      },
+                    ),
+                  ),
+                ],
                 IconButton(
                   tooltip: tr('Fermer / Revenir à la sélection'),
                   icon: const Icon(Icons.close, size: 18),
@@ -465,6 +520,29 @@ class ArtCadContextHud extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: _brandOrange),
           ),
         ),
+        const SizedBox(width: 8),
+        if (onSetRole != null)
+          PopupMenuButton<ArtRole>(
+            tooltip: tr('Rôle du panneau'),
+            onSelected: onSetRole,
+            itemBuilder: (_) => [
+              for (final r in ArtRole.values) CheckedPopupMenuItem(value: r, checked: r == p.role, child: Text(tr(r.label))),
+            ],
+            child: Chip(
+              avatar: const Icon(Icons.category_outlined, size: 14),
+              label: Text(tr('Rôle')),
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        if (onToggleHinge != null && p.role == ArtRole.porte) ...[
+          const SizedBox(width: 6),
+          ActionChip(
+            avatar: const Icon(Icons.swap_horiz, size: 14),
+            label: Text(p.hinge == 'right' ? tr('Charnières à droite') : tr('Charnières à gauche')),
+            onPressed: onToggleHinge,
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
         const SizedBox(width: 8),
         if (onInspectPanel != null)
           FilledButton.tonalIcon(

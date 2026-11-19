@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 
 import '../engine/engine.dart';
 import '../engine/art_cad.dart';
+import '../engine/art_machining.dart';
 import 'app_state.dart';
 import 'art_cad_toolbar.dart';
 import 'art_camera.dart';
@@ -84,6 +85,33 @@ class _ArtPageState extends State<ArtPage> {
   bool orthoLock = true;
   bool autoExtrude = true;
   CadSnapTarget? activeSnapTarget;
+
+  // plan de dessin, fixé au 1er point : la face touchée (dessin sur un panneau) ou le plan de travail
+  int _drawAxis = 1;
+  double _drawPlane = 0;
+  double _drawSign = 1;
+  bool _drawOnFront = false;
+  V3? _hover; // dernier point survolé sur le plan de dessin (sens des cotes saisies)
+  // cotes saisies au clavier (comme la boîte « Mesures » de SketchUp)
+  final measure = TextEditingController();
+  final measureFocus = FocusNode();
+  // glisser : Pousser/Tirer une face, déplacer un panneau
+  Face? _dragFace;
+  ArtPanel? _dragPanel;
+  List<double>? _dragOrig; // x, y, z, w, h, d au début du geste
+  String? _dragUndo;
+  V3? _dragHit0;
+  (Face, List<double>)? _lastPush; // dernière face poussée : une cote tapée ensuite la règle exactement
+
+  /// Point à l'écran (repère de la vue 3D) d'un point de l'espace : pour les tests.
+  Offset screenOf(double x, double y, double z) => cam.project(V3(x, y, z)).$1;
+
+  @override
+  void dispose() {
+    measure.dispose();
+    measureFocus.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -199,18 +227,18 @@ class _ArtPageState extends State<ArtPage> {
         CadTool.select => 'Sélectionnez un panneau ou une zone.',
         CadTool.line => 'Cliquez pour poser le 1er point de la ligne.',
         CadTool.freehand => 'Glissez pour dessiner à main levée.',
-        CadTool.rectangle => 'Cliquez pour poser le 1er coin du rectangle.',
+        CadTool.rectangle => 'Cliquez le 1er coin (au sol : tablette ; sur une face : panneau contre elle).',
         CadTool.rotatedRectangle => 'Point 1 : départ de la ligne de base.',
         CadTool.circle => 'Cliquez pour poser le centre du cercle.',
         CadTool.polygon => 'Cliquez pour poser le centre du polygone (6 côtés).',
         CadTool.arc => 'Point 1 : départ de l’arc.',
-        CadTool.move => selectedPanel != null || selectedShape != null ? 'Utilisez les boutons de translation ou glissez.' : 'Sélectionnez d’abord un panneau ou une esquisse.',
+        CadTool.move => selectedPanel != null || selectedShape != null ? 'Glissez le panneau (il s’aimante aux autres) ou tapez dx;dy;dz.' : 'Sélectionnez d’abord un panneau ou une esquisse.',
         CadTool.rotate => selectedPanel != null || selectedShape != null ? 'Pivotez de 90° avec les boutons ci-dessous.' : 'Sélectionnez d’abord un panneau.',
         CadTool.scale => 'Redimensionnez l’élément sélectionné.',
         CadTool.symmetry => selectedPanel != null ? 'Choisissez l’axe du miroir (X, Y ou Z).' : 'Sélectionnez un panneau à reproduire en miroir.',
         CadTool.tape => 'Cliquez sur le point de départ de la mesure.',
         CadTool.dimension => 'Cliquez sur le premier point de la cote.',
-        CadTool.pushPull => 'Cliquez sur une esquisse 2D ou une face de panneau pour extruder.',
+        CadTool.pushPull => 'Glissez une face pour l’étirer, ou cliquez-la puis tapez la valeur.',
         CadTool.edgeBand => selectedPanel != null ? 'Choisissez l’épaisseur de chant à appliquer.' : 'Cliquez sur un panneau pour lui appliquer un chant.',
         CadTool.groove => selectedPanel != null ? 'Appliquez ou retirez la rainure pour fond.' : 'Cliquez sur un panneau pour configurer sa rainure.',
       };
@@ -277,11 +305,399 @@ class _ArtPageState extends State<ArtPage> {
     );
 
     // 4. Verrouillage orthogonal strict à 90°
-    if (orthoLock && activePoints.isNotEmpty) {
+    if (orthoLock && activePoints.isNotEmpty && (activeTool == CadTool.line || activeTool == CadTool.tape || activeTool == CadTool.dimension)) {
       pt = snapOrtho(activePoints.last, pt, workPlane);
     }
 
     return pt;
+  }
+
+  /// Axes des cotes saisies dans le plan de dessin : sol → largeur (x) puis profondeur (z) ;
+  /// face → largeur puis hauteur ; côté → profondeur puis hauteur.
+  List<int> get _dimAxes => switch (_drawAxis) { 1 => const [0, 2], 2 => const [0, 1], _ => const [2, 1] };
+
+  /// Fixe le plan de dessin au premier point.
+  void _setDrawPlane(Offset px) {
+    final f = pickFace(cam, art.panels, px);
+    if (f != null) {
+      _drawAxis = f.axis;
+      _drawPlane = f.plane;
+      _drawSign = f.sign.toDouble();
+      _drawOnFront = f.axis == 2 && f.sign < 0;
+    } else {
+      _drawAxis = workPlane.axis;
+      _drawPlane = workPlane.plane;
+      _drawSign = 1;
+      _drawOnFront = false;
+    }
+  }
+
+  /// Point sous le doigt, sur le plan de dessin (aimanté à la grille et aux coins).
+  V3 _onDrawPlane(Offset px) {
+    final hit = cam.hitPlane(px, _drawAxis, _drawPlane) ?? (activePoints.isEmpty ? V3.zero : activePoints.last);
+    final v = _snapGrid(hit).withAxis(_drawAxis, _drawPlane);
+    _hover = v;
+    return v;
+  }
+
+  /// Rectangle a–b du plan de dessin → panneau de l'épaisseur choisie, posé sur le plan, vers l'extérieur de la face.
+  /// Le rôle suit l'orientation : au sol → tablette, de côté → montant, de face → porte (sur une façade) ou décor ; mince → fond.
+  ArtPanel? _panelFromRect(V3 a, V3 b, double t) {
+    final lo = <int, double>{}, hi = <int, double>{};
+    for (final k in _dimAxes) {
+      lo[k] = math.min(a[k], b[k]);
+      hi[k] = math.max(a[k], b[k]);
+      if (hi[k]! - lo[k]! < 1) return null;
+    }
+    if (_drawSign > 0) {
+      lo[_drawAxis] = _drawPlane;
+      hi[_drawAxis] = _drawPlane + t;
+    } else {
+      lo[_drawAxis] = _drawPlane - t;
+      hi[_drawAxis] = _drawPlane;
+    }
+    final role = t < 10
+        ? ArtRole.fond
+        : switch (_drawAxis) {
+            1 => ArtRole.tablette,
+            0 => ArtRole.montant,
+            _ => _drawOnFront ? ArtRole.porte : ArtRole.decor,
+          };
+    return ArtPanel(
+      id: art.newId(),
+      role: role,
+      x: lo[0]!,
+      y: lo[1]!,
+      z: lo[2]!,
+      w: hi[0]! - lo[0]!,
+      h: hi[1]! - lo[1]!,
+      d: hi[2]! - lo[2]!,
+      finish: role.isFront ? 'blanc_mat' : 'blanc',
+    );
+  }
+
+  /// Contour du rectangle a–b dans le plan de dessin (aperçu).
+  CadPolyline _rectOutline(V3 a, V3 b) {
+    final (u, v) = (_dimAxes[0], _dimAxes[1]);
+    return CadPolyline(id: 'preview', points: [a, a.withAxis(u, b[u]), b, a.withAxis(v, b[v])], closed: true);
+  }
+
+  /// Pose le panneau du rectangle (ou l'esquisse si l'extrusion automatique est coupée).
+  void _finishRect(V3 a, V3 b) {
+    if (autoExtrude) {
+      final panel = _panelFromRect(a, b, pushPullThickness);
+      if (panel != null) {
+        change(() {
+          art.free.add(panel);
+          selectedPanel = panel;
+        });
+        _msg(trp('{0} posé : {1} × {2} × {3} mm', [tr(panel.role.label), panel.w.round(), panel.h.round(), panel.d.round()]));
+      }
+    } else {
+      final o = _rectOutline(a, b);
+      change(() => art.sketches.add(CadPolyline(id: 'r${DateTime.now().millisecondsSinceEpoch}', points: o.points, closed: true)));
+      _msg(tr('Rectangle créé.'));
+    }
+    activePoints.clear();
+    previewShape = null;
+    cadStatus = 'Rectangle créé. Tapez les cotes (ex. 600;720) pour une taille exacte.';
+    setState(() {});
+  }
+
+  /// Ajoute un sommet à la ligne ; ferme le contour s'il revient au départ.
+  void _addLinePoint(V3 pt) {
+    if (activePoints.isEmpty) {
+      activePoints.add(pt);
+      cadStatus = 'Point 1 posé. Tracez à 90°. Rejoignez le 1er point vert pour fermer la boucle.';
+    } else {
+      final isClosing = (pt - activePoints.first).length < 1e-3 || (activeSnapTarget?.isOrigin == true);
+      if (isClosing && activePoints.length >= 3) {
+        _closeLineLoop();
+        return;
+      }
+      activePoints.add(pt);
+      cadStatus = 'Sommet posé. Rejoignez le 1er point vert ou cliquez « Fermer ».';
+    }
+    previewShape = CadPolyline(id: 'preview', points: [...activePoints]);
+    setState(() {});
+  }
+
+  /// Nombres d'une cote tapée : « 600;720 », « 600x720 », « 600 720 », « -50 ».
+  List<double> _numbers(String raw) =>
+      [for (final m in RegExp(r'-?\d+(?:\.\d+)?').allMatches(raw.replaceAll(',', '.'))) double.parse(m.group(0)!)];
+
+  String get _measureHint => switch (activeTool) {
+        CadTool.rectangle => activePoints.isEmpty ? tr('Cliquez le 1er coin') : tr('L;H ex. 600;720'),
+        CadTool.line => tr('longueur, ex. 450'),
+        CadTool.circle || CadTool.polygon => tr('rayon'),
+        CadTool.pushPull => tr('épaisseur ou poussée, ex. 18'),
+        CadTool.move => tr('dx;dy;dz ex. 0;0;600'),
+        CadTool.rotate => tr('angle, ex. 90'),
+        _ => selectedPanel != null ? tr('L;H;P ex. 600;720;18') : '',
+      };
+
+  /// Applique la cote tapée selon l'outil en cours.
+  void _applyMeasure([String? raw]) {
+    final v = _numbers(raw ?? measure.text);
+    measure.clear();
+    if (v.isEmpty) return;
+    double dirOf(int k) {
+      final a = activePoints.isEmpty ? null : activePoints.last;
+      final h = _hover;
+      if (a == null || h == null) return 1;
+      return h[k] < a[k] - 0.5 ? -1 : 1;
+    }
+
+    switch (activeTool) {
+      case CadTool.rectangle when activePoints.length == 1:
+        final a = activePoints.first;
+        final (u, w) = (_dimAxes[0], _dimAxes[1]);
+        final du = v[0], dv = v.length > 1 ? v[1] : v[0];
+        _finishRect(a, a.withAxis(u, a[u] + du * dirOf(u)).withAxis(w, a[w] + dv * dirOf(w)));
+      case CadTool.line when activePoints.isNotEmpty:
+        final a = activePoints.last;
+        if (v.length >= 2) {
+          _addLinePoint(a.withAxis(_dimAxes[0], a[_dimAxes[0]] + v[0]).withAxis(_dimAxes[1], a[_dimAxes[1]] + v[1]));
+        } else {
+          final h = _hover ?? a.withAxis(_dimAxes[0], a[_dimAxes[0]] + 1);
+          var dir = h - a;
+          if (orthoLock) dir = snapOrtho(a, h, workPlane) - a;
+          if (dir.length < 1e-6) dir = V3(_dimAxes[0] == 0 ? 1 : 0, 0, _dimAxes[0] == 2 ? 1 : 0);
+          _addLinePoint(a + dir.unit * v[0]);
+        }
+      case CadTool.pushPull:
+        final last = _lastPush;
+        if (last != null && art.free.contains(last.$1.panel)) {
+          change(() => _pushFace(last.$1, last.$2, v[0]));
+          _msg(trp('Face poussée de {0} mm', [v[0].round()]));
+        } else {
+          setState(() => pushPullThickness = v[0].abs().clamp(1, 2000).toDouble());
+          _msg(trp('Épaisseur : {0} mm', [pushPullThickness.round()]));
+        }
+      case CadTool.move:
+        if (v.length >= 3) {
+          _applyTranslate(v[0], v[1], v[2]);
+        } else {
+          final ax = workPlane == CadWorkPlane.side ? 2 : 0;
+          _applyTranslate(ax == 0 ? v[0] : 0, v.length > 1 ? v[1] : 0, ax == 2 ? v[0] : 0);
+        }
+      case CadTool.rotate:
+        _applyRotate(v[0]);
+      case CadTool.circle || CadTool.polygon when activePoints.length == 1:
+        final c = activePoints.first;
+        final r = v[0].abs();
+        final (u, w) = (_dimAxes[0], _dimAxes[1]);
+        _finishRect(c.withAxis(u, c[u] - r).withAxis(w, c[w] - r), c.withAxis(u, c[u] + r).withAxis(w, c[w] + r));
+      default:
+        final p = selectedPanel;
+        if (p == null) return;
+        if (!art.free.contains(p)) {
+          _msg(tr('Ce panneau appartient à un caisson standard. Modifiez le caisson ou ses dimensions.'));
+          return;
+        }
+        change(() {
+          if (v.length >= 3) {
+            p.w = v[0].clamp(1, 6000).toDouble();
+            p.h = v[1].clamp(1, 6000).toDouble();
+            p.d = v[2].clamp(1, 6000).toDouble();
+          } else {
+            // une seule valeur : l'épaisseur
+            final t = v[0].clamp(1, 200).toDouble();
+            if (p.w <= p.h && p.w <= p.d) {
+              p.w = t;
+            } else if (p.h <= p.d) {
+              p.h = t;
+            } else {
+              p.d = t;
+            }
+          }
+        });
+        _msg(trp('Panneau : {0} × {1} × {2} mm', [p.w.round(), p.h.round(), p.d.round()]));
+    }
+  }
+
+  /// Étire la face [f] de [amount] mm depuis la géométrie d'origine [o] (x, y, z, w, h, d) ; négatif : rentre.
+  void _pushFace(Face f, List<double> o, double amount) {
+    final p = f.panel;
+    final ax = f.axis;
+    final size = (o[3 + ax] + amount).clamp(1.0, 6000.0);
+    final lo = f.sign > 0 ? o[ax] : o[ax] + o[3 + ax] - size;
+    if (ax == 0) {
+      p.x = lo;
+      p.w = size;
+    } else if (ax == 1) {
+      p.y = lo;
+      p.h = size;
+    } else {
+      p.z = lo;
+      p.d = size;
+    }
+  }
+
+  List<double> _geom(ArtPanel p) => [p.x, p.y, p.z, p.w, p.h, p.d];
+
+  /// Début d'un glisser : Pousser/Tirer sur une face, ou Déplacer le panneau choisi.
+  bool _dragStart(Offset px) {
+    if (activeTool == CadTool.pushPull) {
+      final f = pickFace(cam, art.panels, px);
+      if (f == null || !art.free.contains(f.panel)) return false;
+      _dragFace = f;
+      _dragOrig = _geom(f.panel);
+      _dragUndo = _snap();
+      return true;
+    }
+    if (activeTool == CadTool.move) {
+      final f = pickFace(cam, art.panels, px);
+      final p = f?.panel ?? selectedPanel;
+      if (p == null || !art.free.contains(p)) return false;
+      selectedPanel = p;
+      _dragPanel = p;
+      _dragOrig = _geom(p);
+      _dragUndo = _snap();
+      final ax = workPlane.axis;
+      _dragHit0 = cam.hitPlane(px, ax, ax == 0 ? p.x : ax == 1 ? p.y : p.z);
+      return _dragHit0 != null;
+    }
+    return false;
+  }
+
+  /// Aimante une coordonnée [lo] (taille [size]) aux faces des autres panneaux, à 15 mm près.
+  double _snapTo(double lo, double size, int ax, ArtPanel self) {
+    var best = (lo / 10).round() * 10.0, gap = 15.0;
+    for (final o in art.panels) {
+      if (identical(o, self)) continue;
+      final cand = [ax == 0 ? o.x : ax == 1 ? o.y : o.z, ax == 0 ? o.right : ax == 1 ? o.top : o.back];
+      for (final c in cand) {
+        if ((lo - c).abs() < gap) {
+          gap = (lo - c).abs();
+          best = c;
+        }
+        if ((lo + size - c).abs() < gap) {
+          gap = (lo + size - c).abs();
+          best = c - size;
+        }
+      }
+    }
+    return best;
+  }
+
+  void _dragUpdate(Offset px) {
+    final o = _dragOrig;
+    if (o == null) return;
+    final f = _dragFace;
+    if (f != null) {
+      final sd = cam.screenDir(f.center, f.normal);
+      final l2 = sd.dx * sd.dx + sd.dy * sd.dy;
+      if (l2 < 1e-6) return;
+      final drag = px - (_downAt ?? px);
+      var amount = (drag.dx * sd.dx + drag.dy * sd.dy) / l2 * 100;
+      amount = (amount / 1).roundToDouble();
+      // aimantation : la face s'arrête sur les faces des autres panneaux
+      final ax = f.axis;
+      final plane = (f.sign > 0 ? o[ax] + o[3 + ax] : o[ax]) + amount * f.sign;
+      for (final other in art.panels) {
+        if (identical(other, f.panel)) continue;
+        for (final c in [ax == 0 ? other.x : ax == 1 ? other.y : other.z, ax == 0 ? other.right : ax == 1 ? other.top : other.back]) {
+          if ((plane - c).abs() < 12) amount = (c - (f.sign > 0 ? o[ax] + o[3 + ax] : o[ax])) * f.sign;
+        }
+      }
+      _pushFace(f, o, amount);
+      cadStatus = trp('Pousser/Tirer : {0} mm (tapez une valeur pour être exact)', [amount.round()]);
+      setState(() {});
+      return;
+    }
+    final p = _dragPanel;
+    final h0 = _dragHit0;
+    if (p == null || h0 == null) return;
+    final ax = workPlane.axis;
+    final hit = cam.hitPlane(px, ax, ax == 0 ? o[0] : ax == 1 ? o[1] : o[2]);
+    if (hit == null) return;
+    final d = hit - h0;
+    for (final k in [0, 1, 2]) {
+      if (k == ax) continue;
+      final lo = _snapTo(o[k] + d[k], o[3 + k], k, p);
+      if (k == 0) p.x = lo;
+      if (k == 1) p.y = math.max(0, lo);
+      if (k == 2) p.z = lo;
+    }
+    cadStatus = trp('Déplacement : {0} ; {1} ; {2} mm', [(p.x - o[0]).round(), (p.y - o[1]).round(), (p.z - o[2]).round()]);
+    setState(() {});
+  }
+
+  void _dragEnd() {
+    final u = _dragUndo;
+    if (u != null && u != _snap()) {
+      _undo.add(u);
+      if (_undo.length > 100) _undo.removeAt(0);
+      _redo.clear();
+      Session.autosave('art', () => jsonEncode(art.toJson()));
+      widget.state.refresh();
+    }
+    if (_dragFace != null && _dragOrig != null) _lastPush = (_dragFace!, _dragOrig!);
+    _dragFace = null;
+    _dragPanel = null;
+    _dragOrig = null;
+    _dragUndo = null;
+    _dragHit0 = null;
+    setState(() {});
+  }
+
+  /// Raccourcis clavier façon SketchUp ; les chiffres tapés vont dans la boîte des cotes.
+  KeyEventResult _onKey(FocusNode node, KeyEvent e) {
+    if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
+    if (measureFocus.hasFocus) return KeyEventResult.ignored;
+    final k = e.logicalKey;
+    final ctrl = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+    if (ctrl) return KeyEventResult.ignored;
+    final ch = e.character;
+    if (ch != null && RegExp(r'^[0-9.;x*\-]$').hasMatch(ch) && (activeTool != CadTool.select || selectedPanel != null)) {
+      setState(() => measure.text += ch);
+      return KeyEventResult.handled;
+    }
+    if (k == LogicalKeyboardKey.enter || k == LogicalKeyboardKey.numpadEnter) {
+      if (measure.text.isNotEmpty) {
+        _applyMeasure();
+        return KeyEventResult.handled;
+      }
+      if (activeTool == CadTool.line && activePoints.length >= 3) {
+        _closeLineLoop();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+    if (k == LogicalKeyboardKey.backspace && measure.text.isNotEmpty) {
+      setState(() => measure.text = measure.text.substring(0, measure.text.length - 1));
+      return KeyEventResult.handled;
+    }
+    if (k == LogicalKeyboardKey.escape) {
+      measure.clear();
+      _selectTool(CadTool.select);
+      return KeyEventResult.handled;
+    }
+    if (k == LogicalKeyboardKey.delete || k == LogicalKeyboardKey.backspace) {
+      if (selectedPanel != null) {
+        _deleteSelected();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+    final tool = switch (k) {
+      LogicalKeyboardKey.space => CadTool.select,
+      LogicalKeyboardKey.keyL => CadTool.line,
+      LogicalKeyboardKey.keyR => CadTool.rectangle,
+      LogicalKeyboardKey.keyC => CadTool.circle,
+      LogicalKeyboardKey.keyP => CadTool.pushPull,
+      LogicalKeyboardKey.keyM => CadTool.move,
+      LogicalKeyboardKey.keyQ => CadTool.rotate,
+      LogicalKeyboardKey.keyT => CadTool.tape,
+      LogicalKeyboardKey.keyD => CadTool.dimension,
+      LogicalKeyboardKey.keyB => CadTool.edgeBand,
+      LogicalKeyboardKey.keyG => CadTool.groove,
+      _ => null,
+    };
+    if (tool == null) return KeyEventResult.ignored;
+    _selectTool(tool);
+    return KeyEventResult.handled;
   }
 
   CadShape? _pickSketch(Offset px) {
@@ -309,7 +725,15 @@ class _ArtPageState extends State<ArtPage> {
   }
 
   void _updatePreview(Offset px) {
-    final pt = _unproject(px);
+    final planar = activeTool == CadTool.line || activeTool == CadTool.rectangle || activeTool == CadTool.circle || activeTool == CadTool.polygon;
+    final pt = planar && activePoints.isNotEmpty ? _onDrawPlane(px) : _unproject(px);
+    if (activeTool == CadTool.rectangle && activePoints.isNotEmpty) {
+      previewShape = _rectOutline(activePoints.first, pt);
+      final a = activePoints.first;
+      cadStatus = trp('{0} × {1} mm : cliquez ou tapez les cotes', [(pt[_dimAxes[0]] - a[_dimAxes[0]]).abs().round(), (pt[_dimAxes[1]] - a[_dimAxes[1]]).abs().round()]);
+      setState(() {});
+      return;
+    }
     if (activeTool == CadTool.line && activePoints.isNotEmpty) {
       previewShape = CadPolyline(
         id: 'preview',
@@ -353,27 +777,14 @@ class _ArtPageState extends State<ArtPage> {
       points: List.from(activePoints),
       closed: true,
     );
-    if (autoExtrude) {
-      final (bMin, bMax) = poly.bounds;
-      final w = math.max(10.0, (bMax.x - bMin.x).abs());
-      final h = math.max(10.0, (bMax.y - bMin.y).abs());
-      final d = math.max(1.0, pushPullThickness);
-      final newPanel = ArtPanel(
-        id: art.newId(),
-        role: ArtRole.decor,
-        x: bMin.x,
-        y: bMin.y,
-        z: bMin.z,
-        w: w,
-        h: h,
-        d: d,
-        finish: 'blanc_mat',
-      );
+    final (bMin, bMax) = poly.bounds;
+    final newPanel = autoExtrude ? _panelFromRect(bMin, bMax, math.max(1.0, pushPullThickness)) : null;
+    if (newPanel != null) {
       change(() {
         art.free.add(newPanel);
         selectedPanel = newPanel;
       });
-      _msg(trp('Contour fermé : panneau 3D créé ({0}×{1} mm, épaisseur {2} mm)', [w.round(), h.round(), d.round()]));
+      _msg(trp('Contour fermé : panneau 3D créé ({0}×{1} mm, épaisseur {2} mm)', [newPanel.w.round(), newPanel.h.round(), newPanel.d.round()]));
     } else {
       change(() => art.sketches.add(poly));
       _msg(tr('Contour polygonal 2D créé.'));
@@ -400,48 +811,25 @@ class _ArtPageState extends State<ArtPage> {
       return;
     }
 
-    final pt = _unproject(px);
+    final planar = activeTool == CadTool.line || activeTool == CadTool.rectangle || activeTool == CadTool.circle || activeTool == CadTool.polygon;
+    if (planar && activePoints.isEmpty) _setDrawPlane(px);
+    final pt = planar ? _onDrawPlane(px) : _unproject(px);
 
     if (activeTool == CadTool.line) {
+      _addLinePoint(pt);
+      return;
+    }
+    if (activeTool == CadTool.rectangle) {
       if (activePoints.isEmpty) {
         activePoints.add(pt);
-        cadStatus = 'Point 1 posé. Tracez à 90°. Rejoignez le 1er point vert pour fermer la boucle.';
+        cadStatus = 'Cliquez le coin opposé ou tapez les cotes (ex. 600;720).';
         setState(() {});
       } else {
-        final isClosing = (pt - activePoints.first).length < 1e-3 || (activeSnapTarget?.isOrigin == true);
-        if (isClosing && activePoints.length >= 3) {
-          _closeLineLoop();
-        } else {
-          activePoints.add(pt);
-          cadStatus = 'Sommet ${activePoints.length} posé. Rejoignez le 1er point vert ou cliquez "Fermer".';
-          setState(() {});
-        }
+        _finishRect(activePoints.first, pt);
       }
-    } else if (activeTool == CadTool.rectangle) {
-      if (activePoints.isEmpty) {
-        activePoints.add(pt);
-        cadStatus = 'Cliquez pour le coin opposé.';
-        setState(() {});
-      } else {
-        final r = CadRect.fromDiagonal('r${DateTime.now().millisecondsSinceEpoch}', activePoints.first, pt);
-        if (autoExtrude) {
-          final p = r.extrude(art.newId(), pushPullThickness);
-          if (p != null) {
-            change(() {
-              art.free.add(p);
-              selectedPanel = p;
-            });
-            _msg(trp('Panneau 3D créé ({0}×{1} mm, épaisseur {2} mm)', [p.w.round(), p.h.round(), p.d.round()]));
-          }
-        } else {
-          change(() => art.sketches.add(r));
-          _msg(tr('Rectangle créé.'));
-        }
-        activePoints.clear();
-        previewShape = null;
-        cadStatus = 'Rectangle créé.';
-      }
-    } else if (activeTool == CadTool.rotatedRectangle) {
+      return;
+    }
+    if (activeTool == CadTool.rotatedRectangle) {
       if (activePoints.isEmpty) {
         activePoints.add(pt);
         cadStatus = 'Point 2 : fin de la base (orientation).';
@@ -478,7 +866,9 @@ class _ArtPageState extends State<ArtPage> {
         final radius = math.max(10.0, (pt - activePoints.first).length);
         final c = CadCircle(id: 'c${DateTime.now().millisecondsSinceEpoch}', centerPt: activePoints.first, radius: radius);
         if (autoExtrude) {
-          final p = c.extrude(art.newId(), pushPullThickness);
+          final o = activePoints.first;
+          final (u, w) = (_dimAxes[0], _dimAxes[1]);
+          final p = _panelFromRect(o.withAxis(u, o[u] - radius).withAxis(w, o[w] - radius), o.withAxis(u, o[u] + radius).withAxis(w, o[w] + radius), pushPullThickness);
           if (p != null) {
             change(() {
               art.free.add(p);
@@ -503,7 +893,9 @@ class _ArtPageState extends State<ArtPage> {
         final radius = math.max(10.0, (pt - activePoints.first).length);
         final p = CadPolygon(id: 'p${DateTime.now().millisecondsSinceEpoch}', centerPt: activePoints.first, radius: radius, sides: 6);
         if (autoExtrude) {
-          final pan = p.extrude(art.newId(), pushPullThickness);
+          final o = activePoints.first;
+          final (u, w) = (_dimAxes[0], _dimAxes[1]);
+          final pan = _panelFromRect(o.withAxis(u, o[u] - radius).withAxis(w, o[w] - radius), o.withAxis(u, o[u] + radius).withAxis(w, o[w] + radius), pushPullThickness);
           if (pan != null) {
             change(() {
               art.free.add(pan);
@@ -573,8 +965,13 @@ class _ArtPageState extends State<ArtPage> {
         return;
       }
       final f = pickFace(cam, art.panels, px);
+      if (f != null && !art.free.contains(f.panel)) {
+        _msg(tr('Ce panneau appartient à un caisson standard. Modifiez le caisson ou ses dimensions.'));
+        return;
+      }
       if (f != null) {
         final p = f.panel;
+        _lastPush = (f, _geom(p));
         change(() {
           if (f.axis == 0) {
             if (f.sign > 0) {
@@ -710,10 +1107,35 @@ class _ArtPageState extends State<ArtPage> {
   void _applyRotate(double angleDeg) {
     final p = selectedPanel;
     if (p != null) {
+      if (!art.free.contains(p)) {
+        _msg(tr('Ce panneau appartient à un caisson standard. Modifiez le caisson ou ses dimensions.'));
+        return;
+      }
+      if ((angleDeg.abs() % 180).round() == 0) {
+        change(() => p.hinge = p.hinge == 'left' ? 'right' : 'left');
+        _msg(trp('Panneau pivoté de {0}°', [angleDeg.round()]));
+        return;
+      }
       change(() {
-        final tempW = p.w;
-        p.w = p.d;
-        p.d = tempW;
+        // quart de tour autour de l'axe perpendiculaire au plan de travail, centre conservé
+        final cx = p.x + p.w / 2, cy = p.y + p.h / 2, cz = p.z + p.d / 2;
+        switch (workPlane.axis) {
+          case 1:
+            final t = p.w;
+            p.w = p.d;
+            p.d = t;
+          case 2:
+            final t = p.w;
+            p.w = p.h;
+            p.h = t;
+          default:
+            final t = p.h;
+            p.h = p.d;
+            p.d = t;
+        }
+        p.x = cx - p.w / 2;
+        p.y = math.max(0, cy - p.h / 2);
+        p.z = cz - p.d / 2;
       });
       _msg(trp('Panneau pivoté de {0}°', [angleDeg.round()]));
     } else {
@@ -1182,6 +1604,7 @@ class _ArtPageState extends State<ArtPage> {
       },
       child: Focus(
         autofocus: true,
+        onKeyEvent: _onKey,
         child: Scaffold(
           body: SafeArea(
             child: Column(children: [
@@ -1303,6 +1726,7 @@ class _ArtPageState extends State<ArtPage> {
                 _downAt = d.localFocalPoint;
                 _moved = false;
                 _lastScale = 1.0;
+                if (d.pointerCount == 1) _dragStart(d.localFocalPoint);
                 if (activeTool == CadTool.freehand) {
                   final pt = _unproject(d.localFocalPoint);
                   activePoints.clear();
@@ -1313,7 +1737,11 @@ class _ArtPageState extends State<ArtPage> {
                 final delta = d.localFocalPoint - (_last ?? d.localFocalPoint);
                 _last = d.localFocalPoint;
                 if ((d.localFocalPoint - (_downAt ?? d.localFocalPoint)).distance > 6) _moved = true;
-                if (d.pointerCount >= 2 || (activeTool == CadTool.select && _moved)) {
+                if (_dragOrig != null && d.pointerCount == 1) {
+                  if (_moved) _dragUpdate(d.localFocalPoint);
+                  return;
+                }
+                if (d.pointerCount >= 2 || (_moved && (activeTool == CadTool.select || activeTool == CadTool.move || activeTool == CadTool.pushPull || activeTool == CadTool.rotate))) {
                   if (d.pointerCount >= 2) {
                     cam.pan(delta);
                     if (d.scale != 1.0) {
@@ -1334,6 +1762,11 @@ class _ArtPageState extends State<ArtPage> {
                 }
               },
               onScaleEnd: (_) {
+                if (_dragOrig != null) {
+                  final dragged = _moved;
+                  _dragEnd();
+                  if (dragged) return;
+                }
                 if (activeTool == CadTool.freehand && activePoints.length >= 2) {
                   final fh = CadFreehand(id: 'f${DateTime.now().millisecondsSinceEpoch}', points: [...activePoints]);
                   change(() => art.sketches.add(fh));
@@ -1421,6 +1854,20 @@ class _ArtPageState extends State<ArtPage> {
                         onInspectPanel: selectedPanel != null ? () => _showPanelInspector(selectedPanel!) : null,
                         onDuplicateSelected: selectedPanel != null ? _duplicateSelected : null,
                         onDeleteSelected: selectedPanel != null ? _deleteSelected : null,
+                        measureController: measure,
+                        measureFocus: measureFocus,
+                        measureHint: _measureHint,
+                        onMeasure: (v) => _applyMeasure(v),
+                        onSetRole: selectedPanel != null && art.free.contains(selectedPanel)
+                            ? (r) => change(() {
+                                  final p = selectedPanel!;
+                                  p.role = r;
+                                  p.finish = r.isFront ? 'blanc_mat' : p.finish;
+                                })
+                            : null,
+                        onToggleHinge: selectedPanel != null && art.free.contains(selectedPanel)
+                            ? () => change(() => selectedPanel!.hinge = selectedPanel!.hinge == 'left' ? 'right' : 'left')
+                            : null,
                       ),
                     ),
                   ),
@@ -2002,60 +2449,72 @@ class _ArtPageState extends State<ArtPage> {
       );
 
   Widget _machiningTab(TextTheme t, ColorScheme scheme) {
-    final summary = computeMachiningElements(art.panels);
+    final m = computeMachiningElements(art.panels);
+    String m2(double v) => '${v.toStringAsFixed(2).replaceAll('.', ',')} m';
+    String pcs(int n) => trp('{0} pcs', [n]);
+    final rows = <(IconData, Color, String, String)>[
+      (Icons.circle, const Color(0xFFD97706), tr('Tourillons Ø8 x 35 mm'), pcs(m.dowelsCount)),
+      (Icons.add_circle_outline, const Color(0xFF64748B), tr('Vis Confirmat Ø7 x 50 mm'), pcs(m.screwsCount)),
+      (Icons.adjust, const Color(0xFFEF4444), tr('Boîtiers de charnière Ø35'), pcs(m.hingeCupsCount)),
+      (Icons.view_agenda_outlined, const Color(0xFF16A34A), tr('Coulisses de tiroir'), pcs(m.count(MachiningKind.slide))),
+      (Icons.drag_handle, const Color(0xFF1E293B), tr('Poignées'), pcs(m.count(MachiningKind.handle))),
+      (Icons.more_vert, const Color(0xFF0284C7), tr('Perçages taquets Ø5 (système 32)'), pcs(m.shelfHolesCount)),
+      (Icons.height, const Color(0xFF334155), tr('Pieds réglables'), pcs(m.count(MachiningKind.foot))),
+      (Icons.line_style, const Color(0xFF334155), tr('Rainures pour fond'), m2(m.totalGrooveMeters)),
+      for (final e in m.edgeByThickness.entries)
+        (Icons.border_all, const Color(0xFFF26522), trp('Chant {0} mm', [e.key == e.key.roundToDouble() ? e.key.round() : e.key]), m2(e.value)),
+    ];
     return ListView(
       padding: const EdgeInsets.all(Tokens.s4),
       children: [
-        Row(
-          children: [
-            const Icon(Icons.precision_manufacturing, color: Color(0xFFD97706), size: 24),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(tr('Usinages & Perçages'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-            ),
-          ],
-        ),
+        Row(children: [
+          const Icon(Icons.precision_manufacturing, color: Color(0xFFD97706), size: 24),
+          const SizedBox(width: 8),
+          Expanded(child: Text(tr('Usinages & Perçages'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
+        ]),
         const SizedBox(height: 6),
         Text(
-          tr('Génération automatique des perçages, tourillons, vis et rainures selon les standards industriels de menuiserie.'),
+          tr('Calculé automatiquement d’après les panneaux qui se touchent : assemblages, fonds, façades, tablettes mobiles, pieds et chants visibles.'),
           style: t.bodySmall,
         ),
         const SizedBox(height: Tokens.s3),
-
-        // Carte récapitulative
-        Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _machiningRow(Icons.circle, const Color(0xFFD97706), tr('Tourillons en bois Ø8 x 35 mm'), '${summary.dowelsCount} pcs'),
-                const Divider(height: 16),
-                _machiningRow(Icons.add_circle_outline, const Color(0xFF64748B), tr('Vis Confirmat Ø7 x 50 mm'), '${summary.screwsCount} pcs'),
-                const Divider(height: 16),
-                _machiningRow(Icons.more_vert, const Color(0xFF0284C7), tr('Perçages système 32 mm (Taquets Ø5)'), '${summary.shelfHolesCount} trous'),
-                const Divider(height: 16),
-                _machiningRow(Icons.adjust, const Color(0xFFEF4444), tr('Boîtiers charnière Ø35 mm'), '${summary.hingeCupsCount} trous'),
-                const Divider(height: 16),
-                _machiningRow(Icons.line_style, const Color(0xFF334155), tr('Rainures pour fond (10x8 mm)'), '${summary.totalGrooveMeters.toStringAsFixed(2)} m'),
-                const Divider(height: 16),
-                _machiningRow(Icons.border_all, _orange, tr('Bandes de chant plaquées'), '${summary.totalEdgeMeters.toStringAsFixed(2)} m'),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: Tokens.s3),
-
-        // Bouton d'action
         FilledButton.icon(
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFD97706),
-          ),
+          key: const ValueKey('machining_toggle'),
+          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD97706)),
           icon: Icon(isMachiningMode ? Icons.visibility_off : Icons.visibility),
           label: Text(isMachiningMode ? tr('Masquer les usinages 3D') : tr('Afficher les usinages 3D')),
           onPressed: () => setState(() => isMachiningMode = !isMachiningMode),
         ),
+        const SizedBox(height: Tokens.s3),
+        Card(
+          elevation: 1,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              for (var i = 0; i < rows.length; i++) ...[
+                if (i > 0) const Divider(height: 14),
+                _machiningRow(rows[i].$1, rows[i].$2, rows[i].$3, rows[i].$4),
+              ],
+            ]),
+          ),
+        ),
+        const SizedBox(height: Tokens.s4),
+        Text(tr('Quincaillerie à commander'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: Tokens.s2),
+        if (m.hardware.isEmpty) Text(tr('Posez des panneaux qui se touchent pour voir les assemblages.'), style: t.bodySmall),
+        for (final (name, usage, q) in m.hardware)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SizedBox(width: 44, child: Text('$q×', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800))),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(tr(name), style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                  Text(tr(usage), style: t.bodySmall),
+                ]),
+              ),
+            ]),
+          ),
       ],
     );
   }
@@ -2113,7 +2572,7 @@ class _PresetDialog extends StatelessWidget {
 
 // ------------------------------------------------------------------ rendu 3D
 
-void _paintPanels(Canvas c, ArtCamera cam, List<ArtPanel> panels, {double edge = 1, bool byComp = false, Comp? focus, bool isDark = false}) {
+void _paintPanels(Canvas c, ArtCamera cam, List<ArtPanel> panels, {double edge = 1, bool byComp = false, Comp? focus, bool isDark = false, double opacity = 1}) {
   final faces = <(double, Face)>[];
   for (final panel in panels) {
     for (final f in facesOf(panel)) {
@@ -2136,7 +2595,7 @@ void _paintPanels(Canvas c, ArtCamera cam, List<ArtPanel> panels, {double edge =
     final lum = 0.58 + 0.34 * direct + fill;
     final ghost = focus != null && comp != focus;
     final fillColor = hsl.withLightness((hsl.lightness * lum + 0.03).clamp(0.0, 1.0)).toColor();
-    c.drawPath(path, Paint()..color = ghost ? fillColor.withValues(alpha: 0.12) : fillColor);
+    c.drawPath(path, Paint()..color = ghost ? fillColor.withValues(alpha: 0.12) : fillColor.withValues(alpha: opacity));
     c.drawPath(path, Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = edge
@@ -2282,7 +2741,8 @@ class _ScenePainter extends CustomPainter {
     }
     var panels = art.panels.where((x) => showFronts || exploded || !(x.comp?.isFront ?? x.role.isFront)).toList();
     if (exploded) panels = _explode(panels);
-    _paintPanels(c, cam, panels, byComp: byComp, focus: focus, isDark: isDark);
+    // usinage : panneaux en transparence pour voir les perçages et la quincaillerie à l'intérieur
+    _paintPanels(c, cam, panels, byComp: byComp, focus: focus, isDark: isDark, opacity: isMachiningMode ? 0.45 : 1);
 
     // Surbrillance du caisson actif ou de la zone sélectionnée en 3D
     final frontNormal = const V3(0, 0, -1);
@@ -2548,32 +3008,56 @@ class _ScenePainter extends CustomPainter {
     // 9. Mode Usinage (Tourillons, Vis, Perçages système 32, Boîtiers charnières)
     if (isMachiningMode) {
       final summary = computeMachiningElements(panels);
+      Paint stroke(Color c, double w) => Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w
+        ..strokeCap = StrokeCap.round
+        ..color = c;
       for (final el in summary.elements) {
         final pt = p(el.position);
         switch (el.kind) {
           case MachiningKind.dowel:
-            // Tourillon bois 3D (couleur bois ambre et contour)
-            c.drawCircle(pt, 5.0, Paint()..color = const Color(0xFFD97706));
-            c.drawCircle(pt, 5.0, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.5..color = const Color(0xFF78350F));
-            c.drawCircle(pt, 2.0, Paint()..color = const Color(0xFFFDE68A));
+            c.drawCircle(pt, 4.5, Paint()..color = const Color(0xFFD97706));
+            c.drawCircle(pt, 4.5, stroke(const Color(0xFF78350F), 1.2));
           case MachiningKind.screw:
-            // Vis confirmat (croix cruciforme métallique)
-            c.drawCircle(pt, 5.0, Paint()..color = const Color(0xFF94A3B8));
-            c.drawCircle(pt, 5.0, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = const Color(0xFF334155));
-            final crossPaint = Paint()..color = const Color(0xFF1E293B)..strokeWidth = 1.5;
-            c.drawLine(pt - const Offset(3, 0), pt + const Offset(3, 0), crossPaint);
-            c.drawLine(pt - const Offset(0, 3), pt + const Offset(0, 3), crossPaint);
+            c.drawCircle(pt, 4.5, Paint()..color = const Color(0xFF94A3B8));
+            c.drawCircle(pt, 4.5, stroke(const Color(0xFF334155), 1.2));
+            final cross = Paint()
+              ..color = const Color(0xFF1E293B)
+              ..strokeWidth = 1.3;
+            c.drawLine(pt - const Offset(2.8, 0), pt + const Offset(2.8, 0), cross);
+            c.drawLine(pt - const Offset(0, 2.8), pt + const Offset(0, 2.8), cross);
+          case MachiningKind.nail:
+            c.drawCircle(pt, 1.6, Paint()..color = const Color(0xFF475569));
           case MachiningKind.shelfHole:
-            // Trou taquet système 32
-            c.drawCircle(pt, 3.0, Paint()..color = const Color(0xFF1E293B));
-            c.drawCircle(pt, 3.0, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.0..color = const Color(0xFF0284C7));
+            c.drawCircle(pt, 2.2, Paint()..color = const Color(0xFF0284C7));
+          case MachiningKind.shelfPin:
+            c.drawCircle(pt, 3.6, Paint()..color = const Color(0xFF0369A1));
+            c.drawCircle(pt, 3.6, stroke(Colors.white, 1));
           case MachiningKind.hingeCup:
-            // Boîtier charnière Ø35 mm
-            c.drawCircle(pt, 12.0, Paint()..color = const Color(0x66EF4444));
-            c.drawCircle(pt, 12.0, Paint()..style = PaintingStyle.stroke..strokeWidth = 2.0..color = const Color(0xFFEF4444));
-            c.drawCircle(pt, 3.0, Paint()..color = const Color(0xFFEF4444));
+            final r = (p(el.position + const V3(17.5, 0, 0)) - pt).distance.clamp(4.0, 30.0);
+            c.drawCircle(pt, r, Paint()..color = const Color(0x55EF4444));
+            c.drawCircle(pt, r, stroke(const Color(0xFFEF4444), 1.8));
+          case MachiningKind.hingePlate:
+            final rect = Rect.fromCenter(center: pt, width: 9, height: 14);
+            c.drawRect(rect, Paint()..color = const Color(0xFF64748B));
+            c.drawRect(rect, stroke(const Color(0xFF1E293B), 1));
           case MachiningKind.groove:
-            c.drawCircle(pt, 4.0, Paint()..color = const Color(0xFF334155));
+            c.drawLine(pt, p(el.end), stroke(const Color(0xFF334155), 3.2));
+            c.drawLine(pt, p(el.end), stroke(const Color(0xFF94A3B8), 1.2));
+          case MachiningKind.edge:
+            c.drawLine(pt, p(el.end), stroke(el.diameter >= 2 ? const Color(0xFFF26522) : const Color(0xFFF59E0B), el.diameter >= 2 ? 3 : 2));
+          case MachiningKind.slide:
+            c.drawLine(pt, p(el.end), stroke(const Color(0xFF16A34A), 4));
+            c.drawLine(pt, p(el.end), stroke(const Color(0xFFBBF7D0), 1.2));
+          case MachiningKind.flapStay:
+            c.drawLine(pt, p(el.end), stroke(const Color(0xFF7C3AED), 3));
+          case MachiningKind.handle:
+            c.drawLine(pt, p(el.end), stroke(isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B), 4));
+          case MachiningKind.foot:
+            final floor = p(V3(el.position.x, 0, el.position.z));
+            c.drawLine(pt, floor, stroke(const Color(0xFF334155), 5));
+            c.drawCircle(floor, 4, Paint()..color = const Color(0xFF0F172A));
         }
       }
     }

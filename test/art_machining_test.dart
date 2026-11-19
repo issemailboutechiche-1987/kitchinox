@@ -1,0 +1,108 @@
+// Usinage automatique de l'atelier : assemblages, fond, charnières, coulisses, poignées, taquets, pieds, chants.
+import 'package:flutter_test/flutter_test.dart';
+import 'package:kitchen_planner/engine/art.dart';
+import 'package:kitchen_planner/engine/art_machining.dart';
+
+int n(MachiningSummary m, MachiningKind k) => m.count(k);
+
+void main() {
+  test('caisson 2 portes de 600 x 720 x 560 sur pieds : tourillons, vis, charnières, poignées, pieds, chants', () {
+    final art = ArtProject();
+    // caisson posé à 100 mm du sol (pieds), fond de 6 mm encastré de 8 mm dans les côtés, le dessus et le dessous
+    const x = 0.0, y = 100.0, w = 600.0, h = 720.0, d = 560.0, t = 18.0;
+    art.free.addAll([
+      ArtPanel(id: 'g', role: ArtRole.montant, x: x, y: y, w: t, h: h, d: d),
+      ArtPanel(id: 'dr', role: ArtRole.montant, x: x + w - t, y: y, w: t, h: h, d: d),
+      ArtPanel(id: 'bas', role: ArtRole.tablette, x: x + t, y: y, w: w - 2 * t, h: t, d: d),
+      ArtPanel(id: 'haut', role: ArtRole.tablette, x: x + t, y: y + h - t, w: w - 2 * t, h: t, d: d),
+      ArtPanel(id: 'fond', role: ArtRole.fond, x: x + t - 8, y: y + t - 8, z: d - 20, w: w - 2 * t + 16, h: h - 2 * t + 16, d: 6),
+      ArtPanel(id: 'p1', role: ArtRole.porte, x: x + 2, y: y + 2, z: -t, w: w / 2 - 3.5, h: h - 4, d: t, hinge: 'left'),
+      ArtPanel(id: 'p2', role: ArtRole.porte, x: x + w / 2 + 1.5, y: y + 2, z: -t, w: w / 2 - 3.5, h: h - 4, d: t, hinge: 'right'),
+    ]);
+    final m = computeMachiningElements(art.panels);
+    // 4 jonctions (dessus et dessous contre chaque côté), 560 de long : 2 tourillons et 2 vis chacune
+    expect(n(m, MachiningKind.dowel), 8);
+    expect(n(m, MachiningKind.screw), 8);
+    expect(m.elements.where((e) => e.kind == MachiningKind.screw).every((e) => e.panelId == 'g' || e.panelId == 'dr'), isTrue,
+        reason: 'les vis traversent les côtés et entrent dans le chant du dessus et du dessous');
+    // fond encastré : rainure dans les 4 panneaux, pas de pointes
+    expect(n(m, MachiningKind.groove), 4);
+    expect(n(m, MachiningKind.nail), 0);
+    expect(m.work['g']!.grooveLong, 1);
+    // portes de 716 de haut : 2 charnières chacune, embases sur le côté correspondant
+    expect(n(m, MachiningKind.hingeCup), 4);
+    final plates = m.elements.where((e) => e.kind == MachiningKind.hingePlate).toList();
+    expect(plates, hasLength(4));
+    expect(plates.where((e) => e.panelId == 'g'), hasLength(2));
+    expect(plates.where((e) => e.panelId == 'dr'), hasLength(2));
+    // poignées : une par porte, côté opposé aux charnières, en haut (meuble bas)
+    final handles = m.elements.where((e) => e.kind == MachiningKind.handle).toList();
+    expect(handles, hasLength(2));
+    final h1 = handles.firstWhere((e) => e.panelId == 'p1');
+    expect(h1.position.x, greaterThan(250), reason: 'porte gauche, charnières à gauche : poignée à droite');
+    expect(h1.end.y, greaterThan(y + h - 120));
+    // pieds : dessous à 100 mm du sol, 600 de large → 4 pieds
+    expect(n(m, MachiningKind.foot), 4);
+    // chants : portes sur 4 côtés en 2 mm ; caisson en 1 mm sur l'avant seulement (pas au dos, pas contre un autre panneau)
+    expect(m.work['p1']!.edgeLong + m.work['p1']!.edgeShort, 4);
+    expect(m.work['p1']!.edgeThickness, 2);
+    final bas = m.work['bas']!;
+    expect(bas.edgeLong + bas.edgeShort, 1, reason: 'dessous : chant avant seulement, ses bouts sont contre les côtés');
+    final g = m.work['g']!;
+    expect(g.edgeLong + g.edgeShort, 3, reason: 'côté : avant, dessus et dessous visibles (pieds), dos sans chant');
+    // quincaillerie à commander
+    final hw = {for (final (name, _, q) in m.hardware) name: q};
+    expect(hw['Charnière 110° frein intégré Ø35 + embase'], 4);
+    expect(hw['Pieds réglables 100 à 150 mm'], 4);
+    expect(hw['Tourillons bois Ø8 x 35 mm'], 8);
+    // le débit reprend les chants et les rainures
+    final parts = art.cutParts();
+    final side = parts.firstWhere((p) => p.length == 720 && p.width == 560);
+    expect(side.qty, 2);
+    expect(side.edgeLong + side.edgeShort, 3);
+    expect(side.grooveLong, 1);
+  });
+
+  test('banc à coffre : coulisses pour chaque façade de tiroir, longueur selon la profondeur', () {
+    final art = ArtProject();
+    artStarters.firstWhere((s) => s.name == 'Banc à coffre').build(art);
+    final m = computeMachiningElements(art.panels);
+    final slides = m.elements.where((e) => e.kind == MachiningKind.slide).toList();
+    expect(slides, hasLength(4), reason: '2 tiroirs, une paire de coulisses chacun');
+    expect(slides.every((e) => e.length == 400), isTrue, reason: 'caisson de 450 de profondeur → coulisses de 400');
+    final hw = {for (final (name, _, q) in m.hardware) name: q};
+    expect(hw['Paire de coulisses à billes 400 mm'], 2);
+    expect(n(m, MachiningKind.handle), 2);
+  });
+
+  test('tablette mobile entre deux montants : taquets et 7 perçages par rangée ; tablette fixe : tourillons', () {
+    final art = ArtProject();
+    art.free.addAll([
+      ArtPanel(id: 'l', role: ArtRole.montant, x: 0, y: 0, w: 18, h: 1000, d: 350),
+      ArtPanel(id: 'r', role: ArtRole.montant, x: 618, y: 0, w: 18, h: 1000, d: 350),
+      ArtPanel(id: 'mobile', role: ArtRole.tablette, x: 19, y: 500, w: 598, h: 18, d: 330),
+    ]);
+    var m = computeMachiningElements(art.panels);
+    expect(n(m, MachiningKind.shelfPin), 4);
+    expect(n(m, MachiningKind.shelfHole), 4 * 7);
+    expect(n(m, MachiningKind.dowel), 0);
+    art.free.last
+      ..x = 18
+      ..w = 600;
+    m = computeMachiningElements(art.panels);
+    expect(n(m, MachiningKind.shelfPin), 0);
+    expect(n(m, MachiningKind.dowel), 4);
+  });
+
+  test('fond appliqué au dos (non encastré) : cloué tous les 150 mm', () {
+    final art = ArtProject();
+    art.free.addAll([
+      ArtPanel(id: 'l', role: ArtRole.montant, x: 0, y: 0, w: 18, h: 600, d: 300),
+      ArtPanel(id: 'r', role: ArtRole.montant, x: 482, y: 0, w: 18, h: 600, d: 300),
+      ArtPanel(id: 'f', role: ArtRole.fond, x: 0, y: 0, z: 300, w: 500, h: 600, d: 3),
+    ]);
+    final m = computeMachiningElements(art.panels);
+    expect(n(m, MachiningKind.groove), 0);
+    expect(n(m, MachiningKind.nail), 8, reason: '600 mm de haut sur chaque côté : 4 pointes par côté');
+  });
+}
