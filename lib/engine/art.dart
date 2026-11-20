@@ -167,6 +167,11 @@ class ArtProject {
   final List<CadDimension> dimensions;
   /// Accessoires choisis : charnières, assemblages, suspension, pieds, jonction entre caissons.
   ArtFittings fittings = ArtFittings();
+  /// Coupes d'angle notées par assemblage (« id1|id2 », ids triés) : 'onglet' (45°) ou 'chanfrein'.
+  final Map<String, String> jointCuts = {};
+
+  static String jointKey(String a, String b) => a.compareTo(b) < 0 ? '$a|$b' : '$b|$a';
+  String? jointCut(ArtPanel a, ArtPanel b) => jointCuts[jointKey(a.id, b.id)];
   int _next = 1;
 
   ArtProject({
@@ -222,6 +227,7 @@ class ArtProject {
         if (sketches.isNotEmpty) 'sketches': [for (final s in sketches) s.toJson()],
         if (dimensions.isNotEmpty) 'dimensions': [for (final d in dimensions) d.toJson()],
         if (!fittings.isDefault) 'fittings': fittings.toJson(),
+        if (jointCuts.isNotEmpty) 'joint_cuts': jointCuts,
       };
 
   factory ArtProject.fromJson(Map<String, dynamic> j) => ArtProject(
@@ -232,7 +238,9 @@ class ArtProject {
         boxes: [for (final b in (j['boxes'] as List? ?? const [])) ArtBox.fromJson((b as Map).cast<String, dynamic>())],
         sketches: [for (final s in (j['sketches'] as List? ?? const [])) CadShape.fromJson((s as Map).cast<String, dynamic>())],
         dimensions: [for (final d in (j['dimensions'] as List? ?? const [])) CadDimension.fromJson((d as Map).cast<String, dynamic>())],
-      )..fittings = ArtFittings.fromJson((j['fittings'] as Map?)?.cast<String, dynamic>() ?? const {});
+      )
+        ..fittings = ArtFittings.fromJson((j['fittings'] as Map?)?.cast<String, dynamic>() ?? const {})
+        ..jointCuts.addAll({for (final e in ((j['joint_cuts'] as Map?) ?? const {}).entries) '${e.key}': '${e.value}'});
 
   /// Encombrement (x0, y0, x1, y1) en vue de face.
   (double, double, double, double)? get bounds {
@@ -295,6 +303,139 @@ class ArtProject {
     return out;
   }
 
+  // ---------------------------------------------------------------- assemblage de deux pièces
+  static double _lo(ArtPanel p, int a) => a == 0 ? p.x : a == 1 ? p.y : p.z;
+  static double _hi(ArtPanel p, int a) => a == 0 ? p.right : a == 1 ? p.top : p.back;
+  static double _th(ArtPanel p) => [p.w, p.h, p.d].reduce(math.min);
+  static int _ta(ArtPanel p) => p.w <= p.h && p.w <= p.d ? 0 : (p.h <= p.d ? 1 : 2);
+  static void _setLo(ArtPanel p, int a, double v) {
+    final hi = _hi(p, a);
+    if (a == 0) {
+      p.x = v;
+      p.w = hi - v;
+    } else if (a == 1) {
+      p.y = v;
+      p.h = hi - v;
+    } else {
+      p.z = v;
+      p.d = hi - v;
+    }
+  }
+
+  static void _setHi(ArtPanel p, int a, double v) {
+    if (a == 0) {
+      p.w = v - p.x;
+    } else if (a == 1) {
+      p.h = v - p.y;
+    } else {
+      p.d = v - p.z;
+    }
+  }
+
+  /// Angle formé par [a] et [b] : axe de contact, pièce qui présente sa face (hôte) et celle qui présente son chant.
+  /// Null si elles ne se touchent pas en angle.
+  static (int, ArtPanel, ArtPanel)? corner(ArtPanel a, ArtPanel b) {
+    double ov(int k) => math.min(_hi(a, k), _hi(b, k)) - math.max(_lo(a, k), _lo(b, k));
+    for (var ax = 0; ax < 3; ax++) {
+      final touch = (_hi(a, ax) - _lo(b, ax)).abs() <= 0.6 || (_hi(b, ax) - _lo(a, ax)).abs() <= 0.6;
+      if (!touch) continue;
+      final others = [for (var k = 0; k < 3; k++) if (k != ax) k];
+      if (ov(others[0]) < 5 || ov(others[1]) < 5) continue;
+      final aFace = _ta(a) == ax, bFace = _ta(b) == ax;
+      if (aFace == bFace) continue;
+      return aFace ? (ax, a, b) : (ax, b, a);
+    }
+    return null;
+  }
+
+  /// Fait passer [top] par-dessus [under] dans leur angle : [top] couvre le chant de [under],
+  /// qui se raccourcit d'autant (les cotes extérieures du meuble ne changent pas).
+  bool putOver(ArtPanel top, ArtPanel under) {
+    final c = corner(top, under);
+    if (c == null) return false;
+    final (ax, host, guest) = c;
+    if (identical(host, top)) return true; // déjà dessus
+    // aujourd'hui : [under] (hôte) présente sa face, [top] (invité) vient buter contre elle
+    final gt = _ta(guest), ht = _th(host), gth = _th(guest);
+    // l'hôte se raccourcit du côté où se trouve l'invité, de l'épaisseur de l'invité
+    final guestAtHi = (_lo(guest, gt) + _hi(guest, gt)) / 2 > (_lo(host, gt) + _hi(host, gt)) / 2;
+    if (guestAtHi) {
+      _setHi(host, gt, _hi(host, gt) - gth);
+    } else {
+      _setLo(host, gt, _lo(host, gt) + gth);
+    }
+    // l'invité s'allonge vers l'hôte pour couvrir son chant
+    final hostAtHi = (_lo(host, ax) + _hi(host, ax)) / 2 > (_lo(guest, ax) + _hi(guest, ax)) / 2;
+    if (hostAtHi) {
+      _setHi(guest, ax, _hi(guest, ax) + ht);
+    } else {
+      _setLo(guest, ax, _lo(guest, ax) - ht);
+    }
+    jointCuts.remove(jointKey(top.id, under.id));
+    return true;
+  }
+
+  /// Coupe d'angle à 45° (onglet) entre [a] et [b] : les deux pièces vont jusqu'à l'angle extérieur ;
+  /// [kind] 'onglet', 'chanfrein' (arête abattue, assemblage inchangé) ou null (bout à bout).
+  bool setJointCut(ArtPanel a, ArtPanel b, String? kind) {
+    final key = jointKey(a.id, b.id);
+    if (kind == 'onglet' && jointCuts[key] != 'onglet') {
+      final c = corner(a, b);
+      if (c == null) return false;
+      final (ax, host, guest) = c;
+      // l'invité s'allonge jusqu'à la face extérieure de l'hôte : les deux bouts seront coupés à 45°
+      final hostAtHi = (_lo(host, ax) + _hi(host, ax)) / 2 > (_lo(guest, ax) + _hi(guest, ax)) / 2;
+      if (hostAtHi) {
+        _setHi(guest, ax, _hi(guest, ax) + _th(host));
+      } else {
+        _setLo(guest, ax, _lo(guest, ax) - _th(host));
+      }
+    } else if (kind != 'onglet' && jointCuts[key] == 'onglet') {
+      // retour au bout à bout : la pièce la plus longue sur l'axe commun reprend sa place d'invitée
+      final aT = _ta(a), bT = _ta(b);
+      // l'invité est celui qui déborde dans l'épaisseur de l'autre
+      final aIntoB = math.min(_hi(a, bT), _hi(b, bT)) - math.max(_lo(a, bT), _lo(b, bT)) > 0.6;
+      final guest = aIntoB ? a : b, host = aIntoB ? b : a;
+      final ax = _ta(host);
+      final hostAtHi = (_lo(host, ax) + _hi(host, ax)) / 2 > (_lo(guest, ax) + _hi(guest, ax)) / 2;
+      if (hostAtHi) {
+        _setHi(guest, ax, _lo(host, ax));
+      } else {
+        _setLo(guest, ax, _hi(host, ax));
+      }
+      assert(aT >= 0);
+    }
+    if (kind == null) {
+      jointCuts.remove(key);
+    } else {
+      jointCuts[key] = kind;
+    }
+    return true;
+  }
+
+  /// Oriente [p] : 'montant' (debout, épaisseur en largeur), 'tablette' (à plat), 'facade' (de face) ;
+  /// sa plus grande dimension devient la hauteur (montant, façade) ou la largeur (tablette). Le coin bas avant gauche reste en place.
+  static void orient(ArtPanel p, String how) {
+    final d = [p.w, p.h, p.d]..sort();
+    final (t, mid, big) = (d[0], d[1], d[2]);
+    switch (how) {
+      case 'montant':
+        p.w = t;
+        p.h = big;
+        p.d = mid;
+        if (p.role.isFront || p.role == ArtRole.tablette) p.role = ArtRole.montant;
+      case 'tablette':
+        p.w = big;
+        p.h = t;
+        p.d = mid;
+        if (p.role.isFront || p.role == ArtRole.montant) p.role = ArtRole.tablette;
+      default:
+        p.w = mid;
+        p.h = big;
+        p.d = t;
+    }
+  }
+
   // ---------------------------------------------------------------- débit et assemblage
   /// Matière d'un panneau : façades et décors en MDF façade, fonds minces en HDF, le reste en caisson.
   /// Panneau du tarif choisi pour [p], s'il existe.
@@ -324,7 +465,7 @@ class ArtProject {
       }
     }
     // chants et rainures déduits de l'usinage (arêtes visibles, fonds encastrés), sauf réglage manuel du panneau
-    final work = free.isEmpty ? const <String, PanelWork>{} : computeMachiningElements(panels, fittings: fittings).work;
+    final work = free.isEmpty ? const <String, PanelWork>{} : computeMachiningElements(panels, fittings: fittings, jointCuts: jointCuts).work;
     for (final p in free) {
       final dims = [p.w, p.h, p.d]..sort();
       final a = dims[2].round(), b = dims[1].round();
@@ -336,9 +477,13 @@ class ArtProject {
       final eShort = manual ? p.edgeShort : (w?.edgeShort ?? 0).clamp(0, 2);
       final gLong = p.hasGroove ? math.max(1, p.grooveLong) : (w?.grooveLong ?? 0);
       final gShort = p.hasGroove ? p.grooveShort : (w?.grooveShort ?? 0);
+      final cuts = [
+        for (final e in jointCuts.entries)
+          if (e.key.split('|').contains(p.id)) e.value == 'onglet' ? 'onglet 45°' : 'chanfrein',
+      ];
       final c = CutPart(
         materialOf(p),
-        p.role.label,
+        cuts.isEmpty ? p.role.label : '${p.role.label} (${cuts.toSet().join(', ')})',
         'Art',
         a,
         b,
@@ -391,7 +536,7 @@ class ArtProject {
     // panneaux libres : quincaillerie et visserie posées par l'usinage (jonctions, façades, pieds, taquets)
     if (free.isNotEmpty) {
       final ids = {for (final p in free) p.id};
-      final els = computeMachiningElements(panels, fittings: fittings)
+      final els = computeMachiningElements(panels, fittings: fittings, jointCuts: jointCuts)
           .elements
           .where((e) => ids.contains(e.panelId) || ids.contains(e.partnerPanelId))
           .toList();
@@ -401,7 +546,7 @@ class ArtProject {
     }
     final pinned = free.isEmpty
         ? const <String>{}
-        : {for (final e in computeMachiningElements(panels, fittings: fittings).elements) if (e.kind == MachiningKind.shelfPin) e.panelId};
+        : {for (final e in computeMachiningElements(panels, fittings: fittings, jointCuts: jointCuts).elements) if (e.kind == MachiningKind.shelfPin) e.panelId};
     for (final p in free) {
       switch (p.role) {
         case ArtRole.tablette:

@@ -183,4 +183,38 @@ void main() {
     expect(back.fittings.hinge, HingeType.pushOpen);
     expect(back.free.firstWhere((p) => p.id == door.id).hingeType, 'grandAngle');
   });
+
+  test('assemblage de deux pièces : qui passe dessus, onglet 45°, orientation', () {
+    final art = ArtProject();
+    final side = ArtPanel(id: 's', role: ArtRole.montant, x: 0, y: 0, w: 18, h: 720, d: 560);
+    final top = ArtPanel(id: 't', role: ArtRole.tablette, x: 18, y: 702, w: 582, h: 18, d: 560);
+    art.free.addAll([side, top]);
+    // au départ le dessus est entre les côtés (le côté présente sa face)
+    expect(ArtProject.corner(side, top)!.$2, same(side));
+    // le dessus passe par-dessus le côté : le côté perd 18 mm, le dessus en gagne 18 vers la gauche
+    expect(art.putOver(top, side), isTrue);
+    expect((side.h, top.x, top.w), (702, 0, 600));
+    expect(computeMachiningElements(art.panels).elements.where((e) => e.kind == MachiningKind.screw).every((e) => e.panelId == 't'), isTrue,
+        reason: 'les vis traversent maintenant le dessus');
+    // et inversement
+    expect(art.putOver(side, top), isTrue);
+    expect((side.h, top.x, top.w), (720, 18, 582));
+    // onglet : le dessus va jusqu'à l'angle extérieur ; pas de chevauchement signalé ; lamelles ; noté au débit
+    expect(art.setJointCut(top, side, 'onglet'), isTrue);
+    expect((top.x, top.w), (0, 600));
+    expect(artChecks(art.panels, CutSettings(), jointCuts: art.jointCuts).where((c) => c.error), isEmpty);
+    final m = computeMachiningElements(art.panels, jointCuts: art.jointCuts);
+    expect(m.elements.where((e) => e.item == 'Lamelle bois n° 20'), isNotEmpty);
+    expect(art.cutParts().where((p) => p.name.contains('onglet 45°')), hasLength(2));
+    // retour au bout à bout
+    art.setJointCut(top, side, null);
+    expect((top.x, top.w), (18, 582));
+    expect(art.jointCuts, isEmpty);
+    // orientation d'une pièce coupée à plat
+    final piece = ArtPanel(id: 'p', role: ArtRole.decor, x: 0, y: 0, w: 2092, h: 18, d: 600);
+    ArtProject.orient(piece, 'montant');
+    expect((piece.w, piece.h, piece.d), (18, 2092, 600));
+    ArtProject.orient(piece, 'facade');
+    expect((piece.w, piece.h, piece.d), (600, 2092, 18));
+  });
 }

@@ -15,6 +15,7 @@ import '../engine/art_fittings.dart';
 import 'app_state.dart';
 import 'art_cad_toolbar.dart';
 import 'art_library.dart';
+import 'art_blueprint_pdf.dart';
 import 'art_camera.dart';
 import 'busy.dart';
 import 'cut_pdf.dart';
@@ -80,6 +81,10 @@ class _ArtPageState extends State<ArtPage> {
   ArtPanel? selectedPanel;
   final Set<ArtPanel> selection = {};
   String? drawMaterial;
+  // précision : grille et aimants
+  double gridStep = 10; // pas de la grille (mm)
+  bool snapGrid = true, snapPoints = true, snapMid = true, snapAlign = true;
+  final List<(V3, V3, int)> _guides = []; // guides d'alignement affichés : de, à, axe
   bool cutOnX = true; // Couper : ligne de coupe perpendiculaire à X (sinon à Y)
   ArtPanel? _cutPanel; // panneau sous le doigt pour la coupe
   double? _cutAt; // position de la coupe sur son axe (mm)
@@ -277,49 +282,109 @@ class _ArtPageState extends State<ArtPage> {
     return snap ? _snapGrid(res) : res;
   }
 
-  V3 _snapGrid(V3 v, {double grid = 10.0}) {
-    activeSnapTarget = null;
+  /// Écart à l'écran (pixels) entre deux points de l'espace.
+  double _px(V3 a, V3 b) => (cam.project(a).$1 - cam.project(b).$1).distance;
 
-    // 1. Aimantation sur le 1er point de la ligne (Fermeture du polygone)
+  /// Points remarquables : coins des panneaux, milieux de leurs arêtes et centres de leurs faces, sommets des esquisses.
+  List<(V3, String)> _snapPoints() {
+    final out = <(V3, String)>[];
+    for (final s in art.sketches) {
+      for (final pt in s.vertices) {
+        out.add((pt, 'Sommet'));
+      }
+    }
+    for (final p in art.panels) {
+      final xs = [p.x, p.right], ys = [p.y, p.top], zs = [p.z, p.back];
+      for (final x in xs) {
+        for (final y in ys) {
+          for (final z in zs) {
+            out.add((V3(x, y, z), 'Coin'));
+          }
+        }
+      }
+      if (snapMid) {
+        final mx = (p.x + p.right) / 2, my = (p.y + p.top) / 2, mz = (p.z + p.back) / 2;
+        for (final y in ys) {
+          for (final z in zs) {
+            out.add((V3(mx, y, z), 'Milieu'));
+          }
+        }
+        for (final x in xs) {
+          for (final z in zs) {
+            out.add((V3(x, my, z), 'Milieu'));
+          }
+          for (final y in ys) {
+            out.add((V3(x, y, mz), 'Milieu'));
+          }
+        }
+        for (final (a, v) in [(0, xs), (1, ys), (2, zs)]) {
+          for (final c in v) {
+            out.add((V3(mx, my, mz).withAxis(a, c), 'Centre de face'));
+          }
+        }
+      }
+    }
+    return out;
+  }
+
+  V3 _snapGrid(V3 v) {
+    activeSnapTarget = null;
+    _guides.clear();
+
+    // 1. Aimantation sur le 1er point de la ligne (fermeture du contour)
     if (activeTool == CadTool.line && activePoints.length >= 3) {
       final origin = activePoints.first;
-      if ((v - origin).length < 32) {
+      if (_px(v, origin) < 14) {
         activeSnapTarget = CadSnapTarget(position: origin, label: 'Origine (Fermer)', isOrigin: true);
         return origin;
       }
     }
 
-    // 2. Aimantation sur les sommets existants des esquisses
-    for (final s in art.sketches) {
-      for (final pt in s.vertices) {
-        if ((v - pt).length < 24) {
-          activeSnapTarget = CadSnapTarget(position: pt, label: 'Sommet');
-          return pt;
+    // 2. Points remarquables à moins de 12 pixels : coins, milieux, centres, sommets
+    final pts = snapPoints ? _snapPoints() : const <(V3, String)>[];
+    (V3, String)? best;
+    var bestD = 12.0;
+    for (final c in pts) {
+      final d = _px(v, c.$1);
+      if (d < bestD) {
+        bestD = d;
+        best = c;
+      }
+    }
+    if (best != null) {
+      activeSnapTarget = CadSnapTarget(position: best.$1, label: best.$2);
+      return best.$1;
+    }
+
+    // 3. Grille
+    final gs = gridStep;
+    var pt = snapGrid ? V3((v.x / gs).round() * gs, (v.y / gs).round() * gs, (v.z / gs).round() * gs) : v;
+
+    // 4. Alignements : la coordonnée rejoint celle d'un coin existant (guide pointillé, comme SketchUp)
+    if (snapAlign) {
+      final refs = [for (final c in pts) if (c.$2 == 'Coin' || c.$2 == 'Sommet') c.$1, ...activePoints];
+      for (var k = 0; k < 3; k++) {
+        if (_isPlanarTool && activePoints.isNotEmpty && k == _drawAxis) continue;
+        V3? ref;
+        var refD = 8.0;
+        for (final r in refs) {
+          final d = _px(pt, pt.withAxis(k, r[k]));
+          if (d < refD) {
+            refD = d;
+            ref = r;
+          }
+        }
+        if (ref != null) {
+          pt = pt.withAxis(k, ref[k]);
+          _guides.add((ref, pt, k));
         }
       }
     }
 
-    // 3. Aimantation sur les coins des panneaux 3D existants
-    for (final p in art.panels) {
-      for (final c in boxCorners(p)) {
-        if ((v - c).length < 24) {
-          activeSnapTarget = CadSnapTarget(position: c, label: 'Coin');
-          return c;
-        }
-      }
-    }
-
-    var pt = V3(
-      (v.x / grid).round() * grid,
-      (v.y / grid).round() * grid,
-      (v.z / grid).round() * grid,
-    );
-
-    // 4. Verrouillage orthogonal strict à 90°
+    // 5. Verrouillage orthogonal à 90°
     if (orthoLock && activePoints.isNotEmpty && (activeTool == CadTool.line || activeTool == CadTool.tape || activeTool == CadTool.dimension)) {
       pt = snapOrtho(activePoints.last, pt, workPlane);
     }
-
     return pt;
   }
 
@@ -608,7 +673,8 @@ class _ArtPageState extends State<ArtPage> {
 
   /// Aimante une coordonnée [lo] (taille [size]) aux faces des autres panneaux, à 15 mm près.
   double _snapTo(double lo, double size, int ax, ArtPanel self) {
-    var best = (lo / 10).round() * 10.0, gap = 15.0;
+    var best = snapGrid ? (lo / gridStep).round() * gridStep : lo, gap = 15.0;
+    ArtPanel? hit;
     for (final o in art.panels) {
       if (identical(o, self)) continue;
       final cand = [ax == 0 ? o.x : ax == 1 ? o.y : o.z, ax == 0 ? o.right : ax == 1 ? o.top : o.back];
@@ -616,12 +682,23 @@ class _ArtPageState extends State<ArtPage> {
         if ((lo - c).abs() < gap) {
           gap = (lo - c).abs();
           best = c;
+          hit = o;
         }
         if ((lo + size - c).abs() < gap) {
           gap = (lo + size - c).abs();
           best = c - size;
+          hit = o;
         }
       }
+    }
+    // guide : du panneau déplacé au panneau rejoint, dans le plan commun
+    final h = hit;
+    if (h != null && snapAlign) {
+      V3 mid(ArtPanel q) => V3(q.x + q.w / 2, q.y + q.h / 2, q.z + q.d / 2);
+      final plane = (best - (ax == 0 ? h.x : ax == 1 ? h.y : h.z)).abs() < 0.5 || (best - (ax == 0 ? h.right : ax == 1 ? h.top : h.back)).abs() < 0.5
+          ? best
+          : best + size;
+      _guides.add((mid(h).withAxis(ax, plane), mid(self).withAxis(ax, plane), ax));
     }
     return best;
   }
@@ -657,6 +734,7 @@ class _ArtPageState extends State<ArtPage> {
     final ax = workPlane.axis;
     final hit = cam.hitPlane(px, ax, ax == 0 ? o[0] : ax == 1 ? o[1] : o[2]);
     if (hit == null) return;
+    _guides.clear();
     final d = hit - h0;
     for (final k in [0, 1, 2]) {
       if (k == ax) continue;
@@ -691,6 +769,7 @@ class _ArtPageState extends State<ArtPage> {
     _dragOrig = null;
     _dragUndo = null;
     _dragHit0 = null;
+    _guides.clear();
     setState(() {});
   }
 
@@ -750,6 +829,23 @@ class _ArtPageState extends State<ArtPage> {
         return KeyEventResult.handled;
       }
       return KeyEventResult.ignored;
+    }
+    final sel = _selected.where(art.free.contains).toList();
+    if (sel.isNotEmpty && (activeTool == CadTool.select || activeTool == CadTool.move)) {
+      final step = gridStep * (HardwareKeyboard.instance.isShiftPressed ? 10 : 1);
+      final (dx, dy, dz) = switch (k) {
+        LogicalKeyboardKey.arrowLeft => (-step, 0.0, 0.0),
+        LogicalKeyboardKey.arrowRight => (step, 0.0, 0.0),
+        LogicalKeyboardKey.arrowUp => (0.0, step, 0.0),
+        LogicalKeyboardKey.arrowDown => (0.0, -step, 0.0),
+        LogicalKeyboardKey.pageUp => (0.0, 0.0, step),
+        LogicalKeyboardKey.pageDown => (0.0, 0.0, -step),
+        _ => (0.0, 0.0, 0.0),
+      };
+      if (dx != 0 || dy != 0 || dz != 0) {
+        _applyTranslate(dx, dy, dz);
+        return KeyEventResult.handled;
+      }
     }
     final tool = switch (k) {
       LogicalKeyboardKey.space => CadTool.select,
@@ -1479,6 +1575,26 @@ class _ArtPageState extends State<ArtPage> {
                       ),
                       const SizedBox(height: 12),
                     ],
+                    // orientation rapide d'une pièce coupée
+                    Wrap(spacing: 6, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                      Text(tr('Poser :'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      for (final (how, icon, label) in const [
+                        ('montant', Icons.crop_portrait, 'Debout (côté)'),
+                        ('tablette', Icons.crop_landscape, 'À plat'),
+                        ('facade', Icons.door_front_door_outlined, 'De face'),
+                      ])
+                        ActionChip(
+                          key: ValueKey('orient_$how'),
+                          avatar: Icon(icon, size: 16),
+                          label: Text(tr(label)),
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () {
+                            change(() => ArtProject.orient(p, how));
+                            setDlg(() {});
+                          },
+                        ),
+                    ]),
+                    const SizedBox(height: 12),
                     // 1. Dimensions
                     Text(tr('Dimensions (mm)'), style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
@@ -1793,6 +1909,81 @@ class _ArtPageState extends State<ArtPage> {
                 );
   }
 
+  /// Assemblage de deux pièces choisies : laquelle passe dessus, et la coupe d'angle.
+  Widget _jointCard(TextTheme t, ArtPanel a, ArtPanel b) {
+    final cut = art.jointCut(a, b);
+    final c = ArtProject.corner(a, b);
+    if (c == null && cut == null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Text(tr('Ces deux pièces ne se touchent pas en angle : rapprochez-les (outil Déplacer, elles s’aimantent).'), style: t.bodySmall),
+      );
+    }
+    String name(ArtPanel q) {
+      final d = ([q.w, q.h, q.d]..sort()).reversed.take(2).map((v) => v.round()).join('×');
+      return '${tr(q.role.label)} $d';
+    }
+
+    final over = c?.$2; // la pièce qui présente sa face passe « dessus » (elle couvre le chant de l'autre)
+    return Card(
+      key: const ValueKey('joint_card'),
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(tr('Assemblage de ces deux pièces'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          if (cut != 'onglet') ...[
+            Text(tr('Laquelle passe dessus (couvre le chant de l’autre) ?'), style: t.bodySmall),
+            const SizedBox(height: 4),
+            for (final (top, under) in [(a, b), (b, a)])
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: ChoiceChip(
+                  key: ValueKey('over_${top.id}'),
+                  avatar: Icon(over?.id == top.id ? Icons.layers : Icons.layers_outlined, size: 16),
+                  label: Text(trp('{0} dessus', [name(top)])),
+                  selected: over?.id == top.id,
+                  onSelected: (_) {
+                    change(() => art.putOver(top, under));
+                    _msg(trp('{0} passe dessus', [name(top)]));
+                  },
+                ),
+              ),
+          ],
+          const SizedBox(height: 4),
+          Text(tr('Coupe de l’angle'), style: t.bodySmall),
+          const SizedBox(height: 4),
+          SegmentedButton<String>(
+            key: const ValueKey('joint_cut'),
+            showSelectedIcon: false,
+            style: const ButtonStyle(visualDensity: VisualDensity.compact),
+            segments: [
+              ButtonSegment(value: '', label: Text(tr('Bout à bout'))),
+              ButtonSegment(value: 'onglet', label: Text(tr('Onglet 45°'))),
+              ButtonSegment(value: 'chanfrein', label: Text(tr('Chanfrein'))),
+            ],
+            selected: {cut ?? ''},
+            onSelectionChanged: (v) {
+              final k = v.first.isEmpty ? null : v.first;
+              var ok = true;
+              change(() => ok = art.setJointCut(a, b, k));
+              if (!ok) _msg(tr('Ces deux pièces ne se touchent pas en angle : rapprochez-les (outil Déplacer, elles s’aimantent).'));
+            },
+          ),
+          const SizedBox(height: 6),
+          Text(
+              switch (cut) {
+                'onglet' => tr('Onglet : les deux pièces vont jusqu’à l’angle, chants coupés à 45°, collées avec lamelles. Noté au débit.'),
+                'chanfrein' => tr('Chanfrein : l’arête de l’angle est abattue (noté au débit) ; l’assemblage reste vissé.'),
+                _ => tr('Bout à bout : la pièce du dessus est vissée dans le chant de l’autre (tourillons et vis du meuble).'),
+              },
+              style: const TextStyle(fontSize: 11)),
+        ]),
+      ),
+    );
+  }
+
   /// Panneau des propriétés, ancré à droite de la vue : s'ouvre quand un panneau est sélectionné.
   Widget _propsDock() {
     final p = selectedPanel;
@@ -1839,6 +2030,7 @@ class _ArtPageState extends State<ArtPage> {
                   ? Text(tr('Ce panneau appartient à un caisson standard. Modifiez le caisson ou ses dimensions.'), style: t.bodySmall)
                   : multi
                       ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                          if (selection.length == 2) _jointCard(t, selection.first, selection.last),
                           _materialPicker(null, (v) => _setMaterial(selection.toList(), v), label: 'Matière de toute la sélection'),
                           const SizedBox(height: 10),
                           Text(tr('Ctrl + clic pour ajouter ou retirer un panneau. Glissez avec l’outil Déplacer pour bouger l’ensemble, Suppr pour tout supprimer.'),
@@ -1923,6 +2115,19 @@ class _ArtPageState extends State<ArtPage> {
     if (plan.parts.isEmpty) return;
     final e = LayoutEngine(widget.state.catalog, Project(name: art.name));
     downloadBytes('${art.name}_plan_de_decoupe.pdf', await runBusy(context, tr('Plan de coupe…'), () => buildCutPdf(e, plan)), mime: 'application/pdf');
+  }
+
+  /// Plan de fabrication complet (vues, nomenclature, fiches pièces cotées avec perçages, assemblage).
+  Future<void> _blueprint() async {
+    if (art.panels.isEmpty) {
+      _msg(tr('Rien à enregistrer : dessinez ou choisissez un meuble.'));
+      return;
+    }
+    final p = widget.state.project;
+    final bytes = await runBusy(context, tr('Plan de fabrication…'),
+        () => inPdfLanguage(() => buildArtBlueprint(art, p.cut, projectName: p.name, client: p.client)));
+    downloadBytes('${art.name}_plan_de_fabrication.pdf', bytes, mime: 'application/pdf');
+    _msg(tr('Plan de fabrication téléchargé (PDF)'));
   }
 
   /// Épaisseur d'une matière de débit : « Latté … 18 · 2440×1220 » → 18 ; « MDF 18 (caisson) » → 18.
@@ -2033,6 +2238,12 @@ class _ArtPageState extends State<ArtPage> {
           tooltip: tr('Enregistrer (.kin)'),
           icon: const Icon(Icons.save_outlined),
           onPressed: _saveKin,
+        ),
+        IconButton(
+          key: const ValueKey('blueprint'),
+          tooltip: tr('Plan de fabrication (PDF)'),
+          icon: const Icon(Icons.architecture),
+          onPressed: _blueprint,
         ),
         IconButton(
           key: const ValueKey('lib_save'),
@@ -2200,9 +2411,12 @@ class _ArtPageState extends State<ArtPage> {
                     cursor: activePoints.isEmpty ? null : _hover,
                     liveLabel: _liveLabel,
                     cutLine: _cutLineSegment(),
+                    guides: List.of(_guides),
+                    gridStep: gridStep,
                   ),
                 ),
-                if (!art.isEmpty) Positioned(left: 12, top: 68, child: _legend()),
+                if (!art.isEmpty) Positioned(left: 12, top: 118, child: _legend()),
+                Positioned(left: 12, top: 72, child: _precisionMenu()),
                 Positioned(
                   top: 12,
                   left: 12,
@@ -2303,6 +2517,57 @@ class _ArtPageState extends State<ArtPage> {
           ),
         );
       });
+
+  /// Réglages de précision : pas de grille, aimants, guides d'alignement.
+  Widget _precisionMenu() {
+    final t = Theme.of(context).textTheme;
+    String g(double v) => v == v.roundToDouble() ? '${v.round()}' : '$v';
+    return Material(
+      elevation: 3,
+      borderRadius: BorderRadius.circular(10),
+      color: Theme.of(context).colorScheme.surface,
+      child: PopupMenuButton<String>(
+        key: const ValueKey('precision'),
+        tooltip: tr('Précision : grille, aimants, guides'),
+        onSelected: (v) => setState(() {
+          if (v.startsWith('grid:')) gridStep = double.parse(v.substring(5));
+          if (v == 'snapGrid') snapGrid = !snapGrid;
+          if (v == 'snapPoints') snapPoints = !snapPoints;
+          if (v == 'snapMid') snapMid = !snapMid;
+          if (v == 'snapAlign') snapAlign = !snapAlign;
+          if (v == 'ortho') orthoLock = !orthoLock;
+        }),
+        itemBuilder: (_) => [
+          PopupMenuItem(enabled: false, child: Text(tr('Pas de la grille'), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800))),
+          for (final st in const [1.0, 5.0, 10.0, 50.0, 100.0])
+            CheckedPopupMenuItem(value: 'grid:$st', checked: gridStep == st, child: Text(trp('{0} mm', [g(st)]))),
+          const PopupMenuDivider(),
+          CheckedPopupMenuItem(value: 'snapGrid', checked: snapGrid, child: Text(tr('Aimanter à la grille'))),
+          CheckedPopupMenuItem(value: 'snapPoints', checked: snapPoints, child: Text(tr('Aimanter aux coins'))),
+          CheckedPopupMenuItem(value: 'snapMid', checked: snapMid, child: Text(tr('Aimanter aux milieux et centres'))),
+          CheckedPopupMenuItem(value: 'snapAlign', checked: snapAlign, child: Text(tr('Guides d’alignement'))),
+          CheckedPopupMenuItem(value: 'ortho', checked: orthoLock, child: Text(tr('Lignes à 90°'))),
+          const PopupMenuDivider(),
+          PopupMenuItem(
+            enabled: false,
+            child: Text(tr('Flèches : déplacer d’un pas (Maj : × 10), Pg préc. / suiv. : en profondeur. Cotes exactes : tapez-les puis Entrée.'),
+                style: t.bodySmall),
+          ),
+        ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.grid_4x4, size: 18, color: snapGrid ? _orange : null),
+            const SizedBox(width: 6),
+            Text(trp('Grille {0} mm', [g(gridStep)]), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(width: 6),
+            Icon(Icons.adjust, size: 16, color: snapPoints ? _orange : Theme.of(context).disabledColor),
+            Icon(Icons.straighten, size: 16, color: snapAlign ? _orange : Theme.of(context).disabledColor),
+          ]),
+        ),
+      ),
+    );
+  }
 
   /// Les composants communs à tout meuble, avec leur nombre dans ce projet : toucher pour les mettre en avant.
   Widget _legend() {
@@ -2970,7 +3235,7 @@ class _ArtPageState extends State<ArtPage> {
     final edge = parts.fold<double>(0, (a, p) => a + p.edgeLength * p.qty) / 1000;
     final mdf = plan.sheets.where((s) => !s.material.startsWith('HDF')).length;
     final warn = [for (final b in art.boxes) ...b.warnings()];
-    final checks = artChecks(art.free.isEmpty ? const [] : art.panels, widget.state.project.cut);
+    final checks = artChecks(art.free.isEmpty ? const [] : art.panels, widget.state.project.cut, jointCuts: art.jointCuts);
     // prix des feuilles : celui du tarif pour les matières choisies, sinon le prix atelier du projet
     final sheetCost = plan.sheets.fold<double>(0, (a, sh) {
       final pp = PublicPrices.panels.where((q) => sh.material.startsWith('${q.name} ${q.thickness} ·')).firstOrNull;
@@ -3086,7 +3351,7 @@ class _ArtPageState extends State<ArtPage> {
       );
 
   Widget _machiningTab(TextTheme t, ColorScheme scheme) {
-    final m = computeMachiningElements(art.panels, fittings: art.fittings);
+    final m = computeMachiningElements(art.panels, fittings: art.fittings, jointCuts: art.jointCuts);
     String m2(double v) => '${v.toStringAsFixed(2).replaceAll('.', ',')} m';
     String pcs(int n) => trp('{0} pcs', [n]);
     final rows = <(IconData, Color, String, String)>[
@@ -3295,6 +3560,8 @@ class _ScenePainter extends CustomPainter {
   final V3? cursor; // point sous le doigt / la souris
   final String? liveLabel; // cote affichée à côté du curseur
   final (V3, V3)? cutLine; // ligne de coupe en cours (outil Couper)
+  final List<(V3, V3, int)> guides; // guides d'alignement (pointillés aux couleurs des axes)
+  final double gridStep;
 
   _ScenePainter({
     required this.cam,
@@ -3320,6 +3587,8 @@ class _ScenePainter extends CustomPainter {
     this.cursor,
     this.liveLabel,
     this.cutLine,
+    this.guides = const [],
+    this.gridStep = 10,
   }) : super(repaint: cam);
 
   /// Vue éclatée : chaque composant s'écarte du centre de son caisson dans sa direction naturelle.
@@ -3402,6 +3671,24 @@ class _ScenePainter extends CustomPainter {
     for (var v = -ext; v <= ext; v += 500) {
       c.drawLine(p(V3(v, 0, -ext)), p(V3(v, 0, ext)), g);
       c.drawLine(p(V3(-ext, 0, v)), p(V3(ext, 0, v)), g);
+    }
+    // grille fine au pas choisi, autour de l'origine, si elle reste lisible à ce zoom
+    final fine = gridStep * (gridStep < 10 ? 10 : 1);
+    if ((p(V3(fine, 0, 0)) - p(V3.zero)).distance > 7) {
+      final gf = Paint()
+        ..color = gridColor.withValues(alpha: gridColor.a * 0.55)
+        ..strokeWidth = 0.6;
+      const near = 1500.0;
+      for (var v = -near; v <= near; v += fine) {
+        c.drawLine(p(V3(v, 0, -near)), p(V3(v, 0, near)), gf);
+        c.drawLine(p(V3(-near, 0, v)), p(V3(near, 0, v)), gf);
+      }
+    }
+    // axes : x rouge, y bleu (vertical), z vert (profondeur)
+    for (final (a, col) in [(0, const Color(0xCCDC2626)), (1, const Color(0xCC2563EB)), (2, const Color(0xCC16A34A))]) {
+      c.drawLine(p(V3.zero), p(V3.zero.withAxis(a, 600)), Paint()
+        ..color = col
+        ..strokeWidth = 1.6);
     }
 
     // Ombres de contact au sol sous les caissons
@@ -3620,7 +3907,7 @@ class _ScenePainter extends CustomPainter {
     // 3 ter. Vis et tourillons : têtes de vis visibles sur les faces ; en vue éclatée, le tourillon dépasse
     // du chant de la pièce qui le reçoit et la vis traverse la pièce qui la porte, prêts à l'assemblage.
     if (!isMachiningMode && assembled.isNotEmpty) {
-      final m = computeMachiningElements(assembled, fittings: art.fittings);
+      final m = computeMachiningElements(assembled, fittings: art.fittings, jointCuts: art.jointCuts);
       final byId = {for (final q in assembled) q.id: q};
       double px(V3 at, double mm) => (p(at + cam.right * mm) - p(at)).distance; // largeur à l'écran de mm millimètres
       for (final el in m.elements) {
@@ -3685,7 +3972,7 @@ class _ScenePainter extends CustomPainter {
 
     // 3 bis. Chants et rainures visibles sur les pièces (hors vue usinage, qui les montre déjà)
     if (!isMachiningMode && !exploded && panels.isNotEmpty) {
-      final work = computeMachiningElements(panels, fittings: art.fittings);
+      final work = computeMachiningElements(panels, fittings: art.fittings, jointCuts: art.jointCuts);
       for (final el in work.elements) {
         if (el.kind != MachiningKind.edge && el.kind != MachiningKind.groove) continue;
         final mid = el.position + el.normal * (el.length / 2);
@@ -3789,6 +4076,24 @@ class _ScenePainter extends CustomPainter {
       }
     }
 
+    // 5 quater. Guides d'alignement (pointillés aux couleurs des axes)
+    for (final (from, to, ax) in guides) {
+      final a = p(from), b = p(to);
+      final d = b - a;
+      final len = d.distance;
+      final col = switch (ax) { 0 => const Color(0xFFDC2626), 1 => const Color(0xFF2563EB), _ => const Color(0xFF16A34A) };
+      if (len > 1) {
+        final u = d / len;
+        final dash = Paint()
+          ..color = col
+          ..strokeWidth = 1.4;
+        for (var t = 0.0; t < len; t += 9) {
+          c.drawLine(a + u * t, a + u * math.min(t + 5, len), dash);
+        }
+      }
+      c.drawCircle(a, 3, Paint()..color = col);
+    }
+
     // 5 ter. Ligne de coupe (tirets rouges) avec ses ciseaux
     final cl = cutLine;
     if (cl != null) {
@@ -3847,7 +4152,7 @@ class _ScenePainter extends CustomPainter {
 
     // 9. Mode Usinage (Tourillons, Vis, Perçages système 32, Boîtiers charnières)
     if (isMachiningMode) {
-      final summary = computeMachiningElements(panels, fittings: art.fittings);
+      final summary = computeMachiningElements(panels, fittings: art.fittings, jointCuts: art.jointCuts);
       Paint stroke(Color c, double w) => Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = w

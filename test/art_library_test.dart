@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kitchen_planner/engine/engine.dart';
 import 'package:kitchen_planner/ui/app_state.dart';
+import 'package:kitchen_planner/ui/art_blueprint_pdf.dart';
 import 'package:kitchen_planner/ui/art_library.dart';
 import 'package:kitchen_planner/ui/art_page.dart';
 import 'package:kitchen_planner/ui/scene_export.dart';
@@ -49,6 +50,18 @@ void main() {
     expect(shared.where((o) => o.id.startsWith('lib:')), isEmpty);
   });
 
+  test('plan de fabrication : PDF complet (vues, nomenclature, fiches, assemblage)', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final art = ArtProject()..addBox(0, 100, 800, 720, depth: 560, doors: 2);
+    art.addDrawn(19, 460, 762, 18, depth: 540, role: ArtRole.tablette);
+    final bytes = await buildArtBlueprint(art, CutSettings(), projectName: 'Essai');
+    expect(String.fromCharCodes(bytes.sublist(0, 5)), '%PDF-');
+    expect(bytes.length, greaterThan(20000));
+    File('test/out/plan_de_fabrication.pdf')
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(bytes);
+  });
+
   testWidgets('vue éclatée : les panneaux s’écartent, tourillons et vis sortent du bois', (t) async {
     t.view.physicalSize = const Size(1366, 1024);
     t.view.devicePixelRatio = 1;
@@ -65,4 +78,5 @@ void main() {
     await expectLater(find.byKey(const Key('art-viewport')), matchesGoldenFile('goldens/art_vis_eclate.png'));
     expect(t.takeException(), isNull);
   });
+
 }

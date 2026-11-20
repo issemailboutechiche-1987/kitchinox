@@ -165,9 +165,33 @@ int handleSpacing(double width) => width < 250 ? 96 : width < 450 ? 128 : width 
 
 // ------------------------------------------------------------------ analyse
 
-MachiningSummary computeMachiningElements(List<ArtPanel> panels, {ArtFittings? fittings}) {
+MachiningSummary computeMachiningElements(List<ArtPanel> panels, {ArtFittings? fittings, Map<String, String> jointCuts = const {}}) {
   final fit = fittings ?? ArtFittings();
   final els = <MachiningElement>[];
+  // onglets à 45° : les deux pièces se rejoignent dans l'angle → lamelles collées le long de l'onglet
+  for (final e in jointCuts.entries.where((e) => e.value == 'onglet')) {
+    final ids = e.key.split('|');
+    final a = panels.where((p) => p.id == ids[0]).firstOrNull, b = panels.where((p) => p.id == ids[1]).firstOrNull;
+    if (a == null || b == null) continue;
+    final ov = [for (var k = 0; k < 3; k++) math.min(_hi(a, k), _hi(b, k)) - math.max(_lo(a, k), _lo(b, k))];
+    if (ov.any((v) => v <= 0)) continue;
+    final lAx = [0, 1, 2].reduce((m, k) => ov[k] > ov[m] ? k : m);
+    final c = {for (var k = 0; k < 3; k++) k: (math.max(_lo(a, k), _lo(b, k)) + math.min(_hi(a, k), _hi(b, k))) / 2};
+    final l0 = math.max(_lo(a, lAx), _lo(b, lAx)), l1 = math.min(_hi(a, lAx), _hi(b, lAx));
+    final n = math.max(2, ((l1 - l0) / 150).floor());
+    for (var k = 0; k < n; k++) {
+      c[lAx] = l0 + (l1 - l0) * (k + 0.5) / n;
+      els.add(MachiningElement(
+          kind: MachiningKind.dowel,
+          position: _pt(c),
+          normal: _axisV(thicknessAxis(a)),
+          length: 56,
+          diameter: 4,
+          panelId: a.id,
+          partnerPanelId: b.id,
+          item: 'Lamelle bois n° 20'));
+    }
+  }
   final work = {for (final p in panels) p.id: PanelWork()};
 
   // 1. jonctions entre panneaux de structure : chant contre face
@@ -661,7 +685,7 @@ class ArtCheck {
 
 /// Contrôles de fabrication : panneaux qui se chevauchent, plus grands que la feuille, épaisseur différente
 /// de la matière choisie, pièces trop petites pour la scie, panneaux posés en l'air sans rien qui les tienne.
-List<ArtCheck> artChecks(List<ArtPanel> panels, CutSettings cs) {
+List<ArtCheck> artChecks(List<ArtPanel> panels, CutSettings cs, {Map<String, String> jointCuts = const {}}) {
   final out = <ArtCheck>[];
   String n(ArtPanel p) => L(p.role.label);
   for (var i = 0; i < panels.length; i++) {
@@ -670,7 +694,8 @@ List<ArtCheck> artChecks(List<ArtPanel> panels, CutSettings cs) {
       final b = panels[j];
       final ox = _ov(a, b, 0), oy = _ov(a, b, 1), oz = _ov(a, b, 2);
       if (ox <= 0.5 || oy <= 0.5 || oz <= 0.5) continue;
-      // un fond mince encastré dans une rainure (jusqu'à 12 mm) est voulu
+      // un fond mince encastré dans une rainure (jusqu'à 12 mm) est voulu, comme l'angle commun d'un onglet
+      if (jointCuts[ArtProject.jointKey(a.id, b.id)] == 'onglet') continue;
       final thin = _thinBack(a) || _thinBack(b);
       if (thin && math.min(ox, math.min(oy, oz)) <= 12.5) continue;
       out.add(ArtCheck(true, L('{0} et {1} se chevauchent ({2} mm) : ils ne peuvent pas être fabriqués ainsi', [n(a), n(b), math.min(ox, math.min(oy, oz)).round()]),
