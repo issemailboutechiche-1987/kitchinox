@@ -500,12 +500,15 @@ class CadDimension {
   V3 p1, p2;
   double offset; // décalage de la ligne de cote perpendiculaire
   String text;
+  V3? a1, a2; // points cotés (la ligne de cote p1–p2 est décalée ; lignes de rappel a → p)
 
   CadDimension({
     required this.id,
     required this.p1,
     required this.p2,
     this.offset = 40,
+    this.a1,
+    this.a2,
     String? text,
   }) : text = text ?? '${(p2 - p1).length.round()} mm';
 
@@ -517,6 +520,8 @@ class CadDimension {
         'p2': {'x': p2.x, 'y': p2.y, 'z': p2.z},
         'offset': offset,
         'text': text,
+        if (a1 != null) 'a1': {'x': a1!.x, 'y': a1!.y, 'z': a1!.z},
+        if (a2 != null) 'a2': {'x': a2!.x, 'y': a2!.y, 'z': a2!.z},
       };
 
   factory CadDimension.fromJson(Map<String, dynamic> j) {
@@ -526,6 +531,8 @@ class CadDimension {
       p1: parseV3(j['p1'] as Map),
       p2: parseV3(j['p2'] as Map),
       offset: (j['offset'] as num?)?.toDouble() ?? 40,
+      a1: j['a1'] is Map ? parseV3(j['a1'] as Map) : null,
+      a2: j['a2'] is Map ? parseV3(j['a2'] as Map) : null,
       text: j['text'] as String?,
     );
   }

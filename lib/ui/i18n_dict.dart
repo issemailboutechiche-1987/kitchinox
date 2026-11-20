@@ -2275,6 +2275,12 @@ const Map<String, String> enDict = {
   "Main : glisser déplace la vue au lieu de la tourner. Aussi : bouton molette ou bouton droit, deux doigts sur tablette.": "Hand: dragging moves the view instead of rotating it. Also: wheel or right button, two fingers on tablet.",
   "Rotation autour de l’objet sélectionné": "Rotate around the selected object",
   "Rotation autour du centre de l’écran": "Rotate around the screen centre",
+  "Cote {0} : lâchez pour la poser": "Dimension {0}: release to place it",
+  "Relatif (après la dernière)": "Relative (after the last)",
+  "Total (depuis 0)": "Total (from 0)",
+  "{0} : touchez le 2e point": "{0}: touch the 2nd point",
+  "{0} = {1} mm (depuis 0 en haut à gauche) : {2} pièce(s) traversée(s). « Couper » ou cote + Entrée.": "{0} = {1} mm (from 0 at top left): {2} part(s) crossed. « Cut » or value + Enter.",
+  "Touchez une arête et glissez pour la coter, ou touchez deux points.": "Touch an edge and drag to dimension it, or touch two points.",
 };
 
 const Map<String, String> arDict = {
@@ -4552,4 +4558,10 @@ const Map<String, String> arDict = {
   "Main : glisser déplace la vue au lieu de la tourner. Aussi : bouton molette ou bouton droit, deux doigts sur tablette.": "اليد: السحب يحرك العرض بدل تدويره. أيضاً: زر العجلة أو الزر الأيمن، إصبعان على اللوحي.",
   "Rotation autour de l’objet sélectionné": "التدوير حول العنصر المحدد",
   "Rotation autour du centre de l’écran": "التدوير حول مركز الشاشة",
+  "Cote {0} : lâchez pour la poser": "البُعد {0}: اترك لوضعه",
+  "Relatif (après la dernière)": "نسبي (بعد الأخير)",
+  "Total (depuis 0)": "كلي (من 0)",
+  "{0} : touchez le 2e point": "{0}: المس النقطة الثانية",
+  "{0} = {1} mm (depuis 0 en haut à gauche) : {2} pièce(s) traversée(s). « Couper » ou cote + Entrée.": "{0} = {1} مم (من 0 أعلى اليسار): {2} قطعة. « قطع » أو قيمة + Enter.",
+  "Touchez une arête et glissez pour la coter, ou touchez deux points.": "المس حافة واسحب لقياسها، أو المس نقطتين.",
 };

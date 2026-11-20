@@ -332,8 +332,16 @@ void main() {
     await t.pumpAndSettle();
     expect(art.free, hasLength(4));
     expect(art.free.where((q) => q.w == 300), hasLength(2));
+    // relatif : 150 de plus après la dernière coupe → morceaux de 150 sur les deux pièces
+    s.cutRelative = true;
+    await t.enterText(find.byKey(const ValueKey('cad_measure')), '150');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    expect(art.free.where((q) => q.w == 150), hasLength(2));
+    expect(art.free.where((q) => q.w == 150).every((q) => q.x == 300 + k), isTrue);
+    s.cutRelative = false;
     // parallèles : bandes de 200 mm, 2 fois, sur la sélection (la grande chute de a)
-    final rest = art.free.firstWhere((q) => q.z == 0 && q.x > 0);
+    final rest = art.free.firstWhere((q) => q.z == 0 && q.w > 400);
     (s.selection as Set)
       ..clear()
       ..add(rest);
@@ -347,7 +355,7 @@ void main() {
     // cercle : réservé à la CNC
     st.project.cut.machine = 'cnc';
     s.cutMode = 'circle';
-    final b = art.free.firstWhere((q) => q.z == 500 && q.w > 600);
+    final b = art.free.firstWhere((q) => q.z == 500 && q.w > 500);
     await t.tapAt(t.getRect(find.byKey(const Key('art-viewport'))).topLeft + (s.screenOf(b.x + b.w / 2, b.top, b.z + 200) as Offset));
     await t.pumpAndSettle();
     await t.enterText(find.byKey(const ValueKey('cad_measure')), '300');
@@ -400,6 +408,44 @@ void main() {
     await t.pumpAndSettle();
     expect(s.cam.target.x, 2300);
     expect(s.cam.yaw != yaw1, isTrue);
+    await t.pump(const Duration(seconds: 6));
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('cotation : toucher une arête et glisser affiche sa longueur ; deux points affichent leur distance', (t) async {
+    t.view.physicalSize = const Size(1366, 1024);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    final art = st.project.art;
+    art.free.add(ArtPanel(id: 'a', role: ArtRole.decor, x: 0, y: 0, z: 0, w: 800, h: 18, d: 500));
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('side_pin')));
+    await t.pumpAndSettle();
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
+    await t.sendKeyEvent(LogicalKeyboardKey.keyD);
+    await t.pumpAndSettle();
+    // arête avant du dessus (800 mm), glissée vers l'avant
+    final g = await t.startGesture(vp.topLeft + (s.screenOf(400.0, 18.0, 0.0) as Offset), kind: PointerDeviceKind.touch);
+    for (var i = 0; i < 6; i++) {
+      await g.moveBy(const Offset(0, 12));
+      await t.pump();
+    }
+    expect(s.dimPreviewText, '800 mm');
+    await g.up();
+    await t.pumpAndSettle();
+    expect(art.dimensions, hasLength(1));
+    expect(art.dimensions.single.text, '800 mm');
+    expect(art.dimensions.single.a1, isNotNull, reason: 'lignes de rappel vers l’arête');
+    // deux points : coin avant gauche puis coin arrière gauche (500 mm)
+    await t.tapAt(vp.topLeft + (s.screenOf(0.0, 18.0, 0.0) as Offset) + const Offset(1, 1));
+    await t.pumpAndSettle();
+    await t.tapAt(vp.topLeft + (s.screenOf(0.0, 18.0, 500.0) as Offset) + const Offset(1, 1));
+    await t.pumpAndSettle();
+    expect(art.dimensions, hasLength(2));
+    expect(art.dimensions.last.text, '500 mm');
     await t.pump(const Duration(seconds: 6));
     expect(t.takeException(), isNull);
   });

@@ -88,7 +88,11 @@ class _ArtPageState extends State<ArtPage> {
   (ArtPanel, int)? _linkFirst; // Lier : 1er chant choisi (pièce, numéro)
   bool cutOnX = true; // Couper : ligne de coupe perpendiculaire à X (sinon à Y)
   String cutMode = 'big'; // 'big' grande coupe (toute la largeur), 'small' sur la sélection, 'parallel', 'circle' (CNC)
-  int _cutsDone = 0; // la petite coupe s'active après une première coupe
+  int _cutsDone = 0;
+  (V3, V3)? _dimEdge; // Cotation : arête touchée (on glisse pour décaler la cote)
+  CadDimension? _dimPreview; // cote en cours (arête glissée ou 2e point au survol)
+  bool cutRelative = false; // cote tapée : après la dernière coupe (relatif) ou depuis 0 (total)
+  final Map<int, double> _lastCut = {}; // dernière ligne de coupe par axe (coordonnée feuille) // la petite coupe s'active après une première coupe
   V3? _circleAt; // coupe circulaire : centre choisi
   // fenêtres : le panneau latéral se replie au toucher de la zone de travail, sauf s'il est épinglé
   bool sideOpen = true, sidePinned = false, dockPinned = false;
@@ -126,6 +130,9 @@ class _ArtPageState extends State<ArtPage> {
   V3? _dragHit0;
   (Face, List<double>)? _lastPush;
   bool _pressPlaced = false; // le doigt a posé le 1er point en appuyant : glisser puis lâcher termine la forme // dernière face poussée : une cote tapée ensuite la règle exactement
+
+  /// Valeur de la cote en cours (pour les tests).
+  String? get dimPreviewText => _dimPreview?.text;
 
   /// Guides affichés (pour les tests).
   List<(V3, V3, int)> get guides => _guides;
@@ -280,7 +287,7 @@ class _ArtPageState extends State<ArtPage> {
         CadTool.scale => 'Redimensionnez l’élément sélectionné.',
         CadTool.symmetry => selectedPanel != null ? 'Choisissez l’axe du miroir (X, Y ou Z).' : 'Sélectionnez un panneau à reproduire en miroir.',
         CadTool.tape => 'Cliquez sur le point de départ de la mesure.',
-        CadTool.dimension => 'Cliquez sur le premier point de la cote.',
+        CadTool.dimension => 'Touchez une arête et glissez pour la coter, ou touchez deux points.',
         CadTool.pushPull => 'Glissez une face pour l’étirer, ou cliquez-la puis tapez la valeur.',
         CadTool.edgeBand => selectedPanel != null ? 'Choisissez l’épaisseur de chant à appliquer.' : 'Cliquez sur un panneau pour lui appliquer un chant.',
         CadTool.groove => selectedPanel != null ? 'Appliquez ou retirez la rainure pour fond.' : 'Cliquez sur un panneau pour configurer sa rainure.',
@@ -633,9 +640,18 @@ class _ArtPageState extends State<ArtPage> {
         } else if (cutMode == 'parallel') {
           // « 300;5 » : 5 bandes de 300 mm depuis le bord
           final w = v[0], n = v.length > 1 ? v[1].round().clamp(1, 50) : 1;
-          _applyCut(at: _cutOrigin + w + k / 2, repeat: n, step: w);
+          final ax = _cutWorldAxis;
+          final last = _lastCut[ax];
+          final start = cutRelative && last != null ? last + k / 2 + w + k / 2 : _toSheet(_cutOrigin, ax) + w + k / 2;
+          // en coordonnées monde, les bandes avancent dans le sens de la feuille
+          final dir = ax == 2 && !(_sheet?.zDown ?? true) ? -1.0 : 1.0;
+          _applyCut(at: _fromSheet(start, ax), repeat: n, step: w * dir + (dir < 0 ? -2 * k : 0));
         } else {
-          _applyCut(at: _cutOrigin + v[0] + k / 2);
+          // total : depuis 0 (coin haut gauche de la feuille) ; relatif : après la dernière coupe sur cet axe
+          final ax = _cutWorldAxis;
+          final last = _lastCut[ax];
+          final sheetPos = cutRelative && last != null ? last + k / 2 + v[0] + k / 2 : v[0] + k / 2;
+          _applyCut(at: _fromSheet(sheetPos, ax));
         }
       case CadTool.circle || CadTool.polygon when activePoints.length == 1:
         final c = activePoints.first;
@@ -1212,6 +1228,7 @@ class _ArtPageState extends State<ArtPage> {
         final dim = CadDimension(id: 'd${DateTime.now().millisecondsSinceEpoch}', p1: activePoints.first, p2: pt);
         change(() => art.dimensions.add(dim));
         activePoints.clear();
+        _dimPreview = null;
         cadStatus = 'Cote ajoutée (${dim.text}).';
       }
     } else if (activeTool == CadTool.pushPull) {
@@ -1595,8 +1612,114 @@ class _ArtPageState extends State<ArtPage> {
       _cutAt = at;
       cadStatus = targets.isEmpty
           ? 'Placez la ligne sur une pièce.'
-          : trp('Coupe à {0} mm : {1} pièce(s) traversée(s). Touchez « Couper » ou tapez une cote puis Entrée.', [at.round(), targets.length]);
+          : trp('{0} = {1} mm (depuis 0 en haut à gauche) : {2} pièce(s) traversée(s). « Couper » ou cote + Entrée.',
+              [ax == 0 ? 'X' : 'Y', _toSheet(at, ax).round(), targets.length]);
     });
+  }
+
+  /// Cote provisoire entre le 1er point et le point sous le doigt (aimanté aux coins et milieux).
+  void _dimHover(Offset px) {
+    final pt = _unproject(px);
+    setState(() {
+      _dimPreview = CadDimension(id: 'preview', p1: activePoints.first, p2: pt);
+      cadStatus = trp('{0} : touchez le 2e point', [_dimPreview!.text]);
+    });
+  }
+
+  /// Arête de pièce la plus proche du doigt (à moins de 14 pixels) : ses deux extrémités.
+  (V3, V3)? _pickPanelEdge(Offset px) {
+    (V3, V3)? best;
+    var bestD = 14.0;
+    for (final p in art.panels) {
+      final k = [for (final x in [p.x, p.right]) for (final y in [p.y, p.top]) for (final z in [p.z, p.back]) V3(x, y, z)];
+      const edges = [(0, 1), (2, 3), (4, 5), (6, 7), (0, 2), (1, 3), (4, 6), (5, 7), (0, 4), (1, 5), (2, 6), (3, 7)];
+      for (final (a, b) in edges) {
+        final d = _distToSegment(px, cam.project(k[a]).$1, cam.project(k[b]).$1);
+        if (d < bestD) {
+          bestD = d;
+          best = (k[a], k[b]);
+        }
+      }
+    }
+    return best;
+  }
+
+  /// Cote de l'arête [e] décalée selon le glisser [drag] (pixels) : l'axe perpendiculaire qui suit le mieux le doigt.
+  CadDimension _edgeDim((V3, V3) e, Offset drag) {
+    final (a, b) = e;
+    final along = [0, 1, 2].reduce((m, k) => (b[k] - a[k]).abs() > (b[m] - a[m]).abs() ? k : m);
+    var off = V3.zero;
+    var best = 0.0;
+    for (final k in [0, 1, 2].where((k) => k != along)) {
+      final unit = V3.zero.withAxis(k, 100);
+      final sd = cam.project(a + unit).$1 - cam.project(a).$1; // 100 mm le long de k, à l'écran
+      final l2 = sd.dx * sd.dx + sd.dy * sd.dy;
+      if (l2 < 1) continue;
+      final mm = (drag.dx * sd.dx + drag.dy * sd.dy) / l2 * 100;
+      final score = mm.abs() * math.sqrt(l2);
+      if (score > best) {
+        best = score;
+        off = V3.zero.withAxis(k, (mm / 10).round() * 10.0);
+      }
+    }
+    return CadDimension(id: 'd${DateTime.now().millisecondsSinceEpoch}', p1: a + off, p2: b + off, a1: a, a2: b, text: '${(b - a).length.round()} mm');
+  }
+
+  /// Repère de la feuille vue de dessus : X depuis le bord gauche, Y depuis le bord du haut de l'écran.
+  ({double x0, double z0, double z1, bool zDown})? get _sheet {
+    final flat = art.free.where((p) => thicknessAxis(p) == 1).toList();
+    if (flat.isEmpty) return null;
+    final x0 = flat.map((p) => p.x).reduce(math.min);
+    final z0 = flat.map((p) => p.z).reduce(math.min), z1 = flat.map((p) => p.z).reduce(math.max) + 0;
+    final zMax = flat.map((p) => p.back).reduce(math.max);
+    final top = flat.map((p) => p.top).reduce(math.max);
+    // le bord z0 est-il en haut de l'écran ?
+    final zDown = cam.project(V3(x0, top, z0)).$1.dy <= cam.project(V3(x0, top, zMax)).$1.dy;
+    assert(z1 >= z0);
+    return (x0: x0, z0: z0, z1: zMax, zDown: zDown);
+  }
+
+  /// Coordonnée feuille (mm depuis le coin haut gauche) d'une position monde sur l'axe de coupe.
+  double _toSheet(double at, int ax) {
+    final s = _sheet;
+    if (s == null) return at;
+    if (ax == 0) return at - s.x0;
+    return s.zDown ? at - s.z0 : s.z1 - at;
+  }
+
+  double _fromSheet(double v, int ax) {
+    final s = _sheet;
+    if (s == null) return v;
+    if (ax == 0) return s.x0 + v;
+    return s.zDown ? s.z0 + v : s.z1 - v;
+  }
+
+  /// Aperçu de la coupe : largeur de chaque futur morceau, en son centre, avec sa ligne de cote.
+  List<(V3, V3, String)> _cutPreview() {
+    final at = _cutAt;
+    if (activeTool != CadTool.cut || at == null || cutMode == 'circle') return const [];
+    final ax = _cutWorldAxis, other = ax == 0 ? 2 : 0;
+    final k = widget.state.project.cut.kerf.toDouble();
+    final out = <(V3, V3, String)>[];
+    for (final p in _cutTargets) {
+      final lo = ax == 0 ? p.x : p.z, hi = ax == 0 ? p.right : p.back;
+      if (at <= lo + 1 || at >= hi - 1) continue;
+      final mid = other == 0 ? p.x + p.w / 2 : p.z + p.d / 2;
+      for (final (a, b) in [(lo, at - k / 2), (at + k / 2, hi)]) {
+        final pa = V3.zero.withAxis(ax, a).withAxis(1, p.top).withAxis(other, mid);
+        final pb = pa.withAxis(ax, b);
+        out.add((pa, pb, '${(b - a).round()}'));
+      }
+    }
+    return out;
+  }
+
+  /// Coin 0,0 de la feuille (haut gauche à l'écran).
+  V3? _sheetOrigin() {
+    final s = _sheet;
+    if (s == null) return null;
+    final top = art.free.where((p) => thicknessAxis(p) == 1).map((p) => p.top).reduce(math.max);
+    return V3(s.x0, top, s.zDown ? s.z0 : s.z1);
   }
 
   /// Origine des cotes tapées : bord gauche (ou avant) des pièces visées.
@@ -1670,6 +1793,7 @@ class _ArtPageState extends State<ArtPage> {
       return;
     }
     _cutsDone += cuts;
+    _lastCut[ax] = _toSheet(first + (repeat - 1) * (w + k), ax);
     _msg(trp('{0} coupe(s) faite(s), trait de scie {1} mm', [cuts, k.round()]));
   }
 
@@ -2550,6 +2674,10 @@ class _ArtPageState extends State<ArtPage> {
           },
           child: MouseRegion(
             onHover: (e) {
+              if (activeTool == CadTool.dimension && activePoints.isNotEmpty) {
+                _dimHover(e.localPosition);
+                return;
+              }
               if (activeTool == CadTool.cut) {
                 _cutHover(e.localPosition);
                 return;
@@ -2578,6 +2706,9 @@ class _ArtPageState extends State<ArtPage> {
                   cam.target = (lo + hi) * 0.5;
                 }
                 if (!sidePinned && sideOpen) setState(() => sideOpen = false); // grande zone de travail
+                if (activeTool == CadTool.dimension && d.pointerCount == 1 && activePoints.isEmpty) {
+                  _dimEdge = _pickPanelEdge(d.localFocalPoint);
+                }
                 final navOnly = panMode || (_buttons & (kMiddleMouseButton | kSecondaryMouseButton)) != 0;
                 if (d.pointerCount == 1 && !navOnly) _dragStart(d.localFocalPoint);
                 if (d.pointerCount == 1 && !navOnly && _isPlanarTool && activePoints.isEmpty) {
@@ -2607,6 +2738,18 @@ class _ArtPageState extends State<ArtPage> {
                   _cutHover(d.localFocalPoint);
                   return;
                 }
+                if (activeTool == CadTool.dimension && d.pointerCount == 1) {
+                  final e = _dimEdge;
+                  if (e != null && _moved) {
+                    setState(() {
+                      _dimPreview = _edgeDim(e, d.localFocalPoint - (_downAt ?? d.localFocalPoint));
+                      cadStatus = trp('Cote {0} : lâchez pour la poser', [_dimPreview!.text]);
+                    });
+                  } else if (activePoints.isNotEmpty) {
+                    _dimHover(d.localFocalPoint);
+                  }
+                  return;
+                }
                 if (_dragOrig != null && d.pointerCount == 1) {
                   if (_moved) _dragUpdate(d.localFocalPoint);
                   return;
@@ -2632,6 +2775,15 @@ class _ArtPageState extends State<ArtPage> {
                 }
               },
               onScaleEnd: (_) {
+                if (activeTool == CadTool.dimension && _dimEdge != null && _moved && _dimPreview != null) {
+                  final dim = _dimPreview!;
+                  change(() => art.dimensions.add(dim));
+                  _dimEdge = null;
+                  _dimPreview = null;
+                  cadStatus = 'Cote ajoutée (${dim.text}).';
+                  return;
+                }
+                _dimEdge = null;
                 if (panMode || (_buttons & (kMiddleMouseButton | kSecondaryMouseButton)) != 0) {
                   _buttons = 0;
                   if (_moved) return;
@@ -2689,6 +2841,12 @@ class _ArtPageState extends State<ArtPage> {
                     cursor: activePoints.isEmpty ? null : _hover,
                     liveLabel: _liveLabel,
                     cutLine: _cutLineSegment(),
+                    cutPreview: _cutPreview(),
+                    dimPreview: activeTool == CadTool.dimension ? _dimPreview : null,
+                    cutLabel: _cutAt == null || activeTool != CadTool.cut || cutMode == 'circle'
+                        ? null
+                        : '${_cutWorldAxis == 0 ? 'X' : 'Y'} ${_toSheet(_cutAt!, _cutWorldAxis).round()}',
+                    sheetOrigin: activeTool == CadTool.cut ? _sheetOrigin() : null,
                     cutCircle: cutMode == 'circle' && activeTool == CadTool.cut ? _circleAt : null,
                     guides: List.of(_guides),
                     edgeLabels: _edgeLabels(),
@@ -2843,6 +3001,17 @@ class _ArtPageState extends State<ArtPage> {
                                   _cutAt = null;
                                 }),
                               ),
+                                SegmentedButton<bool>(
+                                  key: const ValueKey('cut_rel'),
+                                  showSelectedIcon: false,
+                                  style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                                  segments: [
+                                    ButtonSegment(value: false, label: Text(tr('Total (depuis 0)'))),
+                                    ButtonSegment(value: true, label: Text(tr('Relatif (après la dernière)'))),
+                                  ],
+                                  selected: {cutRelative},
+                                  onSelectionChanged: (v) => setState(() => cutRelative = v.first),
+                                ),
                                 FilledButton.icon(
                                   key: const ValueKey('cut_apply'),
                                   onPressed: (cutMode == 'circle' ? _circleAt : _cutAt) == null ? null : () => _applyCut(),
@@ -3941,6 +4110,10 @@ class _ScenePainter extends CustomPainter {
   final String? liveLabel; // cote affichée à côté du curseur
   final (V3, V3)? cutLine; // ligne de coupe en cours (outil Couper)
   final V3? cutCircle; // centre de la coupe circulaire (CNC)
+  final List<(V3, V3, String)> cutPreview; // largeurs des futurs morceaux
+  final CadDimension? dimPreview; // cote en cours
+  final String? cutLabel; // position de la ligne (repère feuille)
+  final V3? sheetOrigin; // coin 0,0 de la feuille
   final List<(V3, V3, int)> guides; // guides d'alignement (pointillés aux couleurs des axes)
   final double gridStep;
   final List<(V3, String, bool)> edgeLabels; // outil Lier : numéros des chants
@@ -3971,6 +4144,10 @@ class _ScenePainter extends CustomPainter {
     this.liveLabel,
     this.cutLine,
     this.cutCircle,
+    this.cutPreview = const [],
+    this.dimPreview,
+    this.cutLabel,
+    this.sheetOrigin,
     this.guides = const [],
     this.gridStep = 10,
     this.edgeLabels = const [],
@@ -4516,16 +4693,56 @@ class _ScenePainter extends CustomPainter {
       final d = b - a;
       final len = d.distance;
       if (len > 1) {
+        // ligne à 30 % : on voit la pièce au travers
         final u = d / len;
         final dash = Paint()
-          ..color = const Color(0xFFDC2626)
-          ..strokeWidth = 2.6;
+          ..color = const Color(0x4DDC2626)
+          ..strokeWidth = 3;
         for (var t = 0.0; t < len; t += 14) {
           c.drawLine(a + u * t, a + u * math.min(t + 8, len), dash);
         }
-        c.drawCircle(a, 4, Paint()..color = const Color(0xFFDC2626));
-        c.drawCircle(b, 4, Paint()..color = const Color(0xFFDC2626));
       }
+    }
+    void tag(Offset at, String text, Color bg, {double fs = 12}) {
+      final tp = TextPainter(
+        text: TextSpan(text: text, style: TextStyle(color: Colors.white, fontSize: fs, fontWeight: FontWeight.w800)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final r = Rect.fromCenter(center: at, width: tp.width + 12, height: tp.height + 6);
+      c.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(5)), Paint()..color = bg);
+      tp.paint(c, r.topLeft + const Offset(6, 3));
+    }
+
+    // largeur de chaque futur morceau : ligne de cote et valeur en son centre
+    for (final (pa, pb, text) in cutPreview) {
+      final a = p(pa), b = p(pb);
+      final g = Paint()
+        ..color = const Color(0xFF2563EB)
+        ..strokeWidth = 1.2;
+      c.drawLine(a, b, g);
+      final d = b - a;
+      if (d.distance > 2) {
+        final n = Offset(-d.dy, d.dx) / d.distance * 6;
+        c.drawLine(a - n, a + n, g);
+        c.drawLine(b - n, b + n, g);
+      }
+      tag((a + b) / 2, text, const Color(0xE62563EB));
+    }
+    // position de la ligne, et le coin 0,0 de la feuille
+    final lbl = cutLabel;
+    if (lbl != null && cl != null) {
+      final a = p(cl.$1), b = p(cl.$2);
+      // l'étiquette se place sur la ligne, près du haut de la zone visible
+      final t = (b.dy - a.dy).abs() > (b.dx - a.dx).abs()
+          ? ((60 - a.dy) / (b.dy - a.dy)).clamp(0.0, 1.0)
+          : ((90 - a.dx) / (b.dx - a.dx)).clamp(0.0, 1.0);
+      tag(Offset.lerp(a, b, t)!, lbl, const Color(0xE6DC2626), fs: 13);
+    }
+    final so = sheetOrigin;
+    if (so != null) {
+      final q = p(so);
+      c.drawCircle(q, 5, Paint()..color = const Color(0xFF0F172A));
+      tag(q + const Offset(26, -14), '0,0', const Color(0xCC0F172A), fs: 11);
     }
 
     // 6. Ruban à mesurer temporaire
@@ -4549,8 +4766,8 @@ class _ScenePainter extends CustomPainter {
     }
 
     // 7. Lignes de cotation permanentes
-    for (final dim in art.dimensions) {
-      _dim(c, dim.p1, dim.p2, dim.text, const Color(0xFF0284C7));
+    for (final dim in [...art.dimensions, ?dimPreview]) {
+      _dim(c, dim.p1, dim.p2, dim.text, identical(dim, dimPreview) ? const Color(0xFFF26522) : const Color(0xFF0284C7), anchorA: dim.a1, anchorB: dim.a2);
     }
 
     // 8. Face survolée pour Pousser / Tirer
