@@ -199,6 +199,45 @@ void main() {
     await t.pump(const Duration(seconds: 6));
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('guides d’alignement : dans le plan de dessin, parallèles à un axe, effacés après le tracé', (t) async {
+    t.view.physicalSize = const Size(1366, 1024);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    final art = st.project.art;
+    // des pièces posées à plat, comme après une découpe de feuille
+    art.free.addAll([
+      ArtPanel(id: 'a', role: ArtRole.decor, x: 0, y: 0, z: 0, w: 600, h: 18, d: 400),
+      ArtPanel(id: 'b', role: ArtRole.decor, x: 800, y: 0, z: 600, w: 500, h: 18, d: 300),
+    ]);
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    await t.sendKeyEvent(LogicalKeyboardKey.keyR);
+    await t.pumpAndSettle();
+    // appuyer à côté du coin avant droit de « a », glisser vers l'alignement du coin de « b »
+    final g = await t.startGesture(vp.topLeft + (s.screenOf(620.0, 0.0, 700.0) as Offset), kind: PointerDeviceKind.touch);
+    await t.pump();
+    var sawGuide = false;
+    for (var i = 0; i < 12; i++) {
+      await g.moveBy(const Offset(14, 6));
+      await t.pump();
+      for (final (from, to, _) in (s.guides as List).cast<(dynamic, dynamic, int)>()) {
+        sawGuide = true;
+        expect((from.y as double).abs() < 0.5 && (to.y as double).abs() < 0.5, isTrue, reason: 'guide au sol');
+        final dx = ((from.x as double) - (to.x as double)).abs() > 0.5, dz = ((from.z as double) - (to.z as double)).abs() > 0.5;
+        expect(dx && dz, isFalse, reason: 'guide parallèle à un axe, jamais en diagonale');
+      }
+    }
+    await g.up();
+    await t.pumpAndSettle();
+    expect((s.guides as List), isEmpty, reason: 'effacés après le tracé');
+    expect(sawGuide, isTrue, reason: 'un guide apparaît en s’alignant sur un coin');
+    await t.pump(const Duration(seconds: 6));
+    expect(t.takeException(), isNull);
+  });
 }
 
 /// Point écran du centre du dessus d'un panneau (par la caméra de la page).

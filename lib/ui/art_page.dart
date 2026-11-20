@@ -118,6 +118,9 @@ class _ArtPageState extends State<ArtPage> {
   (Face, List<double>)? _lastPush;
   bool _pressPlaced = false; // le doigt a posé le 1er point en appuyant : glisser puis lâcher termine la forme // dernière face poussée : une cote tapée ensuite la règle exactement
 
+  /// Guides affichés (pour les tests).
+  List<(V3, V3, int)> get guides => _guides;
+
   /// Point à l'écran (repère de la vue 3D) d'un point de l'espace : pour les tests.
   Offset screenOf(double x, double y, double z) => cam.project(V3(x, y, z)).$1;
 
@@ -233,6 +236,7 @@ class _ArtPageState extends State<ArtPage> {
   // ---------------------------------------------------------------- sélection et outils CAO
   void _selectTool(CadTool tool) {
     setState(() {
+      _guides.clear();
       activeTool = tool;
       activePoints.clear();
       previewShape = null;
@@ -360,13 +364,21 @@ class _ArtPageState extends State<ArtPage> {
     final gs = gridStep;
     var pt = snapGrid ? V3((v.x / gs).round() * gs, (v.y / gs).round() * gs, (v.z / gs).round() * gs) : v;
 
-    // 4. Alignements : la coordonnée rejoint celle d'un coin existant (guide pointillé, comme SketchUp)
-    if (snapAlign) {
-      final refs = [for (final c in pts) if (c.$2 == 'Coin' || c.$2 == 'Sommet') c.$1, ...activePoints];
+    // 4. Alignements, comme SketchUp : seulement dans le plan de dessin, avec un coin de ce plan, proche à l'écran.
+    //    Le point prend la coordonnée du coin sur un axe ; le guide part du coin, parallèle à l'autre axe du plan.
+    final planeAx = _isPlanarTool ? (activePoints.isEmpty ? workPlane.axis : _drawAxis) : null;
+    if (snapAlign && planeAx != null) {
+      final plane = activePoints.isEmpty ? workPlane.plane : _drawPlane;
+      pt = pt.withAxis(planeAx, plane);
+      final refs = [
+        for (final c in pts)
+          if ((c.$2 == 'Coin' || c.$2 == 'Sommet') && (c.$1[planeAx] - plane).abs() < 0.5 && _px(c.$1, pt) < 320) c.$1,
+        ...activePoints,
+      ];
       for (var k = 0; k < 3; k++) {
-        if (_isPlanarTool && activePoints.isNotEmpty && k == _drawAxis) continue;
+        if (k == planeAx) continue;
         V3? ref;
-        var refD = 8.0;
+        var refD = 7.0;
         for (final r in refs) {
           final d = _px(pt, pt.withAxis(k, r[k]));
           if (d < refD) {
@@ -376,8 +388,14 @@ class _ArtPageState extends State<ArtPage> {
         }
         if (ref != null) {
           pt = pt.withAxis(k, ref[k]);
-          _guides.add((ref, pt, k));
+          // direction du guide : l'autre axe du plan (couleur de cet axe)
+          _guides.add((ref, pt, 3 - planeAx - k));
         }
+      }
+      // le guide part toujours du coin de référence vers le point final (après les deux alignements)
+      for (var g = 0; g < _guides.length; g++) {
+        final (r, _, ax) = _guides[g];
+        _guides[g] = (r, pt, ax);
       }
     }
 
@@ -494,6 +512,7 @@ class _ArtPageState extends State<ArtPage> {
     }
     activePoints.clear();
     previewShape = null;
+    _guides.clear();
     cadStatus = 'Rectangle créé. Tapez les cotes (ex. 600;720) pour une taille exacte.';
     setState(() {});
   }
@@ -698,7 +717,13 @@ class _ArtPageState extends State<ArtPage> {
       final plane = (best - (ax == 0 ? h.x : ax == 1 ? h.y : h.z)).abs() < 0.5 || (best - (ax == 0 ? h.right : ax == 1 ? h.top : h.back)).abs() < 0.5
           ? best
           : best + size;
-      _guides.add((mid(h).withAxis(ax, plane), mid(self).withAxis(ax, plane), ax));
+      // guide sur le plan commun, le long de l'axe où les deux pièces sont le plus éloignées
+      final a = mid(h).withAxis(ax, plane), b0 = mid(self).withAxis(ax, plane);
+      final others = [0, 1, 2].where((k) => k != ax).toList();
+      final far = (a[others[0]] - b0[others[0]]).abs() >= (a[others[1]] - b0[others[1]]).abs() ? others[0] : others[1];
+      final near = others.firstWhere((k) => k != far);
+      final b = b0.withAxis(near, a[near]);
+      _guides.add((a, b, far));
     }
     return best;
   }
