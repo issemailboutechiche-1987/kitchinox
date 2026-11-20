@@ -29,7 +29,8 @@ enum CadTool {
   pushPull('Pousser / Tirer', 'Extruder une esquisse 2D en panneau 3D ou épaissir/allonger une face'),
   edgeBand('Bande de chant', 'Appliquer ou modifier le chant (0.4, 1.0, 2.0 mm) sur les arêtes'),
   groove('Rainure', 'Créer ou configurer une rainure pour fond ou usinage'),
-  cut('Couper', 'Couper un panneau en deux le long de X ou de Y, trait de scie déduit');
+  cut('Couper', 'Couper un panneau en deux le long de X ou de Y, trait de scie déduit'),
+  link('Lier', 'Lier le chant d’une pièce au chant d’une autre : la première passe dessous');
 
   final String label;
   final String description;

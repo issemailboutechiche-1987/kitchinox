@@ -413,6 +413,55 @@ class ArtProject {
     return true;
   }
 
+  /// Les 4 chants d'une pièce, numérotés 1 à 4 : (axe de la normale, sens).
+  /// 1 : bas de la largeur, 2 : bout droit de la longueur, 3 : haut de la largeur, 4 : bout gauche.
+  static List<(int, int)> edgesOf(ArtPanel p) {
+    final t = _ta(p);
+    final ins = [for (var k = 0; k < 3; k++) if (k != t) k];
+    final u = (_hi(p, ins[0]) - _lo(p, ins[0])) >= (_hi(p, ins[1]) - _lo(p, ins[1])) ? ins[0] : ins[1];
+    final v = ins.firstWhere((k) => k != u);
+    return [(v, -1), (u, 1), (v, 1), (u, -1)];
+  }
+
+  /// Lie le chant [ea] (1 à 4) de [a] au chant [eb] de [b] : [a] se place sous [b], perpendiculaire,
+  /// son chant contre la face de [b], à fleur du chant [eb] ; [b] passe dessus (il couvre le chant de [a]).
+  /// [b] ne bouge pas. Faux si les numéros sont hors de 1 à 4.
+  static bool linkEdges(ArtPanel a, int ea, ArtPanel b, int eb) {
+    if (ea < 1 || ea > 4 || eb < 1 || eb > 4) return false;
+    final (aAx, _) = edgesOf(a)[ea - 1];
+    final (bAx, bSign) = edgesOf(b)[eb - 1];
+    final tb = _ta(b);
+    final lb = [0, 1, 2].firstWhere((k) => k != tb && k != bAx); // direction du chant de b
+    // dimensions de a : épaisseur, longueur de son chant, hauteur (distance de ce chant au chant opposé)
+    final ta = _ta(a);
+    final aLen = [0, 1, 2].firstWhere((k) => k != ta && k != aAx); // le chant de a court le long de cet axe
+    final t = _th(a), len = _hi(a, aLen) - _lo(a, aLen), h = _hi(a, aAx) - _lo(a, aAx);
+    final lo = <int, double>{}, hi = <int, double>{};
+    // le long du chant de b : même départ, longueur du chant de a
+    lo[lb] = _lo(b, lb);
+    hi[lb] = lo[lb]! + len;
+    // sous b (côté négatif de son épaisseur), collé à sa face
+    hi[tb] = _lo(b, tb);
+    lo[tb] = hi[tb]! - h;
+    // à fleur du chant choisi de b, vers l'intérieur
+    if (bSign > 0) {
+      hi[bAx] = _hi(b, bAx);
+      lo[bAx] = hi[bAx]! - t;
+    } else {
+      lo[bAx] = _lo(b, bAx);
+      hi[bAx] = lo[bAx]! + t;
+    }
+    a
+      ..x = lo[0]!
+      ..y = lo[1]!
+      ..z = lo[2]!
+      ..w = hi[0]! - lo[0]!
+      ..h = hi[1]! - lo[1]!
+      ..d = hi[2]! - lo[2]!;
+    if (a.role == ArtRole.decor || a.role == ArtRole.tablette) a.role = bAx == 0 ? ArtRole.montant : a.role;
+    return true;
+  }
+
   /// Oriente [p] : 'montant' (debout, épaisseur en largeur), 'tablette' (à plat), 'facade' (de face) ;
   /// sa plus grande dimension devient la hauteur (montant, façade) ou la largeur (tablette). Le coin bas avant gauche reste en place.
   static void orient(ArtPanel p, String how) {

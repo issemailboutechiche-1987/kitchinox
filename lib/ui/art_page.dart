@@ -85,6 +85,7 @@ class _ArtPageState extends State<ArtPage> {
   double gridStep = 10; // pas de la grille (mm)
   bool snapGrid = true, snapPoints = true, snapMid = true, snapAlign = true;
   final List<(V3, V3, int)> _guides = []; // guides d'alignement affichés : de, à, axe
+  (ArtPanel, int)? _linkFirst; // Lier : 1er chant choisi (pièce, numéro)
   bool cutOnX = true; // Couper : ligne de coupe perpendiculaire à X (sinon à Y)
   ArtPanel? _cutPanel; // panneau sous le doigt pour la coupe
   double? _cutAt; // position de la coupe sur son axe (mm)
@@ -237,6 +238,7 @@ class _ArtPageState extends State<ArtPage> {
   void _selectTool(CadTool tool) {
     setState(() {
       _guides.clear();
+      _linkFirst = null;
       activeTool = tool;
       activePoints.clear();
       previewShape = null;
@@ -261,6 +263,7 @@ class _ArtPageState extends State<ArtPage> {
         CadTool.edgeBand => selectedPanel != null ? 'Choisissez l’épaisseur de chant à appliquer.' : 'Cliquez sur un panneau pour lui appliquer un chant.',
         CadTool.groove => selectedPanel != null ? 'Appliquez ou retirez la rainure pour fond.' : 'Cliquez sur un panneau pour configurer sa rainure.',
         CadTool.cut => 'Touchez la feuille là où couper, ou tapez la distance depuis le bord puis Entrée.',
+        CadTool.link => 'Touchez le chant de la pièce qui passera dessous, puis le chant de la pièce qui la couvre.',
       };
     });
   }
@@ -885,6 +888,7 @@ class _ArtPageState extends State<ArtPage> {
       LogicalKeyboardKey.keyB => CadTool.edgeBand,
       LogicalKeyboardKey.keyG => CadTool.groove,
       LogicalKeyboardKey.keyX => CadTool.cut,
+      LogicalKeyboardKey.keyK => CadTool.link,
       _ => null,
     };
     if (tool == null) return KeyEventResult.ignored;
@@ -1036,6 +1040,10 @@ class _ArtPageState extends State<ArtPage> {
       } else {
         _finishRect(activePoints.first, pt);
       }
+      return;
+    }
+    if (activeTool == CadTool.link) {
+      _linkTap(px);
       return;
     }
     if (activeTool == CadTool.cut) {
@@ -1435,6 +1443,87 @@ class _ArtPageState extends State<ArtPage> {
     final face = ta == 1 ? hi(ta) : (ta == 2 ? lo(ta) : hi(ta));
     V3 pt(double o) => V3.zero.withAxis(ax, at).withAxis(ta, face).withAxis(other, o);
     return (pt(lo(other)), pt(hi(other)));
+  }
+
+  /// Segment d'un chant (1 à 4) de [p], sur sa face tournée vers la caméra.
+  (V3, V3) _edgeSegment(ArtPanel p, int n) {
+    final (ax, sign) = ArtProject.edgesOf(p)[n - 1];
+    final t = thicknessAxis(p);
+    final m = [0, 1, 2].firstWhere((k) => k != t && k != ax);
+    double lo(int k) => k == 0 ? p.x : k == 1 ? p.y : p.z;
+    double hi(int k) => k == 0 ? p.right : k == 1 ? p.top : p.back;
+    final c = V3(p.x + p.w / 2, p.y + p.h / 2, p.z + p.d / 2);
+    final toCam = cam.ortho ? cam.forward * -1 : cam.eye - c;
+    final face = toCam[t] >= 0 ? hi(t) : lo(t);
+    final at = sign > 0 ? hi(ax) : lo(ax);
+    final base = V3.zero.withAxis(t, face).withAxis(ax, at);
+    return (base.withAxis(m, lo(m)), base.withAxis(m, hi(m)));
+  }
+
+  /// Chant le plus proche du doigt (à moins de 22 pixels), parmi les pièces libres.
+  (ArtPanel, int)? _pickEdge(Offset px) {
+    (ArtPanel, int)? best;
+    var bestD = 22.0;
+    for (final p in art.free) {
+      for (var n = 1; n <= 4; n++) {
+        final (a, b) = _edgeSegment(p, n);
+        final d = _distToSegment(px, cam.project(a).$1, cam.project(b).$1);
+        if (d < bestD) {
+          bestD = d;
+          best = (p, n);
+        }
+      }
+    }
+    return best;
+  }
+
+  /// Numéros des chants à afficher (outil Lier) : position, texte, choisi.
+  List<(V3, String, bool)> _edgeLabels() {
+    if (activeTool != CadTool.link) return const [];
+    final out = <(V3, String, bool)>[];
+    for (final p in art.free) {
+      final c = V3(p.x + p.w / 2, p.y + p.h / 2, p.z + p.d / 2);
+      for (var n = 1; n <= 4; n++) {
+        final (a, b) = _edgeSegment(p, n);
+        final mid = (a + b) * 0.5;
+        // un peu vers l'intérieur de la pièce, pour ne pas chevaucher la pièce voisine
+        final inward = (c.withAxis(thicknessAxis(p), mid[thicknessAxis(p)]) - mid);
+        final pos = mid + inward * (math.min(60, inward.length * 0.25) / (inward.length == 0 ? 1 : inward.length));
+        out.add((pos, '$n', _linkFirst != null && identical(_linkFirst!.$1, p) && _linkFirst!.$2 == n));
+      }
+    }
+    return out;
+  }
+
+  /// Outil Lier : 1er toucher = chant de la pièce du dessous, 2e = chant de la pièce du dessus.
+  void _linkTap(Offset px) {
+    final e = _pickEdge(px);
+    if (e == null) {
+      setState(() => cadStatus = 'Touchez un chant (près d’un numéro).');
+      return;
+    }
+    final first = _linkFirst;
+    if (first == null || identical(first.$1, e.$1)) {
+      setState(() {
+        _linkFirst = e;
+        selection
+          ..clear()
+          ..add(e.$1);
+        selectedPanel = e.$1;
+        cadStatus = trp('Chant {0} choisi : touchez le chant de la pièce qui passera dessus.', [e.$2]);
+      });
+      return;
+    }
+    change(() {
+      ArtProject.linkEdges(first.$1, first.$2, e.$1, e.$2);
+      _linkFirst = null;
+      selection
+        ..clear()
+        ..addAll([first.$1, e.$1]);
+      selectedPanel = first.$1;
+    });
+    _msg(trp('Pièces liées : chant {0} sous le chant {1}', [first.$2, e.$2]));
+    cadStatus = 'Touchez le chant de la pièce qui passera dessous, puis le chant de la pièce qui la couvre.';
   }
 
   /// Axe coupé : X (largeur) ou Y (hauteur, ou profondeur pour une feuille posée à plat).
@@ -2437,6 +2526,8 @@ class _ArtPageState extends State<ArtPage> {
                     liveLabel: _liveLabel,
                     cutLine: _cutLineSegment(),
                     guides: List.of(_guides),
+                    edgeLabels: _edgeLabels(),
+                    linkEdge: _linkFirst == null ? null : _edgeSegment(_linkFirst!.$1, _linkFirst!.$2),
                     gridStep: gridStep,
                   ),
                 ),
@@ -3587,6 +3678,8 @@ class _ScenePainter extends CustomPainter {
   final (V3, V3)? cutLine; // ligne de coupe en cours (outil Couper)
   final List<(V3, V3, int)> guides; // guides d'alignement (pointillés aux couleurs des axes)
   final double gridStep;
+  final List<(V3, String, bool)> edgeLabels; // outil Lier : numéros des chants
+  final (V3, V3)? linkEdge; // outil Lier : chant déjà choisi
 
   _ScenePainter({
     required this.cam,
@@ -3614,6 +3707,8 @@ class _ScenePainter extends CustomPainter {
     this.cutLine,
     this.guides = const [],
     this.gridStep = 10,
+    this.edgeLabels = const [],
+    this.linkEdge,
   }) : super(repaint: cam);
 
   /// Vue éclatée : chaque composant s'écarte du centre de son caisson dans sa direction naturelle.
@@ -4099,6 +4194,24 @@ class _ScenePainter extends CustomPainter {
           tp.paint(c, Offset(r.left + 7, r.top + 4));
         }
       }
+    }
+
+    // 5 quinquies. Outil Lier : chant choisi (orange épais) et numéros des chants
+    final le = linkEdge;
+    if (le != null) {
+      c.drawLine(p(le.$1), p(le.$2), Paint()
+        ..color = const Color(0xFFF26522)
+        ..strokeWidth = 5
+        ..strokeCap = StrokeCap.round);
+    }
+    for (final (pos, text, chosen) in edgeLabels) {
+      final q = p(pos);
+      c.drawCircle(q, 9, Paint()..color = chosen ? const Color(0xFFF26522) : const Color(0xFF1E293B));
+      final tp = TextPainter(
+        text: TextSpan(text: text, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(c, q - Offset(tp.width / 2, tp.height / 2));
     }
 
     // 5 quater. Guides d'alignement (pointillés aux couleurs des axes)

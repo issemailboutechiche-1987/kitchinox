@@ -217,4 +217,19 @@ void main() {
     ArtProject.orient(piece, 'facade');
     expect((piece.w, piece.h, piece.d), (600, 2092, 18));
   });
+
+  test('lier deux chants : la 1re pièce se place sous la 2e, perpendiculaire, à fleur du chant', () {
+    final b = ArtPanel(id: 'b', role: ArtRole.decor, x: 0, y: 500, z: 0, w: 600, h: 18, d: 400);
+    final a = ArtPanel(id: 'a', role: ArtRole.decor, x: 1000, y: 0, z: 0, w: 400, h: 18, d: 300);
+    // chant 1 de a (le long de ses 400 mm) sous le chant 2 de b (bout droit)
+    expect(ArtProject.linkEdges(a, 1, b, 2), isTrue);
+    expect((a.x, a.y, a.z), (582, 200, 0));
+    expect((a.w, a.h, a.d), (18, 300, 400));
+    // b couvre le chant de a : b est l'hôte de l'assemblage (vis dans b, chant de a)
+    final m = computeMachiningElements([a, b]);
+    final screws = m.elements.where((e) => e.kind == MachiningKind.screw).toList();
+    expect(screws, isNotEmpty);
+    expect(screws.every((e) => e.panelId == 'b' && e.partnerPanelId == 'a'), isTrue);
+    expect(ArtProject.linkEdges(a, 5, b, 1), isFalse);
+  });
 }

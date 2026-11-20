@@ -2244,6 +2244,12 @@ const Map<String, String> enDict = {
   "Rainure": "Groove",
   "Usinages": "Machining",
   "Coupe d’angle": "Corner cut",
+  "Lier": "Join",
+  "Lier deux chants (le 1er passe dessous)": "Join two edges (the 1st goes under)",
+  "Touchez le chant de la pièce qui passera dessous, puis le chant de la pièce qui la couvre.": "Touch the edge of the part that goes under, then the edge of the part that covers it.",
+  "Touchez un chant (près d’un numéro).": "Touch an edge (near a number).",
+  "Chant {0} choisi : touchez le chant de la pièce qui passera dessus.": "Edge {0} chosen: touch the edge of the part that goes over.",
+  "Pièces liées : chant {0} sous le chant {1}": "Parts joined: edge {0} under edge {1}",
 };
 
 const Map<String, String> arDict = {
@@ -4490,4 +4496,10 @@ const Map<String, String> arDict = {
   "Rainure": "المجرى",
   "Usinages": "التشغيل",
   "Coupe d’angle": "قطع الزاوية",
+  "Lier": "ربط",
+  "Lier deux chants (le 1er passe dessous)": "ربط حافتين (الأولى في الأسفل)",
+  "Touchez le chant de la pièce qui passera dessous, puis le chant de la pièce qui la couvre.": "المس حافة القطعة التي ستكون في الأسفل، ثم حافة القطعة التي تغطيها.",
+  "Touchez un chant (près d’un numéro).": "المس حافة (قرب رقم).",
+  "Chant {0} choisi : touchez le chant de la pièce qui passera dessus.": "تم اختيار الحافة {0}: المس حافة القطعة التي ستكون في الأعلى.",
+  "Pièces liées : chant {0} sous le chant {1}": "تم ربط القطع: الحافة {0} تحت الحافة {1}",
 };

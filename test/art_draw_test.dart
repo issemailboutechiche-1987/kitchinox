@@ -238,6 +238,34 @@ void main() {
     await t.pump(const Duration(seconds: 6));
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('outil Lier : numéros des chants, 1er chant dessous, 2e dessus', (t) async {
+    t.view.physicalSize = const Size(1366, 1024);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    final art = st.project.art;
+    final b = ArtPanel(id: 'b', role: ArtRole.decor, x: 0, y: 0, z: 0, w: 600, h: 18, d: 400);
+    final a = ArtPanel(id: 'a', role: ArtRole.decor, x: 900, y: 0, z: 0, w: 400, h: 18, d: 300);
+    art.free.addAll([b, a]);
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    await t.sendKeyEvent(LogicalKeyboardKey.keyK);
+    await t.pumpAndSettle();
+    await expectLater(find.byKey(const Key('art-viewport')), matchesGoldenFile('goldens/art_lier.png'));
+    // chant 1 de a (avant, le long de x) puis chant 2 de b (bout droit)
+    await t.tapAt(vp.topLeft + (s.screenOf(1100.0, 18.0, 0.0) as Offset));
+    await t.pumpAndSettle();
+    await t.tapAt(vp.topLeft + (s.screenOf(600.0, 18.0, 200.0) as Offset));
+    await t.pumpAndSettle();
+    expect((a.w, a.h, a.d), (18, 300, 400), reason: 'a debout sous b');
+    expect(a.top, 0, reason: 'sous b, contre sa face du dessous');
+    expect(a.right, 600, reason: 'à fleur du chant droit de b');
+    await t.pump(const Duration(seconds: 6));
+    expect(t.takeException(), isNull);
+  });
 }
 
 /// Point écran du centre du dessus d'un panneau (par la caméra de la page).
