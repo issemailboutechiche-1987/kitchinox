@@ -385,7 +385,6 @@ class ArtCadContextHud extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (extra != null) ...[const SizedBox(width: 8), extra!],
                 if (measureController != null && measureHint.isNotEmpty) ...[
                   const SizedBox(width: 8),
                   // boîte des cotes : on peut aussi taper directement au clavier, puis Entrée
@@ -423,6 +422,11 @@ class ArtCadContextHud extends StatelessWidget {
                 ),
               ],
             ),
+            // réglages propres à l'outil, sur leur propre ligne (défilable si l'écran est étroit)
+            if (extra != null) ...[
+              const SizedBox(height: 8),
+              SingleChildScrollView(scrollDirection: Axis.horizontal, child: extra!),
+            ],
             const SizedBox(height: 8),
 
             // Panneau contextuel selon l'outil (scrollable horizontalement pour éviter tout débordement)

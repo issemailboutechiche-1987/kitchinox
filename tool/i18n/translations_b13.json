@@ -1,0 +1,86 @@
+{
+"Cercle (CNC)": [
+"Circle (CNC)",
+"دائرة (CNC)"
+],
+"Coupe circulaire : réservée à la CNC (réglages du débit : machine CNC).": [
+"Circular cut: CNC only (cutting settings: CNC machine).",
+"القطع الدائري: خاص بـ CNC (إعدادات التقطيع: آلة CNC)."
+],
+"Coupe à {0} mm : {1} pièce(s) traversée(s). Touchez « Couper » ou tapez une cote puis Entrée.": [
+"Cut at {0} mm: {1} part(s) crossed. Touch « Cut » or type a value then Enter.",
+"قطع على {0} مم: {1} قطعة. المس « قطع » أو اكتب قيمة ثم Enter."
+],
+"Disque Ø {0} mm découpé (CNC)": [
+"Ø {0} mm disc cut (CNC)",
+"تم قطع قرص Ø {0} مم (CNC)"
+],
+"Désépingler": [
+"Unpin",
+"إلغاء التثبيت"
+],
+"Désépingler (se replie au toucher de la zone de travail)": [
+"Unpin (folds away when touching the work area)",
+"إلغاء التثبيت (يُطوى عند لمس منطقة العمل)"
+],
+"Grande coupe": [
+"Big cut",
+"قطع كبير"
+],
+"Le cercle doit tenir entièrement dans une pièce.": [
+"The circle must fit entirely inside one part.",
+"يجب أن تكون الدائرة داخل قطعة واحدة بالكامل."
+],
+"Panneau latéral": [
+"Side panel",
+"اللوحة الجانبية"
+],
+"Parallèles": [
+"Parallel",
+"متوازية"
+],
+"Petite coupe": [
+"Small cut",
+"قطع صغير"
+],
+"Placez d’abord la ligne de coupe.": [
+"Place the cut line first.",
+"ضع خط القطع أولاً."
+],
+"Replier": [
+"Fold away",
+"طي"
+],
+"Touchez le centre du cercle.": [
+"Touch the circle centre.",
+"المس مركز الدائرة."
+],
+"diamètre, ex. 300": [
+"diameter, e.g. 300",
+"القطر، مثال 300"
+],
+"disque Ø {0}, CNC": [
+"Ø {0} disc, CNC",
+"قرص Ø {0}، CNC"
+],
+"découpe Ø {0} à {1} ; {2}": [
+"Ø {0} cut-out at {1}; {2}",
+"فتحة Ø {0} عند {1}؛ {2}"
+],
+"largeur;nombre ex. 300;5": [
+"width;count e.g. 300;5",
+"العرض;العدد مثال 300;5"
+],
+"{0} coupe(s) faite(s), trait de scie {1} mm": [
+"{0} cut(s) made, saw kerf {1} mm",
+"تم {0} قطع، سُمك الشفرة {1} مم"
+],
+"Épingler (reste ouvert)": [
+"Pin (stays open)",
+"تثبيت (يبقى مفتوحاً)"
+],
+"Placez la ligne sur une pièce.": [
+"Place the line on a part.",
+"ضع الخط على قطعة."
+]
+}

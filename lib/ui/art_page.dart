@@ -87,7 +87,11 @@ class _ArtPageState extends State<ArtPage> {
   final List<(V3, V3, int)> _guides = []; // guides d'alignement affichés : de, à, axe
   (ArtPanel, int)? _linkFirst; // Lier : 1er chant choisi (pièce, numéro)
   bool cutOnX = true; // Couper : ligne de coupe perpendiculaire à X (sinon à Y)
-  ArtPanel? _cutPanel; // panneau sous le doigt pour la coupe
+  String cutMode = 'big'; // 'big' grande coupe (toute la largeur), 'small' sur la sélection, 'parallel', 'circle' (CNC)
+  int _cutsDone = 0; // la petite coupe s'active après une première coupe
+  V3? _circleAt; // coupe circulaire : centre choisi
+  // fenêtres : le panneau latéral se replie au toucher de la zone de travail, sauf s'il est épinglé
+  bool sideOpen = true, sidePinned = false, dockPinned = false;
   double? _cutAt; // position de la coupe sur son axe (mm)
   String? sheetMaterial = 'mdf_blanc_18'; // feuille entière de départ // matière du tarif des prochains panneaux (null : selon le rôle) // Ctrl (ou Maj) + clic : plusieurs panneaux
   CadShape? selectedShape;
@@ -219,9 +223,18 @@ class _ArtPageState extends State<ArtPage> {
     }
   }
 
-  void _msg(String m) => ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating, width: 420));
+  /// Message bref, en bas à droite au-dessus de la barre d'outils du bas (il ne la couvre jamais).
+  void _msg(String m) {
+    final w = MediaQuery.sizeOf(context).width;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(m),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+        margin: EdgeInsets.only(left: math.max(16, w - 436), right: 16, bottom: 170),
+      ));
+  }
 
   /// Répartit [n] colonnes de même largeur.
   void _equalColumns(ArtBox b, int n) {
@@ -236,6 +249,11 @@ class _ArtPageState extends State<ArtPage> {
 
   // ---------------------------------------------------------------- sélection et outils CAO
   void _selectTool(CadTool tool) {
+    if (tool == CadTool.cut && activeTool != CadTool.cut) {
+      // découpe : toujours vue de dessus, cadrée sur les pièces
+      cam.view('dessus');
+      cam.fit(art.panels);
+    }
     setState(() {
       _guides.clear();
       _linkFirst = null;
@@ -549,7 +567,11 @@ class _ArtPageState extends State<ArtPage> {
         CadTool.pushPull => tr('épaisseur ou poussée, ex. 18'),
         CadTool.move => tr('dx;dy;dz ex. 0;0;600'),
         CadTool.rotate => tr('angle, ex. 90'),
-        CadTool.cut => tr('distance du bord, ex. 600'),
+        CadTool.cut => switch (cutMode) {
+            'parallel' => tr('largeur;nombre ex. 300;5'),
+            'circle' => tr('diamètre, ex. 300'),
+            _ => tr('distance du bord, ex. 600'),
+          },
         _ => selectedPanel != null ? tr('L;H;P ex. 600;720;18') : '',
       };
 
@@ -601,14 +623,16 @@ class _ArtPageState extends State<ArtPage> {
       case CadTool.rotate:
         _applyRotate(v[0]);
       case CadTool.cut:
-        final p = _cutPanel ?? selectedPanel;
-        if (p == null) {
-          _msg(tr('Touchez d’abord la feuille à couper.'));
-          return;
+        final k = widget.state.project.cut.kerf.toDouble();
+        if (cutMode == 'circle') {
+          _applyCut(at: v[0]);
+        } else if (cutMode == 'parallel') {
+          // « 300;5 » : 5 bandes de 300 mm depuis le bord
+          final w = v[0], n = v.length > 1 ? v[1].round().clamp(1, 50) : 1;
+          _applyCut(at: _cutOrigin + w + k / 2, repeat: n, step: w);
+        } else {
+          _applyCut(at: _cutOrigin + v[0] + k / 2);
         }
-        final ax = _cutAxis(p);
-        final lo = ax == 0 ? p.x : ax == 1 ? p.y : p.z;
-        _splitPanel(p, ax, lo + v[0] + widget.state.project.cut.kerf / 2);
       case CadTool.circle || CadTool.polygon when activePoints.length == 1:
         final c = activePoints.first;
         final r = v[0].abs();
@@ -838,6 +862,10 @@ class _ArtPageState extends State<ArtPage> {
         _closeLineLoop();
         return KeyEventResult.handled;
       }
+      if (activeTool == CadTool.cut) {
+        _applyCut();
+        return KeyEventResult.handled;
+      }
       return KeyEventResult.ignored;
     }
     if (k == LogicalKeyboardKey.backspace && measure.text.isNotEmpty) {
@@ -1015,7 +1043,7 @@ class _ArtPageState extends State<ArtPage> {
           selectedPanel = hit;
         }
         selectedShape = null;
-      } else if (!add) {
+      } else if (!add && !dockPinned) {
         selectedShape = _pickSketch(px);
         selectedPanel = null;
         selection.clear();
@@ -1047,10 +1075,18 @@ class _ArtPageState extends State<ArtPage> {
       return;
     }
     if (activeTool == CadTool.cut) {
-      // toucher : coupe à l'endroit touché (aimanté tous les 10 mm)
+      // toucher : place la ligne (ou le centre du cercle) ; « Couper » ou Entrée applique
+      if (cutMode == 'small' || (cutMode == 'parallel' && HardwareKeyboard.instance.isControlPressed)) {
+        // petite coupe : toucher une pièce l'ajoute ou la retire de la sélection
+        final f = pickFace(cam, art.panels, px);
+        if (f != null && art.free.contains(f.panel)) {
+          setState(() {
+            if (!selection.remove(f.panel)) selection.add(f.panel);
+            selectedPanel = selection.isEmpty ? null : selection.last;
+          });
+        }
+      }
       _cutHover(px);
-      final p = _cutPanel, at = _cutAt;
-      if (p != null && at != null) _splitPanel(p, _cutAxis(p), at);
       return;
     }
     if (activeTool == CadTool.rotatedRectangle) {
@@ -1431,18 +1467,14 @@ class _ArtPageState extends State<ArtPage> {
     if (pp != null) _msg(trp('{0} : {1} mm, feuille {2} × {3}', [tr(pp.name), pp.thickness, pp.length, pp.width]));
   }
 
-  /// Segment de la ligne de coupe en cours (sur la face visible de la feuille).
+  /// Ligne de coupe en cours : sur toute la zone de travail (grande coupe), à la hauteur du dessus des pièces.
   (V3, V3)? _cutLineSegment() {
-    final p = _cutPanel, at = _cutAt;
-    if (activeTool != CadTool.cut || p == null || at == null) return null;
-    final ax = _cutAxis(p), ta = thicknessAxis(p);
-    final other = [0, 1, 2].firstWhere((k) => k != ax && k != ta);
-    double lo(int k) => k == 0 ? p.x : k == 1 ? p.y : p.z;
-    double hi(int k) => k == 0 ? p.right : k == 1 ? p.top : p.back;
-    // face visible : le dessus d'une feuille à plat, l'avant d'un panneau debout
-    final face = ta == 1 ? hi(ta) : (ta == 2 ? lo(ta) : hi(ta));
-    V3 pt(double o) => V3.zero.withAxis(ax, at).withAxis(ta, face).withAxis(other, o);
-    return (pt(lo(other)), pt(hi(other)));
+    final at = _cutAt;
+    if (activeTool != CadTool.cut || at == null || cutMode == 'circle') return null;
+    final top = art.free.isEmpty ? 0.0 : art.free.map((p) => p.top).reduce(math.max);
+    final ax = _cutWorldAxis, other = ax == 0 ? 2 : 0;
+    V3 pt(double o) => V3.zero.withAxis(ax, at).withAxis(1, top).withAxis(other, o);
+    return (pt(-100000), pt(100000));
   }
 
   /// Segment d'un chant (1 à 4) de [p], sur sa face tournée vers la caméra.
@@ -1526,47 +1558,121 @@ class _ArtPageState extends State<ArtPage> {
     cadStatus = 'Touchez le chant de la pièce qui passera dessous, puis le chant de la pièce qui la couvre.';
   }
 
-  /// Axe coupé : X (largeur) ou Y (hauteur, ou profondeur pour une feuille posée à plat).
-  int _cutAxis(ArtPanel p) {
-    final ta = thicknessAxis(p);
-    final inPlane = [for (var k = 0; k < 3; k++) if (k != ta) k];
-    final xAx = inPlane.contains(0) ? 0 : inPlane.first;
-    final yAx = inPlane.firstWhere((k) => k != xAx);
-    return cutOnX ? xAx : yAx;
+  /// Axe de coupe vu de dessus : X (ligne verticale à l'écran) ou profondeur Z (ligne horizontale).
+  int get _cutWorldAxis => cutOnX ? 0 : 2;
+
+  /// Pièces à plat que la coupe peut traverser : toutes (grande coupe) ou la sélection (petite coupe).
+  List<ArtPanel> get _cutTargets {
+    final flat = art.free.where((p) => thicknessAxis(p) == 1);
+    if (cutMode == 'small') return [for (final p in flat) if (selection.contains(p)) p];
+    if (cutMode == 'parallel' && selection.isNotEmpty) return [for (final p in flat) if (selection.contains(p)) p];
+    return flat.toList();
   }
 
-  /// Ligne de coupe sous le doigt : panneau touché et position (au mm, aimantée tous les 10 mm).
+  /// Ligne de coupe sous le doigt : position sur l'axe de coupe, au pas de la grille, aimantée aux bords des pièces.
   void _cutHover(Offset px) {
-    final f = pickFace(cam, art.panels, px);
-    if (f == null || !art.free.contains(f.panel)) {
-      setState(() {
-        _cutPanel = null;
-        _cutAt = null;
-      });
+    final top = art.free.isEmpty ? 0.0 : art.free.map((p) => p.top).reduce(math.max);
+    final hit = cam.hitPlane(px, 1, top);
+    if (hit == null) return;
+    if (cutMode == 'circle') {
+      setState(() => _circleAt = V3((hit.x / gridStep).round() * gridStep, top, (hit.z / gridStep).round() * gridStep));
       return;
     }
-    final hit = cam.hitPlane(px, f.axis, f.plane);
-    if (hit == null) return;
-    final p = f.panel;
-    final ax = _cutAxis(p);
-    final lo = ax == 0 ? p.x : ax == 1 ? p.y : p.z, hi = ax == 0 ? p.right : ax == 1 ? p.top : p.back;
-    final at = ((hit[ax] - lo) / 10).round() * 10 + lo;
+    final ax = _cutWorldAxis;
+    var at = snapGrid ? (hit[ax] / gridStep).round() * gridStep : hit[ax];
+    // aimant : bords des pièces à moins de 10 pixels
+    for (final p in art.free) {
+      for (final c in [ax == 0 ? p.x : p.z, ax == 0 ? p.right : p.back]) {
+        if (_px(hit.withAxis(ax, c), hit) < 10) at = c;
+      }
+    }
+    final targets = _cutTargets.where((p) => at > (ax == 0 ? p.x : p.z) + 1 && at < (ax == 0 ? p.right : p.back) - 1).toList();
     setState(() {
-      _cutPanel = p;
-      _cutAt = at.clamp(lo + 1, hi - 1).toDouble();
-      cadStatus = trp('Coupe à {0} mm du bord ({1} mm de l’autre côté)', [(_cutAt! - lo).round(), (hi - _cutAt!).round()]);
+      _cutAt = at;
+      cadStatus = targets.isEmpty
+          ? 'Placez la ligne sur une pièce.'
+          : trp('Coupe à {0} mm : {1} pièce(s) traversée(s). Touchez « Couper » ou tapez une cote puis Entrée.', [at.round(), targets.length]);
     });
   }
 
-  /// Coupe [p] en deux sur l'axe [ax] à la cote [at] ; le trait de scie est retiré entre les deux pièces.
-  void _splitPanel(ArtPanel p, int ax, double at) {
+  /// Origine des cotes tapées : bord gauche (ou avant) des pièces visées.
+  double get _cutOrigin {
+    final t = _cutTargets;
+    final ax = _cutWorldAxis;
+    if (t.isEmpty) return 0;
+    return t.map((p) => ax == 0 ? p.x : p.z).reduce(math.min);
+  }
+
+  /// Applique la coupe en cours selon le mode : grande, petite, parallèles ou circulaire.
+  void _applyCut({double? at, int repeat = 1, double? step}) {
+    final ax = _cutWorldAxis;
     final k = widget.state.project.cut.kerf.toDouble();
-    final lo = ax == 0 ? p.x : ax == 1 ? p.y : p.z, hi = ax == 0 ? p.right : ax == 1 ? p.top : p.back;
-    final a1 = at - k / 2, b0 = at + k / 2;
-    if (a1 - lo < 1 || hi - b0 < 1) {
+    if (cutMode == 'circle') {
+      if (widget.state.project.cut.machine != 'cnc') {
+        _msg(tr('Coupe circulaire : réservée à la CNC (réglages du débit : machine CNC).'));
+        return;
+      }
+      final c = _circleAt;
+      final dia = at ?? 300;
+      if (c == null) {
+        _msg(tr('Touchez le centre du cercle.'));
+        return;
+      }
+      final host = art.free.where((p) => thicknessAxis(p) == 1 && c.x - dia / 2 >= p.x && c.x + dia / 2 <= p.right && c.z - dia / 2 >= p.z && c.z + dia / 2 <= p.back).firstOrNull;
+      if (host == null) {
+        _msg(tr('Le cercle doit tenir entièrement dans une pièce.'));
+        return;
+      }
+      final disc = host.copy(id: art.newId())
+        ..x = c.x - dia / 2
+        ..z = c.z - dia / 2
+        ..w = dia
+        ..d = dia
+        ..y = host.top + 2
+        ..note = L('disque Ø {0}, CNC', [dia.round()]);
+      change(() {
+        host.note = [if (host.note != null) host.note!, L('découpe Ø {0} à {1} ; {2}', [dia.round(), (c.x - host.x).round(), (c.z - host.z).round()])].join(' · ');
+        art.free.add(disc);
+        selection
+          ..clear()
+          ..add(disc);
+        selectedPanel = disc;
+        _circleAt = null;
+      });
+      _msg(trp('Disque Ø {0} mm découpé (CNC)', [dia.round()]));
+      return;
+    }
+    final first = at ?? _cutAt;
+    if (first == null) {
+      _msg(tr('Placez d’abord la ligne de coupe.'));
+      return;
+    }
+    var cuts = 0;
+    final w = step ?? 0;
+    change(() {
+      for (var i = 0; i < repeat; i++) {
+        final pos = first + i * (w + k);
+        for (final p in _cutTargets) {
+          final lo = ax == 0 ? p.x : p.z, hi = ax == 0 ? p.right : p.back;
+          if (pos - k / 2 - lo < 1 || hi - (pos + k / 2) < 1) continue;
+          _split(p, ax, pos);
+          cuts++;
+        }
+      }
+      _cutAt = null;
+    });
+    if (cuts == 0) {
       _msg(tr('Coupe hors de la pièce.'));
       return;
     }
+    _cutsDone += cuts;
+    _msg(trp('{0} coupe(s) faite(s), trait de scie {1} mm', [cuts, k.round()]));
+  }
+
+  /// Coupe [p] en deux (sans historique : appelée dans une modification) ; les deux morceaux restent sélectionnés s'il l'était.
+  void _split(ArtPanel p, int ax, double at) {
+    final k = widget.state.project.cut.kerf.toDouble();
+    final lo = ax == 0 ? p.x : ax == 1 ? p.y : p.z, hi = ax == 0 ? p.right : ax == 1 ? p.top : p.back;
     void set(ArtPanel q, double from, double to) {
       if (ax == 0) {
         q.x = from;
@@ -1581,22 +1687,14 @@ class _ArtPageState extends State<ArtPage> {
     }
 
     final a = p.copy(id: art.newId()), b = p.copy(id: art.newId());
-    set(a, lo, a1);
-    set(b, b0, hi);
-    change(() {
-      final i = art.free.indexOf(p);
-      art.free
-        ..removeAt(i)
-        ..insertAll(i, [a, b]);
-      selection
-        ..clear()
-        ..add(a);
-      selectedPanel = a;
-      _cutPanel = null;
-      _cutAt = null;
-    });
-    String dims(ArtPanel q) => ([q.w, q.h, q.d]..sort()).reversed.take(2).map((v) => v.round()).join(" × ");
-    _msg(trp('Coupé : {0} et {1} mm (trait de scie {2} mm)', [dims(a), dims(b), k.round()]));
+    set(a, lo, at - k / 2);
+    set(b, at + k / 2, hi);
+    final i = art.free.indexOf(p);
+    art.free
+      ..removeAt(i)
+      ..insertAll(i, [a, b]);
+    if (selection.remove(p)) selection.addAll([a, b]);
+    if (identical(selectedPanel, p)) selectedPanel = a;
   }
 
   /// Nouvelle création : une feuille entière du tarif, posée à plat, prête à couper.
@@ -1616,6 +1714,7 @@ class _ArtPageState extends State<ArtPage> {
       activeTool = CadTool.cut;
       cadStatus = 'Touchez la feuille là où couper, ou tapez la distance depuis le bord puis Entrée.';
     });
+    cam.view('dessus'); // découpe : vue de dessus
     cam.fit(art.panels);
     _msg(trp('Feuille {0} × {1} posée (recoupe de {2} mm déduite : {3} × {4} utiles) : choisissez Coupe X ou Y', [fl.round(), fw.round(), trim.round(), l.round(), w.round()]));
   }
@@ -2122,6 +2221,14 @@ class _ArtPageState extends State<ArtPage> {
                     style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               ),
               IconButton(
+                key: const ValueKey('dock_pin'),
+                tooltip: dockPinned ? tr('Désépingler') : tr('Épingler (reste ouvert)'),
+                isSelected: dockPinned,
+                icon: const Icon(Icons.push_pin_outlined, size: 18),
+                selectedIcon: const Icon(Icons.push_pin, size: 18, color: _orange),
+                onPressed: () => setState(() => dockPinned = !dockPinned),
+              ),
+              IconButton(
                 tooltip: tr('Supprimer (Suppr)'),
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                 onPressed: _deleteSelected,
@@ -2216,6 +2323,7 @@ class _ArtPageState extends State<ArtPage> {
             zoneId = z.id;
             column = z.col;
             if (tab == 'caisson' || tab == 'debit' || tab == 'exterieur') tab = 'facades';
+            sideOpen = true; // zone de caisson choisie : ses réglages s'affichent
           });
           return;
         }
@@ -2293,8 +2401,32 @@ class _ArtPageState extends State<ArtPage> {
               Divider(height: 1, color: scheme.outlineVariant),
               Expanded(
                 child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  SizedBox(width: side, child: _side(t, scheme)),
-                  VerticalDivider(width: 1, color: scheme.outlineVariant),
+                  if (sideOpen) ...[
+                    SizedBox(
+                      width: side,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                          IconButton(
+                            key: const ValueKey('side_pin'),
+                            visualDensity: VisualDensity.compact,
+                            tooltip: sidePinned ? tr('Désépingler (se replie au toucher de la zone de travail)') : tr('Épingler (reste ouvert)'),
+                            isSelected: sidePinned,
+                            icon: const Icon(Icons.push_pin_outlined, size: 18),
+                            selectedIcon: const Icon(Icons.push_pin, size: 18, color: _orange),
+                            onPressed: () => setState(() => sidePinned = !sidePinned),
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            tooltip: tr('Replier'),
+                            icon: const Icon(Icons.chevron_left, size: 20),
+                            onPressed: () => setState(() => sideOpen = false),
+                          ),
+                        ]),
+                        Expanded(child: _side(t, scheme)),
+                      ]),
+                    ),
+                    VerticalDivider(width: 1, color: scheme.outlineVariant),
+                  ],
                   Expanded(child: ClipRect(child: _viewport())),
                 ]),
               ),
@@ -2326,6 +2458,14 @@ class _ArtPageState extends State<ArtPage> {
       padding: const EdgeInsets.symmetric(horizontal: Tokens.s2, vertical: 4),
       child: Row(children: [
         IconButton(tooltip: tr('Accueil'), icon: const Icon(Icons.home_outlined), onPressed: () => Navigator.of(context).maybePop()),
+        IconButton(
+          key: const ValueKey('side_toggle'),
+          tooltip: tr('Panneau latéral'),
+          isSelected: sideOpen,
+          icon: const Icon(Icons.view_sidebar_outlined),
+          selectedIcon: const Icon(Icons.view_sidebar),
+          onPressed: () => setState(() => sideOpen = !sideOpen),
+        ),
         const SizedBox(width: 48, height: 40, child: LogoMark()),
         const SizedBox(width: 8),
         Text(tr('Atelier'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
@@ -2424,6 +2564,7 @@ class _ArtPageState extends State<ArtPage> {
                 _moved = false;
                 _lastScale = 1.0;
                 _pressPlaced = false;
+                if (!sidePinned && sideOpen) setState(() => sideOpen = false); // grande zone de travail
                 if (d.pointerCount == 1) _dragStart(d.localFocalPoint);
                 if (d.pointerCount == 1 && _isPlanarTool && activePoints.isEmpty) {
                   _handleTap(d.localFocalPoint);
@@ -2468,11 +2609,7 @@ class _ArtPageState extends State<ArtPage> {
                 }
               },
               onScaleEnd: (_) {
-                if (activeTool == CadTool.cut && _moved) {
-                  final p = _cutPanel, at = _cutAt;
-                  if (p != null && at != null) _splitPanel(p, _cutAxis(p), at);
-                  return;
-                }
+                if (activeTool == CadTool.cut && _moved) return; // la ligne reste où on l'a lâchée
                 if (_dragOrig != null) {
                   final dragged = _moved;
                   _dragEnd();
@@ -2525,6 +2662,7 @@ class _ArtPageState extends State<ArtPage> {
                     cursor: activePoints.isEmpty ? null : _hover,
                     liveLabel: _liveLabel,
                     cutLine: _cutLineSegment(),
+                    cutCircle: cutMode == 'circle' && activeTool == CadTool.cut ? _circleAt : null,
                     guides: List.of(_guides),
                     edgeLabels: _edgeLabels(),
                     linkEdge: _linkFirst == null ? null : _edgeSegment(_linkFirst!.$1, _linkFirst!.$2),
@@ -2587,7 +2725,28 @@ class _ArtPageState extends State<ArtPage> {
                         onDuplicateSelected: selectedPanel != null ? _duplicateSelected : null,
                         onDeleteSelected: selectedPanel != null ? _deleteSelected : null,
                         extra: activeTool == CadTool.cut
-                            ? SegmentedButton<bool>(
+                            ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [
+                                SegmentedButton<String>(
+                                  key: const ValueKey('cut_mode'),
+                                  showSelectedIcon: false,
+                                  style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                                  segments: [
+                                    ButtonSegment(value: 'big', label: Text(tr('Grande coupe'))),
+                                    ButtonSegment(value: 'small', label: Text(tr('Petite coupe')), enabled: _cutsDone > 0 || art.free.length > 1),
+                                    ButtonSegment(value: 'parallel', label: Text(tr('Parallèles'))),
+                                    ButtonSegment(
+                                        value: 'circle',
+                                        label: Text(tr('Cercle (CNC)')),
+                                        enabled: widget.state.project.cut.machine == 'cnc'),
+                                  ],
+                                  selected: {cutMode},
+                                  onSelectionChanged: (v) => setState(() {
+                                    cutMode = v.first;
+                                    _cutAt = null;
+                                    _circleAt = null;
+                                  }),
+                                ),
+                                if (cutMode != 'circle') SegmentedButton<bool>(
                                 key: const ValueKey('cut_axis'),
                                 showSelectedIcon: false,
                                 style: const ButtonStyle(visualDensity: VisualDensity.compact),
@@ -2598,10 +2757,16 @@ class _ArtPageState extends State<ArtPage> {
                                 selected: {cutOnX},
                                 onSelectionChanged: (v) => setState(() {
                                   cutOnX = v.first;
-                                  _cutPanel = null;
                                   _cutAt = null;
                                 }),
-                              )
+                              ),
+                                FilledButton.icon(
+                                  key: const ValueKey('cut_apply'),
+                                  onPressed: (cutMode == 'circle' ? _circleAt : _cutAt) == null ? null : () => _applyCut(),
+                                  icon: const Icon(Icons.content_cut, size: 16),
+                                  label: Text(tr('Couper')),
+                                ),
+                              ])
                             : activeTool.isDrawing
                             ? SizedBox(width: 230, child: _materialPicker(drawMaterial, (v) {
                                 setState(() {
@@ -3676,6 +3841,7 @@ class _ScenePainter extends CustomPainter {
   final V3? cursor; // point sous le doigt / la souris
   final String? liveLabel; // cote affichée à côté du curseur
   final (V3, V3)? cutLine; // ligne de coupe en cours (outil Couper)
+  final V3? cutCircle; // centre de la coupe circulaire (CNC)
   final List<(V3, V3, int)> guides; // guides d'alignement (pointillés aux couleurs des axes)
   final double gridStep;
   final List<(V3, String, bool)> edgeLabels; // outil Lier : numéros des chants
@@ -3705,6 +3871,7 @@ class _ScenePainter extends CustomPainter {
     this.cursor,
     this.liveLabel,
     this.cutLine,
+    this.cutCircle,
     this.guides = const [],
     this.gridStep = 10,
     this.edgeLabels = const [],
@@ -4232,7 +4399,18 @@ class _ScenePainter extends CustomPainter {
       c.drawCircle(a, 3, Paint()..color = col);
     }
 
-    // 5 ter. Ligne de coupe (tirets rouges) avec ses ciseaux
+    // 5 ter. Coupe circulaire (CNC) : centre et cercle de 300 mm par défaut
+    final cc = cutCircle;
+    if (cc != null) {
+      final q = p(cc);
+      final r = (p(cc + const V3(150, 0, 0)) - q).distance;
+      c.drawCircle(q, r, Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.4
+        ..color = const Color(0xFFDC2626));
+      c.drawCircle(q, 3.5, Paint()..color = const Color(0xFFDC2626));
+    }
+    // 5 ter. Ligne de coupe (tirets rouges)
     final cl = cutLine;
     if (cl != null) {
       final a = p(cl.$1), b = p(cl.$2);

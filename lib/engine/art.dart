@@ -36,6 +36,7 @@ class ArtPanel {
   String finish; // finition (id de la façade ou du caisson)
   String hinge; // porte : 'left' | 'right'
   Comp? comp; // composant universel (caissons paramétriques)
+  String? note; // usinage particulier noté au débit (disque CNC, découpe circulaire)
   String? hingeType; // porte : type de charnière (null : celui du meuble)
   String? material; // panneau du tarif (MDF, latté, stratifié, mince) : matière, épaisseur et format de feuille
 
@@ -64,6 +65,7 @@ class ArtPanel {
     this.comp,
     this.material,
     this.hingeType,
+    this.note,
     this.edgeLong = 0,
     this.edgeShort = 0,
     this.edgeThickness = 1.0,
@@ -94,6 +96,7 @@ class ArtPanel {
         comp: comp,
         material: material,
         hingeType: hingeType,
+        note: note,
         edgeLong: edgeLong,
         edgeShort: edgeShort,
         edgeThickness: edgeThickness,
@@ -118,6 +121,7 @@ class ArtPanel {
         'hinge': hinge,
         if (material != null) 'mat': material,
         if (hingeType != null) 'hinge_type': hingeType,
+        if (note != null) 'note': note,
         'edge_long': edgeLong,
         'edge_short': edgeShort,
         'edge_th': edgeThickness,
@@ -142,6 +146,7 @@ class ArtPanel {
         hinge: j['hinge'] as String? ?? 'left',
         material: j['mat'] as String?,
         hingeType: j['hinge_type'] as String?,
+        note: j['note'] as String?,
         edgeLong: (j['edge_long'] as num?)?.toInt() ?? 0,
         edgeShort: (j['edge_short'] as num?)?.toInt() ?? 0,
         edgeThickness: (j['edge_th'] as num?)?.toDouble() ?? 1.0,
@@ -532,7 +537,7 @@ class ArtProject {
       ];
       final c = CutPart(
         materialOf(p),
-        cuts.isEmpty ? p.role.label : '${p.role.label} (${cuts.toSet().join(', ')})',
+        [p.role.label, if (cuts.isNotEmpty) '(${cuts.toSet().join(', ')})', if (p.note != null) '(${p.note})'].join(' '),
         'Art',
         a,
         b,

@@ -20,6 +20,9 @@ void main() {
     final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    // panneau latéral épinglé : la zone de travail garde sa taille (positions à l'écran stables)
+    await t.tap(find.byKey(const ValueKey('side_pin')));
+    await t.pumpAndSettle();
     final art = st.project.art;
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
 
@@ -129,6 +132,9 @@ void main() {
     art.addBox(0, 100, 800, 720, depth: 560, doors: 0);
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    // panneau latéral épinglé : la zone de travail garde sa taille (positions à l'écran stables)
+    await t.tap(find.byKey(const ValueKey('side_pin')));
+    await t.pumpAndSettle();
     await expectLater(find.byKey(const Key('art-viewport')), matchesGoldenFile('goldens/art_chants_rainures.png'));
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
     final s = t.state(find.byType(ArtPage)) as dynamic;
@@ -174,6 +180,7 @@ void main() {
     // la feuille est la cible : coupe X tapée
     final s = t.state(find.byType(ArtPage)) as dynamic;
     expect(s.activeTool.toString(), contains('cut'));
+    expect(s.cam.pitch as double, greaterThan(1.3), reason: 'découpe : vue de dessus');
     await t.enterText(find.byKey(const ValueKey('cad_measure')), '600');
     await t.testTextInput.receiveAction(TextInputAction.done);
     await t.pumpAndSettle();
@@ -183,8 +190,17 @@ void main() {
     expect(b.x, 600 + kerf);
     expect(a.w + b.w + kerf, 2800 - 2 * trim);
     // coupe Y sur la grande chute : 400 depuis son bord
+    await t.ensureVisible(find.text('Coupe Y'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Coupe Y'));
     await t.pumpAndSettle();
+    // petite coupe : seulement la chute choisie
+    await t.ensureVisible(find.text('Petite coupe'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Petite coupe'));
+    await t.pumpAndSettle();
+    (s.selection as Set).clear();
+    (s.selection as Set).add(b);
     s.selectedPanel = b;
     await t.enterText(find.byKey(const ValueKey('cad_measure')), '400');
     await t.testTextInput.receiveAction(TextInputAction.done);
@@ -250,6 +266,9 @@ void main() {
     art.free.addAll([b, a]);
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    // panneau latéral épinglé : la zone de travail garde sa taille (positions à l'écran stables)
+    await t.tap(find.byKey(const ValueKey('side_pin')));
+    await t.pumpAndSettle();
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
     final s = t.state(find.byType(ArtPage)) as dynamic;
     await t.sendKeyEvent(LogicalKeyboardKey.keyK);
@@ -263,6 +282,73 @@ void main() {
     expect((a.w, a.h, a.d), (18, 300, 400), reason: 'a debout sous b');
     expect(a.top, 0, reason: 'sous b, contre sa face du dessous');
     expect(a.right, 600, reason: 'à fleur du chant droit de b');
+    await t.pump(const Duration(seconds: 6));
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('découpe : vue de dessus, grande coupe sur toute la zone, parallèles, cercle CNC ; fenêtres repliées sauf épinglées', (t) async {
+    t.view.physicalSize = const Size(1366, 1024);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    final art = st.project.art;
+    final k = st.project.cut.kerf.toDouble();
+    // deux pièces à plat, l'une derrière l'autre : une grande coupe en X les traverse toutes les deux
+    art.free.addAll([
+      ArtPanel(id: 'a', role: ArtRole.decor, x: 0, y: 0, z: 0, w: 1000, h: 18, d: 400),
+      ArtPanel(id: 'b', role: ArtRole.decor, x: 0, y: 0, z: 500, w: 1000, h: 18, d: 400),
+    ]);
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
+    // toucher la zone de travail replie le panneau latéral (non épinglé)
+    expect(s.sideOpen, isTrue);
+    await t.tapAt(vp.topLeft + const Offset(40, 300));
+    await t.pumpAndSettle();
+    expect(s.sideOpen, isFalse);
+    // épinglé : il reste ouvert
+    await t.tap(find.byKey(const ValueKey('side_toggle')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('side_pin')));
+    await t.pumpAndSettle();
+    await t.tapAt(t.getRect(find.byKey(const Key('art-viewport'))).topLeft + const Offset(40, 300));
+    await t.pumpAndSettle();
+    expect(s.sideOpen, isTrue);
+
+    await t.sendKeyEvent(LogicalKeyboardKey.keyX);
+    await t.pumpAndSettle();
+    expect(s.cam.pitch as double, greaterThan(1.3), reason: 'Couper : vue de dessus');
+    // grande coupe tapée : 300 depuis le bord gauche, sur les deux pièces
+    await t.enterText(find.byKey(const ValueKey('cad_measure')), '300');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    expect(art.free, hasLength(4));
+    expect(art.free.where((q) => q.w == 300), hasLength(2));
+    // parallèles : bandes de 200 mm, 2 fois, sur la sélection (la grande chute de a)
+    final rest = art.free.firstWhere((q) => q.z == 0 && q.x > 0);
+    (s.selection as Set)
+      ..clear()
+      ..add(rest);
+    s.cutMode = 'parallel';
+    await t.enterText(find.byKey(const ValueKey('cad_measure')), '200;2');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    final strips = art.free.where((q) => q.z == 0 && q.w == 200).toList();
+    expect(strips, hasLength(2));
+    expect(strips[1].x - strips[0].right, k);
+    // cercle : réservé à la CNC
+    st.project.cut.machine = 'cnc';
+    s.cutMode = 'circle';
+    final b = art.free.firstWhere((q) => q.z == 500 && q.w > 600);
+    await t.tapAt(t.getRect(find.byKey(const Key('art-viewport'))).topLeft + (s.screenOf(b.x + b.w / 2, b.top, b.z + 200) as Offset));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('cad_measure')), '300');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    final disc = art.free.firstWhere((q) => q.note?.contains('disque') ?? false);
+    expect((disc.w, disc.d), (300, 300));
+    expect(art.cutParts().any((c) => c.name.contains('disque Ø 300')), isTrue);
     await t.pump(const Duration(seconds: 6));
     expect(t.takeException(), isNull);
   });
