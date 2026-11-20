@@ -449,6 +449,35 @@ void main() {
     await t.pump(const Duration(seconds: 6));
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('couper : clic souris = coupe ; doigt = place la ligne ; aimant au milieu', (t) async {
+    t.view.physicalSize = const Size(1366, 1024);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    final art = st.project.art;
+    art.free.add(ArtPanel(id: 'a', role: ArtRole.decor, x: 0, y: 0, z: 0, w: 1000, h: 18, d: 600));
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('side_pin')));
+    await t.pumpAndSettle();
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    await t.sendKeyEvent(LogicalKeyboardKey.keyX);
+    await t.pumpAndSettle();
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
+    // doigt près du milieu : la ligne s'y accroche, rien n'est coupé
+    final nearMid = vp.topLeft + (s.screenOf(503.0, 18.0, 300.0) as Offset);
+    await t.tapAt(nearMid, kind: PointerDeviceKind.touch);
+    await t.pumpAndSettle();
+    expect(art.free, hasLength(1));
+    expect(s.cutAtValue, 500.0);
+    // souris : un clic coupe tout de suite
+    await t.tapAt(nearMid, kind: PointerDeviceKind.mouse);
+    await t.pumpAndSettle();
+    expect(art.free, hasLength(2));
+    await t.pump(const Duration(seconds: 6));
+    expect(t.takeException(), isNull);
+  });
 }
 
 /// Point écran du centre du dessus d'un panneau (par la caméra de la page).

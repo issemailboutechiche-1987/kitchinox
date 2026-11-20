@@ -2281,6 +2281,8 @@ const Map<String, String> enDict = {
   "{0} : touchez le 2e point": "{0}: touch the 2nd point",
   "{0} = {1} mm (depuis 0 en haut à gauche) : {2} pièce(s) traversée(s). « Couper » ou cote + Entrée.": "{0} = {1} mm (from 0 at top left): {2} part(s) crossed. « Cut » or value + Enter.",
   "Touchez une arête et glissez pour la coter, ou touchez deux points.": "Touch an edge and drag to dimension it, or touch two points.",
+  "PC : un clic coupe. Tablette : placez la ligne puis « Couper », ou tapez la cote puis Entrée. La ligne s’accroche aux bords et au milieu des pièces.": "PC: one click cuts. Tablet: place the line then « Cut », or type the value then Enter. The line snaps to part edges and middles.",
+  "milieu": "middle",
 };
 
 const Map<String, String> arDict = {
@@ -4564,4 +4566,6 @@ const Map<String, String> arDict = {
   "{0} : touchez le 2e point": "{0}: المس النقطة الثانية",
   "{0} = {1} mm (depuis 0 en haut à gauche) : {2} pièce(s) traversée(s). « Couper » ou cote + Entrée.": "{0} = {1} مم (من 0 أعلى اليسار): {2} قطعة. « قطع » أو قيمة + Enter.",
   "Touchez une arête et glissez pour la coter, ou touchez deux points.": "المس حافة واسحب لقياسها، أو المس نقطتين.",
+  "PC : un clic coupe. Tablette : placez la ligne puis « Couper », ou tapez la cote puis Entrée. La ligne s’accroche aux bords et au milieu des pièces.": "الحاسوب: نقرة تقطع. اللوحي: ضع الخط ثم « قطع »، أو اكتب القيمة ثم Enter. الخط يلتصق بحواف القطع ومنتصفها.",
+  "milieu": "المنتصف",
 };

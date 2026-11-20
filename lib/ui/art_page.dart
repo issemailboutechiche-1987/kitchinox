@@ -99,7 +99,9 @@ class _ArtPageState extends State<ArtPage> {
   // navigation : main (glisser = déplacer la vue), pivot de rotation (centre de l'écran ou objet choisi)
   bool panMode = false;
   bool pivotOnObject = false;
-  int _buttons = 0; // boutons de souris enfoncés (molette ou droit : déplacer la vue)
+  int _buttons = 0;
+  PointerDeviceKind _kind = PointerDeviceKind.touch; // souris : un clic coupe ; doigt : il place la ligne
+  bool _cutOnMid = false; // la ligne est accrochée au milieu d'une pièce // boutons de souris enfoncés (molette ou droit : déplacer la vue)
   double? _cutAt; // position de la coupe sur son axe (mm)
   String? sheetMaterial = 'mdf_blanc_18'; // feuille entière de départ // matière du tarif des prochains panneaux (null : selon le rôle) // Ctrl (ou Maj) + clic : plusieurs panneaux
   CadShape? selectedShape;
@@ -133,6 +135,9 @@ class _ArtPageState extends State<ArtPage> {
 
   /// Valeur de la cote en cours (pour les tests).
   String? get dimPreviewText => _dimPreview?.text;
+
+  /// Position de la ligne de coupe (pour les tests).
+  double? get cutAtValue => _cutAt;
 
   /// Guides affichés (pour les tests).
   List<(V3, V3, int)> get guides => _guides;
@@ -1095,7 +1100,7 @@ class _ArtPageState extends State<ArtPage> {
       return;
     }
     if (activeTool == CadTool.cut) {
-      // toucher : place la ligne (ou le centre du cercle) ; « Couper » ou Entrée applique
+      // souris : un clic coupe ; doigt : place la ligne (ou le centre du cercle) ; « Couper » ou Entrée applique
       if (cutMode == 'small' || (cutMode == 'parallel' && HardwareKeyboard.instance.isControlPressed)) {
         // petite coupe : toucher une pièce l'ajoute ou la retire de la sélection
         final f = pickFace(cam, art.panels, px);
@@ -1107,6 +1112,7 @@ class _ArtPageState extends State<ArtPage> {
         }
       }
       _cutHover(px);
+      if (_kind == PointerDeviceKind.mouse && cutMode != 'small' && _cutAt != null) _applyCut();
       return;
     }
     if (activeTool == CadTool.rotatedRectangle) {
@@ -1601,10 +1607,18 @@ class _ArtPageState extends State<ArtPage> {
     }
     final ax = _cutWorldAxis;
     var at = snapGrid ? (hit[ax] / gridStep).round() * gridStep : hit[ax];
-    // aimant : bords des pièces à moins de 10 pixels
+    // aimants : bords des pièces à moins de 10 pixels, milieu d'une pièce à moins de 16 (il retient la ligne un moment)
+    _cutOnMid = false;
     for (final p in art.free) {
       for (final c in [ax == 0 ? p.x : p.z, ax == 0 ? p.right : p.back]) {
         if (_px(hit.withAxis(ax, c), hit) < 10) at = c;
+      }
+    }
+    for (final p in _cutTargets) {
+      final mid = ax == 0 ? p.x + p.w / 2 : p.z + p.d / 2;
+      if (_px(hit.withAxis(ax, mid), hit) < 16) {
+        at = mid;
+        _cutOnMid = true;
       }
     }
     final targets = _cutTargets.where((p) => at > (ax == 0 ? p.x : p.z) + 1 && at < (ax == 0 ? p.right : p.back) - 1).toList();
@@ -2667,7 +2681,10 @@ class _ArtPageState extends State<ArtPage> {
         cam.size = c.biggest;
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Listener(
-          onPointerDown: (e) => _buttons = e.buttons,
+          onPointerDown: (e) {
+            _buttons = e.buttons;
+            _kind = e.kind;
+          },
           onPointerUp: (_) => _buttons = 0,
           onPointerSignal: (e) {
             if (e is PointerScrollEvent) cam.zoomAt(e.scrollDelta.dy > 0 ? 1.12 : 0.89);
@@ -2845,7 +2862,7 @@ class _ArtPageState extends State<ArtPage> {
                     dimPreview: activeTool == CadTool.dimension ? _dimPreview : null,
                     cutLabel: _cutAt == null || activeTool != CadTool.cut || cutMode == 'circle'
                         ? null
-                        : '${_cutWorldAxis == 0 ? 'X' : 'Y'} ${_toSheet(_cutAt!, _cutWorldAxis).round()}',
+                        : '${_cutWorldAxis == 0 ? 'X' : 'Y'} ${_toSheet(_cutAt!, _cutWorldAxis).round()}${_cutOnMid ? ' · ${tr('milieu')}' : ''}',
                     sheetOrigin: activeTool == CadTool.cut ? _sheetOrigin() : null,
                     cutCircle: cutMode == 'circle' && activeTool == CadTool.cut ? _circleAt : null,
                     guides: List.of(_guides),
@@ -4733,9 +4750,10 @@ class _ScenePainter extends CustomPainter {
     if (lbl != null && cl != null) {
       final a = p(cl.$1), b = p(cl.$2);
       // l'étiquette se place sur la ligne, près du haut de la zone visible
-      final t = (b.dy - a.dy).abs() > (b.dx - a.dx).abs()
-          ? ((60 - a.dy) / (b.dy - a.dy)).clamp(0.0, 1.0)
-          : ((90 - a.dx) / (b.dx - a.dx)).clamp(0.0, 1.0);
+      final so = sheetOrigin == null ? null : p(sheetOrigin!);
+      final vertical = (b.dy - a.dy).abs() > (b.dx - a.dx).abs();
+      final want = vertical ? math.max(150.0, (so?.dy ?? 170) - 22) : math.max(30.0, (so?.dx ?? 60) - 40);
+      final t = vertical ? ((want - a.dy) / (b.dy - a.dy)).clamp(0.0, 1.0) : ((want - a.dx) / (b.dx - a.dx)).clamp(0.0, 1.0);
       tag(Offset.lerp(a, b, t)!, lbl, const Color(0xE6DC2626), fs: 13);
     }
     final so = sheetOrigin;

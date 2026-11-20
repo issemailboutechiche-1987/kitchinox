@@ -764,7 +764,9 @@ class ArtCadContextHud extends StatelessWidget {
         const Icon(Icons.info_outline, size: 16, color: _brandOrange),
         const SizedBox(width: 6),
         Text(
-          tr('Cliquez sur le plancher ou une face pour poser les points. Vous pourrez extruder en 3D avec Pousser/Tirer.'),
+          activeTool == CadTool.cut
+              ? tr('PC : un clic coupe. Tablette : placez la ligne puis « Couper », ou tapez la cote puis Entrée. La ligne s’accroche aux bords et au milieu des pièces.')
+              : tr('Cliquez sur le plancher ou une face pour poser les points. Vous pourrez extruder en 3D avec Pousser/Tirer.'),
           style: const TextStyle(fontSize: 12),
         ),
       ],
