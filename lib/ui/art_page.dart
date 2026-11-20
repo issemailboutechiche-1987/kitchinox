@@ -92,6 +92,10 @@ class _ArtPageState extends State<ArtPage> {
   V3? _circleAt; // coupe circulaire : centre choisi
   // fenêtres : le panneau latéral se replie au toucher de la zone de travail, sauf s'il est épinglé
   bool sideOpen = true, sidePinned = false, dockPinned = false;
+  // navigation : main (glisser = déplacer la vue), pivot de rotation (centre de l'écran ou objet choisi)
+  bool panMode = false;
+  bool pivotOnObject = false;
+  int _buttons = 0; // boutons de souris enfoncés (molette ou droit : déplacer la vue)
   double? _cutAt; // position de la coupe sur son axe (mm)
   String? sheetMaterial = 'mdf_blanc_18'; // feuille entière de départ // matière du tarif des prochains panneaux (null : selon le rôle) // Ctrl (ou Maj) + clic : plusieurs panneaux
   CadShape? selectedShape;
@@ -2539,6 +2543,8 @@ class _ArtPageState extends State<ArtPage> {
         cam.size = c.biggest;
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Listener(
+          onPointerDown: (e) => _buttons = e.buttons,
+          onPointerUp: (_) => _buttons = 0,
           onPointerSignal: (e) {
             if (e is PointerScrollEvent) cam.zoomAt(e.scrollDelta.dy > 0 ? 1.12 : 0.89);
           },
@@ -2564,9 +2570,17 @@ class _ArtPageState extends State<ArtPage> {
                 _moved = false;
                 _lastScale = 1.0;
                 _pressPlaced = false;
+                if (pivotOnObject && _selected.isNotEmpty) {
+                  // la rotation se fait autour de l'objet choisi
+                  final sel = _selected;
+                  final lo = V3(sel.map((q) => q.x).reduce(math.min), sel.map((q) => q.y).reduce(math.min), sel.map((q) => q.z).reduce(math.min));
+                  final hi = V3(sel.map((q) => q.right).reduce(math.max), sel.map((q) => q.top).reduce(math.max), sel.map((q) => q.back).reduce(math.max));
+                  cam.target = (lo + hi) * 0.5;
+                }
                 if (!sidePinned && sideOpen) setState(() => sideOpen = false); // grande zone de travail
-                if (d.pointerCount == 1) _dragStart(d.localFocalPoint);
-                if (d.pointerCount == 1 && _isPlanarTool && activePoints.isEmpty) {
+                final navOnly = panMode || (_buttons & (kMiddleMouseButton | kSecondaryMouseButton)) != 0;
+                if (d.pointerCount == 1 && !navOnly) _dragStart(d.localFocalPoint);
+                if (d.pointerCount == 1 && !navOnly && _isPlanarTool && activePoints.isEmpty) {
                   _handleTap(d.localFocalPoint);
                   _pressPlaced = true;
                 }
@@ -2580,6 +2594,15 @@ class _ArtPageState extends State<ArtPage> {
                 final delta = d.localFocalPoint - (_last ?? d.localFocalPoint);
                 _last = d.localFocalPoint;
                 if ((d.localFocalPoint - (_downAt ?? d.localFocalPoint)).distance > 6) _moved = true;
+                final panning = d.pointerCount == 1 &&
+                    (panMode ||
+                        (_buttons & (kMiddleMouseButton | kSecondaryMouseButton)) != 0 ||
+                        HardwareKeyboard.instance.isShiftPressed && activeTool == CadTool.select);
+                if (panning) {
+                  _moved = true;
+                  cam.pan(delta);
+                  return;
+                }
                 if (activeTool == CadTool.cut && d.pointerCount == 1) {
                   _cutHover(d.localFocalPoint);
                   return;
@@ -2609,6 +2632,10 @@ class _ArtPageState extends State<ArtPage> {
                 }
               },
               onScaleEnd: (_) {
+                if (panMode || (_buttons & (kMiddleMouseButton | kSecondaryMouseButton)) != 0) {
+                  _buttons = 0;
+                  if (_moved) return;
+                }
                 if (activeTool == CadTool.cut && _moved) return; // la ligne reste où on l'a lâchée
                 if (_dragOrig != null) {
                   final dragged = _moved;
@@ -2670,7 +2697,33 @@ class _ArtPageState extends State<ArtPage> {
                   ),
                 ),
                 if (!art.isEmpty) Positioned(left: 12, top: 118, child: _legend()),
-                Positioned(left: 12, top: 72, child: _precisionMenu()),
+                Positioned(
+                  left: 12,
+                  top: 72,
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    _precisionMenu(),
+                    const SizedBox(width: 6),
+                    _navButton(
+                      key: 'nav_pan',
+                      on: panMode,
+                      icon: Icons.pan_tool_outlined,
+                      onIcon: Icons.pan_tool,
+                      tip: panMode
+                          ? tr('Main active : glisser déplace la vue (touchez pour revenir à la rotation)')
+                          : tr('Main : glisser déplace la vue au lieu de la tourner. Aussi : bouton molette ou bouton droit, deux doigts sur tablette.'),
+                      onTap: () => setState(() => panMode = !panMode),
+                    ),
+                    const SizedBox(width: 6),
+                    _navButton(
+                      key: 'nav_pivot',
+                      on: pivotOnObject,
+                      icon: Icons.filter_center_focus,
+                      onIcon: Icons.center_focus_strong,
+                      tip: pivotOnObject ? tr('Rotation autour de l’objet sélectionné') : tr('Rotation autour du centre de l’écran'),
+                      onTap: () => setState(() => pivotOnObject = !pivotOnObject),
+                    ),
+                  ]),
+                ),
                 // panneau latéral replié : languette pour le rouvrir, au bord gauche de la zone de travail
                 if (!sideOpen)
                   Positioned(
@@ -2828,6 +2881,22 @@ class _ArtPageState extends State<ArtPage> {
           ),
         );
       });
+
+  Widget _navButton({required String key, required bool on, required IconData icon, required IconData onIcon, required String tip, required VoidCallback onTap}) =>
+      Material(
+        elevation: 3,
+        borderRadius: BorderRadius.circular(10),
+        color: on ? _orange : Theme.of(context).colorScheme.surface,
+        child: Tooltip(
+          message: tip,
+          child: InkWell(
+            key: ValueKey(key),
+            borderRadius: BorderRadius.circular(10),
+            onTap: onTap,
+            child: Padding(padding: const EdgeInsets.all(8), child: Icon(on ? onIcon : icon, size: 20, color: on ? Colors.white : null)),
+          ),
+        ),
+      );
 
   /// Réglages de précision : pas de grille, aimants, guides d'alignement.
   Widget _precisionMenu() {

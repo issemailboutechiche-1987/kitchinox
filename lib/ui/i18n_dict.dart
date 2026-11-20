@@ -2271,6 +2271,10 @@ const Map<String, String> enDict = {
   "{0} coupe(s) faite(s), trait de scie {1} mm": "{0} cut(s) made, saw kerf {1} mm",
   "Épingler (reste ouvert)": "Pin (stays open)",
   "Placez la ligne sur une pièce.": "Place the line on a part.",
+  "Main active : glisser déplace la vue (touchez pour revenir à la rotation)": "Hand on: dragging moves the view (touch to go back to rotating)",
+  "Main : glisser déplace la vue au lieu de la tourner. Aussi : bouton molette ou bouton droit, deux doigts sur tablette.": "Hand: dragging moves the view instead of rotating it. Also: wheel or right button, two fingers on tablet.",
+  "Rotation autour de l’objet sélectionné": "Rotate around the selected object",
+  "Rotation autour du centre de l’écran": "Rotate around the screen centre",
 };
 
 const Map<String, String> arDict = {
@@ -4544,4 +4548,8 @@ const Map<String, String> arDict = {
   "{0} coupe(s) faite(s), trait de scie {1} mm": "تم {0} قطع، سُمك الشفرة {1} مم",
   "Épingler (reste ouvert)": "تثبيت (يبقى مفتوحاً)",
   "Placez la ligne sur une pièce.": "ضع الخط على قطعة.",
+  "Main active : glisser déplace la vue (touchez pour revenir à la rotation)": "اليد مفعلة: السحب يحرك العرض (المس للعودة إلى التدوير)",
+  "Main : glisser déplace la vue au lieu de la tourner. Aussi : bouton molette ou bouton droit, deux doigts sur tablette.": "اليد: السحب يحرك العرض بدل تدويره. أيضاً: زر العجلة أو الزر الأيمن، إصبعان على اللوحي.",
+  "Rotation autour de l’objet sélectionné": "التدوير حول العنصر المحدد",
+  "Rotation autour du centre de l’écran": "التدوير حول مركز الشاشة",
 };

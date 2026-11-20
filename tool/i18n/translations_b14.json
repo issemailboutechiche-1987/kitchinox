@@ -1,0 +1,18 @@
+{
+"Main active : glisser déplace la vue (touchez pour revenir à la rotation)": [
+"Hand on: dragging moves the view (touch to go back to rotating)",
+"اليد مفعلة: السحب يحرك العرض (المس للعودة إلى التدوير)"
+],
+"Main : glisser déplace la vue au lieu de la tourner. Aussi : bouton molette ou bouton droit, deux doigts sur tablette.": [
+"Hand: dragging moves the view instead of rotating it. Also: wheel or right button, two fingers on tablet.",
+"اليد: السحب يحرك العرض بدل تدويره. أيضاً: زر العجلة أو الزر الأيمن، إصبعان على اللوحي."
+],
+"Rotation autour de l’objet sélectionné": [
+"Rotate around the selected object",
+"التدوير حول العنصر المحدد"
+],
+"Rotation autour du centre de l’écran": [
+"Rotate around the screen centre",
+"التدوير حول مركز الشاشة"
+]
+}

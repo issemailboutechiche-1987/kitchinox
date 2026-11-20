@@ -359,6 +359,50 @@ void main() {
     await t.pump(const Duration(seconds: 6));
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('navigation : main (déplacer la vue), bouton molette, rotation autour de l’objet', (t) async {
+    t.view.physicalSize = const Size(1366, 1024);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    final p = ArtPanel(id: 'a', role: ArtRole.decor, x: 2000, y: 0, z: 0, w: 600, h: 18, d: 400);
+    st.project.art.free.add(p);
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('side_pin')));
+    await t.pumpAndSettle();
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
+    // main : glisser déplace la vue sans la tourner
+    await t.tap(find.byKey(const ValueKey('nav_pan')));
+    await t.pumpAndSettle();
+    final yaw0 = s.cam.yaw as double, target0 = s.cam.target;
+    await t.dragFrom(vp.center + const Offset(0, 200), const Offset(120, 0));
+    await t.pumpAndSettle();
+    expect(s.cam.yaw, yaw0);
+    expect((s.cam.target.x as double) != (target0.x as double), isTrue, reason: 'la vue s’est déplacée');
+    await t.tap(find.byKey(const ValueKey('nav_pan')));
+    await t.pumpAndSettle();
+    // bouton molette : déplace aussi la vue
+    final yaw1 = s.cam.yaw as double;
+    final g = await t.startGesture(vp.center + const Offset(0, 220), kind: PointerDeviceKind.mouse, buttons: kMiddleMouseButton);
+    await g.moveBy(const Offset(60, 0));
+    await g.moveBy(const Offset(60, 0));
+    await g.up();
+    await t.pumpAndSettle();
+    expect(s.cam.yaw, yaw1);
+    // pivot sur l'objet choisi : la rotation tourne autour de lui
+    (s.selection as Set).add(p);
+    s.selectedPanel = p;
+    await t.tap(find.byKey(const ValueKey('nav_pivot')));
+    await t.pumpAndSettle();
+    await t.dragFrom(vp.center + const Offset(-200, 250), const Offset(80, 0));
+    await t.pumpAndSettle();
+    expect(s.cam.target.x, 2300);
+    expect(s.cam.yaw != yaw1, isTrue);
+    await t.pump(const Duration(seconds: 6));
+    expect(t.takeException(), isNull);
+  });
 }
 
 /// Point écran du centre du dessus d'un panneau (par la caméra de la page).
