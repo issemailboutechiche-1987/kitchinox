@@ -2671,6 +2671,36 @@ class _ArtPageState extends State<ArtPage> {
                 ),
                 if (!art.isEmpty) Positioned(left: 12, top: 118, child: _legend()),
                 Positioned(left: 12, top: 72, child: _precisionMenu()),
+                // panneau latéral replié : languette pour le rouvrir, au bord gauche de la zone de travail
+                if (!sideOpen)
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: Material(
+                        key: const ValueKey('side_reopen'),
+                        color: _orange,
+                        elevation: 4,
+                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                        child: InkWell(
+                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                          onTap: () => setState(() => sideOpen = true),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 18),
+                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.chevron_right, color: Colors.white),
+                              const SizedBox(height: 6),
+                              RotatedBox(
+                                quarterTurns: 1,
+                                child: Text(tr('Panneau latéral'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+                              ),
+                            ]),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 Positioned(
                   top: 12,
                   left: 12,

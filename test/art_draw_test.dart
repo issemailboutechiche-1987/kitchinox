@@ -307,7 +307,14 @@ void main() {
     await t.tapAt(vp.topLeft + const Offset(40, 300));
     await t.pumpAndSettle();
     expect(s.sideOpen, isFalse);
+    // la languette au bord gauche le rouvre
+    expect(find.byKey(const ValueKey('side_reopen')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('side_reopen')));
+    await t.pumpAndSettle();
+    expect(s.sideOpen, isTrue);
     // épinglé : il reste ouvert
+    await t.tap(find.byKey(const ValueKey('side_toggle')));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('side_toggle')));
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('side_pin')));
