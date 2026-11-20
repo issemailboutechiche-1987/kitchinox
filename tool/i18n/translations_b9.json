@@ -370,5 +370,85 @@
 "Supprimer (Suppr)": [
 "Delete (Del)",
 "حذف (Suppr)"
+],
+"Enregistrer ce meuble": [
+"Save this unit",
+"حفظ هذا الأثاث"
+],
+"Enregistrer dans la bibliothèque": [
+"Save to library",
+"حفظ في المكتبة"
+],
+"Enregistrer la sélection": [
+"Save the selection",
+"حفظ التحديد"
+],
+"Il se pose ensuite comme un objet dans la cuisine, le dressing, la salle de bain, le meuble TV et l’intérieur (panneau Objets → Bibliothèque).": [
+"It can then be placed as an object in the kitchen, wardrobe, bathroom, TV unit and interior modes (Objects panel → Library).",
+"يمكن بعدها وضعه كعنصر في المطبخ وغرفة الملابس والحمام وأثاث التلفاز والديكور (لوحة العناصر ← المكتبة)."
+],
+"Insérer": [
+"Insert",
+"إدراج"
+],
+"La bibliothèque est vide.": [
+"The library is empty.",
+"المكتبة فارغة."
+],
+"Mon meuble": [
+"My unit",
+"أثاثي"
+],
+"Nom du meuble": [
+"Unit name",
+"اسم الأثاث"
+],
+"Retirer de la bibliothèque": [
+"Remove from library",
+"إزالة من المكتبة"
+],
+"Retirer de la bibliothèque ?": [
+"Remove from library?",
+"إزالة من المكتبة؟"
+],
+"Rien à enregistrer : dessinez ou choisissez un meuble.": [
+"Nothing to save: draw or choose a unit.",
+"لا شيء للحفظ: ارسم أو اختر أثاثاً."
+],
+"Tout le meuble de l’atelier": [
+"The whole workshop unit",
+"كل أثاث الورشة"
+],
+"Vos meubles enregistrés : à réinsérer ici, ou à poser comme objet dans les autres modes (panneau Objets → Bibliothèque).": [
+"Your saved units: insert them here again, or place them as objects in the other modes (Objects panel → Library).",
+"أثاثك المحفوظ: أعد إدراجه هنا، أو ضعه كعنصر في الأوضاع الأخرى (لوحة العناصر ← المكتبة)."
+],
+"{0} × {1} × {2} mm · {3} panneaux": [
+"{0} × {1} × {2} mm · {3} panels",
+"{0} × {1} × {2} مم · {3} ألواح"
+],
+"« {0} » ajouté à la bibliothèque ({1} × {2} × {3} mm)": [
+"« {0} » added to the library ({1} × {2} × {3} mm)",
+"تمت إضافة « {0} » إلى المكتبة ({1} × {2} × {3} مم)"
+],
+"« {0} » inséré": [
+"« {0} » inserted",
+"تم إدراج « {0} »"
+],
+"« {0} » ne sera plus proposé. Les projets où il est déjà posé le gardent tant que la bibliothèque le contient.": [
+"« {0} » will no longer be offered. Projects where it is already placed keep it only while the library contains it.",
+"لن يُقترح « {0} » بعد الآن. المشاريع التي وُضع فيها تحتفظ به ما دام في المكتبة."
+],
+"Bibliothèque": [
+"Library",
+"المكتبة"
+],
+"Bases": [
+"Bases",
+"القواعد"
+],
+"Retirer": [
+"Remove",
+"إزالة"
 ]
 }

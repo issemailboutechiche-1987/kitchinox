@@ -1350,6 +1350,18 @@ function buildObject(o, d) {
   root.add(inner);
   if (o.kind === 'fixture') {
     inner.add(buildFixture(o, d));
+  } else if (o.panels && o.panels.length) {
+    // meuble de la bibliothèque de l'atelier : un pavé par panneau, à sa couleur
+    const mats = new Map();
+    for (const q of o.panels) {
+      let m = mats.get(q.color);
+      if (!m) {
+        m = new THREE.MeshStandardMaterial({ color: q.color, roughness: 0.62 });
+        mats.set(q.color, m);
+      }
+      const mesh = lbox(inner, m, q.x0, q.x1, q.y0, q.y1, q.z0, q.z1);
+      mesh.castShadow = mesh.receiveShadow = true;
+    }
   } else if (o.file) {
     // en attendant le modèle : un volume discret aux cotes
     const ph = lbox(inner, new THREE.MeshStandardMaterial({ color: 0xe8e2da, transparent: true, opacity: 0.35 }), -o.w / 2, o.w / 2, 0, o.h, 0, o.d);

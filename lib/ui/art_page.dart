@@ -13,6 +13,7 @@ import '../engine/art_cad.dart';
 import '../engine/art_machining.dart';
 import 'app_state.dart';
 import 'art_cad_toolbar.dart';
+import 'art_library.dart';
 import 'art_camera.dart';
 import 'busy.dart';
 import 'cut_pdf.dart';
@@ -1820,6 +1821,12 @@ class _ArtPageState extends State<ArtPage> {
           icon: const Icon(Icons.save_outlined),
           onPressed: _saveKin,
         ),
+        IconButton(
+          key: const ValueKey('lib_save'),
+          tooltip: tr('Enregistrer dans la bibliothèque'),
+          icon: const Icon(Icons.bookmark_add_outlined),
+          onPressed: _saveToLibrary,
+        ),
         const Spacer(),
         Flexible(
           flex: 6,
@@ -2095,9 +2102,40 @@ class _ArtPageState extends State<ArtPage> {
   }
 
   // ---------------------------------------------------------------- panneau de réglages
+  Widget _tabStrip(TextTheme t, ColorScheme scheme, List<(String, String)> tabs) => Row(children: [
+        for (final (id, label) in tabs)
+          Expanded(
+            child: InkWell(
+              key: ValueKey('art_tab_$id'),
+              onTap: () => setState(() {
+                tab = id;
+                if (id == 'usinage') isMachiningMode = true;
+              }),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tab == id ? _orange : scheme.outlineVariant, width: tab == id ? 3 : 1))),
+                child: Center(child: FittedBox(child: Text(tr(label), style: t.labelLarge?.copyWith(fontWeight: tab == id ? FontWeight.w800 : FontWeight.w500)))),
+              ),
+            ),
+          ),
+      ]);
+
   Widget _side(TextTheme t, ColorScheme scheme) {
     final b = box;
-    if (b == null) return _start(t, scheme);
+    if (b == null) {
+      // dessin libre (sans caisson tout fait) : bases, usinage, débit et bibliothèque
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _tabStrip(t, scheme, const [('bases', 'Bases'), ('usinage', 'Usinage'), ('debit', 'Débit'), ('biblio', 'Bibliothèque')]),
+        Expanded(
+          child: switch (tab) {
+            'usinage' => _machiningTab(t, scheme),
+            'debit' => art.free.isEmpty ? _start(t, scheme) : _cut(t, scheme),
+            'biblio' => _libraryTab(t, scheme),
+            _ => _start(t, scheme),
+          },
+        ),
+      ]);
+    }
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       // caissons du meuble
       SizedBox(
@@ -2128,6 +2166,7 @@ class _ArtPageState extends State<ArtPage> {
           ('exterieur', 4, 'Extérieur'),
           ('debit', 5, 'Débit'),
           ('usinage', 6, 'Usinage'),
+          ('biblio', 7, 'Bibliothèque'),
         ])
           Expanded(
             child: InkWell(
@@ -2158,11 +2197,123 @@ class _ArtPageState extends State<ArtPage> {
           'exterieur' => _exterior(b, t, scheme),
           'debit' => _cut(t, scheme),
           'usinage' => _machiningTab(t, scheme),
+          'biblio' => _libraryTab(t, scheme),
           _ => _carcass(b, t, scheme),
         },
       ),
     ]);
   }
+
+  /// Enregistre la sélection (ou tout le meuble) dans la bibliothèque, sous un nom.
+  Future<void> _saveToLibrary() async {
+    final sel = selection.length > 1 ? selection.toList() : art.panels;
+    if (sel.isEmpty) {
+      _msg(tr('Rien à enregistrer : dessinez ou choisissez un meuble.'));
+      return;
+    }
+    final name = TextEditingController(text: art.boxes.isNotEmpty ? art.boxes.first.name : tr('Mon meuble'));
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr('Enregistrer dans la bibliothèque')),
+        content: SizedBox(
+          width: 420,
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(selection.length > 1
+                ? trp('{0} panneaux sélectionnés', [selection.length])
+                : tr('Tout le meuble de l’atelier')),
+            const SizedBox(height: 12),
+            TextField(
+              key: const ValueKey('lib_name'),
+              controller: name,
+              autofocus: true,
+              decoration: InputDecoration(labelText: tr('Nom du meuble'), border: const OutlineInputBorder()),
+              onSubmitted: (_) => Navigator.pop(ctx, true),
+            ),
+            const SizedBox(height: 8),
+            Text(tr('Il se pose ensuite comme un objet dans la cuisine, le dressing, la salle de bain, le meuble TV et l’intérieur (panneau Objets → Bibliothèque).'),
+                style: Theme.of(ctx).textTheme.bodySmall),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Annuler'))),
+          FilledButton(key: const ValueKey('lib_ok'), onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Enregistrer'))),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final item = ArtLibrary.instance.add(name.text, sel);
+    setState(() => tab = 'biblio');
+    _msg(trp('« {0} » ajouté à la bibliothèque ({1} × {2} × {3} mm)', [item.name, item.w, item.h, item.d]));
+  }
+
+  /// Insère un meuble de la bibliothèque à droite de ce qui est déjà dessiné.
+  void _insertFromLibrary(LibraryItem it) {
+    final b = art.bounds;
+    final x = b == null ? 0.0 : b.$3 + 100;
+    final ps = it.placedAt(x, 0, 0, art.newId);
+    change(() {
+      art.free.addAll(ps);
+      selection
+        ..clear()
+        ..addAll(ps);
+      selectedPanel = ps.last;
+      activeTool = CadTool.select;
+    });
+    cam.fit(art.panels);
+    _msg(trp('« {0} » inséré', [it.name]));
+  }
+
+  Widget _libraryTab(TextTheme t, ColorScheme scheme) => ListenableBuilder(
+        listenable: ArtLibrary.instance,
+        builder: (context, _) {
+          final items = ArtLibrary.instance.items;
+          return ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
+            Text(tr('Bibliothèque'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(tr('Vos meubles enregistrés : à réinsérer ici, ou à poser comme objet dans les autres modes (panneau Objets → Bibliothèque).'),
+                style: t.bodySmall),
+            const SizedBox(height: Tokens.s3),
+            FilledButton.icon(
+              onPressed: _saveToLibrary,
+              icon: const Icon(Icons.bookmark_add_outlined),
+              label: Text(selection.length > 1 ? tr('Enregistrer la sélection') : tr('Enregistrer ce meuble')),
+            ),
+            const SizedBox(height: Tokens.s3),
+            if (items.isEmpty) Text(tr('La bibliothèque est vide.'), style: t.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+            for (final it in items.reversed)
+              Card(
+                margin: const EdgeInsets.only(bottom: Tokens.s2),
+                child: ListTile(
+                  leading: const Icon(Icons.inventory_2_outlined, color: _orange),
+                  title: Text(it.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(trp('{0} × {1} × {2} mm · {3} panneaux', [it.w, it.h, it.d, it.panels.length])),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    IconButton(tooltip: tr('Insérer'), icon: const Icon(Icons.add_box_outlined), onPressed: () => _insertFromLibrary(it)),
+                    IconButton(
+                      tooltip: tr('Retirer de la bibliothèque'),
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () async {
+                        final yes = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: Text(tr('Retirer de la bibliothèque ?')),
+                            content: Text(trp('« {0} » ne sera plus proposé. Les projets où il est déjà posé le gardent tant que la bibliothèque le contient.', [it.name])),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Annuler'))),
+                              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Retirer'))),
+                            ],
+                          ),
+                        );
+                        if (yes == true) ArtLibrary.instance.remove(it.id);
+                      },
+                    ),
+                  ]),
+                ),
+              ),
+          ]);
+        },
+      );
 
   Widget _start(TextTheme t, ColorScheme scheme) => ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
         Text(tr('Choisissez une base'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
@@ -2822,11 +2973,26 @@ class _ScenePainter extends CustomPainter {
   List<ArtPanel> _explode(List<ArtPanel> ps) {
     final xs = art.boxOrigins;
     final out = <ArtPanel>[];
+    // panneaux dessinés librement : chacun s'éloigne du centre de l'ensemble, le long de son épaisseur surtout
+    final free = ps.where((p) => p.comp == null).toList();
+    final gx = free.isEmpty ? 0.0 : free.map((p) => p.x + p.w / 2).reduce((a, b) => a + b) / free.length;
+    final gy = free.isEmpty ? 0.0 : free.map((p) => p.y + p.h / 2).reduce((a, b) => a + b) / free.length;
+    final gz = free.isEmpty ? 0.0 : free.map((p) => p.z + p.d / 2).reduce((a, b) => a + b) / free.length;
     for (final p in ps) {
       final c = p.comp;
       final i = p.id.startsWith('b') ? int.tryParse(p.id.substring(1, p.id.indexOf('_'))) : null;
       if (c == null || i == null || i >= art.boxes.length) {
-        out.add(p);
+        if (c != null) {
+          out.add(p);
+          continue;
+        }
+        final q = p.copy();
+        final ta = thicknessAxis(p);
+        double push(double off, int ax) => off.abs() < 1 ? 0 : off.sign * (ax == ta ? 160.0 : 40.0) + off * 0.15;
+        q.x += push(p.x + p.w / 2 - gx, 0);
+        q.y += push(p.y + p.h / 2 - gy, 1);
+        q.z += push(p.z + p.d / 2 - gz, 2);
+        out.add(q);
         continue;
       }
       final cx = xs[i] + art.boxes[i].w / 2;
@@ -2916,7 +3082,12 @@ class _ScenePainter extends CustomPainter {
       tp.paint(c, size.center(Offset(-tp.width / 2, -tp.height / 2)));
     }
     var panels = art.panels.where((x) => showFronts || exploded || !(x.comp?.isFront ?? x.role.isFront)).toList();
+    final assembled = panels;
     if (exploded) panels = _explode(panels);
+    // décalage de chaque panneau dans la vue éclatée (tourillons et vis suivent leur panneau)
+    final shift = <String, V3>{
+      for (var i = 0; i < panels.length; i++) assembled[i].id: V3(panels[i].x - assembled[i].x, panels[i].y - assembled[i].y, panels[i].z - assembled[i].z),
+    };
     // usinage : panneaux en transparence pour voir les perçages et la quincaillerie à l'intérieur
     _paintPanels(c, cam, panels, byComp: byComp, focus: focus, isDark: isDark, opacity: isMachiningMode ? 0.45 : 1);
 
@@ -3090,6 +3261,72 @@ class _ScenePainter extends CustomPainter {
         ..color = _orange;
       for (final (a, b) in edges) {
         c.drawLine(k[a], k[b], sel);
+      }
+    }
+
+    // 3 ter. Vis et tourillons : têtes de vis visibles sur les faces ; en vue éclatée, le tourillon dépasse
+    // du chant de la pièce qui le reçoit et la vis traverse la pièce qui la porte, prêts à l'assemblage.
+    if (!isMachiningMode && assembled.isNotEmpty) {
+      final m = computeMachiningElements(assembled);
+      final byId = {for (final q in assembled) q.id: q};
+      double px(V3 at, double mm) => (p(at + cam.right * mm) - p(at)).distance; // largeur à l'écran de mm millimètres
+      for (final el in m.elements) {
+        if (el.kind != MachiningKind.dowel && el.kind != MachiningKind.screw) continue;
+        final host = byId[el.panelId], guest = byId[el.partnerPanelId];
+        if (host == null || guest == null) continue;
+        final n = el.normal; // de la pièce hôte (face) vers la pièce invitée (chant)
+        final ht = host.thickness;
+        if (!exploded) {
+          if (el.kind != MachiningKind.screw) continue; // le tourillon est caché dans le joint
+          // tête de vis sur la face extérieure de l'hôte, si cette face se voit
+          final head = el.position - n * ht;
+          final f = pickFace(cam, panels, p(head));
+          if (f == null || f.panel.id != host.id) continue;
+          final r = px(head, 5.5).clamp(2.0, 9.0);
+          c.drawCircle(p(head), r, Paint()..color = const Color(0xFF94A3B8));
+          c.drawCircle(p(head), r, Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1
+            ..color = const Color(0xFF334155));
+          final k = r * 0.55;
+          final cross = Paint()
+            ..color = const Color(0xFF1E293B)
+            ..strokeWidth = 1.2;
+          c.drawLine(p(head) - Offset(k, 0), p(head) + Offset(k, 0), cross);
+          c.drawLine(p(head) - Offset(0, k), p(head) + Offset(0, k), cross);
+          continue;
+        }
+        final gs = shift[guest.id] ?? V3.zero, hs = shift[host.id] ?? V3.zero;
+        if (el.kind == MachiningKind.dowel) {
+          // perçage dans la face de l'hôte, tourillon planté dans le chant de l'invité (moitié dehors)
+          final hole = el.position + hs;
+          c.drawCircle(p(hole), px(hole, 4).clamp(1.5, 6.0), Paint()..color = const Color(0xFF3F2A14));
+          final a = el.position + gs, b = el.position - n * 17.5 + gs;
+          final w = px(a, 8).clamp(4.5, 14.0);
+          c.drawLine(p(a), p(b), Paint()
+            ..strokeWidth = w
+            ..strokeCap = StrokeCap.round
+            ..color = const Color(0xFFD9A15B));
+          c.drawLine(p(a), p(b), Paint()
+            ..strokeWidth = w * 0.35
+            ..strokeCap = StrokeCap.round
+            ..color = const Color(0xFFF3D19C));
+        } else {
+          // vis Confirmat : traverse l'hôte et dépasse vers le chant de l'invité, où l'avant-trou l'attend
+          final pilot = el.position + gs;
+          c.drawCircle(p(pilot), px(pilot, 2.5).clamp(1.2, 4.0), Paint()..color = const Color(0xFF1E293B));
+          final head = el.position - n * ht + hs, tip = el.position + n * (50 - ht) + hs;
+          final w = px(head, 6).clamp(3.5, 10.0);
+          c.drawLine(p(head), p(tip), Paint()
+            ..strokeWidth = w * 0.6
+            ..strokeCap = StrokeCap.round
+            ..color = const Color(0xFF64748B));
+          c.drawCircle(p(head), w * 0.9, Paint()..color = const Color(0xFF94A3B8));
+          c.drawCircle(p(head), w * 0.9, Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1
+            ..color = const Color(0xFF1E293B));
+        }
       }
     }
 

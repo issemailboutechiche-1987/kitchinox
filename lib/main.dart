@@ -29,6 +29,7 @@ import 'ui/toolbar.dart';
 import 'ui/web_io.dart';
 import 'ui/i18n.dart';
 import 'ui/app_settings.dart';
+import 'ui/art_library.dart';
 import 'ui/client_ui.dart';
 import 'ui/excel_export.dart';
 import 'ui/project_start_dialog.dart';
@@ -83,6 +84,10 @@ Future<void> main() async {
   final state = AppState(catalog,
       project: restored, db: db, supplier: SupplierTariff.parse(await rootBundle.loadString('assets/data/supplier_prices.json')));
   state.objectCatalog = CatalogObject.parse(await rootBundle.loadString('assets/data/objects.json'));
+  // meubles de la bibliothèque de l'atelier : posables comme objets dans tous les modes
+  ArtLibrary.instance
+    ..load()
+    ..attach(state.objectCatalog);
   OpeningModel.parse(await rootBundle.loadString('assets/data/openings.json')); // portes et fenêtres
   KitchenFixtures.parse(await rootBundle.loadString('assets/data/accessories.json')); // éviers, mitigeurs, appareillage
   BrandCatalog.parse(await rootBundle.loadString('assets/data/brands.json')); // marques et prix (Maroc)

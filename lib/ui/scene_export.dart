@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
+import 'art_library.dart';
+import 'art_page.dart' show artColor;
 import 'finishes.dart';
 import 'openings_ui.dart';
 import 'fronts.dart';
@@ -642,6 +644,7 @@ class SceneExporter {
             'file': ob.isFixture ? null : st.objectCatalog.where((c) => c.id == ob.ref).firstOrNull?.file,
             'yaw': ob.isFixture ? 0 : st.objectCatalog.where((c) => c.id == ob.ref).firstOrNull?.yaw ?? 0,
             'x': ob.x, 'y': ob.y, 'z': ob.z, 'rot': ob.rot, 'w': ob.w, 'h': ob.h, 'd': ob.d,
+            if (ob.ref.startsWith('lib:')) 'panels': ArtLibrary.instance.panelsFor(ob, artColor),
           }
       ],
       // vasques en céramique posées sur les meubles vasque (le toucher choisit le meuble)
