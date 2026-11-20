@@ -77,7 +77,8 @@ class _ArtPageState extends State<ArtPage> {
   CadShape? previewShape;
   CadTapeMeasure? activeTape;
   ArtPanel? selectedPanel;
-  final Set<ArtPanel> selection = {}; // Ctrl (ou Maj) + clic : plusieurs panneaux
+  final Set<ArtPanel> selection = {};
+  String? drawMaterial; // matière du tarif des prochains panneaux (null : selon le rôle) // Ctrl (ou Maj) + clic : plusieurs panneaux
   CadShape? selectedShape;
   Face? hoveredFace;
   double pushPullThickness = 18.0;
@@ -387,6 +388,7 @@ class _ArtPageState extends State<ArtPage> {
     return ArtPanel(
       id: art.newId(),
       role: role,
+      material: t < 10 && (PublicPrices.byId(drawMaterial ?? '')?.thickness ?? 0) >= 10 ? null : drawMaterial,
       x: lo[0]!,
       y: lo[1]!,
       z: lo[2]!,
@@ -1236,6 +1238,46 @@ class _ArtPageState extends State<ArtPage> {
     }
   }
 
+  /// Menu des matières du tarif, groupées par famille ; null = matière selon le rôle (MDF du projet).
+  Widget _materialPicker(String? value, void Function(String?) onPick, {String? label}) {
+    final list = PublicPrices.panels;
+    return DropdownButtonFormField<String>(
+      key: ValueKey('mat_${label ?? ''}_$value'),
+      isExpanded: true,
+      initialValue: value != null && list.any((q) => q.id == value) ? value : '',
+      decoration: InputDecoration(labelText: tr(label ?? 'Matière'), isDense: true, border: const OutlineInputBorder()),
+      items: [
+        DropdownMenuItem(value: '', child: Text(tr('Selon le rôle (MDF du projet)'), overflow: TextOverflow.ellipsis)),
+        for (final q in list)
+          DropdownMenuItem(
+            value: q.id,
+            child: Text('${tr(q.family)} · ${tr(q.name)} ${q.thickness} mm · ${q.length}×${q.width}', overflow: TextOverflow.ellipsis),
+          ),
+      ],
+      onChanged: (v) => onPick(v == null || v.isEmpty ? null : v),
+    );
+  }
+
+  /// Donne la matière [id] aux panneaux [ps] ; leur épaisseur prend celle de la feuille.
+  void _setMaterial(List<ArtPanel> ps, String? id) {
+    final pp = id == null ? null : PublicPrices.byId(id);
+    change(() {
+      for (final p in ps.where(art.free.contains)) {
+        p.material = id;
+        if (pp == null) continue;
+        final t = pp.thickness.toDouble();
+        if (p.w <= p.h && p.w <= p.d) {
+          p.w = t;
+        } else if (p.h <= p.d) {
+          p.h = t;
+        } else {
+          p.d = t;
+        }
+      }
+    });
+    if (pp != null) _msg(trp('{0} : {1} mm, feuille {2} × {3}', [tr(pp.name), pp.thickness, pp.length, pp.width]));
+  }
+
   /// Panneaux choisis (la sélection multiple, sinon le panneau sélectionné).
   List<ArtPanel> get _selected => selection.isNotEmpty ? selection.toList() : [?selectedPanel];
 
@@ -1277,6 +1319,17 @@ class _ArtPageState extends State<ArtPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // 0. Matière du tarif : épaisseur et format de feuille du débit
+                    _materialPicker(p.material, (v) {
+                      _setMaterial([p], v);
+                      setDlg(() {});
+                    }),
+                    if (ArtProject.hasGrain(p))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(tr('Matière à sens : la pièce garde son sens au débit (pas de rotation).'), style: const TextStyle(fontSize: 11)),
+                      ),
+                    const SizedBox(height: 12),
                     // 1. Dimensions
                     Text(tr('Dimensions (mm)'), style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
@@ -1636,8 +1689,12 @@ class _ArtPageState extends State<ArtPage> {
               child: !art.free.contains(p)
                   ? Text(tr('Ce panneau appartient à un caisson standard. Modifiez le caisson ou ses dimensions.'), style: t.bodySmall)
                   : multi
-                      ? Text(tr('Ctrl + clic pour ajouter ou retirer un panneau. Glissez avec l’outil Déplacer pour bouger l’ensemble, Suppr pour tout supprimer.'),
-                          style: t.bodySmall)
+                      ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                          _materialPicker(null, (v) => _setMaterial(selection.toList(), v), label: 'Matière de toute la sélection'),
+                          const SizedBox(height: 10),
+                          Text(tr('Ctrl + clic pour ajouter ou retirer un panneau. Glissez avec l’outil Déplacer pour bouger l’ensemble, Suppr pour tout supprimer.'),
+                              style: t.bodySmall),
+                        ])
                       : _panelProps(context, p, (f) => setState(f), close: () => setState(() {
                             selection.clear();
                             selectedPanel = null;
@@ -1719,10 +1776,17 @@ class _ArtPageState extends State<ArtPage> {
     downloadBytes('${art.name}_plan_de_decoupe.pdf', await runBusy(context, tr('Plan de coupe…'), () => buildCutPdf(e, plan)), mime: 'application/pdf');
   }
 
+  /// Épaisseur d'une matière de débit : « Latté … 18 · 2440×1220 » → 18 ; « MDF 18 (caisson) » → 18.
+  static String _thicknessOf(String m) {
+    final dot = RegExp(r'(\d+(?:[.,]\d+)?)\s*·').firstMatch(m);
+    if (dot != null) return dot.group(1)!;
+    return RegExp(r'\d+').firstMatch(m)?.group(0) ?? '18';
+  }
+
   void _sct() {
     final plan = art.plan(widget.state.project.cut);
     for (final m in plan.materials) {
-      downloadBytes('${art.name}_${m.split(' ').take(2).join('_')}.sct', toSct(plan, m, order: art.name, thickness: m.replaceAll(RegExp(r'\D'), '')).codeUnits);
+      downloadBytes('${art.name}_${m.split(' ').take(2).join('_')}.sct', toSct(plan, m, order: art.name, thickness: _thicknessOf(m)).codeUnits);
     }
   }
 
@@ -2029,6 +2093,15 @@ class _ArtPageState extends State<ArtPage> {
                         onInspectPanel: selectedPanel != null ? () => _showPanelInspector(selectedPanel!) : null,
                         onDuplicateSelected: selectedPanel != null ? _duplicateSelected : null,
                         onDeleteSelected: selectedPanel != null ? _deleteSelected : null,
+                        extra: activeTool.isDrawing
+                            ? SizedBox(width: 230, child: _materialPicker(drawMaterial, (v) {
+                                setState(() {
+                                  drawMaterial = v;
+                                  final pp = v == null ? null : PublicPrices.byId(v);
+                                  if (pp != null) pushPullThickness = pp.thickness.toDouble();
+                                });
+                              }, label: 'Matière des panneaux'))
+                            : null,
                         measureController: measure,
                         measureFocus: measureFocus,
                         measureHint: _measureHint,
@@ -2689,8 +2762,16 @@ class _ArtPageState extends State<ArtPage> {
     final sp = widget.state.project.specs;
     final edge = parts.fold<double>(0, (a, p) => a + p.edgeLength * p.qty) / 1000;
     final mdf = plan.sheets.where((s) => !s.material.startsWith('HDF')).length;
-    final cost = mdf * (sp.sheetPrice ?? 850) + plan.sheets.length * sp.cuttingPerSheet + edge * (sp.edgePriceMin ?? 9);
     final warn = [for (final b in art.boxes) ...b.warnings()];
+    final checks = artChecks(art.free.isEmpty ? const [] : art.panels, widget.state.project.cut);
+    // prix des feuilles : celui du tarif pour les matières choisies, sinon le prix atelier du projet
+    final sheetCost = plan.sheets.fold<double>(0, (a, sh) {
+      final pp = PublicPrices.panels.where((q) => sh.material.startsWith('${q.name} ${q.thickness} ·')).firstOrNull;
+      if (pp != null) return a + pp.price;
+      return sh.material.startsWith('HDF') ? a : a + (sp.sheetPrice ?? 850);
+    });
+    assert(mdf >= 0);
+    final cost = sheetCost + plan.sheets.length * sp.cuttingPerSheet + edge * (sp.edgePriceMin ?? 9);
     final byMat = <String, List<CutPart>>{};
     for (final p in parts) {
       (byMat[p.material] ??= []).add(p);
@@ -2698,6 +2779,36 @@ class _ArtPageState extends State<ArtPage> {
     return ListView(padding: const EdgeInsets.fromLTRB(Tokens.s3, Tokens.s3, Tokens.s3, Tokens.s4), children: [
       Text(trp('{0} caisson(s) · {1} pièces · {2} feuille(s)', [art.boxes.length, parts.fold<int>(0, (a, p) => a + p.qty), plan.sheets.length]), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
       Text(trp('Chant {0} m · panneaux + chant + découpe ≈ {1} MAD', [edge.toStringAsFixed(1), cost.round()]), style: t.bodySmall),
+      for (final ck in checks)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(ck.error ? Icons.error_outline : Icons.warning_amber_rounded, size: 18, color: ck.error ? scheme.error : const Color(0xFFD97706)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: InkWell(
+                // toucher le contrôle sélectionne les panneaux en cause
+                onTap: () => setState(() {
+                  selection
+                    ..clear()
+                    ..addAll(art.panels.where((q) => ck.panelIds.contains(q.id) && art.free.contains(q)));
+                  selectedPanel = selection.isEmpty ? null : selection.last;
+                  activeTool = CadTool.select;
+                }),
+                child: Text(ck.message, style: t.bodySmall),
+              ),
+            ),
+          ]),
+        ),
+      if (art.free.isNotEmpty && checks.isEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Row(children: [
+            const Icon(Icons.check_circle_outline, size: 18, color: Color(0xFF16A34A)),
+            const SizedBox(width: 6),
+            Expanded(child: Text(tr('Contrôles : rien à signaler, prêt à débiter.'), style: t.bodySmall)),
+          ]),
+        ),
       for (final w in warn)
         Padding(
           padding: const EdgeInsets.only(top: 6),

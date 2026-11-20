@@ -15,6 +15,7 @@ library;
 import 'dart:math' as math;
 
 import 'art.dart';
+import 'cutting.dart';
 import 'i18n_hook.dart';
 import '../ui/art_camera.dart' show V3;
 
@@ -509,4 +510,68 @@ List<(String, String, int)> machiningHardware(List<MachiningElement> els) {
   add('Taquets d’étagère Ø5', 'tablettes mobiles', n(MachiningKind.shelfPin));
   add('Pieds réglables 100 à 150 mm', 'dessous de caisson', n(MachiningKind.foot));
   return [for (final e in out.entries) (e.key, e.value.$1, e.value.$2)];
+}
+
+
+// ------------------------------------------------------------------ contrôles avant débit
+
+/// Problème relevé sur les panneaux avant de les débiter.
+class ArtCheck {
+  final bool error; // bloquant (sinon : à vérifier)
+  final String message;
+  final List<String> panelIds;
+  const ArtCheck(this.error, this.message, this.panelIds);
+}
+
+/// Contrôles de fabrication : panneaux qui se chevauchent, plus grands que la feuille, épaisseur différente
+/// de la matière choisie, pièces trop petites pour la scie, panneaux posés en l'air sans rien qui les tienne.
+List<ArtCheck> artChecks(List<ArtPanel> panels, CutSettings cs) {
+  final out = <ArtCheck>[];
+  String n(ArtPanel p) => L(p.role.label);
+  for (var i = 0; i < panels.length; i++) {
+    final a = panels[i];
+    for (var j = i + 1; j < panels.length; j++) {
+      final b = panels[j];
+      final ox = _ov(a, b, 0), oy = _ov(a, b, 1), oz = _ov(a, b, 2);
+      if (ox <= 0.5 || oy <= 0.5 || oz <= 0.5) continue;
+      // un fond mince encastré dans une rainure (jusqu'à 12 mm) est voulu
+      final thin = _thinBack(a) || _thinBack(b);
+      if (thin && math.min(ox, math.min(oy, oz)) <= 12.5) continue;
+      out.add(ArtCheck(true, L('{0} et {1} se chevauchent ({2} mm) : ils ne peuvent pas être fabriqués ainsi', [n(a), n(b), math.min(ox, math.min(oy, oz)).round()]),
+          [a.id, b.id]));
+    }
+  }
+  for (final p in panels) {
+    final dims = [p.w, p.h, p.d]..sort();
+    final len = dims[2], wid = dims[1], th = dims[0];
+    final pp = ArtProject.panelOf(p);
+    final mat = ArtProject.materialOf(p);
+    final (sl, sw) = cs.sheetDimensionsFor(mat);
+    final maxL = sl - 2 * cs.trim, maxW = sw - 2 * cs.trim;
+    final fits = (len <= maxL && wid <= maxW) || (ArtProject.hasGrain(p) ? false : (len <= maxW && wid <= maxL));
+    if (!fits) {
+      out.add(ArtCheck(true, L('{0} {1} × {2} mm : plus grand que la feuille {3} × {4} (recoupe déduite)', [n(p), len.round(), wid.round(), sl, sw]), [p.id]));
+    }
+    if (pp != null && (th - pp.thickness).abs() > 0.5) {
+      out.add(ArtCheck(true, L('{0} de {1} mm dans une matière de {2} mm ({3})', [n(p), th.round(), pp.thickness, L(pp.name)]), [p.id]));
+    }
+    if (wid < 50) {
+      out.add(ArtCheck(false, L('{0} de {1} mm de large : trop étroit pour la scie à panneaux (50 mm au moins)', [n(p), wid.round()]), [p.id]));
+    }
+  }
+  // panneau isolé : rien ne le touche (ni le sol)
+  for (final p in panels) {
+    if (p.y < 0.6) continue;
+    final touching = panels.any((o) {
+      if (identical(o, p)) return false;
+      // collé ou encastré : l'écart est nul ou négatif sur les trois axes
+      for (var ax = 0; ax < 3; ax++) {
+        final gap = math.max(_lo(o, ax) - _hi(p, ax), _lo(p, ax) - _hi(o, ax));
+        if (gap > 4) return false; // jusqu'à 4 mm : tablette mobile sur taquets
+      }
+      return true;
+    });
+    if (!touching) out.add(ArtCheck(false, L('{0} ne touche aucun autre panneau : comment est-il fixé ?', [n(p)]), [p.id]));
+  }
+  return out;
 }

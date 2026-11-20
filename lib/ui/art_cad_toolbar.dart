@@ -302,6 +302,7 @@ class ArtCadContextHud extends StatelessWidget {
   final ValueChanged<String>? onMeasure;
   final ValueChanged<ArtRole>? onSetRole;
   final VoidCallback? onToggleHinge;
+  final Widget? extra; // réglage propre à l'outil (ex. matière des panneaux dessinés)
 
   const ArtCadContextHud({
     super.key,
@@ -329,6 +330,7 @@ class ArtCadContextHud extends StatelessWidget {
     this.onMeasure,
     this.onSetRole,
     this.onToggleHinge,
+    this.extra,
   });
 
   @override
@@ -379,6 +381,7 @@ class ArtCadContextHud extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (extra != null) ...[const SizedBox(width: 8), extra!],
                 if (measureController != null && measureHint.isNotEmpty) ...[
                   const SizedBox(width: 8),
                   // boîte des cotes : on peut aussi taper directement au clavier, puis Entrée

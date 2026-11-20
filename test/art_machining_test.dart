@@ -1,11 +1,17 @@
 // Usinage automatique de l'atelier : assemblages, fond, charnières, coulisses, poignées, taquets, pieds, chants.
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kitchen_planner/engine/cutting.dart';
+import 'package:kitchen_planner/engine/public_prices.dart';
 import 'package:kitchen_planner/engine/art.dart';
 import 'package:kitchen_planner/engine/art_machining.dart';
 
 int n(MachiningSummary m, MachiningKind k) => m.count(k);
 
 void main() {
+  setUpAll(() => PublicPrices.parse(File('assets/data/public_prices.json').readAsStringSync()));
+
   test('caisson 2 portes de 600 x 720 x 560 sur pieds : tourillons, vis, charnières, poignées, pieds, chants', () {
     final art = ArtProject();
     // caisson posé à 100 mm du sol (pieds), fond de 6 mm encastré de 8 mm dans les côtés, le dessus et le dessous
@@ -104,5 +110,39 @@ void main() {
     final m = computeMachiningElements(art.panels);
     expect(n(m, MachiningKind.groove), 0);
     expect(n(m, MachiningKind.nail), 8, reason: '600 mm de haut sur chaque côté : 4 pointes par côté');
+  });
+
+  test('matière du tarif : latté débité sur feuilles 2440 x 1220, sans rotation ; contrôles avant débit', () {
+    final art = ArtProject();
+    art.free.addAll([
+      ArtPanel(id: 'a', role: ArtRole.montant, x: 0, y: 0, w: 18, h: 2000, d: 560, material: 'latte_chene_bois_rouge'),
+      ArtPanel(id: 'b', role: ArtRole.montant, x: 782, y: 0, w: 18, h: 2000, d: 560, material: 'latte_chene_bois_rouge'),
+      ArtPanel(id: 'c', role: ArtRole.tablette, x: 18, y: 0, w: 764, h: 18, d: 560, material: 'mdf_blanc_18'),
+    ]);
+    final cs = CutSettings();
+    final parts = art.cutParts();
+    final latte = parts.firstWhere((p) => p.material.startsWith('Latté'));
+    expect(latte.material, 'Latté chêne bois rouge 18 · 2440×1220');
+    expect(latte.canRotate, isFalse, reason: 'latté : la pièce garde son sens');
+    expect(cs.sheetDimensionsFor(latte.material), (2440, 1220));
+    final plan = art.plan(cs);
+    final sheet = plan.sheets.firstWhere((sh) => sh.material == latte.material);
+    expect((sheet.length, sheet.width), (2440, 1220));
+    for (final method in [1, 2, 3]) {
+      cs.method = method;
+      final pl = nest(art.cutParts(), cs);
+      expect(pl.sheets.where((sh) => sh.material == latte.material).every((sh) => sh.length == 2440 && sh.width == 1220), isTrue,
+          reason: 'méthode $method : format du latté');
+    }
+    expect(artChecks(art.panels, cs), isEmpty);
+
+    // chevauchement, épaisseur différente de la matière, pièce plus grande que la feuille
+    art.free.add(ArtPanel(id: 'd', role: ArtRole.tablette, x: 10, y: 500, w: 764, h: 19, d: 560, material: 'mdf_blanc_18'));
+    art.free.add(ArtPanel(id: 'e', role: ArtRole.decor, x: 2000, y: 300, w: 2600, h: 1300, d: 18, material: 'latte_blanc_bois_rouge_cp'));
+    final ck = artChecks(art.panels, cs);
+    expect(ck.where((c) => c.error && c.panelIds.contains('d') && c.panelIds.contains('a')), isNotEmpty, reason: 'd chevauche le montant a');
+    expect(ck.where((c) => c.error && c.message.contains('19 mm')), isNotEmpty, reason: '19 mm dans du MDF 18');
+    expect(ck.where((c) => c.error && c.panelIds.contains('e') && c.message.contains('plus grand')), isNotEmpty);
+    expect(ck.where((c) => !c.error && c.panelIds.contains('e')), isNotEmpty, reason: 'e ne touche rien');
   });
 }

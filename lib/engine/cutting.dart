@@ -96,6 +96,9 @@ class CutSettings {
   String machine; // 'scie' (scie à panneaux : bandes puis tronçons) | 'cnc' (imbrication libre)
 
   (int, int) sheetDimensionsFor(String material) {
+    // matière qui porte son format (« … · 2440×1220 ») : celui du tarif
+    final f = RegExp(r'(\d{3,4})\s*[x×]\s*(\d{3,4})\s*\)?$').firstMatch(material);
+    if (f != null) return (int.parse(f.group(1)!), int.parse(f.group(2)!));
     final isFront = material == frontMaterial ||
         material.contains('Façade') ||
         material.contains('Porte') ||
@@ -1535,8 +1538,9 @@ class _BState {
 /// Meilleure feuille (une seule) par recherche en faisceau sur les largeurs de bande.
 CutSheet? _beamSheet(List<(CutPart, int)> pieces, String mat, CutSettings cs, int number, bool alongLength, {int beam = 40}) {
   final k = cs.kerf.toDouble(), trim = cs.trim.toDouble();
-  final L = (alongLength ? cs.sheetLength : cs.sheetWidth) - 2 * trim;
-  final W = (alongLength ? cs.sheetWidth : cs.sheetLength) - 2 * trim;
+  final (sL, sW) = cs.sheetDimensionsFor(mat); // format propre à la matière (latté, panneaux minces…)
+  final L = (alongLength ? sL : sW) - 2 * trim;
+  final W = (alongLength ? sW : sL) - 2 * trim;
   int byArea((CutPart, int) a, (CutPart, int) b) => b.$1.area.compareTo(a.$1.area);
   int byLen((CutPart, int) a, (CutPart, int) b) => b.$1.length.compareTo(a.$1.length) != 0 ? b.$1.length.compareTo(a.$1.length) : b.$1.width.compareTo(a.$1.width);
   int byWid((CutPart, int) a, (CutPart, int) b) => b.$1.width.compareTo(a.$1.width) != 0 ? b.$1.width.compareTo(a.$1.width) : b.$1.length.compareTo(a.$1.length);
@@ -1610,7 +1614,7 @@ CutSheet? _beamSheet(List<(CutPart, int)> pieces, String mat, CutSettings cs, in
     }
   }
   if (bestEnd.strips == 0) return null;
-  final s = CutSheet(number, mat, cs.sheetLength, cs.sheetWidth, cs.trim);
+  final s = CutSheet(number, mat, sL, sW, cs.trim);
   s._free.clear();
   s.strips = bestEnd.strips;
   s.cutLen = bestEnd.cut;

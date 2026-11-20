@@ -9,6 +9,7 @@ import 'art_box.dart';
 import 'art_cad.dart';
 import 'art_machining.dart';
 import 'cutting.dart';
+import 'public_prices.dart';
 
 /// Rôle d'un panneau : détermine le dessin, la matière par défaut, les chants et la quincaillerie.
 enum ArtRole {
@@ -34,6 +35,7 @@ class ArtPanel {
   String finish; // finition (id de la façade ou du caisson)
   String hinge; // porte : 'left' | 'right'
   Comp? comp; // composant universel (caissons paramétriques)
+  String? material; // panneau du tarif (MDF, latté, stratifié, mince) : matière, épaisseur et format de feuille
 
   // Usinages & menuiserie : chants et rainures
   int edgeLong; // chants sur côtés longs (0, 1, 2)
@@ -58,6 +60,7 @@ class ArtPanel {
     this.finish = 'blanc_mat',
     this.hinge = 'left',
     this.comp,
+    this.material,
     this.edgeLong = 0,
     this.edgeShort = 0,
     this.edgeThickness = 1.0,
@@ -86,6 +89,7 @@ class ArtPanel {
         finish: finish,
         hinge: hinge,
         comp: comp,
+        material: material,
         edgeLong: edgeLong,
         edgeShort: edgeShort,
         edgeThickness: edgeThickness,
@@ -108,6 +112,7 @@ class ArtPanel {
         'd': d,
         'finish': finish,
         'hinge': hinge,
+        if (material != null) 'mat': material,
         'edge_long': edgeLong,
         'edge_short': edgeShort,
         'edge_th': edgeThickness,
@@ -130,6 +135,7 @@ class ArtPanel {
         d: (j['d'] as num).toDouble(),
         finish: j['finish'] as String? ?? 'blanc_mat',
         hinge: j['hinge'] as String? ?? 'left',
+        material: j['mat'] as String?,
         edgeLong: (j['edge_long'] as num?)?.toInt() ?? 0,
         edgeShort: (j['edge_short'] as num?)?.toInt() ?? 0,
         edgeThickness: (j['edge_th'] as num?)?.toDouble() ?? 1.0,
@@ -282,7 +288,19 @@ class ArtProject {
 
   // ---------------------------------------------------------------- débit et assemblage
   /// Matière d'un panneau : façades et décors en MDF façade, fonds minces en HDF, le reste en caisson.
+  /// Panneau du tarif choisi pour [p], s'il existe.
+  static PublicPanel? panelOf(ArtPanel p) => p.material == null ? null : PublicPrices.byId(p.material!);
+
+  /// Le panneau a un sens (veinage d'un décor, âme d'un latté) : pas de rotation au débit.
+  static bool hasGrain(ArtPanel p) {
+    final pp = panelOf(p);
+    if (pp == null) return false;
+    return pp.family == 'Latté' || !(pp.id.contains('blanc') || pp.id.contains('noir'));
+  }
+
   static String materialOf(ArtPanel p) {
+    final pp = panelOf(p);
+    if (pp != null) return '${pp.name} ${pp.thickness} · ${pp.length}×${pp.width}';
     final t = p.thickness.round();
     if (p.role == ArtRole.fond || t <= 8) return 'HDF $t (fonds)';
     if (p.role.isFront || p.role == ArtRole.decor || p.role == ArtRole.plateau) return 'MDF $t (façades)';
@@ -316,7 +334,7 @@ class ArtProject {
         a,
         b,
         1,
-        canRotate: !front,
+        canRotate: !front && !hasGrain(p),
         edgeLong: eLong,
         edgeShort: eShort,
         grooveLong: gLong,
