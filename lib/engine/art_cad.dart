@@ -28,7 +28,8 @@ enum CadTool {
   dimension('Cotation', 'Ajouter une ligne de cote permanente avec valeur en mm'),
   pushPull('Pousser / Tirer', 'Extruder une esquisse 2D en panneau 3D ou épaissir/allonger une face'),
   edgeBand('Bande de chant', 'Appliquer ou modifier le chant (0.4, 1.0, 2.0 mm) sur les arêtes'),
-  groove('Rainure', 'Créer ou configurer une rainure pour fond ou usinage');
+  groove('Rainure', 'Créer ou configurer une rainure pour fond ou usinage'),
+  cut('Couper', 'Couper un panneau en deux le long de X ou de Y, trait de scie déduit');
 
   final String label;
   final String description;

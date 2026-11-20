@@ -8,6 +8,7 @@ import 'dart:math' as math;
 import 'art_box.dart';
 import 'art_cad.dart';
 import 'art_machining.dart';
+import 'art_fittings.dart';
 import 'cutting.dart';
 import 'public_prices.dart';
 
@@ -35,6 +36,7 @@ class ArtPanel {
   String finish; // finition (id de la façade ou du caisson)
   String hinge; // porte : 'left' | 'right'
   Comp? comp; // composant universel (caissons paramétriques)
+  String? hingeType; // porte : type de charnière (null : celui du meuble)
   String? material; // panneau du tarif (MDF, latté, stratifié, mince) : matière, épaisseur et format de feuille
 
   // Usinages & menuiserie : chants et rainures
@@ -61,6 +63,7 @@ class ArtPanel {
     this.hinge = 'left',
     this.comp,
     this.material,
+    this.hingeType,
     this.edgeLong = 0,
     this.edgeShort = 0,
     this.edgeThickness = 1.0,
@@ -90,6 +93,7 @@ class ArtPanel {
         hinge: hinge,
         comp: comp,
         material: material,
+        hingeType: hingeType,
         edgeLong: edgeLong,
         edgeShort: edgeShort,
         edgeThickness: edgeThickness,
@@ -113,6 +117,7 @@ class ArtPanel {
         'finish': finish,
         'hinge': hinge,
         if (material != null) 'mat': material,
+        if (hingeType != null) 'hinge_type': hingeType,
         'edge_long': edgeLong,
         'edge_short': edgeShort,
         'edge_th': edgeThickness,
@@ -136,6 +141,7 @@ class ArtPanel {
         finish: j['finish'] as String? ?? 'blanc_mat',
         hinge: j['hinge'] as String? ?? 'left',
         material: j['mat'] as String?,
+        hingeType: j['hinge_type'] as String?,
         edgeLong: (j['edge_long'] as num?)?.toInt() ?? 0,
         edgeShort: (j['edge_short'] as num?)?.toInt() ?? 0,
         edgeThickness: (j['edge_th'] as num?)?.toDouble() ?? 1.0,
@@ -159,6 +165,8 @@ class ArtProject {
   final List<CadShape> sketches;
   /// Lignes de cotes / mesures enregistrées.
   final List<CadDimension> dimensions;
+  /// Accessoires choisis : charnières, assemblages, suspension, pieds, jonction entre caissons.
+  ArtFittings fittings = ArtFittings();
   int _next = 1;
 
   ArtProject({
@@ -213,6 +221,7 @@ class ArtProject {
         'panels': [for (final p in free) p.toJson()],
         if (sketches.isNotEmpty) 'sketches': [for (final s in sketches) s.toJson()],
         if (dimensions.isNotEmpty) 'dimensions': [for (final d in dimensions) d.toJson()],
+        if (!fittings.isDefault) 'fittings': fittings.toJson(),
       };
 
   factory ArtProject.fromJson(Map<String, dynamic> j) => ArtProject(
@@ -223,7 +232,7 @@ class ArtProject {
         boxes: [for (final b in (j['boxes'] as List? ?? const [])) ArtBox.fromJson((b as Map).cast<String, dynamic>())],
         sketches: [for (final s in (j['sketches'] as List? ?? const [])) CadShape.fromJson((s as Map).cast<String, dynamic>())],
         dimensions: [for (final d in (j['dimensions'] as List? ?? const [])) CadDimension.fromJson((d as Map).cast<String, dynamic>())],
-      );
+      )..fittings = ArtFittings.fromJson((j['fittings'] as Map?)?.cast<String, dynamic>() ?? const {});
 
   /// Encombrement (x0, y0, x1, y1) en vue de face.
   (double, double, double, double)? get bounds {
@@ -315,7 +324,7 @@ class ArtProject {
       }
     }
     // chants et rainures déduits de l'usinage (arêtes visibles, fonds encastrés), sauf réglage manuel du panneau
-    final work = free.isEmpty ? const <String, PanelWork>{} : computeMachiningElements(panels).work;
+    final work = free.isEmpty ? const <String, PanelWork>{} : computeMachiningElements(panels, fittings: fittings).work;
     for (final p in free) {
       final dims = [p.w, p.h, p.d]..sort();
       final a = dims[2].round(), b = dims[1].round();
@@ -334,7 +343,8 @@ class ArtProject {
         a,
         b,
         1,
-        canRotate: !front && !hasGrain(p),
+        // matière choisie : seul son sens (décor, latté) interdit de tourner ; sinon, façades sans rotation
+        canRotate: panelOf(p) != null ? !hasGrain(p) : !front,
         edgeLong: eLong,
         edgeShort: eShort,
         grooveLong: gLong,
@@ -381,17 +391,17 @@ class ArtProject {
     // panneaux libres : quincaillerie et visserie posées par l'usinage (jonctions, façades, pieds, taquets)
     if (free.isNotEmpty) {
       final ids = {for (final p in free) p.id};
-      final els = computeMachiningElements(panels)
+      final els = computeMachiningElements(panels, fittings: fittings)
           .elements
           .where((e) => ids.contains(e.panelId) || ids.contains(e.partnerPanelId))
           .toList();
-      for (final (name, usage, q) in machiningHardware(els)) {
+      for (final (name, usage, q) in machiningHardware(els, fittings: fittings)) {
         add(name, usage, q.toDouble());
       }
     }
     final pinned = free.isEmpty
         ? const <String>{}
-        : {for (final e in computeMachiningElements(panels).elements) if (e.kind == MachiningKind.shelfPin) e.panelId};
+        : {for (final e in computeMachiningElements(panels, fittings: fittings).elements) if (e.kind == MachiningKind.shelfPin) e.panelId};
     for (final p in free) {
       switch (p.role) {
         case ArtRole.tablette:

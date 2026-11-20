@@ -15,6 +15,7 @@ library;
 import 'dart:math' as math;
 
 import 'art.dart';
+import 'art_fittings.dart';
 import 'cutting.dart';
 import 'i18n_hook.dart';
 import '../ui/art_camera.dart' show V3;
@@ -33,7 +34,10 @@ enum MachiningKind {
   slide('Coulisse de tiroir'),
   handle('Poignée'),
   foot('Pied réglable'),
-  edge('Bande de chant');
+  edge('Bande de chant'),
+  hanger('Suspension de meuble haut'),
+  connector('Jonction entre caissons'),
+  latch('Poussoir d’ouverture');
 
   final String label;
   const MachiningKind(this.label);
@@ -48,6 +52,7 @@ class MachiningElement {
   final double diameter; // diamètre, largeur de rainure ou épaisseur de chant
   final String? panelId;
   final String? partnerPanelId;
+  final String? item; // désignation de la quincaillerie posée (liste à commander)
 
   const MachiningElement({
     required this.kind,
@@ -57,6 +62,7 @@ class MachiningElement {
     this.diameter = 0,
     this.panelId,
     this.partnerPanelId,
+    this.item,
   });
 
   /// Fin du segment (coulisse, poignée, rainure, chant).
@@ -159,7 +165,8 @@ int handleSpacing(double width) => width < 250 ? 96 : width < 450 ? 128 : width 
 
 // ------------------------------------------------------------------ analyse
 
-MachiningSummary computeMachiningElements(List<ArtPanel> panels) {
+MachiningSummary computeMachiningElements(List<ArtPanel> panels, {ArtFittings? fittings}) {
+  final fit = fittings ?? ArtFittings();
   final els = <MachiningElement>[];
   final work = {for (final p in panels) p.id: PanelWork()};
 
@@ -177,7 +184,31 @@ MachiningSummary computeMachiningElements(List<ArtPanel> panels) {
         if (o1 < 12 || o2 < 12) continue;
         // hôte : le panneau qui présente sa face (épaisseur sur cet axe) ; l'autre présente son chant
         final aFace = thicknessAxis(a) == ax, bFace = thicknessAxis(b) == ax;
-        if (aFace == bFace) continue; // face contre face ou chant contre chant : pas d'assemblage type
+        if (aFace && bFace) {
+          // deux côtés de caissons voisins, face contre face : vis de jonction près des 4 coins
+          if (fit.link == LinkType.aucun || o1 < 100 || o2 < 100) continue;
+          final plane = aBelow ? _hi(a, ax) : _hi(b, ax);
+          final (u, v) = (others[0], others[1]);
+          final u0 = math.max(_lo(a, u), _lo(b, u)), u1 = math.min(_hi(a, u), _hi(b, u));
+          final v0 = math.max(_lo(a, v), _lo(b, v)), v1 = math.min(_hi(a, v), _hi(b, v));
+          final us = (u1 - u0) > 250 ? [u0 + 50, u1 - 50] : [(u0 + u1) / 2];
+          final vs = (v1 - v0) > 250 ? [v0 + 50, v1 - 50] : [(v0 + v1) / 2];
+          for (final uu in us) {
+            for (final vv in vs) {
+              els.add(MachiningElement(
+                  kind: MachiningKind.connector,
+                  position: _pt({ax: plane, u: uu, v: vv}),
+                  normal: _axisV(ax, aBelow ? 1 : -1),
+                  length: 30,
+                  diameter: 5,
+                  panelId: a.id,
+                  partnerPanelId: b.id,
+                  item: fit.link.item));
+            }
+          }
+          continue;
+        }
+        if (aFace == bFace) continue; // chant contre chant : pas d'assemblage type
         final host = aFace ? a : b, guest = aFace ? b : a;
         final plane = aBelow ? (_hi(a, ax) + _lo(b, ax)) / 2 : (_hi(b, ax) + _lo(a, ax)) / 2;
         // direction du perçage : de l'hôte vers le chant de l'invité
@@ -187,26 +218,49 @@ MachiningSummary computeMachiningElements(List<ArtPanel> panels) {
         final wAx = lAx == others[0] ? others[1] : others[0];
         final l0 = math.max(_lo(a, lAx), _lo(b, lAx)), l1 = math.min(_hi(a, lAx), _hi(b, lAx));
         final wMid = (math.max(_lo(a, wAx), _lo(b, wAx)) + math.min(_hi(a, wAx), _hi(b, wAx))) / 2;
-        final (dowels, screws) = _jointStations(l0, l1);
+        var (dowels, screws) = _jointStations(l0, l1);
+        final j = fit.joint;
+        if (j == JointType.tourillons) {
+          // collé seulement : un tourillon à chaque station
+          dowels = [...dowels, ...screws];
+          screws = const [];
+        }
+        if (j == JointType.lamello) {
+          // lamelles tous les 150 mm environ, au lieu des tourillons et des vis
+          final n = math.max(2, ((l1 - l0) / 150).floor());
+          dowels = [for (var k = 0; k < n; k++) l0 + (l1 - l0) * (k + 0.5) / n];
+          screws = const [];
+        }
+        if (j == JointType.pocket) dowels = const []; // la vis de poche tient seule, posée de biais
+        final (screwLen, screwDia) = switch (j) {
+          JointType.confirmat70 => (70.0, 7.0),
+          JointType.minifix => (34.0, 15.0),
+          JointType.visBois => (40.0, 4.0),
+          JointType.euro => (13.0, 6.3),
+          JointType.pocket => (30.0, 4.0),
+          _ => (50.0, 7.0),
+        };
         for (final s in dowels) {
           els.add(MachiningElement(
               kind: MachiningKind.dowel,
               position: _pt({ax: plane, lAx: s, wAx: wMid}),
               normal: _axisV(ax, sign),
-              length: 35,
-              diameter: 8,
+              length: j == JointType.lamello ? 56 : 35,
+              diameter: j == JointType.lamello ? 4 : 8,
               panelId: host.id,
-              partnerPanelId: guest.id));
+              partnerPanelId: guest.id,
+              item: j == JointType.lamello ? 'Lamelle bois n° 20' : 'Tourillons bois Ø8 x 35 mm'));
         }
         for (final s in screws) {
           els.add(MachiningElement(
               kind: MachiningKind.screw,
               position: _pt({ax: plane, lAx: s, wAx: wMid}),
               normal: _axisV(ax, sign),
-              length: 50,
-              diameter: 7,
+              length: screwLen,
+              diameter: screwDia,
               panelId: host.id,
-              partnerPanelId: guest.id));
+              partnerPanelId: guest.id,
+              item: j.screw));
         }
       }
     }
@@ -298,6 +352,29 @@ MachiningSummary computeMachiningElements(List<ArtPanel> panels) {
     final backZ = f.back;
     switch (f.role) {
       case ArtRole.porte:
+        final ht = HingeType.values.where((h) => h.name == f.hingeType).firstOrNull ?? fit.hinge;
+        if (ht == HingeType.piano) {
+          // charnière continue sur toute la hauteur, vissée sur le chant du côté
+          els.add(MachiningElement(
+              kind: MachiningKind.hingePlate,
+              position: V3(f.hinge != 'right' ? f.x : f.right, f.y + 10, backZ),
+              normal: const V3(0, 1, 0),
+              length: f.h - 20,
+              diameter: 3,
+              panelId: f.id,
+              item: ht.label));
+          break;
+        }
+        if (ht == HingeType.pushOpen) {
+          els.add(MachiningElement(
+              kind: MachiningKind.latch,
+              position: V3(f.hinge != 'right' ? f.right - 40 : f.x + 40, f.y + f.h / 2, backZ + 10),
+              normal: const V3(0, 0, 1),
+              length: 40,
+              diameter: 10,
+              panelId: f.id,
+              item: 'Poussoir d’ouverture (push-to-open) + butée'));
+        }
         final n = hingeCount(f.h);
         final left = f.hinge != 'right';
         final edgeX = left ? f.x + 22.5 : f.right - 22.5;
@@ -308,10 +385,11 @@ MachiningSummary computeMachiningElements(List<ArtPanel> panels) {
               kind: MachiningKind.hingeCup,
               position: V3(edgeX, y, backZ),
               normal: const V3(0, 0, -1),
-              length: 13,
-              diameter: 35,
+              length: ht.cup == 0 ? 0 : 13,
+              diameter: ht.cup.toDouble(),
               panelId: f.id,
-              partnerPanelId: side?.id));
+              partnerPanelId: side?.id,
+              item: ht.label));
           if (side != null) {
             final faceX = left ? side.right : side.x;
             els.add(MachiningElement(
@@ -365,7 +443,11 @@ MachiningSummary computeMachiningElements(List<ArtPanel> panels) {
       default:
         break;
     }
-    // poignée, côté visible de la façade
+    // poignée, côté visible de la façade (sauf porte à poussoir)
+    if (f.role == ArtRole.porte &&
+        (HingeType.values.where((h) => h.name == f.hingeType).firstOrNull ?? fit.hinge) == HingeType.pushOpen) {
+      continue;
+    }
     final cc = handleSpacing(f.role == ArtRole.porte ? f.h : f.w).toDouble();
     if (f.role == ArtRole.porte) {
       final x = f.hinge == 'right' ? f.x + 40 : f.right - 40;
@@ -421,7 +503,7 @@ MachiningSummary computeMachiningElements(List<ArtPanel> panels) {
   }
 
   // 5. pieds : dessous de caisson surélevé (50 à 250 mm du sol) sans rien dessous
-  for (final b in panels.where((p) => _structural(p) && thicknessAxis(p) == 1 && p.y >= 50 && p.y <= 250)) {
+  for (final b in panels.where((p) => fit.foot != FootType.socle && _structural(p) && thicknessAxis(p) == 1 && p.y >= 50 && p.y <= 250)) {
     final under = panels.any((o) => !identical(o, b) && _structural(o) && o.y < b.y - _tol && _ov(o, b, 0) > 40 && _ov(o, b, 2) > 40 && o.top > 30);
     if (under) continue;
     final nx = math.max(2, (b.w / 900).ceil() + 1);
@@ -429,9 +511,32 @@ MachiningSummary computeMachiningElements(List<ArtPanel> panels) {
       final x = b.x + 50 + (b.w - 100) * k / (nx - 1);
       for (final z in [b.z + 50, b.back - 50]) {
         els.add(MachiningElement(
-            kind: MachiningKind.foot, position: V3(x, b.y, z), normal: const V3(0, -1, 0), length: b.y, diameter: 30, panelId: b.id));
+            kind: MachiningKind.foot, position: V3(x, b.y, z), normal: const V3(0, -1, 0), length: b.y, diameter: 30, panelId: b.id, item: fit.foot.item));
       }
     }
+  }
+
+  // 5 bis. meubles hauts : côtés en l'air (à plus de 300 mm du sol, rien dessous) → suspension au mur
+  final hanging = [
+    for (final s in panels.where((p) => _structural(p) && thicknessAxis(p) == 0 && p.y >= 300))
+      if (!panels.any((o) => !identical(o, s) && _structural(o) && o.top <= s.y + _tol && o.top >= s.y - 30 && _ov(o, s, 0) > 0 && _ov(o, s, 2) > 40)) s,
+  ]..sort((a, b) => a.x.compareTo(b.x));
+  for (final s in hanging) {
+    // fixation côté intérieur du caisson : à droite d'un côté gauche, à gauche d'un côté droit
+    final partner = hanging.where((o) => !identical(o, s) && _ov(o, s, 1) > 100).fold<ArtPanel?>(null, (best, o) {
+      final d = (o.x - s.x).abs();
+      return best == null || d < (best.x - s.x).abs() ? o : best;
+    });
+    final inward = partner == null ? 1.0 : (partner.x > s.x ? 1.0 : -1.0);
+    els.add(MachiningElement(
+        kind: MachiningKind.hanger,
+        position: V3(inward > 0 ? s.right : s.x, s.top - 40, s.back - 20),
+        normal: _axisV(0, inward),
+        length: 40,
+        diameter: 20,
+        panelId: s.id,
+        partnerPanelId: partner?.id,
+        item: fit.hang.item));
   }
 
   // 6. chants : arêtes visibles
@@ -475,22 +580,46 @@ MachiningSummary computeMachiningElements(List<ArtPanel> panels) {
     }
   }
 
-  return MachiningSummary(els, work, machiningHardware(els));
+  return MachiningSummary(els, work, machiningHardware(els, fittings: fit));
 }
 
 /// Liste de quincaillerie et visserie déduite des usinages.
-List<(String, String, int)> machiningHardware(List<MachiningElement> els) {
+List<(String, String, int)> machiningHardware(List<MachiningElement> els, {ArtFittings? fittings}) {
+  final fit = fittings ?? ArtFittings();
   final out = <String, (String, int)>{};
   void add(String name, String usage, int q) {
-    if (q > 0) out[name] = (out[name]?.$1 ?? usage, (out[name]?.$2 ?? 0) + q);
+    if (q > 0 && name.isNotEmpty) out[name] = (out[name]?.$1 ?? usage, (out[name]?.$2 ?? 0) + q);
   }
 
   int n(MachiningKind k) => els.where((e) => e.kind == k).length;
-  add('Tourillons bois Ø8 x 35 mm', 'jonctions entre panneaux, avec colle', n(MachiningKind.dowel));
-  add('Vis Confirmat Ø7 x 50 mm', 'jonctions entre panneaux', n(MachiningKind.screw));
-  add('Cache-vis Confirmat', 'têtes de vis visibles', n(MachiningKind.screw));
+  // pièces posées une à une, par désignation
+  const usage = {
+    MachiningKind.dowel: 'jonctions entre panneaux, avec colle',
+    MachiningKind.screw: 'jonctions entre panneaux',
+    MachiningKind.hingeCup: 'portes et abattants',
+    MachiningKind.hingePlate: 'portes',
+    MachiningKind.foot: 'dessous de caisson',
+    MachiningKind.hanger: 'meubles hauts fixés au mur',
+    MachiningKind.connector: 'caissons voisins assemblés côte à côte',
+    MachiningKind.latch: 'portes sans poignée',
+  };
+  for (final e in els) {
+    final u = usage[e.kind];
+    if (u == null) continue;
+    final name = e.item ??
+        switch (e.kind) {
+          MachiningKind.dowel => 'Tourillons bois Ø8 x 35 mm',
+          MachiningKind.screw => 'Vis Confirmat Ø7 x 50 mm',
+          MachiningKind.hingeCup => 'Charnière 110° frein intégré Ø35 + embase',
+          MachiningKind.foot => 'Pieds réglables 100 à 150 mm',
+          _ => '',
+        };
+    if (e.kind == MachiningKind.hingePlate && e.item == null) continue; // embase : livrée avec la charnière
+    add(name, u, 1);
+  }
+  final screws = els.where((e) => e.kind == MachiningKind.screw && (e.item ?? '').startsWith('Vis Confirmat')).length;
+  add('Cache-vis Confirmat', 'têtes de vis visibles', screws);
   add('Pointes 3 x 20 mm', 'fonds cloués', n(MachiningKind.nail));
-  add('Charnière 110° frein intégré Ø35 + embase', 'portes et abattants', n(MachiningKind.hingeCup));
   add('Vis aggloméré Ø3,5 x 16 mm', 'charnières, embases et coulisses', n(MachiningKind.hingeCup) * 2 + n(MachiningKind.hingePlate) * 2 + n(MachiningKind.slide) * 6);
   add('Compas d’abattant freiné', 'abattants', n(MachiningKind.flapStay));
   final slides = <int, int>{};
@@ -508,7 +637,14 @@ List<(String, String, int)> machiningHardware(List<MachiningElement> els) {
     add(L('Poignée entraxe {0} mm + 2 vis M4', [h.key]), 'façades', h.value);
   }
   add('Taquets d’étagère Ø5', 'tablettes mobiles', n(MachiningKind.shelfPin));
-  add('Pieds réglables 100 à 150 mm', 'dessous de caisson', n(MachiningKind.foot));
+  // accessoires liés : clips de plinthe (pieds de devant), rail et vis de suspension, chevilles
+  final feet = n(MachiningKind.foot);
+  if (fit.foot.clip.isNotEmpty) add(fit.foot.clip, 'plinthe sur les pieds de devant', (feet / 2).ceil());
+  final hangers = n(MachiningKind.hanger);
+  if (hangers > 0) {
+    if (fit.hang.rail.isNotEmpty) add(L('{0} (1 par meuble haut)', [fit.hang.rail]), 'meubles hauts', (hangers / 2).ceil());
+    add('Chevilles Ø8 + vis Ø5 x 60 mm', 'fixation murale', hangers * (fit.hang == HangType.tasseau ? 3 : 2));
+  }
   return [for (final e in out.entries) (e.key, e.value.$1, e.value.$2)];
 }
 

@@ -154,6 +154,51 @@ void main() {
     await t.pump(const Duration(seconds: 6));
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('feuille entière : poser, couper en X à 600 puis en Y à 400, trait de scie déduit', (t) async {
+    t.view.physicalSize = const Size(1366, 1024);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    PublicPrices.parse(File('assets/data/public_prices.json').readAsStringSync());
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    final art = st.project.art;
+    final kerf = st.project.cut.kerf.toDouble();
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('start_sheet')));
+    await t.pumpAndSettle();
+    expect(art.free, hasLength(1));
+    final sheet = art.free.single;
+    final trim = st.project.cut.trim;
+    expect((sheet.w, sheet.h, sheet.d), (2800 - 2 * trim, 18, 2100 - 2 * trim), reason: 'MDF blanc 18 du tarif, à plat, bords recoupés');
+    // la feuille est la cible : coupe X tapée
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    expect(s.activeTool.toString(), contains('cut'));
+    await t.enterText(find.byKey(const ValueKey('cad_measure')), '600');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    expect(art.free, hasLength(2));
+    final a = art.free[0], b = art.free[1];
+    expect(a.w, 600);
+    expect(b.x, 600 + kerf);
+    expect(a.w + b.w + kerf, 2800 - 2 * trim);
+    // coupe Y sur la grande chute : 400 depuis son bord
+    await t.tap(find.text('Coupe Y'));
+    await t.pumpAndSettle();
+    s.selectedPanel = b;
+    await t.enterText(find.byKey(const ValueKey('cad_measure')), '400');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    expect(art.free, hasLength(3));
+    final c = art.free.firstWhere((q) => q.x == b.x && q.d == 400);
+    expect(c.w, b.w);
+    expect(art.free.where((q) => q.x == b.x).fold<double>(0, (sum, q) => sum + q.d) + kerf, 2100 - 2 * trim);
+    // le débit retrouve les pièces sur une seule feuille
+    final plan = art.plan(st.project.cut);
+    expect(plan.sheets, hasLength(1));
+    await t.pump(const Duration(seconds: 6));
+    expect(t.takeException(), isNull);
+  });
 }
 
 /// Point écran du centre du dessus d'un panneau (par la caméra de la page).

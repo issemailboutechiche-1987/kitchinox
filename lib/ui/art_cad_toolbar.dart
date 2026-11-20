@@ -202,6 +202,7 @@ class ArtCadToolbar extends StatelessWidget {
 
               // Groupe 4 : Pousser / Tirer (Image 4)
               _btn(CadTool.pushPull, Icons.vertical_align_top, 'Pousser / Tirer (Extrusion 3D)'),
+              _btn(CadTool.cut, Icons.content_cut, 'Couper la feuille (X / Y)'),
               _divider(border),
 
               // Groupe 5 : Menuiserie (Chants & Rainures)
@@ -237,6 +238,7 @@ class ArtCadToolbar extends StatelessWidget {
     CadTool.pushPull: 'P',
     CadTool.edgeBand: 'B',
     CadTool.groove: 'G',
+    CadTool.cut: 'X',
   };
 
   Widget _btn(CadTool tool, IconData icon, String tooltip) {

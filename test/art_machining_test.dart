@@ -4,7 +4,10 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kitchen_planner/engine/cutting.dart';
 import 'package:kitchen_planner/engine/public_prices.dart';
+import 'dart:convert';
+
 import 'package:kitchen_planner/engine/art.dart';
+import 'package:kitchen_planner/engine/art_fittings.dart';
 import 'package:kitchen_planner/engine/art_machining.dart';
 
 int n(MachiningSummary m, MachiningKind k) => m.count(k);
@@ -58,8 +61,9 @@ void main() {
     expect(g.edgeLong + g.edgeShort, 3, reason: 'côté : avant, dessus et dessous visibles (pieds), dos sans chant');
     // quincaillerie à commander
     final hw = {for (final (name, _, q) in m.hardware) name: q};
-    expect(hw['Charnière 110° frein intégré Ø35 + embase'], 4);
-    expect(hw['Pieds réglables 100 à 150 mm'], 4);
+    expect(hw['Charnière 110° en applique'], 4);
+    expect(hw['Pied vérin réglable 100 à 150 mm'], 4);
+    expect(hw['Clip de plinthe'], 2);
     expect(hw['Tourillons bois Ø8 x 35 mm'], 8);
     // le débit reprend les chants et les rainures
     final parts = art.cutParts();
@@ -144,5 +148,39 @@ void main() {
     expect(ck.where((c) => c.error && c.message.contains('19 mm')), isNotEmpty, reason: '19 mm dans du MDF 18');
     expect(ck.where((c) => c.error && c.panelIds.contains('e') && c.message.contains('plus grand')), isNotEmpty);
     expect(ck.where((c) => !c.error && c.panelIds.contains('e')), isNotEmpty, reason: 'e ne touche rien');
+  });
+
+  test('accessoires : meuble haut suspendu, caissons joints, Minifix, porte à poussoir ; enregistrés', () {
+    final art = ArtProject();
+    // deux meubles hauts côte à côte, à 1400 mm du sol
+    art.addBox(0, 1400, 600, 700, depth: 350, doors: 1);
+    art.addBox(600, 1400, 600, 700, depth: 350, doors: 1);
+    art.fittings
+      ..joint = JointType.minifix
+      ..hinge = HingeType.pushOpen;
+    final m = computeMachiningElements(art.panels, fittings: art.fittings);
+    final hangers = m.elements.where((e) => e.kind == MachiningKind.hanger).toList();
+    expect(hangers, hasLength(4), reason: 'un boîtier par côté, 2 meubles hauts');
+    final links = m.elements.where((e) => e.kind == MachiningKind.connector).toList();
+    expect(links, hasLength(4), reason: 'côtés voisins face contre face : 4 vis de jonction aux coins');
+    expect(m.elements.where((e) => e.kind == MachiningKind.screw).every((e) => e.item!.startsWith('Excentrique Minifix')), isTrue);
+    expect(m.count(MachiningKind.handle), 0, reason: 'portes à poussoir : pas de poignée');
+    expect(m.count(MachiningKind.latch), 2);
+    final hw = {for (final (n, _, q) in m.hardware) n: q};
+    expect(hw['Boîtier de suspension réglable (gauche / droite)'], 4);
+    expect(hw['Rail de suspension (1 par meuble haut)'], 2);
+    expect(hw['Vis de jonction avec manchon Ø5 x 30'], 4);
+    expect(hw['Charnière sans ressort + poussoir'], 4);
+    // une porte avec sa propre charnière
+    final door = art.free.firstWhere((p) => p.role == ArtRole.porte);
+    door.hingeType = HingeType.grandAngle.name;
+    final m2 = computeMachiningElements(art.panels, fittings: art.fittings);
+    expect(m2.elements.where((e) => e.kind == MachiningKind.hingeCup && e.item == HingeType.grandAngle.label), hasLength(2));
+    expect(m2.count(MachiningKind.handle), 1, reason: 'cette porte a de nouveau une poignée');
+    // enregistrement
+    final back = ArtProject.fromJson(jsonDecode(jsonEncode(art.toJson())) as Map<String, dynamic>);
+    expect(back.fittings.joint, JointType.minifix);
+    expect(back.fittings.hinge, HingeType.pushOpen);
+    expect(back.free.firstWhere((p) => p.id == door.id).hingeType, 'grandAngle');
   });
 }

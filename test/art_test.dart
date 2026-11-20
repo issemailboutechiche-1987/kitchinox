@@ -138,6 +138,8 @@ void main() {
     final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.text('Colonne de dressing'), 200, scrollable: find.ancestor(of: find.text('Commencer par une feuille entière'), matching: find.byType(Scrollable)).first);
+    await t.pumpAndSettle();
     await t.tap(find.text('Colonne de dressing'));
     await t.pumpAndSettle();
     final art = st.project.art;

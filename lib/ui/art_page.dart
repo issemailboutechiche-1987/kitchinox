@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import '../engine/engine.dart';
 import '../engine/art_cad.dart';
 import '../engine/art_machining.dart';
+import '../engine/art_fittings.dart';
 import 'app_state.dart';
 import 'art_cad_toolbar.dart';
 import 'art_library.dart';
@@ -78,7 +79,11 @@ class _ArtPageState extends State<ArtPage> {
   CadTapeMeasure? activeTape;
   ArtPanel? selectedPanel;
   final Set<ArtPanel> selection = {};
-  String? drawMaterial; // matière du tarif des prochains panneaux (null : selon le rôle) // Ctrl (ou Maj) + clic : plusieurs panneaux
+  String? drawMaterial;
+  bool cutOnX = true; // Couper : ligne de coupe perpendiculaire à X (sinon à Y)
+  ArtPanel? _cutPanel; // panneau sous le doigt pour la coupe
+  double? _cutAt; // position de la coupe sur son axe (mm)
+  String? sheetMaterial = 'mdf_blanc_18'; // feuille entière de départ // matière du tarif des prochains panneaux (null : selon le rôle) // Ctrl (ou Maj) + clic : plusieurs panneaux
   CadShape? selectedShape;
   Face? hoveredFace;
   double pushPullThickness = 18.0;
@@ -246,6 +251,7 @@ class _ArtPageState extends State<ArtPage> {
         CadTool.pushPull => 'Glissez une face pour l’étirer, ou cliquez-la puis tapez la valeur.',
         CadTool.edgeBand => selectedPanel != null ? 'Choisissez l’épaisseur de chant à appliquer.' : 'Cliquez sur un panneau pour lui appliquer un chant.',
         CadTool.groove => selectedPanel != null ? 'Appliquez ou retirez la rainure pour fond.' : 'Cliquez sur un panneau pour configurer sa rainure.',
+        CadTool.cut => 'Touchez la feuille là où couper, ou tapez la distance depuis le bord puis Entrée.',
       };
     });
   }
@@ -456,6 +462,7 @@ class _ArtPageState extends State<ArtPage> {
         CadTool.pushPull => tr('épaisseur ou poussée, ex. 18'),
         CadTool.move => tr('dx;dy;dz ex. 0;0;600'),
         CadTool.rotate => tr('angle, ex. 90'),
+        CadTool.cut => tr('distance du bord, ex. 600'),
         _ => selectedPanel != null ? tr('L;H;P ex. 600;720;18') : '',
       };
 
@@ -506,6 +513,15 @@ class _ArtPageState extends State<ArtPage> {
         }
       case CadTool.rotate:
         _applyRotate(v[0]);
+      case CadTool.cut:
+        final p = _cutPanel ?? selectedPanel;
+        if (p == null) {
+          _msg(tr('Touchez d’abord la feuille à couper.'));
+          return;
+        }
+        final ax = _cutAxis(p);
+        final lo = ax == 0 ? p.x : ax == 1 ? p.y : p.z;
+        _splitPanel(p, ax, lo + v[0] + widget.state.project.cut.kerf / 2);
       case CadTool.circle || CadTool.polygon when activePoints.length == 1:
         final c = activePoints.first;
         final r = v[0].abs();
@@ -747,6 +763,7 @@ class _ArtPageState extends State<ArtPage> {
       LogicalKeyboardKey.keyD => CadTool.dimension,
       LogicalKeyboardKey.keyB => CadTool.edgeBand,
       LogicalKeyboardKey.keyG => CadTool.groove,
+      LogicalKeyboardKey.keyX => CadTool.cut,
       _ => null,
     };
     if (tool == null) return KeyEventResult.ignored;
@@ -898,6 +915,13 @@ class _ArtPageState extends State<ArtPage> {
       } else {
         _finishRect(activePoints.first, pt);
       }
+      return;
+    }
+    if (activeTool == CadTool.cut) {
+      // toucher : coupe à l'endroit touché (aimanté tous les 10 mm)
+      _cutHover(px);
+      final p = _cutPanel, at = _cutAt;
+      if (p != null && at != null) _splitPanel(p, _cutAxis(p), at);
       return;
     }
     if (activeTool == CadTool.rotatedRectangle) {
@@ -1278,6 +1302,114 @@ class _ArtPageState extends State<ArtPage> {
     if (pp != null) _msg(trp('{0} : {1} mm, feuille {2} × {3}', [tr(pp.name), pp.thickness, pp.length, pp.width]));
   }
 
+  /// Segment de la ligne de coupe en cours (sur la face visible de la feuille).
+  (V3, V3)? _cutLineSegment() {
+    final p = _cutPanel, at = _cutAt;
+    if (activeTool != CadTool.cut || p == null || at == null) return null;
+    final ax = _cutAxis(p), ta = thicknessAxis(p);
+    final other = [0, 1, 2].firstWhere((k) => k != ax && k != ta);
+    double lo(int k) => k == 0 ? p.x : k == 1 ? p.y : p.z;
+    double hi(int k) => k == 0 ? p.right : k == 1 ? p.top : p.back;
+    // face visible : le dessus d'une feuille à plat, l'avant d'un panneau debout
+    final face = ta == 1 ? hi(ta) : (ta == 2 ? lo(ta) : hi(ta));
+    V3 pt(double o) => V3.zero.withAxis(ax, at).withAxis(ta, face).withAxis(other, o);
+    return (pt(lo(other)), pt(hi(other)));
+  }
+
+  /// Axe coupé : X (largeur) ou Y (hauteur, ou profondeur pour une feuille posée à plat).
+  int _cutAxis(ArtPanel p) {
+    final ta = thicknessAxis(p);
+    final inPlane = [for (var k = 0; k < 3; k++) if (k != ta) k];
+    final xAx = inPlane.contains(0) ? 0 : inPlane.first;
+    final yAx = inPlane.firstWhere((k) => k != xAx);
+    return cutOnX ? xAx : yAx;
+  }
+
+  /// Ligne de coupe sous le doigt : panneau touché et position (au mm, aimantée tous les 10 mm).
+  void _cutHover(Offset px) {
+    final f = pickFace(cam, art.panels, px);
+    if (f == null || !art.free.contains(f.panel)) {
+      setState(() {
+        _cutPanel = null;
+        _cutAt = null;
+      });
+      return;
+    }
+    final hit = cam.hitPlane(px, f.axis, f.plane);
+    if (hit == null) return;
+    final p = f.panel;
+    final ax = _cutAxis(p);
+    final lo = ax == 0 ? p.x : ax == 1 ? p.y : p.z, hi = ax == 0 ? p.right : ax == 1 ? p.top : p.back;
+    final at = ((hit[ax] - lo) / 10).round() * 10 + lo;
+    setState(() {
+      _cutPanel = p;
+      _cutAt = at.clamp(lo + 1, hi - 1).toDouble();
+      cadStatus = trp('Coupe à {0} mm du bord ({1} mm de l’autre côté)', [(_cutAt! - lo).round(), (hi - _cutAt!).round()]);
+    });
+  }
+
+  /// Coupe [p] en deux sur l'axe [ax] à la cote [at] ; le trait de scie est retiré entre les deux pièces.
+  void _splitPanel(ArtPanel p, int ax, double at) {
+    final k = widget.state.project.cut.kerf.toDouble();
+    final lo = ax == 0 ? p.x : ax == 1 ? p.y : p.z, hi = ax == 0 ? p.right : ax == 1 ? p.top : p.back;
+    final a1 = at - k / 2, b0 = at + k / 2;
+    if (a1 - lo < 1 || hi - b0 < 1) {
+      _msg(tr('Coupe hors de la pièce.'));
+      return;
+    }
+    void set(ArtPanel q, double from, double to) {
+      if (ax == 0) {
+        q.x = from;
+        q.w = to - from;
+      } else if (ax == 1) {
+        q.y = from;
+        q.h = to - from;
+      } else {
+        q.z = from;
+        q.d = to - from;
+      }
+    }
+
+    final a = p.copy(id: art.newId()), b = p.copy(id: art.newId());
+    set(a, lo, a1);
+    set(b, b0, hi);
+    change(() {
+      final i = art.free.indexOf(p);
+      art.free
+        ..removeAt(i)
+        ..insertAll(i, [a, b]);
+      selection
+        ..clear()
+        ..add(a);
+      selectedPanel = a;
+      _cutPanel = null;
+      _cutAt = null;
+    });
+    String dims(ArtPanel q) => ([q.w, q.h, q.d]..sort()).reversed.take(2).map((v) => v.round()).join(" × ");
+    _msg(trp('Coupé : {0} et {1} mm (trait de scie {2} mm)', [dims(a), dims(b), k.round()]));
+  }
+
+  /// Nouvelle création : une feuille entière du tarif, posée à plat, prête à couper.
+  void _startFromSheet() {
+    final pp = PublicPrices.byId(sheetMaterial ?? '');
+    final (fl, fw, t) = pp == null ? (2800.0, 2100.0, 18.0) : (pp.length.toDouble(), pp.width.toDouble(), pp.thickness.toDouble());
+    // bords recoupés d'abord (recoupe des réglages du débit) : la feuille posée est la surface utile
+    final trim = widget.state.project.cut.trim.toDouble();
+    final l = fl - 2 * trim, w = fw - 2 * trim;
+    final sheet = ArtPanel(id: art.newId(), role: ArtRole.decor, x: 0, y: 0, z: 0, w: l, h: t, d: w, material: pp?.id, finish: 'blanc');
+    change(() {
+      art.free.add(sheet);
+      selection
+        ..clear()
+        ..add(sheet);
+      selectedPanel = sheet;
+      activeTool = CadTool.cut;
+      cadStatus = 'Touchez la feuille là où couper, ou tapez la distance depuis le bord puis Entrée.';
+    });
+    cam.fit(art.panels);
+    _msg(trp('Feuille {0} × {1} posée (recoupe de {2} mm déduite : {3} × {4} utiles) : choisissez Coupe X ou Y', [fl.round(), fw.round(), trim.round(), l.round(), w.round()]));
+  }
+
   /// Panneaux choisis (la sélection multiple, sinon le panneau sélectionné).
   List<ArtPanel> get _selected => selection.isNotEmpty ? selection.toList() : [?selectedPanel];
 
@@ -1330,6 +1462,23 @@ class _ArtPageState extends State<ArtPage> {
                         child: Text(tr('Matière à sens : la pièce garde son sens au débit (pas de rotation).'), style: const TextStyle(fontSize: 11)),
                       ),
                     const SizedBox(height: 12),
+                    if (p.role == ArtRole.porte) ...[
+                      DropdownButtonFormField<String>(
+                        key: ValueKey('hinge_${p.id}_${p.hingeType}'),
+                        isExpanded: true,
+                        initialValue: p.hingeType ?? '',
+                        decoration: InputDecoration(labelText: tr('Charnière de cette porte'), isDense: true, border: const OutlineInputBorder()),
+                        items: [
+                          DropdownMenuItem(value: '', child: Text(trp('Comme le meuble ({0})', [tr(art.fittings.hinge.label)]), overflow: TextOverflow.ellipsis)),
+                          for (final h in HingeType.values) DropdownMenuItem(value: h.name, child: Text(tr(h.label), overflow: TextOverflow.ellipsis)),
+                        ],
+                        onChanged: (v) {
+                          change(() => p.hingeType = v == null || v.isEmpty ? null : v);
+                          setDlg(() {});
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     // 1. Dimensions
                     Text(tr('Dimensions (mm)'), style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
@@ -1930,6 +2079,10 @@ class _ArtPageState extends State<ArtPage> {
           },
           child: MouseRegion(
             onHover: (e) {
+              if (activeTool == CadTool.cut) {
+                _cutHover(e.localPosition);
+                return;
+              }
               if (activeTool == CadTool.pushPull || activeTool == CadTool.edgeBand || activeTool == CadTool.groove) {
                 final f = pickFace(cam, art.panels, e.localPosition);
                 if (f != hoveredFace) {
@@ -1961,6 +2114,10 @@ class _ArtPageState extends State<ArtPage> {
                 final delta = d.localFocalPoint - (_last ?? d.localFocalPoint);
                 _last = d.localFocalPoint;
                 if ((d.localFocalPoint - (_downAt ?? d.localFocalPoint)).distance > 6) _moved = true;
+                if (activeTool == CadTool.cut && d.pointerCount == 1) {
+                  _cutHover(d.localFocalPoint);
+                  return;
+                }
                 if (_dragOrig != null && d.pointerCount == 1) {
                   if (_moved) _dragUpdate(d.localFocalPoint);
                   return;
@@ -1986,6 +2143,11 @@ class _ArtPageState extends State<ArtPage> {
                 }
               },
               onScaleEnd: (_) {
+                if (activeTool == CadTool.cut && _moved) {
+                  final p = _cutPanel, at = _cutAt;
+                  if (p != null && at != null) _splitPanel(p, _cutAxis(p), at);
+                  return;
+                }
                 if (_dragOrig != null) {
                   final dragged = _moved;
                   _dragEnd();
@@ -2037,6 +2199,7 @@ class _ArtPageState extends State<ArtPage> {
                     points: List.of(activePoints),
                     cursor: activePoints.isEmpty ? null : _hover,
                     liveLabel: _liveLabel,
+                    cutLine: _cutLineSegment(),
                   ),
                 ),
                 if (!art.isEmpty) Positioned(left: 12, top: 68, child: _legend()),
@@ -2093,7 +2256,23 @@ class _ArtPageState extends State<ArtPage> {
                         onInspectPanel: selectedPanel != null ? () => _showPanelInspector(selectedPanel!) : null,
                         onDuplicateSelected: selectedPanel != null ? _duplicateSelected : null,
                         onDeleteSelected: selectedPanel != null ? _deleteSelected : null,
-                        extra: activeTool.isDrawing
+                        extra: activeTool == CadTool.cut
+                            ? SegmentedButton<bool>(
+                                key: const ValueKey('cut_axis'),
+                                showSelectedIcon: false,
+                                style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                                segments: [
+                                  ButtonSegment(value: true, label: Text(tr('Coupe X')), icon: const Icon(Icons.vertical_split_outlined, size: 16)),
+                                  ButtonSegment(value: false, label: Text(tr('Coupe Y')), icon: const Icon(Icons.horizontal_split_outlined, size: 16)),
+                                ],
+                                selected: {cutOnX},
+                                onSelectionChanged: (v) => setState(() {
+                                  cutOnX = v.first;
+                                  _cutPanel = null;
+                                  _cutAt = null;
+                                }),
+                              )
+                            : activeTool.isDrawing
                             ? SizedBox(width: 230, child: _materialPicker(drawMaterial, (v) {
                                 setState(() {
                                   drawMaterial = v;
@@ -2200,12 +2379,12 @@ class _ArtPageState extends State<ArtPage> {
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _tabStrip(t, scheme, const [('bases', 'Bases'), ('usinage', 'Usinage'), ('debit', 'Débit'), ('biblio', 'Bibliothèque')]),
         Expanded(
-          child: switch (tab) {
+          child: KeyedSubtree(key: ValueKey('free_$tab'), child: switch (tab) {
             'usinage' => _machiningTab(t, scheme),
             'debit' => art.free.isEmpty ? _start(t, scheme) : _cut(t, scheme),
             'biblio' => _libraryTab(t, scheme),
             _ => _start(t, scheme),
-          },
+          }),
         ),
       ]);
     }
@@ -2264,7 +2443,8 @@ class _ArtPageState extends State<ArtPage> {
           ),
       ]),
       Expanded(
-        child: switch (tab) {
+        // chaque onglet garde son propre défilement (sinon il hérite de celui de l'onglet précédent)
+        child: KeyedSubtree(key: ValueKey('side_$tab'), child: switch (tab) {
           'interieur' => _interior(b, t, scheme),
           'facades' => _fronts(b, t, scheme),
           'exterieur' => _exterior(b, t, scheme),
@@ -2272,7 +2452,7 @@ class _ArtPageState extends State<ArtPage> {
           'usinage' => _machiningTab(t, scheme),
           'biblio' => _libraryTab(t, scheme),
           _ => _carcass(b, t, scheme),
-        },
+        }),
       ),
     ]);
   }
@@ -2389,6 +2569,33 @@ class _ArtPageState extends State<ArtPage> {
       );
 
   Widget _start(TextTheme t, ColorScheme scheme) => ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
+        // départ par une feuille entière, découpée ensuite au trait de scie (X / Y)
+        Card(
+          color: _orange.withValues(alpha: 0.08),
+          child: Padding(
+            padding: const EdgeInsets.all(Tokens.s3),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(children: [
+                const Icon(Icons.crop_landscape, color: _orange),
+                const SizedBox(width: 8),
+                Expanded(child: Text(tr('Commencer par une feuille entière'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800))),
+              ]),
+              const SizedBox(height: 4),
+              Text(tr('La feuille du tarif se pose à plat ; l’outil Couper la divise en X ou en Y, trait de scie déduit, jusqu’aux pièces voulues.'),
+                  style: t.bodySmall),
+              const SizedBox(height: 10),
+              _materialPicker(sheetMaterial, (v) => setState(() => sheetMaterial = v), label: 'Feuille'),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                key: const ValueKey('start_sheet'),
+                onPressed: _startFromSheet,
+                icon: const Icon(Icons.content_cut),
+                label: Text(tr('Poser la feuille et couper')),
+              ),
+            ]),
+          ),
+        ),
+        const SizedBox(height: Tokens.s4),
         Text(tr('Choisissez une base'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 4),
         Text(tr('Tout meuble en bois a la même structure : côtés, bas, haut, derrière, séparations, étagères, puis portes, tiroirs, pieds et joues. '
@@ -2879,7 +3086,7 @@ class _ArtPageState extends State<ArtPage> {
       );
 
   Widget _machiningTab(TextTheme t, ColorScheme scheme) {
-    final m = computeMachiningElements(art.panels);
+    final m = computeMachiningElements(art.panels, fittings: art.fittings);
     String m2(double v) => '${v.toStringAsFixed(2).replaceAll('.', ',')} m';
     String pcs(int n) => trp('{0} pcs', [n]);
     final rows = <(IconData, Color, String, String)>[
@@ -2915,6 +3122,14 @@ class _ArtPageState extends State<ArtPage> {
           label: Text(isMachiningMode ? tr('Masquer les usinages 3D') : tr('Afficher les usinages 3D')),
           onPressed: () => setState(() => isMachiningMode = !isMachiningMode),
         ),
+        const SizedBox(height: Tokens.s4),
+        Text(tr('Accessoires'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: 6),
+        _fitPick<JointType>('Assemblage des panneaux', JointType.values, art.fittings.joint, (v) => v.label, (v) => v.usage, (v) => art.fittings.joint = v),
+        _fitPick<HingeType>('Charnières des portes', HingeType.values, art.fittings.hinge, (v) => v.label, (v) => v.usage, (v) => art.fittings.hinge = v),
+        _fitPick<HangType>('Fixation des meubles hauts', HangType.values, art.fittings.hang, (v) => v.label, (v) => '', (v) => art.fittings.hang = v),
+        _fitPick<FootType>('Pieds des meubles bas', FootType.values, art.fittings.foot, (v) => v.label, (v) => '', (v) => art.fittings.foot = v),
+        _fitPick<LinkType>('Jonction entre caissons voisins', LinkType.values, art.fittings.link, (v) => v.label, (v) => '', (v) => art.fittings.link = v),
         const SizedBox(height: Tokens.s3),
         Card(
           elevation: 1,
@@ -2948,6 +3163,31 @@ class _ArtPageState extends State<ArtPage> {
       ],
     );
   }
+
+  /// Choix d'un type d'accessoire (liste déroulante avec l'usage de chaque type).
+  Widget _fitPick<T>(String label, List<T> values, T value, String Function(T) name, String Function(T) usage, void Function(T) set) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: DropdownButtonFormField<T>(
+          key: ValueKey('fit_$label'),
+          isExpanded: true,
+          initialValue: value,
+          decoration: InputDecoration(labelText: tr(label), isDense: true, border: const OutlineInputBorder()),
+          selectedItemBuilder: (_) => [for (final v in values) Text(tr(name(v)), overflow: TextOverflow.ellipsis)],
+          items: [
+            for (final v in values)
+              DropdownMenuItem(
+                value: v,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  Text(tr(name(v)), overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  if (usage(v).isNotEmpty) Text(tr(usage(v)), overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
+                ]),
+              ),
+          ],
+          onChanged: (v) {
+            if (v != null) change(() => set(v));
+          },
+        ),
+      );
 
   Widget _machiningRow(IconData icon, Color color, String title, String value) {
     return Row(
@@ -3054,6 +3294,7 @@ class _ScenePainter extends CustomPainter {
   final List<V3> points; // points déjà posés de la forme en cours
   final V3? cursor; // point sous le doigt / la souris
   final String? liveLabel; // cote affichée à côté du curseur
+  final (V3, V3)? cutLine; // ligne de coupe en cours (outil Couper)
 
   _ScenePainter({
     required this.cam,
@@ -3078,6 +3319,7 @@ class _ScenePainter extends CustomPainter {
     this.points = const [],
     this.cursor,
     this.liveLabel,
+    this.cutLine,
   }) : super(repaint: cam);
 
   /// Vue éclatée : chaque composant s'écarte du centre de son caisson dans sa direction naturelle.
@@ -3378,7 +3620,7 @@ class _ScenePainter extends CustomPainter {
     // 3 ter. Vis et tourillons : têtes de vis visibles sur les faces ; en vue éclatée, le tourillon dépasse
     // du chant de la pièce qui le reçoit et la vis traverse la pièce qui la porte, prêts à l'assemblage.
     if (!isMachiningMode && assembled.isNotEmpty) {
-      final m = computeMachiningElements(assembled);
+      final m = computeMachiningElements(assembled, fittings: art.fittings);
       final byId = {for (final q in assembled) q.id: q};
       double px(V3 at, double mm) => (p(at + cam.right * mm) - p(at)).distance; // largeur à l'écran de mm millimètres
       for (final el in m.elements) {
@@ -3443,7 +3685,7 @@ class _ScenePainter extends CustomPainter {
 
     // 3 bis. Chants et rainures visibles sur les pièces (hors vue usinage, qui les montre déjà)
     if (!isMachiningMode && !exploded && panels.isNotEmpty) {
-      final work = computeMachiningElements(panels);
+      final work = computeMachiningElements(panels, fittings: art.fittings);
       for (final el in work.elements) {
         if (el.kind != MachiningKind.edge && el.kind != MachiningKind.groove) continue;
         final mid = el.position + el.normal * (el.length / 2);
@@ -3547,6 +3789,25 @@ class _ScenePainter extends CustomPainter {
       }
     }
 
+    // 5 ter. Ligne de coupe (tirets rouges) avec ses ciseaux
+    final cl = cutLine;
+    if (cl != null) {
+      final a = p(cl.$1), b = p(cl.$2);
+      final d = b - a;
+      final len = d.distance;
+      if (len > 1) {
+        final u = d / len;
+        final dash = Paint()
+          ..color = const Color(0xFFDC2626)
+          ..strokeWidth = 2.6;
+        for (var t = 0.0; t < len; t += 14) {
+          c.drawLine(a + u * t, a + u * math.min(t + 8, len), dash);
+        }
+        c.drawCircle(a, 4, Paint()..color = const Color(0xFFDC2626));
+        c.drawCircle(b, 4, Paint()..color = const Color(0xFFDC2626));
+      }
+    }
+
     // 6. Ruban à mesurer temporaire
     if (activeTape != null) {
       final t1 = p(activeTape!.p1), t2 = p(activeTape!.p2);
@@ -3586,7 +3847,7 @@ class _ScenePainter extends CustomPainter {
 
     // 9. Mode Usinage (Tourillons, Vis, Perçages système 32, Boîtiers charnières)
     if (isMachiningMode) {
-      final summary = computeMachiningElements(panels);
+      final summary = computeMachiningElements(panels, fittings: art.fittings);
       Paint stroke(Color c, double w) => Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = w
@@ -3633,6 +3894,16 @@ class _ScenePainter extends CustomPainter {
             c.drawLine(pt, p(el.end), stroke(const Color(0xFF7C3AED), 3));
           case MachiningKind.handle:
             c.drawLine(pt, p(el.end), stroke(isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B), 4));
+          case MachiningKind.hanger:
+            final r = Rect.fromCenter(center: pt, width: 12, height: 16);
+            c.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(3)), Paint()..color = const Color(0xFF7C3AED));
+            c.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(3)), stroke(Colors.white, 1));
+          case MachiningKind.connector:
+            c.drawCircle(pt, 5, Paint()..color = const Color(0xFF0F766E));
+            c.drawCircle(pt, 2, Paint()..color = Colors.white);
+          case MachiningKind.latch:
+            c.drawCircle(pt, 6, Paint()..color = const Color(0xFF16A34A));
+            c.drawCircle(pt, 6, stroke(Colors.white, 1.2));
           case MachiningKind.foot:
             final floor = p(V3(el.position.x, 0, el.position.z));
             c.drawLine(pt, floor, stroke(const Color(0xFF334155), 5));
