@@ -178,37 +178,39 @@ class ArtCadToolbar extends StatelessWidget {
               _btn(CadTool.select, Icons.near_me_outlined, 'Sélectionner'),
               _divider(border),
 
-              // Groupe 1 : Dessin 2D (Image 1)
-              _btn(CadTool.line, Icons.edit_outlined, 'Ligne / Crayon (Orthogonal 90°)'),
-              _btn(CadTool.freehand, Icons.gesture, 'Main levée'),
-              _btn(CadTool.rectangle, Icons.crop_square_outlined, 'Rectangle'),
-              _btn(CadTool.rotatedRectangle, Icons.crop_rotate, 'Rectangle orienté'),
-              _btn(CadTool.circle, Icons.radio_button_unchecked, 'Cercle'),
-              _btn(CadTool.polygon, Icons.hexagon_outlined, 'Polygone régulier'),
-              _btn(CadTool.arc, Icons.architecture, 'Arc de cercle'),
-              _divider(border),
-
-              // Groupe 2 : Modification 3D (Image 2)
-              _btn(CadTool.move, Icons.open_with, 'Déplacer'),
-              _btn(CadTool.rotate, Icons.autorenew, 'Pivoter'),
-              _btn(CadTool.scale, Icons.aspect_ratio, 'Échelle'),
-              _btn(CadTool.symmetry, Icons.flip, 'Symétrie / Miroir'),
-              _divider(border),
-
-              // Groupe 3 : Mesure (Image 3)
-              _btn(CadTool.tape, Icons.straighten, 'Mètre ruban'),
-              _btn(CadTool.dimension, Icons.linear_scale, 'Cotation permanente'),
-              _divider(border),
-
-              // Groupe 4 : Pousser / Tirer (Image 4)
-              _btn(CadTool.pushPull, Icons.vertical_align_top, 'Pousser / Tirer (Extrusion 3D)'),
-              _btn(CadTool.cut, Icons.content_cut, 'Couper la feuille (X / Y)'),
-              _btn(CadTool.link, Icons.link, 'Lier deux chants (le 1er passe dessous)'),
-              _divider(border),
-
-              // Groupe 5 : Menuiserie (Chants & Rainures)
-              _btn(CadTool.edgeBand, Icons.border_all, 'Bande de chant'),
-              _btn(CadTool.groove, Icons.line_style, 'Rainure'),
+              if (!isMachiningMode) ...[
+                // création : dessin, modification, découpe en guillotine
+                _btn(CadTool.line, Icons.edit_outlined, 'Ligne / Crayon (Orthogonal 90°)'),
+                _btn(CadTool.freehand, Icons.gesture, 'Main levée'),
+                _btn(CadTool.rectangle, Icons.crop_square_outlined, 'Rectangle'),
+                _btn(CadTool.rotatedRectangle, Icons.crop_rotate, 'Rectangle orienté'),
+                _btn(CadTool.circle, Icons.radio_button_unchecked, 'Cercle'),
+                _btn(CadTool.polygon, Icons.hexagon_outlined, 'Polygone régulier'),
+                _btn(CadTool.arc, Icons.architecture, 'Arc de cercle'),
+                _divider(border),
+                _btn(CadTool.move, Icons.open_with, 'Déplacer'),
+                _btn(CadTool.rotate, Icons.autorenew, 'Pivoter'),
+                _btn(CadTool.scale, Icons.aspect_ratio, 'Échelle'),
+                _btn(CadTool.symmetry, Icons.flip, 'Symétrie / Miroir'),
+                _divider(border),
+                _btn(CadTool.tape, Icons.straighten, 'Mètre ruban'),
+                _btn(CadTool.dimension, Icons.linear_scale, 'Cotation permanente'),
+                _divider(border),
+                _btn(CadTool.pushPull, Icons.vertical_align_top, 'Pousser / Tirer (Extrusion 3D)'),
+                _btn(CadTool.cut, Icons.content_cut, 'Couper la feuille (X / Y)'),
+              ] else ...[
+                // usinage : assembler les pièces coupées et les préparer
+                _btn(CadTool.move, Icons.open_with, 'Déplacer'),
+                _btn(CadTool.rotate, Icons.autorenew, 'Pivoter'),
+                _divider(border),
+                _btn(CadTool.link, Icons.link, 'Lier deux chants (le 1er passe dessous)'),
+                _btn(CadTool.edgeBand, Icons.border_all, 'Bande de chant'),
+                _btn(CadTool.groove, Icons.line_style, 'Rainure'),
+                _btn(CadTool.drill, Icons.radio_button_checked, 'Percer (Ø ; profondeur)'),
+                _divider(border),
+                _btn(CadTool.tape, Icons.straighten, 'Mètre ruban'),
+                _btn(CadTool.dimension, Icons.linear_scale, 'Cotation permanente'),
+              ],
 
               if (sketchCount > 0 || dimensionCount > 0) ...[
                 _divider(border),
@@ -241,6 +243,7 @@ class ArtCadToolbar extends StatelessWidget {
     CadTool.groove: 'G',
     CadTool.cut: 'X',
     CadTool.link: 'K',
+    CadTool.drill: 'H',
   };
 
   Widget _btn(CadTool tool, IconData icon, String tooltip) {

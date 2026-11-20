@@ -89,6 +89,12 @@ class _ArtPageState extends State<ArtPage> {
   bool cutOnX = true; // Couper : ligne de coupe perpendiculaire à X (sinon à Y)
   String cutMode = 'big'; // 'big' grande coupe (toute la largeur), 'small' sur la sélection, 'parallel', 'circle' (CNC)
   int _cutsDone = 0;
+  // Lier : alignement le long du chant, dessus ou dessous, onglet
+  String linkAlign = 'start';
+  double linkOffset = 0;
+  bool linkOver = false, linkMiter = false;
+  // Percer : diamètre et profondeur
+  double drillDia = 8, drillDepth = 12;
   (V3, V3)? _dimEdge; // Cotation : arête touchée (on glisse pour décaler la cote)
   CadDimension? _dimPreview; // cote en cours (arête glissée ou 2e point au survol)
   bool cutRelative = false; // cote tapée : après la dernière coupe (relatif) ou depuis 0 (total)
@@ -138,6 +144,9 @@ class _ArtPageState extends State<ArtPage> {
 
   /// Position de la ligne de coupe (pour les tests).
   double? get cutAtValue => _cutAt;
+
+  /// Pièces visibles et non verrouillées (les seules qu'on peut toucher, couper, lier, déplacer).
+  List<ArtPanel> get _pickable => [for (final p in art.panels) if (!art.isHidden(p) && !art.isLocked(p)) p];
 
   /// Guides affichés (pour les tests).
   List<(V3, V3, int)> get guides => _guides;
@@ -298,12 +307,13 @@ class _ArtPageState extends State<ArtPage> {
         CadTool.groove => selectedPanel != null ? 'Appliquez ou retirez la rainure pour fond.' : 'Cliquez sur un panneau pour configurer sa rainure.',
         CadTool.cut => 'Touchez la feuille là où couper, ou tapez la distance depuis le bord puis Entrée.',
         CadTool.link => 'Touchez le chant de la pièce qui passera dessous, puis le chant de la pièce qui la couvre.',
+        CadTool.drill => 'Touchez la face à percer. Tapez « Ø;profondeur » (ex. 35;13) pour changer le perçage.',
       };
     });
   }
 
   V3 _unproject(Offset px, {bool snap = true}) {
-    final face = pickFace(cam, art.panels, px);
+    final face = pickFace(cam, _pickable, px);
     V3 res;
     if (face != null) {
       hoveredFace = face;
@@ -466,7 +476,7 @@ class _ArtPageState extends State<ArtPage> {
 
   /// Fixe le plan de dessin au premier point.
   void _setDrawPlane(Offset px) {
-    final f = pickFace(cam, art.panels, px);
+    final f = pickFace(cam, _pickable, px);
     if (f != null) {
       _drawAxis = f.axis;
       _drawPlane = f.plane;
@@ -583,6 +593,8 @@ class _ArtPageState extends State<ArtPage> {
         CadTool.pushPull => tr('épaisseur ou poussée, ex. 18'),
         CadTool.move => tr('dx;dy;dz ex. 0;0;600'),
         CadTool.rotate => tr('angle, ex. 90'),
+        CadTool.link => tr('décalage depuis le début, ex. 50'),
+        CadTool.drill => trp('Ø;prof. (actuel {0};{1})', [drillDia.round(), drillDepth.round()]),
         CadTool.cut => switch (cutMode) {
             'parallel' => tr('largeur;nombre ex. 300;5'),
             'circle' => tr('diamètre, ex. 300'),
@@ -638,6 +650,18 @@ class _ArtPageState extends State<ArtPage> {
         }
       case CadTool.rotate:
         _applyRotate(v[0]);
+      case CadTool.link:
+        setState(() {
+          linkAlign = 'custom';
+          linkOffset = v[0];
+        });
+        _msg(trp('Alignement : décalé de {0} mm depuis le début du chant', [v[0].round()]));
+      case CadTool.drill:
+        setState(() {
+          drillDia = v[0].clamp(1, 60).toDouble();
+          if (v.length > 1) drillDepth = v[1].clamp(1, 100).toDouble();
+        });
+        _msg(trp('Perçage Ø {0}, profondeur {1} mm', [drillDia.round(), drillDepth.round()]));
       case CadTool.cut:
         final k = widget.state.project.cut.kerf.toDouble();
         if (cutMode == 'circle') {
@@ -714,7 +738,7 @@ class _ArtPageState extends State<ArtPage> {
   /// Début d'un glisser : Pousser/Tirer sur une face, ou Déplacer le panneau choisi.
   bool _dragStart(Offset px) {
     if (activeTool == CadTool.pushPull) {
-      final f = pickFace(cam, art.panels, px);
+      final f = pickFace(cam, _pickable, px);
       if (f == null || !art.free.contains(f.panel)) return false;
       _dragFace = f;
       _dragOrig = _geom(f.panel);
@@ -722,7 +746,7 @@ class _ArtPageState extends State<ArtPage> {
       return true;
     }
     if (activeTool == CadTool.move) {
-      final f = pickFace(cam, art.panels, px);
+      final f = pickFace(cam, _pickable, px);
       final p = f?.panel ?? selectedPanel;
       if (p == null || !art.free.contains(p)) return false;
       if (!selection.contains(p)) {
@@ -942,6 +966,7 @@ class _ArtPageState extends State<ArtPage> {
       LogicalKeyboardKey.keyG => CadTool.groove,
       LogicalKeyboardKey.keyX => CadTool.cut,
       LogicalKeyboardKey.keyK => CadTool.link,
+      LogicalKeyboardKey.keyH => CadTool.drill,
       _ => null,
     };
     if (tool == null) return KeyEventResult.ignored;
@@ -1048,7 +1073,7 @@ class _ArtPageState extends State<ArtPage> {
   void _handleTap(Offset px) {
     if (activeTool == CadTool.select) {
       _tap(px);
-      final f = pickFace(cam, art.panels, px);
+      final f = pickFace(cam, _pickable, px);
       final kb = HardwareKeyboard.instance;
       final add = kb.isControlPressed || kb.isMetaPressed || kb.isShiftPressed;
       if (f != null) {
@@ -1099,11 +1124,29 @@ class _ArtPageState extends State<ArtPage> {
       _linkTap(px);
       return;
     }
+    if (activeTool == CadTool.drill) {
+      final f = pickFace(cam, _pickable, px);
+      if (f == null || !art.free.contains(f.panel)) {
+        _msg(tr('Touchez une face de pièce libre.'));
+        return;
+      }
+      final hit = cam.hitPlane(px, f.axis, f.plane);
+      if (hit == null) return;
+      final q = f.panel;
+      // au mm, aimanté à la grille depuis le coin de la pièce
+      double snap(double v) => snapGrid ? (v / gridStep).round() * gridStep : v.roundToDouble();
+      final dx = f.axis == 0 ? (f.sign > 0 ? q.w : 0.0) : snap(hit.x - q.x).clamp(0, q.w).toDouble();
+      final dy = f.axis == 1 ? (f.sign > 0 ? q.h : 0.0) : snap(hit.y - q.y).clamp(0, q.h).toDouble();
+      final dz = f.axis == 2 ? (f.sign > 0 ? q.d : 0.0) : snap(hit.z - q.z).clamp(0, q.d).toDouble();
+      change(() => q.holes.add(ArtHole(dx: dx, dy: dy, dz: dz, axis: f.axis, sign: f.sign, dia: drillDia, depth: drillDepth)));
+      _msg(trp('Perçage Ø {0} × {1} posé', [drillDia.round(), drillDepth.round()]));
+      return;
+    }
     if (activeTool == CadTool.cut) {
       // souris : un clic coupe ; doigt : place la ligne (ou le centre du cercle) ; « Couper » ou Entrée applique
       if (cutMode == 'small' || (cutMode == 'parallel' && HardwareKeyboard.instance.isControlPressed)) {
         // petite coupe : toucher une pièce l'ajoute ou la retire de la sélection
-        final f = pickFace(cam, art.panels, px);
+        final f = pickFace(cam, _pickable, px);
         if (f != null && art.free.contains(f.panel)) {
           setState(() {
             if (!selection.remove(f.panel)) selection.add(f.panel);
@@ -1251,7 +1294,7 @@ class _ArtPageState extends State<ArtPage> {
         }
         return;
       }
-      final f = pickFace(cam, art.panels, px);
+      final f = pickFace(cam, _pickable, px);
       if (f != null && !art.free.contains(f.panel)) {
         _msg(tr('Ce panneau appartient à un caisson standard. Modifiez le caisson ou ses dimensions.'));
         return;
@@ -1286,7 +1329,7 @@ class _ArtPageState extends State<ArtPage> {
         _msg(trp('Face étirée de {0} mm', [pushPullThickness.round()]));
       }
     } else if (activeTool == CadTool.edgeBand) {
-      final f = pickFace(cam, art.panels, px);
+      final f = pickFace(cam, _pickable, px);
       if (f != null) {
         setState(() {
           selectedPanel = f.panel;
@@ -1294,7 +1337,7 @@ class _ArtPageState extends State<ArtPage> {
         });
       }
     } else if (activeTool == CadTool.groove) {
-      final f = pickFace(cam, art.panels, px);
+      final f = pickFace(cam, _pickable, px);
       if (f != null) {
         setState(() {
           selectedPanel = f.panel;
@@ -1523,7 +1566,7 @@ class _ArtPageState extends State<ArtPage> {
   (ArtPanel, int)? _pickEdge(Offset px) {
     (ArtPanel, int)? best;
     var bestD = 22.0;
-    for (final p in art.free) {
+    for (final p in art.free.where((q) => !art.isHidden(q) && !art.isLocked(q))) {
       for (var n = 1; n <= 4; n++) {
         final (a, b) = _edgeSegment(p, n);
         final d = _distToSegment(px, cam.project(a).$1, cam.project(b).$1);
@@ -1540,7 +1583,7 @@ class _ArtPageState extends State<ArtPage> {
   List<(V3, String, bool)> _edgeLabels() {
     if (activeTool != CadTool.link) return const [];
     final out = <(V3, String, bool)>[];
-    for (final p in art.free) {
+    for (final p in art.free.where((q) => !art.isHidden(q) && !art.isLocked(q))) {
       final c = V3(p.x + p.w / 2, p.y + p.h / 2, p.z + p.d / 2);
       for (var n = 1; n <= 4; n++) {
         final (a, b) = _edgeSegment(p, n);
@@ -1574,7 +1617,9 @@ class _ArtPageState extends State<ArtPage> {
       return;
     }
     change(() {
-      ArtProject.linkEdges(first.$1, first.$2, e.$1, e.$2);
+      ArtProject.linkEdges(first.$1, first.$2, e.$1, e.$2, align: linkAlign, offset: linkOffset, over: linkOver);
+      art.jointCuts.remove(ArtProject.jointKey(first.$1.id, e.$1.id));
+      if (linkMiter) art.setJointCut(first.$1, e.$1, 'onglet');
       _linkFirst = null;
       selection
         ..clear()
@@ -1590,7 +1635,7 @@ class _ArtPageState extends State<ArtPage> {
 
   /// Pièces à plat que la coupe peut traverser : toutes (grande coupe) ou la sélection (petite coupe).
   List<ArtPanel> get _cutTargets {
-    final flat = art.free.where((p) => thicknessAxis(p) == 1);
+    final flat = art.free.where((p) => thicknessAxis(p) == 1 && !art.isHidden(p) && !art.isLocked(p));
     if (cutMode == 'small') return [for (final p in flat) if (selection.contains(p)) p];
     if (cutMode == 'parallel' && selection.isNotEmpty) return [for (final p in flat) if (selection.contains(p)) p];
     return flat.toList();
@@ -2700,7 +2745,7 @@ class _ArtPageState extends State<ArtPage> {
                 return;
               }
               if (activeTool == CadTool.pushPull || activeTool == CadTool.edgeBand || activeTool == CadTool.groove) {
-                final f = pickFace(cam, art.panels, e.localPosition);
+                final f = pickFace(cam, _pickable, e.localPosition);
                 if (f != hoveredFace) {
                   setState(() => hoveredFace = f);
                 }
@@ -2982,7 +3027,40 @@ class _ArtPageState extends State<ArtPage> {
                         onInspectPanel: selectedPanel != null ? () => _showPanelInspector(selectedPanel!) : null,
                         onDuplicateSelected: selectedPanel != null ? _duplicateSelected : null,
                         onDeleteSelected: selectedPanel != null ? _deleteSelected : null,
-                        extra: activeTool == CadTool.cut
+                        extra: activeTool == CadTool.link
+                            ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [
+                                SegmentedButton<String>(
+                                  key: const ValueKey('link_align'),
+                                  showSelectedIcon: false,
+                                  style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                                  segments: [
+                                    ButtonSegment(value: 'start', label: Text(tr('Début'))),
+                                    ButtonSegment(value: 'center', label: Text(tr('Centre'))),
+                                    ButtonSegment(value: 'end', label: Text(tr('Fin'))),
+                                    ButtonSegment(value: 'custom', label: Text(linkAlign == 'custom' ? trp('Décalé {0}', [linkOffset.round()]) : tr('Personnalisé'))),
+                                  ],
+                                  selected: {linkAlign},
+                                  onSelectionChanged: (v) => setState(() => linkAlign = v.first),
+                                ),
+                                SegmentedButton<bool>(
+                                  key: const ValueKey('link_side'),
+                                  showSelectedIcon: false,
+                                  style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                                  segments: [
+                                    ButtonSegment(value: false, label: Text(tr('Dessous')), icon: const Icon(Icons.vertical_align_bottom, size: 16)),
+                                    ButtonSegment(value: true, label: Text(tr('Dessus')), icon: const Icon(Icons.vertical_align_top, size: 16)),
+                                  ],
+                                  selected: {linkOver},
+                                  onSelectionChanged: (v) => setState(() => linkOver = v.first),
+                                ),
+                                FilterChip(
+                                  key: const ValueKey('link_miter'),
+                                  label: Text(tr('Onglet 45°')),
+                                  selected: linkMiter,
+                                  onSelected: (v) => setState(() => linkMiter = v),
+                                ),
+                              ])
+                            : activeTool == CadTool.cut
                             ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [
                                 SegmentedButton<String>(
                                   key: const ValueKey('cut_mode'),
@@ -3136,48 +3214,107 @@ class _ArtPageState extends State<ArtPage> {
   }
 
   /// Les composants communs à tout meuble, avec leur nombre dans ce projet : toucher pour les mettre en avant.
+  /// Calques : un par composant des caissons et un par pièce libre, avec visibilité (œil) et verrou.
   Widget _legend() {
     final t = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     final counts = <Comp, int>{};
     for (final p in art.panels) {
       final c = p.comp;
       if (c == null) continue;
-      // un tiroir = une façade (son caisson est compté avec)
       if (c == Comp.tiroir && p.role != ArtRole.tiroir) continue;
       counts[c] = (counts[c] ?? 0) + 1;
     }
+    final ids = {for (var i = 0; i < art.panels.length; i++) art.panels[i].id: 'P${i + 1}'};
+    Widget row({required String key, required Color color, required String label, String? count, required bool chosen, required VoidCallback onTap}) {
+      final hidden = art.hiddenLayers.contains(key), locked = art.lockedLayers.contains(key);
+      return Container(
+        margin: const EdgeInsets.only(bottom: 2),
+        decoration: BoxDecoration(color: chosen ? _orange.withValues(alpha: 0.14) : null, borderRadius: BorderRadius.circular(6)),
+        child: Row(children: [
+          IconButton(
+            key: ValueKey('eye_$key'),
+            visualDensity: VisualDensity.compact,
+            iconSize: 17,
+            tooltip: hidden ? tr('Afficher') : tr('Masquer'),
+            icon: Icon(hidden ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: hidden ? scheme.outline : null),
+            onPressed: () => change(() => hidden ? art.hiddenLayers.remove(key) : art.hiddenLayers.add(key)),
+          ),
+          IconButton(
+            key: ValueKey('lock_$key'),
+            visualDensity: VisualDensity.compact,
+            iconSize: 17,
+            tooltip: locked ? tr('Déverrouiller') : tr('Verrouiller (on ne peut plus la toucher)'),
+            icon: Icon(locked ? Icons.lock : Icons.lock_open_outlined, color: locked ? _orange : scheme.outline),
+            onPressed: () => change(() => locked ? art.lockedLayers.remove(key) : art.lockedLayers.add(key)),
+          ),
+          Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(width: 6),
+          Expanded(
+            child: InkWell(
+              onTap: hidden || locked ? null : onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.bodySmall?.copyWith(fontWeight: chosen ? FontWeight.w800 : FontWeight.w500, color: hidden ? scheme.outline : null)),
+              ),
+            ),
+          ),
+          if (count != null) Padding(padding: const EdgeInsets.only(right: 6), child: Text(count, style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700))),
+        ]),
+      );
+    }
+
     return Material(
-      color: Colors.white.withValues(alpha: 0.94),
+      key: const ValueKey('layers'),
+      color: scheme.surface.withValues(alpha: 0.96),
       elevation: 2,
       borderRadius: BorderRadius.circular(12),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 230),
+        constraints: const BoxConstraints(maxWidth: 260, maxHeight: 360),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(tr('Structure du meuble'), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            for (final c in Comp.values)
-              if (counts[c] != null)
-                InkWell(
-                  onTap: () => setState(() => focus = focus == c ? null : c),
-                  borderRadius: BorderRadius.circular(6),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 4),
-                    decoration: BoxDecoration(color: focus == c ? Color(c.color).withValues(alpha: 0.16) : null, borderRadius: BorderRadius.circular(6)),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Container(width: 12, height: 12, decoration: BoxDecoration(color: Color(c.color), borderRadius: BorderRadius.circular(3))),
-                      const SizedBox(width: 8),
-                      Flexible(child: Text(tr(c.label), style: t.bodySmall?.copyWith(fontWeight: focus == c ? FontWeight.w800 : FontWeight.w500))),
-                      const SizedBox(width: 8),
-                      Text('${counts[c]}', style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
-                    ]),
-                  ),
-                ),
-            if (focus != null) ...[
-              const SizedBox(height: 4),
-              Text(focus!.hint, style: t.labelSmall),
-            ],
+            Padding(
+              padding: const EdgeInsets.only(left: 6, bottom: 4),
+              child: Row(children: [
+                const Icon(Icons.layers_outlined, size: 18),
+                const SizedBox(width: 6),
+                Text(tr('Calques'), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
+              ]),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  for (final c in Comp.values)
+                    if (counts[c] != null)
+                      row(
+                        key: 'comp:${c.name}',
+                        color: Color(c.color),
+                        label: tr(c.label),
+                        count: '${counts[c]}',
+                        chosen: focus == c,
+                        onTap: () => setState(() => focus = focus == c ? null : c),
+                      ),
+                  for (final p in art.free)
+                    row(
+                      key: p.id,
+                      color: artColor(p.finish),
+                      label: '${ids[p.id]} · ${tr(p.role.label)} ${([p.w, p.h, p.d]..sort()).reversed.take(2).map((v) => v.round()).join('×')}',
+                      chosen: selection.contains(p) || identical(selectedPanel, p),
+                      onTap: () => setState(() {
+                        selection
+                          ..clear()
+                          ..add(p);
+                        selectedPanel = p;
+                        activeTool = CadTool.select;
+                      }),
+                    ),
+                ]),
+              ),
+            ),
           ]),
         ),
       ),
@@ -4301,7 +4438,7 @@ class _ScenePainter extends CustomPainter {
         ..layout();
       tp.paint(c, size.center(Offset(-tp.width / 2, -tp.height / 2)));
     }
-    var panels = art.panels.where((x) => showFronts || exploded || !(x.comp?.isFront ?? x.role.isFront)).toList();
+    var panels = art.panels.where((x) => !art.isHidden(x) && (showFronts || exploded || !(x.comp?.isFront ?? x.role.isFront))).toList();
     final assembled = panels;
     if (exploded) panels = _explode(panels);
     // décalage de chaque panneau dans la vue éclatée (tourillons et vis suivent leur panneau)
@@ -4554,6 +4691,17 @@ class _ScenePainter extends CustomPainter {
     if (!isMachiningMode && !exploded && panels.isNotEmpty) {
       final work = computeMachiningElements(panels, fittings: art.fittings, jointCuts: art.jointCuts);
       for (final el in work.elements) {
+        if (el.kind == MachiningKind.drill) {
+          final f = pickFace(cam, panels, p(el.position));
+          if (f == null || f.panel.id != el.panelId) continue;
+          final r = (p(el.position + const V3(1, 0, 0) * (el.diameter / 2)) - p(el.position)).distance.clamp(2.0, 30.0);
+          c.drawCircle(p(el.position), r, Paint()..color = const Color(0x88111827));
+          c.drawCircle(p(el.position), r, Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2
+            ..color = const Color(0xFF111827));
+          continue;
+        }
         if (el.kind != MachiningKind.edge && el.kind != MachiningKind.groove) continue;
         final mid = el.position + el.normal * (el.length / 2);
         final f = pickFace(cam, panels, p(mid));
@@ -4849,6 +4997,10 @@ class _ScenePainter extends CustomPainter {
             c.drawLine(pt, p(el.end), stroke(const Color(0xFF7C3AED), 3));
           case MachiningKind.handle:
             c.drawLine(pt, p(el.end), stroke(isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B), 4));
+          case MachiningKind.drill:
+            final r = (p(el.position + const V3(1, 0, 0) * (el.diameter / 2)) - pt).distance.clamp(2.0, 30.0);
+            c.drawCircle(pt, r, Paint()..color = const Color(0x66111827));
+            c.drawCircle(pt, r, stroke(const Color(0xFF111827), 1.4));
           case MachiningKind.hanger:
             final r = Rect.fromCenter(center: pt, width: 12, height: 16);
             c.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(3)), Paint()..color = const Color(0xFF7C3AED));

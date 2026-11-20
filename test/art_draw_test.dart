@@ -478,6 +478,50 @@ void main() {
     await t.pump(const Duration(seconds: 6));
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('calques : œil masque (et ne se touche plus), verrou empêche de sélectionner ; percer une face', (t) async {
+    t.view.physicalSize = const Size(1366, 1024);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    final art = st.project.art;
+    final a = ArtPanel(id: 'a', role: ArtRole.decor, x: 0, y: 0, z: 0, w: 800, h: 18, d: 500);
+    art.free.add(a);
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('side_pin')));
+    await t.pumpAndSettle();
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
+    final at = vp.topLeft + (s.screenOf(400.0, 18.0, 250.0) as Offset);
+    expect(find.byKey(const ValueKey('layers')), findsOneWidget);
+    // verrou : un clic ne sélectionne plus la pièce
+    await t.tap(find.byKey(const ValueKey('lock_a')));
+    await t.pumpAndSettle();
+    await t.tapAt(at);
+    await t.pumpAndSettle();
+    expect(s.selectedPanel, isNull);
+    await t.tap(find.byKey(const ValueKey('lock_a')));
+    await t.pumpAndSettle();
+    // œil : masquée
+    await t.tap(find.byKey(const ValueKey('eye_a')));
+    await t.pumpAndSettle();
+    expect(art.hiddenLayers, contains('a'));
+    await t.tap(find.byKey(const ValueKey('eye_a')));
+    await t.pumpAndSettle();
+    // percer : Ø 35 × 13 au milieu du dessus
+    await t.sendKeyEvent(LogicalKeyboardKey.keyH);
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('cad_measure')), '35;13');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    await t.tapAt(at);
+    await t.pumpAndSettle();
+    expect(a.holes, hasLength(1));
+    expect((a.holes.single.dia, a.holes.single.depth, a.holes.single.axis), (35, 13, 1));
+    await t.pump(const Duration(seconds: 6));
+    expect(t.takeException(), isNull);
+  });
 }
 
 /// Point écran du centre du dessus d'un panneau (par la caméra de la page).

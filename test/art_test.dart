@@ -178,7 +178,7 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.text('Composants'));
     await t.pumpAndSettle();
-    expect(find.text('Structure du meuble'), findsOneWidget);
+    expect(find.text('Calques'), findsOneWidget);
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/art_box_eclate.png'));
     await t.ensureVisible(find.text('Éclaté'));
     await t.pumpAndSettle();

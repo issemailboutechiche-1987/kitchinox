@@ -37,7 +37,8 @@ enum MachiningKind {
   edge('Bande de chant'),
   hanger('Suspension de meuble haut'),
   connector('Jonction entre caissons'),
-  latch('Poussoir d’ouverture');
+  latch('Poussoir d’ouverture'),
+  drill('Perçage');
 
   final String label;
   const MachiningKind(this.label);
@@ -561,6 +562,19 @@ MachiningSummary computeMachiningElements(List<ArtPanel> panels, {ArtFittings? f
         panelId: s.id,
         partnerPanelId: partner?.id,
         item: fit.hang.item));
+  }
+
+  // 5 ter. perçages posés à la main
+  for (final p in panels) {
+    for (final h in p.holes) {
+      els.add(MachiningElement(
+          kind: MachiningKind.drill,
+          position: V3(p.x + h.dx, p.y + h.dy, p.z + h.dz),
+          normal: _axisV(h.axis, -h.sign.toDouble()),
+          length: h.depth,
+          diameter: h.dia,
+          panelId: p.id));
+    }
   }
 
   // 6. chants : arêtes visibles

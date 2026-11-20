@@ -232,4 +232,30 @@ void main() {
     expect(screws.every((e) => e.panelId == 'b' && e.partnerPanelId == 'a'), isTrue);
     expect(ArtProject.linkEdges(a, 5, b, 1), isFalse);
   });
+
+  test('lier avec options : centre, fin, décalé, dessus ; perçage libre dans l’usinage', () {
+    ArtPanel b() => ArtPanel(id: 'b', role: ArtRole.decor, x: 0, y: 500, z: 0, w: 600, h: 18, d: 400);
+    ArtPanel a() => ArtPanel(id: 'a', role: ArtRole.decor, x: 1000, y: 0, z: 0, w: 200, h: 18, d: 300);
+    // chant 1 de a (300 mm) sous le chant 2 de b (400 mm de long, le long de z)
+    var pa = a(), pb = b();
+    ArtProject.linkEdges(pa, 1, pb, 2, align: 'center');
+    expect((pa.z, pa.back), (50, 350)); // chant de 300 centré sur 400
+    pa = a();
+    ArtProject.linkEdges(pa, 1, pb, 2, align: 'end');
+    expect(pa.back, 400);
+    pa = a();
+    ArtProject.linkEdges(pa, 1, pb, 2, align: 'custom', offset: 50);
+    expect(pa.z, 50);
+    pa = a();
+    ArtProject.linkEdges(pa, 1, pb, 2, over: true);
+    expect((pa.y, pa.top), (518, 718), reason: 'dessus de b');
+    // perçage posé à la main
+    pb.holes.add(ArtHole(dx: 100, dy: 18, dz: 200, axis: 1, sign: 1, dia: 35, depth: 13));
+    final m = computeMachiningElements([pb]);
+    final d = m.elements.where((e) => e.kind == MachiningKind.drill).single;
+    expect((d.position.x, d.position.y, d.position.z, d.diameter), (100, 518, 200, 35));
+    final back = ArtPanel.fromJson(pb.toJson());
+    expect(back.holes.single.dia, 35);
+    expect(pb.copy(id: 'c').holes, hasLength(1));
+  });
 }

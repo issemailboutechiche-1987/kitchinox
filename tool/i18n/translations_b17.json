@@ -1,0 +1,90 @@
+{
+"Afficher": [
+"Show",
+"إظهار"
+],
+"Alignement : décalé de {0} mm depuis le début du chant": [
+"Alignment: offset {0} mm from the start of the edge",
+"المحاذاة: إزاحة {0} مم من بداية الحافة"
+],
+"Calques": [
+"Layers",
+"الطبقات"
+],
+"Centre": [
+"Centre",
+"الوسط"
+],
+"Dessous": [
+"Under",
+"أسفل"
+],
+"Dessus": [
+"Over",
+"أعلى"
+],
+"Début": [
+"Start",
+"البداية"
+],
+"Décalé {0}": [
+"Offset {0}",
+"إزاحة {0}"
+],
+"Déverrouiller": [
+"Unlock",
+"فتح القفل"
+],
+"Fin": [
+"End",
+"النهاية"
+],
+"Masquer": [
+"Hide",
+"إخفاء"
+],
+"Personnalisé": [
+"Custom",
+"مخصص"
+],
+"Perçage": [
+"Hole",
+"ثقب"
+],
+"Perçage Ø {0} × {1} posé": [
+"Ø {0} × {1} hole placed",
+"تم وضع ثقب Ø {0} × {1}"
+],
+"Perçage Ø {0}, profondeur {1} mm": [
+"Hole Ø {0}, depth {1} mm",
+"ثقب Ø {0}، عمق {1} مم"
+],
+"Touchez une face de pièce libre.": [
+"Touch a face of a free part.",
+"المس وجه قطعة حرة."
+],
+"Verrouiller (on ne peut plus la toucher)": [
+"Lock (can no longer be touched)",
+"قفل (لا يمكن لمسها بعد الآن)"
+],
+"décalage depuis le début, ex. 50": [
+"offset from the start, e.g. 50",
+"الإزاحة من البداية، مثال 50"
+],
+"Ø;prof. (actuel {0};{1})": [
+"Ø;depth (now {0};{1})",
+"Ø;العمق (حالياً {0};{1})"
+],
+"Percer": [
+"Drill",
+"ثقب"
+],
+"Percer (Ø ; profondeur)": [
+"Drill (Ø; depth)",
+"ثقب (Ø؛ العمق)"
+],
+"Touchez la face à percer. Tapez « Ø;profondeur » (ex. 35;13) pour changer le perçage.": [
+"Touch the face to drill. Type « Ø;depth » (e.g. 35;13) to change the hole.",
+"المس الوجه المراد ثقبه. اكتب « Ø;العمق » (مثال 35;13) لتغيير الثقب."
+]
+}

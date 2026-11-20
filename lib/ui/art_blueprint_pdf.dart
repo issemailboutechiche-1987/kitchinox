@@ -375,6 +375,8 @@ Future<Uint8List> buildArtBlueprint(ArtProject art, CutSettings cs, {required St
           out.add((tr('Vis de jonction'), x, y, 5, _sz(p, t), face(at)));
         case MachiningKind.handle when mine:
           out.add((tr('Poignée : 2 trous Ø4 traversants'), x, y, 4, _sz(p, t), tr('face avant')));
+        case MachiningKind.drill when mine:
+          out.add((tr('Perçage'), x, y, e.diameter, e.length, face(at)));
         case MachiningKind.hanger when mine:
           out.add((tr('Suspension'), x, y, 0, 0, face(at)));
         default:

@@ -36,6 +36,8 @@ class ArtPanel {
   String finish; // finition (id de la façade ou du caisson)
   String hinge; // porte : 'left' | 'right'
   Comp? comp; // composant universel (caissons paramétriques)
+  /// Perçages posés à la main : position depuis le coin bas avant gauche de la pièce, face (axe, sens), Ø, profondeur.
+  final List<ArtHole> holes = [];
   String? note; // usinage particulier noté au débit (disque CNC, découpe circulaire)
   String? hingeType; // porte : type de charnière (null : celui du meuble)
   String? material; // panneau du tarif (MDF, latté, stratifié, mince) : matière, épaisseur et format de feuille
@@ -82,7 +84,9 @@ class ArtPanel {
   double get back => z + d;
   double get thickness => [w, h, d].reduce(math.min);
 
-  ArtPanel copy({String? id}) => ArtPanel(
+  ArtPanel copy({String? id}) => _copy(id)..holes.addAll(holes.map((h) => h.copy()));
+
+  ArtPanel _copy(String? id) => ArtPanel(
         id: id ?? this.id,
         role: role,
         x: x,
@@ -122,6 +126,7 @@ class ArtPanel {
         if (material != null) 'mat': material,
         if (hingeType != null) 'hinge_type': hingeType,
         if (note != null) 'note': note,
+        if (holes.isNotEmpty) 'holes': [for (final h in holes) h.toJson()],
         'edge_long': edgeLong,
         'edge_short': edgeShort,
         'edge_th': edgeThickness,
@@ -133,7 +138,10 @@ class ArtPanel {
         'groove_s': grooveShort,
       };
 
-  factory ArtPanel.fromJson(Map<String, dynamic> j) => ArtPanel(
+  factory ArtPanel.fromJson(Map<String, dynamic> j) => _fromJson(j)
+    ..holes.addAll([for (final h in (j['holes'] as List? ?? const [])) ArtHole.fromJson((h as Map).cast<String, dynamic>())]);
+
+  static ArtPanel _fromJson(Map<String, dynamic> j) => ArtPanel(
         id: '${j['id']}',
         role: ArtRole.values.firstWhere((r) => r.name == j['role'], orElse: () => ArtRole.decor),
         x: (j['x'] as num).toDouble(),
@@ -159,6 +167,25 @@ class ArtPanel {
       );
 }
 
+/// Perçage posé à la main sur une pièce.
+class ArtHole {
+  double dx, dy, dz; // position depuis le coin bas avant gauche de la pièce (mm)
+  int axis, sign; // face percée : axe de sa normale et sens
+  double dia, depth;
+  ArtHole({required this.dx, required this.dy, required this.dz, required this.axis, required this.sign, this.dia = 8, this.depth = 12});
+  ArtHole copy() => ArtHole(dx: dx, dy: dy, dz: dz, axis: axis, sign: sign, dia: dia, depth: depth);
+  Map<String, dynamic> toJson() => {'dx': dx, 'dy': dy, 'dz': dz, 'axis': axis, 'sign': sign, 'dia': dia, 'depth': depth};
+  factory ArtHole.fromJson(Map<String, dynamic> j) => ArtHole(
+        dx: (j['dx'] as num).toDouble(),
+        dy: (j['dy'] as num).toDouble(),
+        dz: (j['dz'] as num).toDouble(),
+        axis: (j['axis'] as num).toInt(),
+        sign: (j['sign'] as num).toInt(),
+        dia: (j['dia'] as num?)?.toDouble() ?? 8,
+        depth: (j['depth'] as num?)?.toDouble() ?? 12,
+      );
+}
+
 class ArtProject {
   String name;
   double wallWidth, wallHeight;
@@ -174,6 +201,12 @@ class ArtProject {
   ArtFittings fittings = ArtFittings();
   /// Coupes d'angle notées par assemblage (« id1|id2 », ids triés) : 'onglet' (45°) ou 'chanfrein'.
   final Map<String, String> jointCuts = {};
+  /// Calques masqués / verrouillés : « comp:nom » pour un composant des caissons, identifiant pour une pièce libre.
+  final Set<String> hiddenLayers = {}, lockedLayers = {};
+
+  static String layerOf(ArtPanel p) => p.comp != null ? 'comp:${p.comp!.name}' : p.id;
+  bool isHidden(ArtPanel p) => hiddenLayers.contains(layerOf(p));
+  bool isLocked(ArtPanel p) => lockedLayers.contains(layerOf(p));
 
   static String jointKey(String a, String b) => a.compareTo(b) < 0 ? '$a|$b' : '$b|$a';
   String? jointCut(ArtPanel a, ArtPanel b) => jointCuts[jointKey(a.id, b.id)];
@@ -233,6 +266,8 @@ class ArtProject {
         if (dimensions.isNotEmpty) 'dimensions': [for (final d in dimensions) d.toJson()],
         if (!fittings.isDefault) 'fittings': fittings.toJson(),
         if (jointCuts.isNotEmpty) 'joint_cuts': jointCuts,
+        if (hiddenLayers.isNotEmpty) 'hidden': hiddenLayers.toList(),
+        if (lockedLayers.isNotEmpty) 'locked': lockedLayers.toList(),
       };
 
   factory ArtProject.fromJson(Map<String, dynamic> j) => ArtProject(
@@ -245,7 +280,9 @@ class ArtProject {
         dimensions: [for (final d in (j['dimensions'] as List? ?? const [])) CadDimension.fromJson((d as Map).cast<String, dynamic>())],
       )
         ..fittings = ArtFittings.fromJson((j['fittings'] as Map?)?.cast<String, dynamic>() ?? const {})
-        ..jointCuts.addAll({for (final e in ((j['joint_cuts'] as Map?) ?? const {}).entries) '${e.key}': '${e.value}'});
+        ..jointCuts.addAll({for (final e in ((j['joint_cuts'] as Map?) ?? const {}).entries) '${e.key}': '${e.value}'})
+        ..hiddenLayers.addAll([for (final e in (j['hidden'] as List? ?? const [])) '$e'])
+        ..lockedLayers.addAll([for (final e in (j['locked'] as List? ?? const [])) '$e']);
 
   /// Encombrement (x0, y0, x1, y1) en vue de face.
   (double, double, double, double)? get bounds {
@@ -431,7 +468,7 @@ class ArtProject {
   /// Lie le chant [ea] (1 à 4) de [a] au chant [eb] de [b] : [a] se place sous [b], perpendiculaire,
   /// son chant contre la face de [b], à fleur du chant [eb] ; [b] passe dessus (il couvre le chant de [a]).
   /// [b] ne bouge pas. Faux si les numéros sont hors de 1 à 4.
-  static bool linkEdges(ArtPanel a, int ea, ArtPanel b, int eb) {
+  static bool linkEdges(ArtPanel a, int ea, ArtPanel b, int eb, {String align = 'start', double offset = 0, bool over = false}) {
     if (ea < 1 || ea > 4 || eb < 1 || eb > 4) return false;
     final (aAx, _) = edgesOf(a)[ea - 1];
     final (bAx, bSign) = edgesOf(b)[eb - 1];
@@ -442,12 +479,22 @@ class ArtProject {
     final aLen = [0, 1, 2].firstWhere((k) => k != ta && k != aAx); // le chant de a court le long de cet axe
     final t = _th(a), len = _hi(a, aLen) - _lo(a, aLen), h = _hi(a, aAx) - _lo(a, aAx);
     final lo = <int, double>{}, hi = <int, double>{};
-    // le long du chant de b : même départ, longueur du chant de a
-    lo[lb] = _lo(b, lb);
+    // le long du chant de b : aligné au début, au centre, à la fin, ou décalé de [offset] depuis le début
+    lo[lb] = switch (align) {
+      'end' => _hi(b, lb) - len,
+      'center' => (_lo(b, lb) + _hi(b, lb) - len) / 2,
+      'custom' => _lo(b, lb) + offset,
+      _ => _lo(b, lb),
+    };
     hi[lb] = lo[lb]! + len;
-    // sous b (côté négatif de son épaisseur), collé à sa face
-    hi[tb] = _lo(b, tb);
-    lo[tb] = hi[tb]! - h;
+    // sous b (côté négatif de son épaisseur) ou dessus, collé à sa face
+    if (over) {
+      lo[tb] = _hi(b, tb);
+      hi[tb] = lo[tb]! + h;
+    } else {
+      hi[tb] = _lo(b, tb);
+      lo[tb] = hi[tb]! - h;
+    }
     // à fleur du chant choisi de b, vers l'intérieur
     if (bSign > 0) {
       hi[bAx] = _hi(b, bAx);
