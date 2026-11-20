@@ -1,7 +1,9 @@
 // Atelier : dessin façon SketchUp sur feuilles de bois — rectangle dans le plan de travail (au sol : tablette),
 // cotes tapées, Pousser/Tirer au glisser, raccourcis clavier, rôle du panneau ; usinage affiché en 3D.
 import 'dart:io';
+import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -87,6 +89,69 @@ void main() {
     await t.tap(find.byTooltip('Activer le Mode Usinage (Tourillons, Vis, Perçages 32mm, Chants)'));
     await t.pumpAndSettle();
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/art_usinage.png'));
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('tablette : appuyer, glisser, lâcher → la forme se voit pendant le tracé, avec ses points et sa cote', (t) async {
+    t.view.physicalSize = const Size(1366, 1024);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
+    await t.sendKeyEvent(LogicalKeyboardKey.keyR);
+    await t.pumpAndSettle();
+    final g = await t.startGesture(vp.center + const Offset(-150, 20), kind: PointerDeviceKind.touch);
+    await t.pump();
+    for (var i = 1; i <= 6; i++) {
+      await g.moveBy(const Offset(40, 20));
+      await t.pump();
+    }
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    expect((s.activePoints as List).length, 1, reason: 'le 1er coin est posé dès l’appui');
+    expect(s.previewShape, isNotNull, reason: 'le rectangle se dessine pendant le glisser');
+    await expectLater(find.byKey(const Key('art-viewport')), matchesGoldenFile('goldens/art_trace_en_cours.png'));
+    await g.up();
+    await t.pumpAndSettle();
+    expect(st.project.art.free, hasLength(1));
+    expect(st.project.art.free.single.role, ArtRole.tablette);
+    expect(t.takeException(), isNull);
+    await t.pump(const Duration(seconds: 6)); // enregistrement automatique différé et message
+  });
+
+  testWidgets('sélection : propriétés ouvertes, Ctrl+clic ajoute, Suppr efface ; chants et rainures visibles', (t) async {
+    t.view.physicalSize = const Size(1366, 1024);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    final art = st.project.art;
+    art.addBox(0, 100, 800, 720, depth: 560, doors: 0);
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    await expectLater(find.byKey(const Key('art-viewport')), matchesGoldenFile('goldens/art_chants_rainures.png'));
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    Offset at(ArtPanel q) => vp.topLeft + (s.screenOf(q.x + math.min(q.w / 2, 60), q.top, q.z + 40) as Offset);
+    final left = art.free[0], right = art.free[3]; // côté gauche et dessus
+    // clic : le panneau est sélectionné et ses propriétés s'ouvrent
+    await t.tapAt(at(left));
+    await t.pumpAndSettle();
+    expect(s.selectedPanel, same(left));
+    expect(find.byKey(const ValueKey('art_props')), findsOneWidget);
+    // Ctrl + clic : on ajoute le dessus
+    await t.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await t.tapAt(at(right));
+    await t.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await t.pumpAndSettle();
+    expect((s.selection as Set).length, 2);
+    // Suppr : les deux disparaissent ; Ctrl+Z les remet
+    await t.sendKeyEvent(LogicalKeyboardKey.delete);
+    await t.pumpAndSettle();
+    expect(art.free.contains(left) || art.free.contains(right), isFalse);
+    expect(art.free, hasLength(3));
+    expect(find.byKey(const ValueKey('art_props')), findsNothing);
+    await t.pump(const Duration(seconds: 6));
     expect(t.takeException(), isNull);
   });
 }

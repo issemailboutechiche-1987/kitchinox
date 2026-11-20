@@ -2013,6 +2013,11 @@ const Map<String, String> enDict = {
   "tablettes mobiles": "adjustable shelves",
   "Pieds réglables 100 à 150 mm": "Adjustable feet 100 to 150 mm",
   "dessous de caisson": "cabinet bottoms",
+  "Dessinez au sol, ou choisissez une base à gauche": "Draw on the floor, or choose a base on the left",
+  "Ctrl + clic pour ajouter ou retirer un panneau. Glissez avec l’outil Déplacer pour bouger l’ensemble, Suppr pour tout supprimer.": "Ctrl + click to add or remove a panel. Drag with the Move tool to move them together, Delete to remove them all.",
+  "{0} panneau(x) dupliqué(s)": "{0} panel(s) duplicated",
+  "{0} panneau(x) supprimé(s)": "{0} panel(s) deleted",
+  "{0} panneaux sélectionnés": "{0} panels selected",
 };
 
 const Map<String, String> arDict = {
@@ -4028,4 +4033,9 @@ const Map<String, String> arDict = {
   "tablettes mobiles": "رفوف متحركة",
   "Pieds réglables 100 à 150 mm": "أرجل قابلة للضبط 100 إلى 150 مم",
   "dessous de caisson": "قواعد الخزائن",
+  "Dessinez au sol, ou choisissez une base à gauche": "ارسم على الأرض، أو اختر قاعدة على اليسار",
+  "Ctrl + clic pour ajouter ou retirer un panneau. Glissez avec l’outil Déplacer pour bouger l’ensemble, Suppr pour tout supprimer.": "Ctrl + نقر لإضافة لوح أو إزالته. اسحب بأداة التحريك لتحريك الكل، و Suppr لحذف الكل.",
+  "{0} panneau(x) dupliqué(s)": "تم نسخ {0} لوح",
+  "{0} panneau(x) supprimé(s)": "تم حذف {0} لوح",
+  "{0} panneaux sélectionnés": "{0} ألواح محددة",
 };

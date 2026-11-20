@@ -76,6 +76,7 @@ class _ArtPageState extends State<ArtPage> {
   CadShape? previewShape;
   CadTapeMeasure? activeTape;
   ArtPanel? selectedPanel;
+  final Set<ArtPanel> selection = {}; // Ctrl (ou Maj) + clic : plusieurs panneaux
   CadShape? selectedShape;
   Face? hoveredFace;
   double pushPullThickness = 18.0;
@@ -99,9 +100,11 @@ class _ArtPageState extends State<ArtPage> {
   Face? _dragFace;
   ArtPanel? _dragPanel;
   List<double>? _dragOrig; // x, y, z, w, h, d au début du geste
+  Map<ArtPanel, List<double>> _dragOthers = {}; // autres panneaux sélectionnés, déplacés ensemble
   String? _dragUndo;
   V3? _dragHit0;
-  (Face, List<double>)? _lastPush; // dernière face poussée : une cote tapée ensuite la règle exactement
+  (Face, List<double>)? _lastPush;
+  bool _pressPlaced = false; // le doigt a posé le 1er point en appuyant : glisser puis lâcher termine la forme // dernière face poussée : une cote tapée ensuite la règle exactement
 
   /// Point à l'écran (repère de la vue 3D) d'un point de l'espace : pour les tests.
   Offset screenOf(double x, double y, double z) => cam.project(V3(x, y, z)).$1;
@@ -315,6 +318,23 @@ class _ArtPageState extends State<ArtPage> {
   /// Axes des cotes saisies dans le plan de dessin : sol → largeur (x) puis profondeur (z) ;
   /// face → largeur puis hauteur ; côté → profondeur puis hauteur.
   List<int> get _dimAxes => switch (_drawAxis) { 1 => const [0, 2], 2 => const [0, 1], _ => const [2, 1] };
+
+  bool get _isPlanarTool =>
+      activeTool == CadTool.line || activeTool == CadTool.rectangle || activeTool == CadTool.circle || activeTool == CadTool.polygon;
+
+  /// Cote affichée à côté du doigt pendant le tracé.
+  String? get _liveLabel {
+    final h = _hover;
+    if (h == null || activePoints.isEmpty) return null;
+    final a = activePoints.last;
+    String n(double v) => '${v.abs().round()}';
+    return switch (activeTool) {
+      CadTool.rectangle => '${n(h[_dimAxes[0]] - activePoints.first[_dimAxes[0]])} × ${n(h[_dimAxes[1]] - activePoints.first[_dimAxes[1]])} mm',
+      CadTool.line => '${n((h - a).length)} mm',
+      CadTool.circle || CadTool.polygon => 'R ${n((h - activePoints.first).length)} mm',
+      _ => null,
+    };
+  }
 
   /// Fixe le plan de dessin au premier point.
   void _setDrawPlane(Offset px) {
@@ -550,9 +570,15 @@ class _ArtPageState extends State<ArtPage> {
       final f = pickFace(cam, art.panels, px);
       final p = f?.panel ?? selectedPanel;
       if (p == null || !art.free.contains(p)) return false;
+      if (!selection.contains(p)) {
+        selection
+          ..clear()
+          ..add(p);
+      }
       selectedPanel = p;
       _dragPanel = p;
       _dragOrig = _geom(p);
+      _dragOthers = {for (final q in selection) if (!identical(q, p) && art.free.contains(q)) q: _geom(q)};
       _dragUndo = _snap();
       final ax = workPlane.axis;
       _dragHit0 = cam.hitPlane(px, ax, ax == 0 ? p.x : ax == 1 ? p.y : p.z);
@@ -620,6 +646,12 @@ class _ArtPageState extends State<ArtPage> {
       if (k == 1) p.y = math.max(0, lo);
       if (k == 2) p.z = lo;
     }
+    final mx = p.x - o[0], my = p.y - o[1], mz = p.z - o[2];
+    _dragOthers.forEach((q, g) {
+      q.x = g[0] + mx;
+      q.y = g[1] + my;
+      q.z = g[2] + mz;
+    });
     cadStatus = trp('Déplacement : {0} ; {1} ; {2} mm', [(p.x - o[0]).round(), (p.y - o[1]).round(), (p.z - o[2]).round()]);
     setState(() {});
   }
@@ -636,6 +668,7 @@ class _ArtPageState extends State<ArtPage> {
     if (_dragFace != null && _dragOrig != null) _lastPush = (_dragFace!, _dragOrig!);
     _dragFace = null;
     _dragPanel = null;
+    _dragOthers = {};
     _dragOrig = null;
     _dragUndo = null;
     _dragHit0 = null;
@@ -648,7 +681,23 @@ class _ArtPageState extends State<ArtPage> {
     if (measureFocus.hasFocus) return KeyEventResult.ignored;
     final k = e.logicalKey;
     final ctrl = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
-    if (ctrl) return KeyEventResult.ignored;
+    if (ctrl) {
+      if (k == LogicalKeyboardKey.keyA) {
+        setState(() {
+          activeTool = CadTool.select;
+          selection
+            ..clear()
+            ..addAll(art.free);
+          selectedPanel = selection.isEmpty ? null : selection.last;
+        });
+        return KeyEventResult.handled;
+      }
+      if (k == LogicalKeyboardKey.keyD) {
+        _duplicateSelected();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
     final ch = e.character;
     if (ch != null && RegExp(r'^[0-9.;x*\-]$').hasMatch(ch) && (activeTool != CadTool.select || selectedPanel != null)) {
       setState(() => measure.text += ch);
@@ -671,11 +720,13 @@ class _ArtPageState extends State<ArtPage> {
     }
     if (k == LogicalKeyboardKey.escape) {
       measure.clear();
+      selection.clear();
+      selectedPanel = null;
       _selectTool(CadTool.select);
       return KeyEventResult.handled;
     }
     if (k == LogicalKeyboardKey.delete || k == LogicalKeyboardKey.backspace) {
-      if (selectedPanel != null) {
+      if (selectedPanel != null || selection.isNotEmpty) {
         _deleteSelected();
         return KeyEventResult.handled;
       }
@@ -800,12 +851,29 @@ class _ArtPageState extends State<ArtPage> {
     if (activeTool == CadTool.select) {
       _tap(px);
       final f = pickFace(cam, art.panels, px);
+      final kb = HardwareKeyboard.instance;
+      final add = kb.isControlPressed || kb.isMetaPressed || kb.isShiftPressed;
       if (f != null) {
-        selectedPanel = f.panel;
+        // les panneaux d'un caisson tout fait sont recréés à chaque rendu : on les retrouve par leur identifiant
+        final hit = f.panel;
+        if (add) {
+          if (selection.any((q) => q.id == hit.id)) {
+            selection.removeWhere((q) => q.id == hit.id);
+          } else {
+            selection.add(hit);
+          }
+          selectedPanel = selection.isEmpty ? null : selection.last;
+        } else {
+          selection
+            ..clear()
+            ..add(hit);
+          selectedPanel = hit;
+        }
         selectedShape = null;
-      } else {
+      } else if (!add) {
         selectedShape = _pickSketch(px);
         selectedPanel = null;
+        selection.clear();
       }
       setState(() {});
       return;
@@ -1090,9 +1158,11 @@ class _ArtPageState extends State<ArtPage> {
     final p = selectedPanel;
     if (p != null) {
       change(() {
-        p.x += dx;
-        p.y += dy;
-        p.z += dz;
+        for (final q in _selected.where(art.free.contains)) {
+          q.x += dx;
+          q.y += dy;
+          q.z += dz;
+        }
       });
       _msg(trp('Déplacé de {0}, {1}, {2} mm', [dx.round(), dy.round(), dz.round()]));
     } else if (selectedShape != null) {
@@ -1165,55 +1235,44 @@ class _ArtPageState extends State<ArtPage> {
     }
   }
 
+  /// Panneaux choisis (la sélection multiple, sinon le panneau sélectionné).
+  List<ArtPanel> get _selected => selection.isNotEmpty ? selection.toList() : [?selectedPanel];
+
   void _duplicateSelected() {
-    final p = selectedPanel;
-    if (p == null) return;
-    final clone = p.copy(id: art.newId());
-    clone.x += 20;
-    clone.y += 20;
+    final sel = _selected.where(art.free.contains).toList();
+    if (sel.isEmpty) return;
+    // la copie se pose à côté de l'ensemble, à droite
+    final dx = sel.map((p) => p.right).reduce(math.max) - sel.map((p) => p.x).reduce(math.min) + 20;
+    final clones = [for (final p in sel) p.copy(id: art.newId())..x = p.x + dx];
     change(() {
-      art.free.add(clone);
-      selectedPanel = clone;
+      art.free.addAll(clones);
+      selection
+        ..clear()
+        ..addAll(clones);
+      selectedPanel = clones.last;
     });
-    _msg(tr('Panneau dupliqué.'));
+    _msg(trp('{0} panneau(x) dupliqué(s)', [clones.length]));
   }
 
   void _deleteSelected() {
-    final p = selectedPanel;
-    if (p == null) return;
-    if (art.free.contains(p)) {
-      change(() {
-        art.free.remove(p);
-        selectedPanel = null;
-      });
-      _msg(tr('Panneau supprimé.'));
-    } else {
+    final sel = _selected;
+    if (sel.isEmpty) return;
+    final free = sel.where(art.free.contains).toList();
+    if (free.isEmpty) {
       _msg(tr('Ce panneau appartient à un caisson standard. Modifiez le caisson ou ses dimensions.'));
+      return;
     }
+    change(() {
+      art.free.removeWhere(free.contains);
+      selection.clear();
+      selectedPanel = null;
+    });
+    _msg(trp('{0} panneau(x) supprimé(s)', [free.length]));
   }
 
-  void _showPanelInspector(ArtPanel p) {
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlg) {
-          return AlertDialog(
-            title: Row(
-              children: [
-                const Icon(Icons.tune, color: _orange),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${tr('Propriétés')} : ${tr(p.role.label)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ),
-              ],
-            ),
-            content: SizedBox(
-              width: 520,
-              child: SingleChildScrollView(
-                child: Column(
+  /// Propriétés d'un panneau : dimensions, rôle, finition, chants, rainure, position, accessoires.
+  Widget _panelProps(BuildContext ctx, ArtPanel p, StateSetter setDlg, {required VoidCallback close}) {
+    return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1262,9 +1321,10 @@ class _ArtPageState extends State<ArtPage> {
                     const SizedBox(height: 14),
 
                     // 2. Rôle et Finition
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
+                        SizedBox(
                           child: DropdownButtonFormField<ArtRole>(
                             initialValue: p.role,
                             decoration: InputDecoration(labelText: tr('Rôle'), isDense: true, border: const OutlineInputBorder()),
@@ -1280,16 +1340,18 @@ class _ArtPageState extends State<ArtPage> {
                             },
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
+                        const SizedBox(height: 10),
+                        SizedBox(
                           child: DropdownButtonFormField<String>(
                             initialValue: p.finish,
                             decoration: InputDecoration(labelText: tr('Finition'), isDense: true, border: const OutlineInputBorder()),
-                            items: const [
-                              DropdownMenuItem(value: 'blanc_mat', child: Text('Blanc mat')),
-                              DropdownMenuItem(value: 'chene_naturel', child: Text('Chêne naturel')),
-                              DropdownMenuItem(value: 'noyer', child: Text('Noyer')),
-                              DropdownMenuItem(value: 'gris_anthracite', child: Text('Gris anthracite')),
+                            isExpanded: true,
+                            // toutes les finitions (façades et caissons), plus celle du panneau si elle n'y est pas
+                            items: [
+                              for (final f in {for (final f in [...fronts, ...carcasses]) if (!f.id.startsWith('tex:')) f.id: f}.values)
+                                DropdownMenuItem(value: f.id, child: Text(tr(f.name), overflow: TextOverflow.ellipsis)),
+                              if (![...fronts, ...carcasses].any((f) => f.id == p.finish))
+                                DropdownMenuItem(value: p.finish, child: Text(p.finish, overflow: TextOverflow.ellipsis)),
                             ],
                             onChanged: (v) {
                               if (v != null) {
@@ -1306,7 +1368,9 @@ class _ArtPageState extends State<ArtPage> {
                     // 3. Chants (Edging)
                     Text(tr('Bandes de chant'), style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
-                    Row(
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      runSpacing: 4,
                       children: [
                         Text(tr('Épaisseur chant :'), style: const TextStyle(fontSize: 12)),
                         const SizedBox(width: 8),
@@ -1326,10 +1390,12 @@ class _ArtPageState extends State<ArtPage> {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Row(
+                    Wrap(
+                      spacing: 16,
                       children: [
-                        Expanded(
+                        SizedBox(
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(tr('Chants Longs :'), style: const TextStyle(fontSize: 12)),
                               const SizedBox(width: 4),
@@ -1350,8 +1416,9 @@ class _ArtPageState extends State<ArtPage> {
                             ],
                           ),
                         ),
-                        Expanded(
+                        SizedBox(
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(tr('Chants Courts :'), style: const TextStyle(fontSize: 12)),
                               const SizedBox(width: 4),
@@ -1379,8 +1446,7 @@ class _ArtPageState extends State<ArtPage> {
                     // 4. Rainures (Grooves)
                     Row(
                       children: [
-                        Text(tr('Rainure pour fond :'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const Spacer(),
+                        Expanded(child: Text(tr('Rainure pour fond :'), style: const TextStyle(fontWeight: FontWeight.bold))),
                         Switch(
                           value: p.hasGroove,
                           onChanged: (v) {
@@ -1495,7 +1561,7 @@ class _ArtPageState extends State<ArtPage> {
                               d: p.d > 25 ? p.d : 540,
                             );
                             change(() => art.free.add(shelf));
-                            Navigator.pop(ctx);
+                            close();
                             _msg(tr('Tablette intérieure ajoutée.'));
                           },
                         ),
@@ -1514,14 +1580,96 @@ class _ArtPageState extends State<ArtPage> {
                               d: p.d > 25 ? p.d : 540,
                             );
                             change(() => art.free.add(sep));
-                            Navigator.pop(ctx);
+                            close();
                             _msg(tr('Séparation verticale ajoutée.'));
                           },
                         ),
                       ],
                     ),
                   ],
+                );
+  }
+
+  /// Panneau des propriétés, ancré à droite de la vue : s'ouvre quand un panneau est sélectionné.
+  Widget _propsDock() {
+    final p = selectedPanel;
+    if (p == null || activeTool != CadTool.select) return const SizedBox.shrink();
+    final t = Theme.of(context).textTheme;
+    final multi = selection.length > 1;
+    return Material(
+      key: const ValueKey('art_props'),
+      elevation: 6,
+      borderRadius: BorderRadius.circular(12),
+      color: Theme.of(context).colorScheme.surface,
+      child: SizedBox(
+        width: 390,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 4, 0),
+            child: Row(children: [
+              const Icon(Icons.tune, color: _orange, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(multi ? trp('{0} panneaux sélectionnés', [selection.length]) : '${tr('Propriétés')} : ${tr(p.role.label)}',
+                    style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              ),
+              IconButton(
+                tooltip: tr('Supprimer (Suppr)'),
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                onPressed: _deleteSelected,
+              ),
+              IconButton(
+                tooltip: tr('Fermer'),
+                icon: const Icon(Icons.close),
+                onPressed: () => setState(() {
+                  selection.clear();
+                  selectedPanel = null;
+                }),
+              ),
+            ]),
+          ),
+          const Divider(height: 8),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
+              child: !art.free.contains(p)
+                  ? Text(tr('Ce panneau appartient à un caisson standard. Modifiez le caisson ou ses dimensions.'), style: t.bodySmall)
+                  : multi
+                      ? Text(tr('Ctrl + clic pour ajouter ou retirer un panneau. Glissez avec l’outil Déplacer pour bouger l’ensemble, Suppr pour tout supprimer.'),
+                          style: t.bodySmall)
+                      : _panelProps(context, p, (f) => setState(f), close: () => setState(() {
+                            selection.clear();
+                            selectedPanel = null;
+                          })),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  void _showPanelInspector(ArtPanel p) {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.tune, color: _orange),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${tr('Propriétés')} : ${tr(p.role.label)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                 ),
+              ],
+            ),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: _panelProps(ctx, p, setDlg, close: () => Navigator.pop(ctx)),
               ),
             ),
             actions: [
@@ -1726,7 +1874,12 @@ class _ArtPageState extends State<ArtPage> {
                 _downAt = d.localFocalPoint;
                 _moved = false;
                 _lastScale = 1.0;
+                _pressPlaced = false;
                 if (d.pointerCount == 1) _dragStart(d.localFocalPoint);
+                if (d.pointerCount == 1 && _isPlanarTool && activePoints.isEmpty) {
+                  _handleTap(d.localFocalPoint);
+                  _pressPlaced = true;
+                }
                 if (activeTool == CadTool.freehand) {
                   final pt = _unproject(d.localFocalPoint);
                   activePoints.clear();
@@ -1767,6 +1920,15 @@ class _ArtPageState extends State<ArtPage> {
                   _dragEnd();
                   if (dragged) return;
                 }
+                if (_isPlanarTool && activePoints.isNotEmpty && _moved && _last != null) {
+                  _handleTap(_last!);
+                  _pressPlaced = false;
+                  return;
+                }
+                if (_pressPlaced) {
+                  _pressPlaced = false;
+                  return;
+                }
                 if (activeTool == CadTool.freehand && activePoints.length >= 2) {
                   final fh = CadFreehand(id: 'f${DateTime.now().millisecondsSinceEpoch}', points: [...activePoints]);
                   change(() => art.sketches.add(fh));
@@ -1797,9 +1959,13 @@ class _ArtPageState extends State<ArtPage> {
                     activeTape: activeTape,
                     hoveredFace: hoveredFace,
                     selectedPanel: selectedPanel,
+                    selection: selection.map((q) => q.id).toSet(),
                     selectedShape: selectedShape,
                     isMachiningMode: isMachiningMode,
                     activeSnapTarget: activeSnapTarget,
+                    points: List.of(activePoints),
+                    cursor: activePoints.isEmpty ? null : _hover,
+                    liveLabel: _liveLabel,
                   ),
                 ),
                 if (!art.isEmpty) Positioned(left: 12, top: 68, child: _legend()),
@@ -1829,6 +1995,8 @@ class _ArtPageState extends State<ArtPage> {
                     ),
                   ),
                 ),
+                if (selectedPanel != null && activeTool == CadTool.select)
+                  Positioned(top: 76, right: 12, bottom: 120, child: Align(alignment: Alignment.topRight, child: _propsDock())),
                 if (activeTool != CadTool.select || selectedPanel != null)
                   Positioned(
                     bottom: 14,
@@ -2617,9 +2785,13 @@ class _ScenePainter extends CustomPainter {
   final CadTapeMeasure? activeTape;
   final Face? hoveredFace;
   final ArtPanel? selectedPanel;
+  final Set<String> selection;
   final CadShape? selectedShape;
   final bool isMachiningMode;
   final CadSnapTarget? activeSnapTarget;
+  final List<V3> points; // points déjà posés de la forme en cours
+  final V3? cursor; // point sous le doigt / la souris
+  final String? liveLabel; // cote affichée à côté du curseur
 
   _ScenePainter({
     required this.cam,
@@ -2637,9 +2809,13 @@ class _ScenePainter extends CustomPainter {
     this.activeTape,
     this.hoveredFace,
     this.selectedPanel,
+    this.selection = const {},
     this.selectedShape,
     this.isMachiningMode = false,
     this.activeSnapTarget,
+    this.points = const [],
+    this.cursor,
+    this.liveLabel,
   }) : super(repaint: cam);
 
   /// Vue éclatée : chaque composant s'écarte du centre de son caisson dans sa direction naturelle.
@@ -2731,13 +2907,13 @@ class _ScenePainter extends CustomPainter {
       }
     }
 
-    if (art.isEmpty) {
+    // projet vide : on invite à commencer, sans s'arrêter là (la forme en cours de tracé doit se voir)
+    if (art.isEmpty && points.isEmpty && previewShape == null) {
       final tp = TextPainter(
-          text: TextSpan(text: tr('Choisissez une base à gauche'), style: TextStyle(fontSize: 16, color: isDark ? const Color(0xFF9EABB8) : const Color(0xFF6B7178), fontWeight: FontWeight.w600)),
+          text: TextSpan(text: tr(activeTool.isDrawing ? 'Dessinez au sol, ou choisissez une base à gauche' : 'Choisissez une base à gauche'), style: TextStyle(fontSize: 16, color: isDark ? const Color(0xFF9EABB8) : const Color(0xFF6B7178), fontWeight: FontWeight.w600)),
           textDirection: TextDirection.ltr)
         ..layout();
       tp.paint(c, size.center(Offset(-tp.width / 2, -tp.height / 2)));
-      return;
     }
     var panels = art.panels.where((x) => showFronts || exploded || !(x.comp?.isFront ?? x.role.isFront)).toList();
     if (exploded) panels = _explode(panels);
@@ -2903,23 +3079,43 @@ class _ScenePainter extends CustomPainter {
       }
     }
 
-    // 3. Panneau sélectionné : contour vif
-    if (selectedPanel != null) {
-      final sp = selectedPanel!;
-      final sCorners = [
-        V3(sp.x, sp.y, sp.z),
-        V3(sp.right, sp.y, sp.z),
-        V3(sp.right, sp.top, sp.z),
-        V3(sp.x, sp.top, sp.z),
-      ].map(p).toList();
-      final sPath = Path()..addPolygon(sCorners, true);
-      c.drawPath(
-        sPath,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.5
-          ..color = _orange,
-      );
+    // 3. Panneaux sélectionnés : les 12 arêtes en orange vif
+    final chosen = {...selection, if (selectedPanel != null) selectedPanel!.id};
+    for (final sp in panels.where((q) => chosen.contains(q.id))) {
+      final k = [for (final x in [sp.x, sp.right]) for (final y in [sp.y, sp.top]) for (final z in [sp.z, sp.back]) p(V3(x, y, z))];
+      const edges = [(0, 1), (2, 3), (4, 5), (6, 7), (0, 2), (1, 3), (4, 6), (5, 7), (0, 4), (1, 5), (2, 6), (3, 7)];
+      final sel = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.6
+        ..color = _orange;
+      for (final (a, b) in edges) {
+        c.drawLine(k[a], k[b], sel);
+      }
+    }
+
+    // 3 bis. Chants et rainures visibles sur les pièces (hors vue usinage, qui les montre déjà)
+    if (!isMachiningMode && !exploded && panels.isNotEmpty) {
+      final work = computeMachiningElements(panels);
+      for (final el in work.elements) {
+        if (el.kind != MachiningKind.edge && el.kind != MachiningKind.groove) continue;
+        final mid = el.position + el.normal * (el.length / 2);
+        final f = pickFace(cam, panels, p(mid));
+        if (f == null || (f.panel.id != el.panelId && f.panel.id != el.partnerPanelId)) continue; // caché derrière un autre panneau
+        if (el.kind == MachiningKind.edge) {
+          c.drawLine(p(el.position), p(el.end), Paint()
+            ..strokeWidth = el.diameter >= 2 ? 3.2 : 2.2
+            ..strokeCap = StrokeCap.round
+            ..color = el.diameter >= 2 ? const Color(0xFFF26522) : const Color(0xFFF59E0B));
+        } else {
+          c.drawLine(p(el.position), p(el.end), Paint()
+            ..strokeWidth = 3.4
+            ..strokeCap = StrokeCap.butt
+            ..color = const Color(0xFF334155));
+          c.drawLine(p(el.position), p(el.end), Paint()
+            ..strokeWidth = 1.2
+            ..color = const Color(0xFFCBD5E1));
+        }
+      }
     }
 
     // 4. Esquisses 2D enregistrées
@@ -2965,6 +3161,41 @@ class _ScenePainter extends CustomPainter {
           ..strokeWidth = 2.0
           ..color = _orange;
         c.drawPath(previewPath, ghostPaint);
+      }
+    }
+
+    // 5 bis. Points posés (le 1er en vert : y revenir ferme le contour), curseur et cote en direct
+    if (activeTool.isDrawing && (points.isNotEmpty || cursor != null)) {
+      final fillPreview = previewShape;
+      if (fillPreview != null && fillPreview.isClosed) {
+        final pts = fillPreview.vertices.map(p).toList();
+        if (pts.length >= 3) c.drawPath(Path()..addPolygon(pts, true), Paint()..color = const Color(0x33F26522));
+      }
+      for (var i = 0; i < points.length; i++) {
+        final q = p(points[i]);
+        final col = i == 0 ? const Color(0xFF16A34A) : const Color(0xFFF26522);
+        c.drawCircle(q, 7, Paint()..color = Colors.white);
+        c.drawCircle(q, 5, Paint()..color = col);
+      }
+      final cur = cursor;
+      if (cur != null) {
+        final q = p(cur);
+        final cross = Paint()
+          ..color = const Color(0xFF0F172A)
+          ..strokeWidth = 1.4;
+        c.drawLine(q - const Offset(10, 0), q + const Offset(10, 0), cross);
+        c.drawLine(q - const Offset(0, 10), q + const Offset(0, 10), cross);
+        c.drawCircle(q, 4, Paint()..color = const Color(0xFFF26522));
+        final label = liveLabel;
+        if (label != null && label.isNotEmpty) {
+          final tp = TextPainter(
+            text: TextSpan(text: label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+            textDirection: TextDirection.ltr,
+          )..layout();
+          final r = Rect.fromLTWH(q.dx + 14, q.dy - 30, tp.width + 14, tp.height + 8);
+          c.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(6)), Paint()..color = const Color(0xE60F172A));
+          tp.paint(c, Offset(r.left + 7, r.top + 4));
+        }
       }
     }
 
