@@ -17,6 +17,7 @@ enum CabinetKind {
   tall, // colonne
   cornerBase, // angle bas
   cornerWall, // angle haut
+  cornerTall, // colonne d'angle (toute hauteur)
   fillerBase, // fileur bas
   fillerWall, // fileur haut
   coverPanel, // joue de finition
@@ -24,7 +25,7 @@ enum CabinetKind {
 
   bool get isLow => this == base || this == cornerBase || this == fillerBase;
   bool get isHigh => this == wall || this == cornerWall || this == fillerWall;
-  bool get isCorner => this == cornerBase || this == cornerWall;
+  bool get isCorner => this == cornerBase || this == cornerWall || this == cornerTall;
   bool get isFiller => this == fillerBase || this == fillerWall;
 }
 
@@ -245,6 +246,11 @@ CabinetKind _kind(String categoryId, String itemId) {
       return CabinetKind.cornerBase;
     case 'corner_wall_cabinets':
       return CabinetKind.cornerWall;
+    case 'corner_tall_cabinets':
+      return CabinetKind.cornerTall;
+    case 'custom_cabinets':
+      // caissons personnalisés : le type se lit dans l'identifiant
+      return itemId.contains('wall') ? CabinetKind.wall : itemId.contains('tall') ? CabinetKind.tall : CabinetKind.base;
   }
   if (itemId.startsWith('filler_panel_base')) return CabinetKind.fillerBase;
   if (itemId.startsWith('filler_panel_wall')) return CabinetKind.fillerWall;
@@ -320,10 +326,13 @@ CabinetModel _parseItem(Map<String, dynamic> cat, Map<String, dynamic> it, Kitch
     case CabinetKind.fillerWall:
     case CabinetKind.wall:
     case CabinetKind.cornerWall:
+    case CabinetKind.cornerTall:
     case CabinetKind.tall:
       heights = SizeOptions.list(catalogHeights.isEmpty ? [800] : catalogHeights);
-      if (depth == 0) depth = kind == CabinetKind.tall ? 600 : 370;
+      if (depth == 0) depth = kind == CabinetKind.tall || kind == CabinetKind.cornerTall ? 600 : 370;
   }
+  // hauteur libre (caisson personnalisé)
+  if (it['height_min'] != null) heights = SizeOptions.range((it['height_min'] as num).toInt(), (it['height_max'] as num).toInt());
 
   final doors = it['doors'];
   return CabinetModel(

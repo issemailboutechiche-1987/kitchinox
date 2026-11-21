@@ -282,14 +282,61 @@ List<(String, LayoutProposal)> proposeUniverse(LayoutEngine base, {bool withStyl
       if (pr != null) out.add((tp.family, pr));
     }
   }
+  if (src.universe == 'dressing') out.addAll(_cornerDressings(base, templates, withStyle));
   out.sort((a, b) => b.$2.score.compareTo(a.$2.score));
   return out;
 }
 
-LayoutProposal? _fit(LayoutEngine base, UniverseTemplate tp, String wallId, Palette? look) {
+/// Profondeur d'un dressing : les modules d'un mur voisin commencent après l'angle.
+const dressingDepth = 600.0;
+
+/// Dressings sur plusieurs murs : en L (2 m × 1,5 m au moins) et en U (3 m × 2,5 m au moins),
+/// le mur le plus long au fond, les murs voisins décalés de la profondeur du dressing dans l'angle.
+List<(String, LayoutProposal)> _cornerDressings(LayoutEngine base, List<UniverseTemplate> templates, bool withStyle) {
+  final room = base.project.room;
+  final order = [for (final id in room.order) if (room.wall(id).enabled) id];
+  if (order.length < 2) return const [];
+  final ids = [...order]..sort((a, b) => room.wall(b).length.compareTo(room.wall(a).length));
+  final a = ids.first;
+  final i = order.indexOf(a);
+  final next = order[(i + 1) % order.length], prev = order[(i - 1 + order.length) % order.length];
+  final la = room.wall(a).length, ln = room.wall(next).length, lp = room.wall(prev).length;
+  final out = <(String, LayoutProposal)>[];
+  LayoutProposal named(LayoutProposal pr, String id, String name, String desc, double bonus, String strength) => LayoutProposal(
+        id: '${pr.id}_$id',
+        name: name,
+        description: desc,
+        project: pr.project,
+        score: pr.score + bonus,
+        strengths: [strength, ...pr.strengths],
+        warnings: pr.warnings,
+        errors: pr.errors,
+        worktop: 0,
+        storage: pr.storage,
+      );
+  for (final tp in templates.where((t) => !t.center)) {
+    final look = withStyle ? tp.signature : null;
+    final pa = _fit(base, tp, a, look);
+    if (pa == null || la < 2000 || ln < 1500) continue;
+    final pl = _fit(base, tp, next, look, into: pa.project, start: dressingDepth, avail: ln - dressingDepth);
+    if (pl == null) continue;
+    out.add(('Dressing en L',
+        named(pl, 'L', '${tp.name} en L', '${tp.description} Composition en L sur deux murs (au moins 2 m × 1,5 m, profondeur 60 cm).', 8,
+            'Dressing en L : ${(la / 1000).toStringAsFixed(1)} m × ${(ln / 1000).toStringAsFixed(1)} m')));
+    if (prev == next || la < 3000 || ln < 2500 || lp < 2500) continue;
+    final pu = _fit(base, tp, prev, look, into: pl.project, avail: lp - dressingDepth);
+    if (pu == null) continue;
+    out.add(('Dressing en U',
+        named(pu, 'U', '${tp.name} en U', '${tp.description} Composition en U sur trois murs (au moins 3 m × 2,5 m ; îlot central possible dans les grandes pièces).', 12,
+            'Dressing en U : fond ${(la / 1000).toStringAsFixed(1)} m, côtés ${(ln / 1000).toStringAsFixed(1)} et ${(lp / 1000).toStringAsFixed(1)} m')));
+  }
+  return out;
+}
+
+LayoutProposal? _fit(LayoutEngine base, UniverseTemplate tp, String wallId, Palette? look, {Project? into, double start = 0, double? avail}) {
   final cat = base.catalog;
   final src = base.project;
-  final L = src.room.wall(wallId).length;
+  final L = avail ?? src.room.wall(wallId).length;
   final roomH = src.room.height;
   bool ok(int i) => cat.tryGet(tp.slots[i].id) != null;
   final ground = [for (var i = 0; i < tp.slots.length; i++) if (tp.slots[i].above == null && tp.slots[i].onTop == null && ok(i)) i];
@@ -344,7 +391,7 @@ LayoutProposal? _fit(LayoutEngine base, UniverseTemplate tp, String wallId, Pale
     }
   }
 
-  final p = Project.fromJson(src.toJson())..items.clear();
+  final p = into != null ? Project.fromJson(into.toJson()) : (Project.fromJson(src.toJson())..items.clear());
   // on garde l'arrivée d'eau et l'évacuation existantes : la composition se rapproche d'elles
   p.points.removeWhere((x) => x.use != existingUse);
   p.room.island = null;
@@ -367,7 +414,7 @@ LayoutProposal? _fit(LayoutEngine base, UniverseTemplate tp, String wallId, Pale
 
   try {
     final used = total() + fills.fold<int>(0, (a, b) => a + b);
-    var s = tp.center ? (L - used) / 2 : 0.0;
+    var s = start + (tp.center ? (L - used) / 2 : 0.0);
     final order = [...widths.keys]..sort();
     final seq = <(int?, String, int)>[for (final i in order) (i, tp.slots[i].id, widths[i]!)];
     final at = seq.length > 1 ? seq.length - 1 : seq.length;
@@ -405,7 +452,7 @@ LayoutProposal? _fit(LayoutEngine base, UniverseTemplate tp, String wallId, Pale
     return null;
   }
   // objets de la composition : sanitaires, canapé, téléviseur, tapis…
-  final objs = placeTemplateObjects(e, tp.id, wallId, placed);
+  final objs = into != null ? 0 : placeTemplateObjects(e, tp.id, wallId, placed);
   final objNames = [
     for (final o in p.objects)
       if (o.fixture != null) o.fixture!.name.split(' ').first,

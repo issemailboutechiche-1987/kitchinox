@@ -8,6 +8,8 @@ import 'app_state.dart';
 import 'client_ui.dart';
 import 'brands_ui.dart';
 import 'quote_ui.dart';
+import 'custom_cabinet_ui.dart';
+import 'furniture_accessories_ui.dart';
 import 'web_io.dart';
 import 'busy.dart';
 import 'net_symbols.dart';
@@ -128,6 +130,18 @@ class StepToolbar extends StatelessWidget {
             onTap: () => state.openBrowse(const CatalogBrowse(Shelf.base)),
           ),
           ToolTile(
+            key: const ValueKey('tile_custom_cabinet'),
+            icon: Icons.dashboard_customize_outlined,
+            label: tr('Caisson personnalisé'),
+            onTap: () => showCustomCabinetDialog(context, state, onMessage),
+          ),
+          ToolTile(
+            key: const ValueKey('tile_accessories'),
+            icon: Icons.inventory_2_outlined,
+            label: tr('Accessoires'),
+            onTap: () => showFurnitureAccessoriesDialog(context, state),
+          ),
+          ToolTile(
             icon: Icons.chair_outlined,
             label: tr('Objets'),
             active: state.objectsPanel,
@@ -146,8 +160,12 @@ class StepToolbar extends StatelessWidget {
               onTap: () {
                 if (state.project.room.island == null) {
                   final area = state.project.room.area;
-                  if (area < 8.5) {
-                    onMessage(trp('Attention : pièce compacte ({0} m²). Un îlot nécessite idéalement 9 m² ou plus.', [area.toStringAsFixed(1)]));
+                  // repères : 12 m² pour une péninsule ou une cuisine ouverte, 15 m² pour un îlot central en cuisine fermée ;
+                  // passages de 90 cm minimum, 100 à 110 cm conseillés, 120 cm si deux personnes cuisinent
+                  if (area < 12) {
+                    onMessage(trp('Attention : pièce compacte ({0} m²). Un îlot demande environ 12 m² (cuisine ouverte ou péninsule) et 15 m² en cuisine fermée ; une péninsule conviendra mieux.', [area.toStringAsFixed(1)]));
+                  } else if (area < 15) {
+                    onMessage(trp('Pièce de {0} m² : îlot possible en cuisine ouverte ; en cuisine fermée, comptez 15 m². Gardez 90 à 110 cm de passage tout autour.', [area.toStringAsFixed(1)]));
                   }
                   final res = state.addIsland();
                   if (res == null) {
@@ -381,6 +399,10 @@ Future<void> showIslandDialog(BuildContext context, AppState state, void Functio
               ),
             ),
           Text(tr('Caissons bas uniquement, façades tournées vers le mur du fond. Passages de 1000 mm minimum autour.'),
+              style: Theme.of(ctx).textTheme.bodySmall),
+          const SizedBox(height: Tokens.s2),
+          Text(
+              tr('Repères : longueur 90 cm (compact), 120 à 150 cm (standard), 180 cm et plus (grand) ; largeur 60, 80 à 90 ou 100 à 120 cm. Plan à 85–95 cm, bar à 100–105 cm. Passages 90 cm mini, 100 à 110 cm conseillés, 120 cm à deux cuisiniers.'),
               style: Theme.of(ctx).textTheme.bodySmall),
           const SizedBox(height: Tokens.s3),
           // passages actuels autour de l'îlot

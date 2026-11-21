@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'engine/engine.dart';
+import 'engine/furniture_accessories.dart';
 import 'engine/saved_projects.dart';
 import 'ui/app_state.dart';
 import 'ui/nest_service.dart';
@@ -92,6 +93,7 @@ Future<void> main() async {
   KitchenFixtures.parse(await rootBundle.loadString('assets/data/accessories.json')); // éviers, mitigeurs, appareillage
   BrandCatalog.parse(await rootBundle.loadString('assets/data/brands.json')); // marques et prix (Maroc)
   SizeCatalog.parse(await rootBundle.loadString('assets/data/sizes.json')); // dimensions types et normes
+  FurnitureAccessories.parse(await rootBundle.loadString('assets/data/furniture_accessories.json')); // accessoires de meubles
   PublicPrices.parse(await rootBundle.loadString('assets/data/public_prices.json')); // prix publics des panneaux
   state.addListener(() => Session.autosave('cuisine', () => projectWorkJson(state.project.toJson())));
   final bank = TextureBank.instance;

@@ -111,6 +111,7 @@ class PlannerColors extends ThemeExtension<PlannerColors> {
         return tall;
       case CabinetKind.cornerBase:
       case CabinetKind.cornerWall:
+      case CabinetKind.cornerTall:
         return corner;
       case CabinetKind.fillerBase:
       case CabinetKind.fillerWall:

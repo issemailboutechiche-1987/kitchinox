@@ -80,6 +80,7 @@ Bom buildBom(LayoutEngine e) {
     CabinetKind.tall,
     CabinetKind.wall,
     CabinetKind.cornerWall,
+    CabinetKind.cornerTall,
     CabinetKind.fillerBase,
     CabinetKind.fillerWall,
     CabinetKind.coverPanel,

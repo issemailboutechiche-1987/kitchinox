@@ -1007,6 +1007,55 @@
       ]
     },
     {
+      "id": "corner_tall_cabinets",
+      "name": "Colonnes d'Angle",
+      "depth_nominal": 600,
+      "items": [
+        {
+          "id": "corner_tall_l_shaped",
+          "name": "Colonne d'angle en L (90°)",
+          "width_left": 900,
+          "width_right": 900,
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "depth": 600,
+          "door_type": "bifold_corner_door",
+          "internal_config": [
+            "fixed_corner_shelf",
+            "corner_hanging_rail"
+          ],
+          "snapping": {
+            "corner_anchor": "inner_90",
+            "floor_support": true
+          }
+        },
+        {
+          "id": "corner_tall_blind",
+          "name": "Colonne d'angle droite avec fileur",
+          "width": 1000,
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "depth": 600,
+          "blind_overlap": 600,
+          "accessible_door_width": 400,
+          "door_type": "single_door",
+          "internal_config": [
+            "corner_shelves"
+          ],
+          "snapping": {
+            "corner_anchor": "blind_overlap",
+            "floor_support": true
+          }
+        }
+      ]
+    },
+    {
       "id": "finishing_and_accessories",
       "name": "Fileurs, Joues et Accessoires",
       "items": [
@@ -1053,6 +1102,63 @@
           "height": 800,
           "length_custom": true,
           "role": "island_finishing"
+        }
+      ]
+    },
+    {
+      "id": "custom_cabinets",
+      "name": "Caissons personnalisés",
+      "depth_nominal": 600,
+      "items": [
+        {
+          "id": "custom_base",
+          "name": "Caisson bas personnalisé",
+          "width_min": 150,
+          "width_max": 1200,
+          "height_min": 300,
+          "height_max": 1000,
+          "depth": 600,
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "custom_wall",
+          "name": "Caisson haut personnalisé",
+          "width_min": 150,
+          "width_max": 1200,
+          "height_min": 200,
+          "height_max": 1200,
+          "depth": 350,
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "snapping": {
+            "requires_wall": true
+          }
+        },
+        {
+          "id": "custom_tall",
+          "name": "Colonne personnalisée",
+          "width_min": 150,
+          "width_max": 1200,
+          "height_min": 1200,
+          "height_max": 2700,
+          "depth": 600,
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
         }
       ]
     }

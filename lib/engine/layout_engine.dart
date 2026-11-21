@@ -193,6 +193,7 @@ class LayoutEngine {
     switch (m.kind) {
       case CabinetKind.base:
       case CabinetKind.cornerBase:
+      case CabinetKind.cornerTall:
       case CabinetKind.fillerBase:
       case CabinetKind.tall:
         return std.plinthHeight.toDouble();
@@ -368,7 +369,7 @@ class LayoutEngine {
   List<CabinetModel> replacementsFor(PlacedCabinet c) {
     final m = modelOf(c);
     int fam(CabinetModel x) => x.kind.isCorner
-        ? (x.kind == CabinetKind.cornerBase ? 3 : 4)
+        ? (x.kind == CabinetKind.cornerBase ? 3 : x.kind == CabinetKind.cornerTall ? 6 : 4)
         : x.kind.isFiller || x.kind == CabinetKind.coverPanel || x.kind == CabinetKind.islandPanel
             ? 5
             : x.kind.isLow

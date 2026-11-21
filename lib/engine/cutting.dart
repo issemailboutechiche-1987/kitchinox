@@ -297,7 +297,7 @@ List<CutPart> cutList(LayoutEngine e, CutSettings cs, Map<String, int> reperes) 
     int fw(int count, [int? width]) => count <= 1 ? (width ?? W) - gh : ((width ?? W) - gh - gb * (count - 1)) ~/ count;
     final g2 = cs.grooveDepth;
     void back(int len, int wid) {
-      if (cs.backPanel) add(cs.backMaterial, 'Fond arrière ${cs.backThickness} mm (rainuré)', len, wid, 1);
+      if (cs.backPanel && !c.noBack) add(cs.backMaterial, 'Fond arrière ${cs.backThickness} mm (rainuré)', len, wid, 1);
     }
 
     // caisson : 2 côtés (H x profondeur) + dessus et dessous (largeur - 2 épaisseurs x profondeur),
@@ -469,6 +469,7 @@ List<CutPart> cutList(LayoutEngine e, CutSettings cs, Map<String, int> reperes) 
         }
       case CabinetKind.cornerBase:
       case CabinetKind.cornerWall:
+      case CabinetKind.cornerTall:
         // formules d'angle (L 90°, pan coupé 45°, borgne) ; Gola : portes basses raccourcies de 35 mm
         final golaCorner = e.project.style.handle == 'gola' && m.kind == CabinetKind.cornerBase;
         for (final (kind, name, a, b, q, el, es) in cornerCutList(m, c, T: T, td: cs.doorThickness, gap: gap, gola: golaCorner)) {

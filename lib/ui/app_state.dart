@@ -30,7 +30,7 @@ enum ViewMode { plan, front, view3d }
 enum Shelf {
   base('Éléments bas', ['base_cabinets', 'corner_base_cabinets']),
   wall('Éléments hauts', ['wall_cabinets', 'corner_wall_cabinets']),
-  tall('Colonnes', ['tall_cabinets']),
+  tall('Colonnes', ['tall_cabinets', 'corner_tall_cabinets']),
   finish('Fileurs et finitions', ['finishing_and_accessories']);
 
   final String label;
@@ -985,6 +985,35 @@ class AppState extends ChangeNotifier {
   String? addModel(String modelId, {String? wall, double? s, double? z}) {
     PlacedCabinet? added;
     final err = edit(() => added = engine.add(modelId, wall ?? wallId, s: s, z: z));
+    if (added != null) {
+      selected = added!.uid;
+      selectedOpening = null;
+      notifyListeners();
+    }
+    return err;
+  }
+
+  /// Caisson personnalisé : bas, haut ou colonne, dimensions libres, sans fond ou sans porte (niche).
+  /// Quantité d'un accessoire de meuble ajouté à l'estimation (0 = retiré).
+  void setAccessory(String id, int qty) => edit(() {
+        if (qty <= 0) {
+          project.accessories.remove(id);
+        } else {
+          project.accessories[id] = qty;
+        }
+      });
+
+  String? addCustomCabinet({required String type, required int width, required int height, required int depth, bool noBack = false, bool noDoor = false}) {
+    final id = switch (type) { 'wall' => 'custom_wall', 'tall' => 'custom_tall', _ => 'custom_base' };
+    PlacedCabinet? added;
+    final err = edit(() {
+      final c = engine.add(id, wallId, width: width, height: height);
+      c
+        ..depth = depth
+        ..noBack = noBack;
+      if (noDoor) c.layout = [FrontRow(CellKind.niche)];
+      added = c;
+    });
     if (added != null) {
       selected = added!.uid;
       selectedOpening = null;

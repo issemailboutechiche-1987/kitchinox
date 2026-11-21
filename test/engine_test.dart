@@ -16,9 +16,9 @@ void main() {
   });
 
   group('catalogue', () {
-    test('47 modèles, 6 catégories', () {
-      expect(catalog.categories.length, 6);
-      expect(catalog.models.length, 47);
+    test('52 modèles, 8 catégories', () {
+      expect(catalog.categories.length, 8);
+      expect(catalog.models.length, 52);
     });
 
     test('normes appliquées aux bas : 750 au lieu de 800', () {
