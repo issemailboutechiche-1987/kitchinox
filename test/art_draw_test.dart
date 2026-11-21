@@ -20,6 +20,7 @@ void main() {
     final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     // panneau latéral épinglé : la zone de travail garde sa taille (positions à l'écran stables)
     await t.tap(find.byKey(const ValueKey('side_pin')));
     await t.pumpAndSettle();
@@ -89,6 +90,7 @@ void main() {
       ..w = 762;
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     await t.tap(find.byTooltip('Activer le Mode Usinage (Tourillons, Vis, Perçages 32mm, Chants)'));
     await t.pumpAndSettle();
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/art_usinage.png'));
@@ -102,6 +104,7 @@ void main() {
     final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
     await t.sendKeyEvent(LogicalKeyboardKey.keyR);
     await t.pumpAndSettle();
@@ -132,6 +135,7 @@ void main() {
     art.addBox(0, 100, 800, 720, depth: 560, doors: 0);
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     // panneau latéral épinglé : la zone de travail garde sa taille (positions à l'écran stables)
     await t.tap(find.byKey(const ValueKey('side_pin')));
     await t.pumpAndSettle();
@@ -171,6 +175,7 @@ void main() {
     final kerf = st.project.cut.kerf.toDouble();
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     await t.tap(find.byKey(const ValueKey('start_sheet')));
     await t.pumpAndSettle();
     expect(art.free, hasLength(1));
@@ -229,6 +234,7 @@ void main() {
     ]);
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
     final s = t.state(find.byType(ArtPage)) as dynamic;
     await t.sendKeyEvent(LogicalKeyboardKey.keyR);
@@ -266,19 +272,29 @@ void main() {
     art.free.addAll([b, a]);
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     // panneau latéral épinglé : la zone de travail garde sa taille (positions à l'écran stables)
     await t.tap(find.byKey(const ValueKey('side_pin')));
     await t.pumpAndSettle();
-    final vp = t.getRect(find.byKey(const Key('art-viewport')));
     final s = t.state(find.byType(ArtPage)) as dynamic;
     await t.sendKeyEvent(LogicalKeyboardKey.keyK);
     await t.pumpAndSettle();
+    // Lier ouvre l'écran partagé : création 2D à gauche, aperçu 3D assemblé à droite
+    expect(find.byKey(const Key('art-preview3d')), findsOneWidget);
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
     await expectLater(find.byKey(const Key('art-viewport')), matchesGoldenFile('goldens/art_lier.png'));
     // chant 1 de a (avant, le long de x) puis chant 2 de b (bout droit)
     await t.tapAt(vp.topLeft + (s.screenOf(1100.0, 18.0, 0.0) as Offset));
     await t.pumpAndSettle();
     await t.tapAt(vp.topLeft + (s.screenOf(600.0, 18.0, 200.0) as Offset));
     await t.pumpAndSettle();
+    // la liaison est notée : les pièces restent à plat jusqu'à « Usiner »
+    expect(art.edgeLinks, hasLength(1));
+    expect((art.edgeLinks.single.a, art.edgeLinks.single.ea, art.edgeLinks.single.b, art.edgeLinks.single.eb), ('a', 1, 'b', 2));
+    expect((a.w, a.h, a.d), (400, 18, 300), reason: 'encore à plat');
+    await t.tap(find.byKey(const ValueKey('link_machine')));
+    await t.pumpAndSettle();
+    expect(art.edgeLinks, isEmpty);
     expect((a.w, a.h, a.d), (18, 300, 400), reason: 'a debout sous b');
     expect(a.top, 0, reason: 'sous b, contre sa face du dessous');
     expect(a.right, 600, reason: 'à fleur du chant droit de b');
@@ -300,6 +316,7 @@ void main() {
     ]);
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     final s = t.state(find.byType(ArtPage)) as dynamic;
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
     // toucher la zone de travail replie le panneau latéral (non épinglé)
@@ -377,6 +394,7 @@ void main() {
     st.project.art.free.add(p);
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     await t.tap(find.byKey(const ValueKey('side_pin')));
     await t.pumpAndSettle();
     final s = t.state(find.byType(ArtPage)) as dynamic;
@@ -421,6 +439,7 @@ void main() {
     art.free.add(ArtPanel(id: 'a', role: ArtRole.decor, x: 0, y: 0, z: 0, w: 800, h: 18, d: 500));
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     await t.tap(find.byKey(const ValueKey('side_pin')));
     await t.pumpAndSettle();
     final s = t.state(find.byType(ArtPage)) as dynamic;
@@ -459,6 +478,7 @@ void main() {
     art.free.add(ArtPanel(id: 'a', role: ArtRole.decor, x: 0, y: 0, z: 0, w: 1000, h: 18, d: 600));
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     await t.tap(find.byKey(const ValueKey('side_pin')));
     await t.pumpAndSettle();
     final s = t.state(find.byType(ArtPage)) as dynamic;
@@ -489,6 +509,7 @@ void main() {
     art.free.add(a);
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     await t.tap(find.byKey(const ValueKey('side_pin')));
     await t.pumpAndSettle();
     final s = t.state(find.byType(ArtPage)) as dynamic;
@@ -528,4 +549,13 @@ void main() {
 Offset _project(WidgetTester t, ArtPanel p) {
   final s = t.state(find.byType(ArtPage)) as dynamic;
   return s.screenOf(p.x + p.w / 2, p.top, p.z + p.d / 2) as Offset;
+}
+
+/// Ferme l'accueil du mode Art (Nouveau / Ouvrir / Bibliothèque) quand la scène est vide.
+Future<void> closeArtWelcome(WidgetTester t) async {
+  final f = find.byKey(const ValueKey('welcome_close'));
+  if (f.evaluate().isNotEmpty) {
+    await t.tap(f);
+    await t.pumpAndSettle();
+  }
 }

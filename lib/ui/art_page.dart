@@ -12,11 +12,13 @@ import '../engine/engine.dart';
 import '../engine/art_cad.dart';
 import '../engine/art_machining.dart';
 import '../engine/art_fittings.dart';
+import '../engine/art_cut_import.dart';
 import 'app_state.dart';
 import 'art_cad_toolbar.dart';
 import 'art_library.dart';
 import 'art_blueprint_pdf.dart';
 import 'art_camera.dart';
+import 'art_new_scene.dart';
 import 'busy.dart';
 import 'cut_pdf.dart';
 import 'finishes.dart';
@@ -86,6 +88,14 @@ class _ArtPageState extends State<ArtPage> {
   bool snapGrid = true, snapPoints = true, snapMid = true, snapAlign = true;
   final List<(V3, V3, int)> _guides = []; // guides d'alignement affichés : de, à, axe
   (ArtPanel, int)? _linkFirst; // Lier : 1er chant choisi (pièce, numéro)
+  (ArtPanel, int)? _hoverEdge; // Lier : chant sous la souris (surligné, plus épais)
+  String? linkJoint; // assemblage des prochaines liaisons (null : automatique)
+  bool splitView = false; // écran partagé : création 2D à gauche, aperçu 3D assemblé à droite
+  bool _splitAuto = false; // l'écran partagé s'est ouvert seul (première liaison)
+  bool welcomeDone = false; // accueil Nouveau / Ouvrir / Bibliothèque fermé
+  final cam3d = ArtCamera(); // caméra de l'aperçu 3D
+  String? _shadowKey;
+  ArtProject? _shadow; // projet assemblé (liaisons notées appliquées) pour l'aperçu 3D
   bool cutOnX = true; // Couper : ligne de coupe perpendiculaire à X (sinon à Y)
   String cutMode = 'big'; // 'big' grande coupe (toute la largeur), 'small' sur la sélection, 'parallel', 'circle' (CNC)
   int _cutsDone = 0;
@@ -274,14 +284,22 @@ class _ArtPageState extends State<ArtPage> {
 
   // ---------------------------------------------------------------- sélection et outils CAO
   void _selectTool(CadTool tool) {
-    if (tool == CadTool.cut && activeTool != CadTool.cut) {
-      // découpe : toujours vue de dessus, cadrée sur les pièces
+    if ((tool == CadTool.cut || tool == CadTool.link) && activeTool != CadTool.cut && activeTool != CadTool.link) {
+      // découpe et liaison des chants : toujours vue de dessus, cadrée sur les pièces
       cam.view('dessus');
       cam.fit(art.panels);
+    }
+    if (tool == CadTool.link && !splitView && !_splitAuto) {
+      // Lier : la création 2D à gauche, le meuble assemblé en 3D à droite
+      splitView = true;
+      _splitAuto = true;
+      cam3d.view('iso');
+      _refitAfterSplit();
     }
     setState(() {
       _guides.clear();
       _linkFirst = null;
+      _hoverEdge = null;
       activeTool = tool;
       activePoints.clear();
       previewShape = null;
@@ -1617,17 +1635,71 @@ class _ArtPageState extends State<ArtPage> {
       return;
     }
     change(() {
-      ArtProject.linkEdges(first.$1, first.$2, e.$1, e.$2, align: linkAlign, offset: linkOffset, over: linkOver);
-      art.jointCuts.remove(ArtProject.jointKey(first.$1.id, e.$1.id));
-      if (linkMiter) art.setJointCut(first.$1, e.$1, 'onglet');
+      // même paire déjà notée : la nouvelle remplace l'ancienne
+      art.edgeLinks.removeWhere((l) => l.a == first.$1.id && l.b == e.$1.id);
+      art.edgeLinks.add(EdgeLink(first.$1.id, first.$2, e.$1.id, e.$2,
+          align: linkAlign, offset: linkOffset, over: linkOver, miter: linkMiter, joint: linkJoint));
       _linkFirst = null;
       selection
         ..clear()
         ..addAll([first.$1, e.$1]);
       selectedPanel = first.$1;
     });
-    _msg(trp('Pièces liées : chant {0} sous le chant {1}', [first.$2, e.$2]));
+    _msg(trp('Liaison {0} notée : chant {1} sous le chant {2}. « Usiner » assemble les pièces.', [art.edgeLinks.length, first.$2, e.$2]));
     cadStatus = 'Touchez le chant de la pièce qui passera dessous, puis le chant de la pièce qui la couvre.';
+  }
+
+  /// Usine les liaisons notées : les pièces s'assemblent, assemblages (vis, tourillons, colle) posés automatiquement.
+  void _machineLinks() {
+    if (art.edgeLinks.isEmpty) {
+      _msg(tr('Aucune liaison notée : touchez deux chants pour en créer une.'));
+      return;
+    }
+    var n = 0;
+    change(() {
+      n = art.applyEdgeLinks();
+      _linkFirst = null;
+      _hoverEdge = null;
+      activeTool = CadTool.select;
+      isMachiningMode = true;
+    });
+    cam.view('iso');
+    cam.fit(art.panels);
+    final m = computeMachiningElements(art.panels, fittings: art.fittings, jointCuts: art.jointCuts, jointFits: art.jointFits);
+    _msg(trp('{0} liaison(s) usinée(s) : {1} tourillon(s), {2} vis. Modifiez un assemblage dans l’onglet Usinage.', [n, m.dowelsCount, m.screwsCount]));
+  }
+
+  /// Segments des liaisons notées (chant de a, chant de b, numéro) pour les dessiner entre les pièces.
+  List<((V3, V3), (V3, V3), String)> _pendingLinks() {
+    final byId = {for (final p in art.free) p.id: p};
+    return [
+      for (var i = 0; i < art.edgeLinks.length; i++)
+        if (byId[art.edgeLinks[i].a] != null && byId[art.edgeLinks[i].b] != null)
+          (_edgeSegment(byId[art.edgeLinks[i].a]!, art.edgeLinks[i].ea), _edgeSegment(byId[art.edgeLinks[i].b]!, art.edgeLinks[i].eb), '${i + 1}'),
+    ];
+  }
+
+  /// Projet assemblé pour l'aperçu 3D (recalculé seulement quand le dessin change).
+  ArtProject _assembledShadow() {
+    final key = _snap();
+    if (_shadow == null || key != _shadowKey) {
+      final sh = ArtProject.fromJson(jsonDecode(key) as Map<String, dynamic>);
+      final placed = ArtProject.assembleLinks(sh.free, sh.edgeLinks);
+      for (final l in sh.edgeLinks) {
+        if (l.joint != null) sh.jointFits[ArtProject.jointKey(l.a, l.b)] = l.joint!;
+      }
+      sh.free
+        ..clear()
+        ..addAll(placed);
+      for (final l in sh.edgeLinks.where((l) => l.miter)) {
+        final a = placed.where((p) => p.id == l.a).firstOrNull, b = placed.where((p) => p.id == l.b).firstOrNull;
+        if (a != null && b != null) sh.setJointCut(a, b, 'onglet');
+      }
+      sh.edgeLinks.clear();
+      _shadow = sh;
+      _shadowKey = key;
+    }
+    return _shadow!;
   }
 
   /// Axe de coupe vu de dessus : X (ligne verticale à l'écran) ou profondeur Z (ligne horizontale).
@@ -1885,13 +1957,15 @@ class _ArtPageState extends State<ArtPage> {
   }
 
   /// Nouvelle création : une feuille entière du tarif, posée à plat, prête à couper.
-  void _startFromSheet() {
+  void _startFromSheet({double? length, double? width, double? thickness}) {
     final pp = PublicPrices.byId(sheetMaterial ?? '');
-    final (fl, fw, t) = pp == null ? (2800.0, 2100.0, 18.0) : (pp.length.toDouble(), pp.width.toDouble(), pp.thickness.toDouble());
+    var (fl, fw, t) = pp == null ? (2800.0, 2100.0, 18.0) : (pp.length.toDouble(), pp.width.toDouble(), pp.thickness.toDouble());
+    if (length != null && width != null) (fl, fw) = (length, width);
+    if (thickness != null) t = thickness;
     // bords recoupés d'abord (recoupe des réglages du débit) : la feuille posée est la surface utile
     final trim = widget.state.project.cut.trim.toDouble();
     final l = fl - 2 * trim, w = fw - 2 * trim;
-    final sheet = ArtPanel(id: art.newId(), role: ArtRole.decor, x: 0, y: 0, z: 0, w: l, h: t, d: w, material: pp?.id, finish: 'blanc');
+    final sheet = ArtPanel(id: art.newId(), role: ArtRole.decor, x: 0, y: 0, z: 0, w: l, h: t, d: w, material: length == null ? pp?.id : null, finish: 'blanc');
     change(() {
       art.free.add(sheet);
       selection
@@ -2615,6 +2689,10 @@ class _ArtPageState extends State<ArtPage> {
                     VerticalDivider(width: 1, color: scheme.outlineVariant),
                   ],
                   Expanded(child: ClipRect(child: _viewport())),
+                  if (splitView) ...[
+                    VerticalDivider(width: 1, color: scheme.outlineVariant),
+                    Expanded(child: ClipRect(child: _preview3d(scheme))),
+                  ],
                 ]),
               ),
             ]),
@@ -2742,6 +2820,11 @@ class _ArtPageState extends State<ArtPage> {
               }
               if (activeTool == CadTool.cut) {
                 _cutHover(e.localPosition);
+                return;
+              }
+              if (activeTool == CadTool.link) {
+                final h = _pickEdge(e.localPosition);
+                if (h?.$1 != _hoverEdge?.$1 || h?.$2 != _hoverEdge?.$2) setState(() => _hoverEdge = h);
                 return;
               }
               if (activeTool == CadTool.pushPull || activeTool == CadTool.edgeBand || activeTool == CadTool.groove) {
@@ -2913,10 +2996,13 @@ class _ArtPageState extends State<ArtPage> {
                     guides: List.of(_guides),
                     edgeLabels: _edgeLabels(),
                     linkEdge: _linkFirst == null ? null : _edgeSegment(_linkFirst!.$1, _linkFirst!.$2),
+                    hoverEdge: activeTool == CadTool.link && _hoverEdge != null ? _edgeSegment(_hoverEdge!.$1, _hoverEdge!.$2) : null,
+                    pendingLinks: activeTool == CadTool.link || activeTool == CadTool.cut ? _pendingLinks() : const [],
                     gridStep: gridStep,
                   ),
                 ),
                 if (!art.isEmpty) Positioned(left: 12, top: 118, child: _legend()),
+                if (art.isEmpty && art.free.isEmpty && art.sketches.isEmpty && !welcomeDone) Positioned.fill(child: _welcome()),
                 Positioned(
                   left: 12,
                   top: 72,
@@ -2941,6 +3027,22 @@ class _ArtPageState extends State<ArtPage> {
                       onIcon: Icons.center_focus_strong,
                       tip: pivotOnObject ? tr('Rotation autour de l’objet sélectionné') : tr('Rotation autour du centre de l’écran'),
                       onTap: () => setState(() => pivotOnObject = !pivotOnObject),
+                    ),
+                    const SizedBox(width: 6),
+                    _navButton(
+                      key: 'nav_split',
+                      on: splitView,
+                      icon: Icons.vertical_split_outlined,
+                      onIcon: Icons.vertical_split,
+                      tip: splitView ? tr('Fermer l’aperçu 3D') : tr('Écran partagé : création 2D à gauche, meuble assemblé en 3D à droite'),
+                      onTap: () {
+                        setState(() {
+                          splitView = !splitView;
+                          _splitAuto = true;
+                          if (splitView) cam3d.view('iso');
+                        });
+                        _refitAfterSplit();
+                      },
                     ),
                   ]),
                 ),
@@ -3029,6 +3131,7 @@ class _ArtPageState extends State<ArtPage> {
                         onDeleteSelected: selectedPanel != null ? _deleteSelected : null,
                         extra: activeTool == CadTool.link
                             ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [
+                                _cutLinkSwitch(),
                                 SegmentedButton<String>(
                                   key: const ValueKey('link_align'),
                                   showSelectedIcon: false,
@@ -3059,9 +3162,30 @@ class _ArtPageState extends State<ArtPage> {
                                   selected: linkMiter,
                                   onSelected: (v) => setState(() => linkMiter = v),
                                 ),
+                                _jointPicker(linkJoint, (v) => setState(() => linkJoint = v)),
+                                if (art.edgeLinks.isNotEmpty)
+                                  IconButton(
+                                    key: const ValueKey('link_clear'),
+                                    tooltip: tr('Effacer les liaisons notées'),
+                                    icon: const Icon(Icons.link_off),
+                                    onPressed: () => change(art.edgeLinks.clear),
+                                  ),
+                                FilledButton.icon(
+                                  key: const ValueKey('link_machine_hud'),
+                                  onPressed: art.edgeLinks.isEmpty ? null : _machineLinks,
+                                  icon: const Icon(Icons.precision_manufacturing_outlined, size: 16),
+                                  label: Text(trp('Usiner ({0})', [art.edgeLinks.length])),
+                                ),
                               ])
                             : activeTool == CadTool.cut
                             ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [
+                                _cutLinkSwitch(),
+                                IconButton(
+                                  key: const ValueKey('cut_import'),
+                                  tooltip: tr('Importer un fichier de débit (CSV ou JSON)'),
+                                  icon: const Icon(Icons.upload_file_outlined),
+                                  onPressed: _importCutFile,
+                                ),
                                 SegmentedButton<String>(
                                   key: const ValueKey('cut_mode'),
                                   showSelectedIcon: false,
@@ -3140,11 +3264,239 @@ class _ArtPageState extends State<ArtPage> {
                       ),
                     ),
                   ),
+                // liaisons notées : « Usiner » toujours visible, en haut à droite de la vue de création
+                if (art.edgeLinks.isNotEmpty && (activeTool == CadTool.link || activeTool == CadTool.cut))
+                  Positioned(
+                    right: 12,
+                    top: 132,
+                    child: FilledButton.icon(
+                      key: const ValueKey('link_machine'),
+                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
+                      onPressed: _machineLinks,
+                      icon: const Icon(Icons.precision_manufacturing_outlined, size: 18),
+                      label: Text(trp('Usiner ({0})', [art.edgeLinks.length])),
+                    ),
+                  ),
               ]),
             ),
           ),
         );
       });
+
+  /// Après ouverture ou fermeture de l'écran partagé : les deux vues se recadrent à leur nouvelle taille.
+  void _refitAfterSplit() => WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          if (art.panels.isNotEmpty) cam.fit(art.panels);
+          if (splitView) {
+            final sh = _assembledShadow();
+            if (sh.panels.isNotEmpty) cam3d.fit(sh.panels);
+          }
+        });
+      });
+
+  /// Bascule Couper / Lier les chants (mode découpe, vue de dessus).
+  Widget _cutLinkSwitch() => SegmentedButton<CadTool>(
+        key: const ValueKey('cut_link_switch'),
+        showSelectedIcon: false,
+        style: const ButtonStyle(visualDensity: VisualDensity.compact),
+        segments: [
+          ButtonSegment(value: CadTool.cut, label: Text(tr('Couper')), icon: const Icon(Icons.content_cut, size: 16)),
+          ButtonSegment(value: CadTool.link, label: Text(tr('Lier')), icon: const Icon(Icons.link, size: 16)),
+        ],
+        selected: {activeTool == CadTool.link ? CadTool.link : CadTool.cut},
+        onSelectionChanged: (v) => _selectTool(v.first),
+      );
+
+  /// Assemblage d'une liaison : automatique (réglage général) ou choisi (vis, tourillons, colle…).
+  Widget _jointPicker(String? value, void Function(String?) on) => PopupMenuButton<String>(
+        key: const ValueKey('link_joint'),
+        tooltip: tr('Assemblage de la liaison'),
+        initialValue: value ?? 'auto',
+        onSelected: (v) => on(v == 'auto' ? null : v),
+        itemBuilder: (_) => [
+          PopupMenuItem(value: 'auto', child: Text(trp('Auto : {0}', [tr(art.fittings.joint.label)]))),
+          for (final j in JointType.values) PopupMenuItem(value: j.name, child: Text(tr(j.label))),
+        ],
+        child: Chip(
+          avatar: const Icon(Icons.hardware_outlined, size: 16),
+          label: Text(value == null ? tr('Assemblage auto') : tr(JointType.values.byName(value).label), overflow: TextOverflow.ellipsis),
+        ),
+      );
+
+  /// Aperçu 3D (écran partagé) : le meuble tel qu'il sera une fois les liaisons notées usinées.
+  Widget _preview3d(ColorScheme scheme) => LayoutBuilder(builder: (context, c) {
+        cam3d.size = c.biggest;
+        final sh = _assembledShadow();
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Listener(
+          onPointerSignal: (e) {
+            if (e is PointerScrollEvent) setState(() => cam3d.zoomAt(e.scrollDelta.dy > 0 ? 1.12 : 0.89));
+          },
+          child: GestureDetector(
+            onDoubleTap: () => setState(() => cam3d.fit(sh.panels)),
+            onScaleUpdate: (d) => setState(() {
+              if (d.pointerCount >= 2) {
+                cam3d.pan(d.focalPointDelta);
+                if (d.scale != 1) cam3d.zoomAt(1 + (1 - d.scale) * 0.05);
+              } else {
+                cam3d.orbit(d.focalPointDelta);
+              }
+            }),
+            child: Stack(children: [
+              Positioned.fill(child: ColoredBox(color: isDark ? const Color(0xFF111827) : const Color(0xFFF4F1EC))),
+              CustomPaint(
+                key: const Key('art-preview3d'),
+                size: c.biggest,
+                painter: _ScenePainter(cam: cam3d, art: sh, boxIndex: sh.boxes.length, zoneId: null, showFronts: true, showDims: false, isDark: isDark, gridStep: gridStep),
+              ),
+              Positioned(
+                left: 10,
+                top: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(color: scheme.surface.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(8)),
+                  child: Text(
+                      art.edgeLinks.isEmpty ? tr('Aperçu 3D') : trp('Aperçu 3D assemblé · {0} liaison(s) à usiner', [art.edgeLinks.length]),
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                ),
+              ),
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  for (final (v, label) in const [('iso', '3D'), ('face', 'Face'), ('dessus', 'Dessus')])
+                    TextButton(onPressed: () => setState(() {
+                      cam3d.view(v);
+                      cam3d.fit(sh.panels);
+                    }), child: Text(tr(label))),
+                  IconButton(tooltip: tr('Cadrer'), icon: const Icon(Icons.fit_screen_outlined), onPressed: () => setState(() => cam3d.fit(sh.panels))),
+                ]),
+              ),
+            ]),
+          ),
+        );
+      });
+
+  /// Accueil du mode Art : Nouveau, Ouvrir, Bibliothèque.
+  Widget _welcome() {
+    final t = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    Widget card(String key, IconData icon, String title, String text, VoidCallback onTap) => SizedBox(
+          width: 230,
+          child: Card(
+            key: ValueKey(key),
+            elevation: 3,
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(icon, size: 44, color: _orange),
+                  const SizedBox(height: 10),
+                  Text(tr(title), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 6),
+                  Text(tr(text), textAlign: TextAlign.center, style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+                ]),
+              ),
+            ),
+          ),
+        );
+    return ColoredBox(
+      color: scheme.surface.withValues(alpha: 0.92),
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(tr('Mode Art : création libre'), style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 18),
+            Wrap(spacing: 16, runSpacing: 16, alignment: WrapAlignment.center, children: [
+              card('welcome_new', Icons.add_box_outlined, 'Nouveau', 'Feuille standard ou personnalisée, caisson de base, ou scène vide.', _newScene),
+              card('welcome_open', Icons.folder_open_outlined, 'Ouvrir', 'Une création enregistrée, un caisson ou un fichier de débit (JSON, CSV).', _openFile),
+              card('welcome_library', Icons.inventory_2_outlined, 'Ma bibliothèque', 'Vos meubles enregistrés, prêts à poser.', () => setState(() {
+                    welcomeDone = true;
+                    tab = 'biblio';
+                    sideOpen = true;
+                  })),
+            ]),
+            const SizedBox(height: 14),
+            TextButton(
+              key: const ValueKey('welcome_close'),
+              onPressed: () => setState(() => welcomeDone = true),
+              child: Text(tr('Commencer à dessiner sans modèle')),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  /// Nouveau : feuille standard, feuille personnalisée, caisson de base ou scène vide.
+  Future<void> _newScene() async {
+    final r = await showDialog<NewArtScene>(context: context, builder: (_) => const NewArtSceneDialog());
+    if (r == null) return;
+    setState(() => welcomeDone = true);
+    switch (r.kind) {
+      case 'sheet':
+        _startFromSheet(length: r.length, width: r.width, thickness: r.thickness);
+      case 'box':
+        await _chooseBase();
+      default:
+        _selectTool(CadTool.rectangle);
+        _msg(tr('Scène vide : dessinez un rectangle, une ligne ou posez une feuille quand vous voulez.'));
+    }
+  }
+
+  /// Ouvrir : une création (JSON du mode Art), un caisson (JSON) ou un fichier de débit (CSV).
+  Future<void> _openFile() async {
+    final f = await pickFile(accept: '.json,.csv,.txt');
+    if (f == null) return;
+    final text = utf8.decode(f.bytes, allowMalformed: true);
+    try {
+      final j = jsonDecode(text);
+      if (j is Map<String, dynamic> && (j.containsKey('panels') || j.containsKey('wall_width')) && !j.containsKey('structure_envelope')) {
+        final opened = ArtProject.fromJson(j);
+        change(() {
+          widget.state.project.art = opened;
+          welcomeDone = true;
+        });
+        _fit();
+        _msg(trp('Création ouverte : {0} pièce(s)', [opened.panels.length]));
+        return;
+      }
+      if (j is Map<String, dynamic> && (j['model'] == 'universal_parametric_box' || j.containsKey('structure_envelope') || j.containsKey('columns'))) {
+        final b = j['model'] == 'universal_parametric_box' || j.containsKey('structure_envelope') ? ArtBox.fromUniversal(j) : ArtBox.fromJson(j);
+        setState(() => welcomeDone = true);
+        _addBox(b);
+        return;
+      }
+    } catch (_) {}
+    _placeCutParts(parseCutFile(text));
+  }
+
+  /// Importer un fichier de débit : les pièces se posent à plat, prêtes à lier.
+  Future<void> _importCutFile() async {
+    final f = await pickFile(accept: '.csv,.txt,.json');
+    if (f == null) return;
+    _placeCutParts(parseCutFile(utf8.decode(f.bytes, allowMalformed: true)));
+  }
+
+  void _placeCutParts(List<CutFilePart> parts) {
+    if (parts.isEmpty) {
+      _msg(tr('Fichier de débit illisible : une ligne par pièce « nom ; longueur ; largeur ; quantité ; épaisseur ».'));
+      return;
+    }
+    final x0 = art.free.isEmpty ? 0.0 : art.free.map((p) => p.right).reduce(math.max) + 200;
+    final placed = layoutCutParts(parts, x0: x0, newId: art.newId, material: drawMaterial);
+    change(() {
+      art.free.addAll(placed);
+      welcomeDone = true;
+      selection.clear();
+    });
+    _selectTool(CadTool.link);
+    cam.fit(art.panels);
+    _msg(trp('{0} pièce(s) importée(s) à plat : touchez deux chants pour les lier, puis « Usiner ».', [placed.length]));
+  }
 
   Widget _navButton({required String key, required bool on, required IconData icon, required IconData onIcon, required String tip, required VoidCallback onTap}) =>
       Material(
@@ -4054,7 +4406,7 @@ class _ArtPageState extends State<ArtPage> {
       );
 
   Widget _machiningTab(TextTheme t, ColorScheme scheme) {
-    final m = computeMachiningElements(art.panels, fittings: art.fittings, jointCuts: art.jointCuts);
+    final m = computeMachiningElements(art.panels, fittings: art.fittings, jointCuts: art.jointCuts, jointFits: art.jointFits);
     String m2(double v) => '${v.toStringAsFixed(2).replaceAll('.', ',')} m';
     String pcs(int n) => trp('{0} pcs', [n]);
     final rows = <(IconData, Color, String, String)>[
@@ -4272,6 +4624,8 @@ class _ScenePainter extends CustomPainter {
   final double gridStep;
   final List<(V3, String, bool)> edgeLabels; // outil Lier : numéros des chants
   final (V3, V3)? linkEdge; // outil Lier : chant déjà choisi
+  final (V3, V3)? hoverEdge; // outil Lier : chant sous la souris
+  final List<((V3, V3), (V3, V3), String)> pendingLinks; // liaisons notées, pas encore usinées
 
   _ScenePainter({
     required this.cam,
@@ -4306,6 +4660,8 @@ class _ScenePainter extends CustomPainter {
     this.gridStep = 10,
     this.edgeLabels = const [],
     this.linkEdge,
+    this.hoverEdge,
+    this.pendingLinks = const [],
   }) : super(repaint: cam);
 
   /// Vue éclatée : chaque composant s'écarte du centre de son caisson dans sa direction naturelle.
@@ -4624,7 +4980,7 @@ class _ScenePainter extends CustomPainter {
     // 3 ter. Vis et tourillons : têtes de vis visibles sur les faces ; en vue éclatée, le tourillon dépasse
     // du chant de la pièce qui le reçoit et la vis traverse la pièce qui la porte, prêts à l'assemblage.
     if (!isMachiningMode && assembled.isNotEmpty) {
-      final m = computeMachiningElements(assembled, fittings: art.fittings, jointCuts: art.jointCuts);
+      final m = computeMachiningElements(assembled, fittings: art.fittings, jointCuts: art.jointCuts, jointFits: art.jointFits);
       final byId = {for (final q in assembled) q.id: q};
       double px(V3 at, double mm) => (p(at + cam.right * mm) - p(at)).distance; // largeur à l'écran de mm millimètres
       for (final el in m.elements) {
@@ -4689,7 +5045,7 @@ class _ScenePainter extends CustomPainter {
 
     // 3 bis. Chants et rainures visibles sur les pièces (hors vue usinage, qui les montre déjà)
     if (!isMachiningMode && !exploded && panels.isNotEmpty) {
-      final work = computeMachiningElements(panels, fittings: art.fittings, jointCuts: art.jointCuts);
+      final work = computeMachiningElements(panels, fittings: art.fittings, jointCuts: art.jointCuts, jointFits: art.jointFits);
       for (final el in work.elements) {
         if (el.kind == MachiningKind.drill) {
           final f = pickFace(cam, panels, p(el.position));
@@ -4805,6 +5161,56 @@ class _ScenePainter extends CustomPainter {
     }
 
     // 5 quinquies. Outil Lier : chant choisi (orange épais) et numéros des chants
+    // liaisons notées : hachures sur les deux chants, reliées par un trait, numéro au milieu
+    for (final (ea, eb, label) in pendingLinks) {
+      const blue = Color(0xFF2563EB);
+      final hatch = Paint()
+        ..color = blue
+        ..strokeWidth = 1.2;
+      final mids = <Offset>[];
+      for (final (a3, b3) in [ea, eb]) {
+        final a = p(a3), b = p(b3);
+        final d = b - a;
+        final len = d.distance;
+        if (len < 1) continue;
+        final u = d / len, n = Offset(-u.dy, u.dx);
+        for (var t = 4.0; t < len - 2; t += 6) {
+          c.drawLine(a + u * t - n * 5, a + u * t + n * 5, hatch);
+        }
+        c.drawLine(a, b, Paint()
+          ..color = blue
+          ..strokeWidth = 3);
+        mids.add((a + b) / 2);
+      }
+      if (mids.length == 2) {
+        final dash = Paint()
+          ..color = blue
+          ..strokeWidth = 1.6;
+        final d = mids[1] - mids[0];
+        final len = d.distance;
+        if (len > 1) {
+          final u = d / len;
+          for (var t = 0.0; t < len; t += 10) {
+            c.drawLine(mids[0] + u * t, mids[0] + u * math.min(t + 6, len), dash);
+          }
+        }
+        final at = (mids[0] + mids[1]) / 2;
+        c.drawCircle(at, 10, Paint()..color = blue);
+        final tp = TextPainter(
+          text: TextSpan(text: label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        tp.paint(c, at - Offset(tp.width / 2, tp.height / 2));
+      }
+    }
+    // chant survolé : coloré et plus épais
+    final he = hoverEdge;
+    if (he != null) {
+      c.drawLine(p(he.$1), p(he.$2), Paint()
+        ..color = const Color(0xFF16A34A)
+        ..strokeWidth = 7
+        ..strokeCap = StrokeCap.round);
+    }
     final le = linkEdge;
     if (le != null) {
       c.drawLine(p(le.$1), p(le.$2), Paint()
@@ -4950,7 +5356,7 @@ class _ScenePainter extends CustomPainter {
 
     // 9. Mode Usinage (Tourillons, Vis, Perçages système 32, Boîtiers charnières)
     if (isMachiningMode) {
-      final summary = computeMachiningElements(panels, fittings: art.fittings, jointCuts: art.jointCuts);
+      final summary = computeMachiningElements(panels, fittings: art.fittings, jointCuts: art.jointCuts, jointFits: art.jointFits);
       Paint stroke(Color c, double w) => Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = w

@@ -51,7 +51,7 @@ Future<Uint8List> buildArtBlueprint(ArtProject art, CutSettings cs, {required St
   final logo = await LogoShape.svgText();
   final panels = art.panels;
   final ids = {for (var i = 0; i < panels.length; i++) panels[i].id: 'P${i + 1}'};
-  final m = computeMachiningElements(panels, fittings: art.fittings, jointCuts: art.jointCuts);
+  final m = computeMachiningElements(panels, fittings: art.fittings, jointCuts: art.jointCuts, jointFits: art.jointFits);
   final plan = nest(art.cutParts(), cs);
   final hardware = art.hardware();
   final b = art.bounds;

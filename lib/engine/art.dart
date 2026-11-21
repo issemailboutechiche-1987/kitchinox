@@ -186,6 +186,33 @@ class ArtHole {
       );
 }
 
+/// Liaison de deux chants notée en mode découpe (pièces encore à plat) : appliquée par « Usiner ».
+/// La pièce [a] passe sous (ou sur) la pièce [b], son chant [ea] contre le chant [eb] de [b].
+class EdgeLink {
+  final String a, b;
+  final int ea, eb;
+  String align; // start | center | end | custom
+  double offset;
+  bool over, miter;
+  String? joint; // assemblage choisi (nom de JointType) ; null : automatique (réglage général)
+  EdgeLink(this.a, this.ea, this.b, this.eb, {this.align = 'start', this.offset = 0, this.over = false, this.miter = false, this.joint});
+
+  Map<String, dynamic> toJson() => {
+        'a': a, 'ea': ea, 'b': b, 'eb': eb,
+        if (align != 'start') 'align': align,
+        if (offset != 0) 'offset': offset,
+        if (over) 'over': true,
+        if (miter) 'miter': true,
+        if (joint != null) 'joint': joint,
+      };
+  factory EdgeLink.fromJson(Map<String, dynamic> j) => EdgeLink(j['a'] as String, (j['ea'] as num).toInt(), j['b'] as String, (j['eb'] as num).toInt(),
+      align: j['align'] as String? ?? 'start',
+      offset: (j['offset'] as num?)?.toDouble() ?? 0,
+      over: j['over'] as bool? ?? false,
+      miter: j['miter'] as bool? ?? false,
+      joint: j['joint'] as String?);
+}
+
 class ArtProject {
   String name;
   double wallWidth, wallHeight;
@@ -201,6 +228,10 @@ class ArtProject {
   ArtFittings fittings = ArtFittings();
   /// Coupes d'angle notées par assemblage (« id1|id2 », ids triés) : 'onglet' (45°) ou 'chanfrein'.
   final Map<String, String> jointCuts = {};
+  /// Assemblage choisi par jonction (« id1|id2 » → nom de JointType) ; absent : le réglage général.
+  final Map<String, String> jointFits = {};
+  /// Liaisons de chants notées en mode découpe, pas encore usinées.
+  final List<EdgeLink> edgeLinks = [];
   /// Calques masqués / verrouillés : « comp:nom » pour un composant des caissons, identifiant pour une pièce libre.
   final Set<String> hiddenLayers = {}, lockedLayers = {};
 
@@ -266,6 +297,8 @@ class ArtProject {
         if (dimensions.isNotEmpty) 'dimensions': [for (final d in dimensions) d.toJson()],
         if (!fittings.isDefault) 'fittings': fittings.toJson(),
         if (jointCuts.isNotEmpty) 'joint_cuts': jointCuts,
+        if (jointFits.isNotEmpty) 'joint_fits': jointFits,
+        if (edgeLinks.isNotEmpty) 'edge_links': [for (final l in edgeLinks) l.toJson()],
         if (hiddenLayers.isNotEmpty) 'hidden': hiddenLayers.toList(),
         if (lockedLayers.isNotEmpty) 'locked': lockedLayers.toList(),
       };
@@ -281,6 +314,8 @@ class ArtProject {
       )
         ..fittings = ArtFittings.fromJson((j['fittings'] as Map?)?.cast<String, dynamic>() ?? const {})
         ..jointCuts.addAll({for (final e in ((j['joint_cuts'] as Map?) ?? const {}).entries) '${e.key}': '${e.value}'})
+        ..jointFits.addAll({for (final e in ((j['joint_fits'] as Map?) ?? const {}).entries) '${e.key}': '${e.value}'})
+        ..edgeLinks.addAll([for (final l in (j['edge_links'] as List? ?? const [])) EdgeLink.fromJson((l as Map).cast<String, dynamic>())])
         ..hiddenLayers.addAll([for (final e in (j['hidden'] as List? ?? const [])) '$e'])
         ..lockedLayers.addAll([for (final e in (j['locked'] as List? ?? const [])) '$e']);
 
@@ -514,6 +549,50 @@ class ArtProject {
     return true;
   }
 
+  /// Pièces assemblées selon [links], dans l'ordre (copies : les pièces à plat ne bougent pas).
+  /// Une liaison dont une pièce manque est ignorée.
+  static List<ArtPanel> assembleLinks(List<ArtPanel> flat, List<EdgeLink> links) {
+    final out = [for (final p in flat) p.copy(id: p.id)];
+    final byId = {for (final p in out) p.id: p};
+    for (final l in links) {
+      final a = byId[l.a], b = byId[l.b];
+      if (a == null || b == null || identical(a, b)) continue;
+      linkEdges(a, l.ea, b, l.eb, align: l.align, offset: l.offset, over: l.over);
+    }
+    return out;
+  }
+
+  /// Usine les liaisons notées : les pièces prennent leur place assemblée, les onglets et les assemblages
+  /// choisis sont enregistrés, puis la liste est vidée. Renvoie le nombre de liaisons appliquées.
+  int applyEdgeLinks() {
+    final done = edgeLinks.where((l) => free.any((p) => p.id == l.a) && free.any((p) => p.id == l.b) && l.a != l.b).toList();
+    final placed = {for (final p in assembleLinks(free, done)) p.id: p};
+    for (final p in free) {
+      final q = placed[p.id]!;
+      p
+        ..x = q.x
+        ..y = q.y
+        ..z = q.z
+        ..w = q.w
+        ..h = q.h
+        ..d = q.d
+        ..role = q.role;
+    }
+    for (final l in done) {
+      final key = jointKey(l.a, l.b);
+      jointCuts.remove(key);
+      final a = free.firstWhere((p) => p.id == l.a), b = free.firstWhere((p) => p.id == l.b);
+      if (l.miter) setJointCut(a, b, 'onglet');
+      if (l.joint == null) {
+        jointFits.remove(key);
+      } else {
+        jointFits[key] = l.joint!;
+      }
+    }
+    edgeLinks.clear();
+    return done.length;
+  }
+
   /// Oriente [p] : 'montant' (debout, épaisseur en largeur), 'tablette' (à plat), 'facade' (de face) ;
   /// sa plus grande dimension devient la hauteur (montant, façade) ou la largeur (tablette). Le coin bas avant gauche reste en place.
   static void orient(ArtPanel p, String how) {
@@ -566,7 +645,7 @@ class ArtProject {
       }
     }
     // chants et rainures déduits de l'usinage (arêtes visibles, fonds encastrés), sauf réglage manuel du panneau
-    final work = free.isEmpty ? const <String, PanelWork>{} : computeMachiningElements(panels, fittings: fittings, jointCuts: jointCuts).work;
+    final work = free.isEmpty ? const <String, PanelWork>{} : computeMachiningElements(panels, fittings: fittings, jointCuts: jointCuts, jointFits: jointFits).work;
     for (final p in free) {
       final dims = [p.w, p.h, p.d]..sort();
       final a = dims[2].round(), b = dims[1].round();
@@ -637,7 +716,7 @@ class ArtProject {
     // panneaux libres : quincaillerie et visserie posées par l'usinage (jonctions, façades, pieds, taquets)
     if (free.isNotEmpty) {
       final ids = {for (final p in free) p.id};
-      final els = computeMachiningElements(panels, fittings: fittings, jointCuts: jointCuts)
+      final els = computeMachiningElements(panels, fittings: fittings, jointCuts: jointCuts, jointFits: jointFits)
           .elements
           .where((e) => ids.contains(e.panelId) || ids.contains(e.partnerPanelId))
           .toList();
@@ -647,7 +726,7 @@ class ArtProject {
     }
     final pinned = free.isEmpty
         ? const <String>{}
-        : {for (final e in computeMachiningElements(panels, fittings: fittings, jointCuts: jointCuts).elements) if (e.kind == MachiningKind.shelfPin) e.panelId};
+        : {for (final e in computeMachiningElements(panels, fittings: fittings, jointCuts: jointCuts, jointFits: jointFits).elements) if (e.kind == MachiningKind.shelfPin) e.panelId};
     for (final p in free) {
       switch (p.role) {
         case ArtRole.tablette:

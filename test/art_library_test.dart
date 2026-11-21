@@ -70,6 +70,7 @@ void main() {
     st.project.art.addBox(0, 100, 800, 720, depth: 560, doors: 0);
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     await expectLater(find.byKey(const Key('art-viewport')), matchesGoldenFile('goldens/art_vis_assemble.png'));
     await t.ensureVisible(find.text('Éclaté'));
     await t.pumpAndSettle();
@@ -79,4 +80,13 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+}
+
+/// Ferme l'accueil du mode Art (Nouveau / Ouvrir / Bibliothèque) quand la scène est vide.
+Future<void> closeArtWelcome(WidgetTester t) async {
+  final f = find.byKey(const ValueKey('welcome_close'));
+  if (f.evaluate().isNotEmpty) {
+    await t.tap(f);
+    await t.pumpAndSettle();
+  }
 }

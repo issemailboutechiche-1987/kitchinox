@@ -166,7 +166,7 @@ int handleSpacing(double width) => width < 250 ? 96 : width < 450 ? 128 : width 
 
 // ------------------------------------------------------------------ analyse
 
-MachiningSummary computeMachiningElements(List<ArtPanel> panels, {ArtFittings? fittings, Map<String, String> jointCuts = const {}}) {
+MachiningSummary computeMachiningElements(List<ArtPanel> panels, {ArtFittings? fittings, Map<String, String> jointCuts = const {}, Map<String, String> jointFits = const {}}) {
   final fit = fittings ?? ArtFittings();
   final els = <MachiningElement>[];
   // onglets à 45° : les deux pièces se rejoignent dans l'angle → lamelles collées le long de l'onglet
@@ -244,7 +244,8 @@ MachiningSummary computeMachiningElements(List<ArtPanel> panels, {ArtFittings? f
         final l0 = math.max(_lo(a, lAx), _lo(b, lAx)), l1 = math.min(_hi(a, lAx), _hi(b, lAx));
         final wMid = (math.max(_lo(a, wAx), _lo(b, wAx)) + math.min(_hi(a, wAx), _hi(b, wAx))) / 2;
         var (dowels, screws) = _jointStations(l0, l1);
-        final j = fit.joint;
+        // assemblage choisi pour cette jonction, sinon le réglage général
+        final j = JointType.values.asNameMap()[jointFits[ArtProject.jointKey(a.id, b.id)]] ?? fit.joint;
         if (j == JointType.tourillons) {
           // collé seulement : un tourillon à chaque station
           dowels = [...dowels, ...screws];

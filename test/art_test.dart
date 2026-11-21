@@ -138,6 +138,7 @@ void main() {
     final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
     await t.scrollUntilVisible(find.text('Colonne de dressing'), 200, scrollable: find.ancestor(of: find.text('Commencer par une feuille entière'), matching: find.byType(Scrollable)).first);
     await t.pumpAndSettle();
     await t.tap(find.text('Colonne de dressing'));
@@ -192,4 +193,13 @@ void main() {
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/art_box_debit.png'));
     expect(t.takeException(), isNull);
   });
+}
+
+/// Ferme l'accueil du mode Art (Nouveau / Ouvrir / Bibliothèque) quand la scène est vide.
+Future<void> closeArtWelcome(WidgetTester t) async {
+  final f = find.byKey(const ValueKey('welcome_close'));
+  if (f.evaluate().isNotEmpty) {
+    await t.tap(f);
+    await t.pumpAndSettle();
+  }
 }
