@@ -152,6 +152,13 @@ void main() {
         final cam = Camera3d.fit(p.room, -0.55, s, zoom: 1.5, panX: 100, panY: 150);
         Scene3dPainter(e, cam, selectColor: Colors.orange, background: Colors.white, open: half).paint(c, s);
       }));
+      // profil Gola : il reste sur le caisson, les portes et tiroirs ouverts n'en portent pas
+      p.style.handle = 'gola';
+      File('test/out/3d_gola_mi_ouvert.png').writeAsBytesSync(await renderPng(size, (c, s) {
+        final cam = Camera3d.fit(p.room, -0.55, s, zoom: 1.5, panX: 100, panY: 150);
+        Scene3dPainter(e, cam, selectColor: Colors.orange, background: Colors.white, open: half).paint(c, s);
+      }));
+      p.style.handle = 'bar';
       final hc = HandleCatalog.parse(File('assets/data/handles.json').readAsStringSync());
       p.style
         ..handleId = 'handle_d_pull_flat'

@@ -194,8 +194,9 @@ class EdgeLink {
   String align; // start | center | end | custom
   double offset;
   bool over, miter;
+  bool outside; // façade en applique : la pièce se pose devant le chant de b (porte qui couvre le caisson)
   String? joint; // assemblage choisi (nom de JointType) ; null : automatique (réglage général)
-  EdgeLink(this.a, this.ea, this.b, this.eb, {this.align = 'start', this.offset = 0, this.over = false, this.miter = false, this.joint});
+  EdgeLink(this.a, this.ea, this.b, this.eb, {this.align = 'start', this.offset = 0, this.over = false, this.miter = false, this.outside = false, this.joint});
 
   Map<String, dynamic> toJson() => {
         'a': a, 'ea': ea, 'b': b, 'eb': eb,
@@ -203,6 +204,7 @@ class EdgeLink {
         if (offset != 0) 'offset': offset,
         if (over) 'over': true,
         if (miter) 'miter': true,
+        if (outside) 'outside': true,
         if (joint != null) 'joint': joint,
       };
   factory EdgeLink.fromJson(Map<String, dynamic> j) => EdgeLink(j['a'] as String, (j['ea'] as num).toInt(), j['b'] as String, (j['eb'] as num).toInt(),
@@ -210,6 +212,7 @@ class EdgeLink {
       offset: (j['offset'] as num?)?.toDouble() ?? 0,
       over: j['over'] as bool? ?? false,
       miter: j['miter'] as bool? ?? false,
+      outside: j['outside'] as bool? ?? false,
       joint: j['joint'] as String?);
 }
 
@@ -500,10 +503,46 @@ class ArtProject {
     return [(v, -1), (u, 1), (v, 1), (u, -1)];
   }
 
+  /// Numéro (1 à 4) du chant de [p] dont la normale suit l'axe [axis] dans le sens [sign] ; 0 s'il n'y en a pas.
+  static int edgeWithNormal(ArtPanel p, int axis, int sign) {
+    final e = edgesOf(p);
+    for (var i = 0; i < 4; i++) {
+      if (e[i].$1 == axis && e[i].$2 == sign) return i + 1;
+    }
+    return 0;
+  }
+
+  /// Coupe la pièce libre [p] en deux à la position [at] sur l'axe [ax], trait de scie [kerf] déduit.
+  /// Les deux morceaux remplacent [p] dans les pièces libres ; renvoie (avant, après).
+  (ArtPanel, ArtPanel) splitPanel(ArtPanel p, int ax, double at, double kerf) {
+    final lo = _lo(p, ax), hi = _hi(p, ax);
+    void set(ArtPanel q, double from, double to) {
+      if (ax == 0) {
+        q.x = from;
+        q.w = to - from;
+      } else if (ax == 1) {
+        q.y = from;
+        q.h = to - from;
+      } else {
+        q.z = from;
+        q.d = to - from;
+      }
+    }
+
+    final a = p.copy(id: newId()), b = p.copy(id: newId());
+    set(a, lo, at - kerf / 2);
+    set(b, at + kerf / 2, hi);
+    final i = free.indexOf(p);
+    free
+      ..removeAt(i)
+      ..insertAll(i, [a, b]);
+    return (a, b);
+  }
+
   /// Lie le chant [ea] (1 à 4) de [a] au chant [eb] de [b] : [a] se place sous [b], perpendiculaire,
   /// son chant contre la face de [b], à fleur du chant [eb] ; [b] passe dessus (il couvre le chant de [a]).
   /// [b] ne bouge pas. Faux si les numéros sont hors de 1 à 4.
-  static bool linkEdges(ArtPanel a, int ea, ArtPanel b, int eb, {String align = 'start', double offset = 0, bool over = false}) {
+  static bool linkEdges(ArtPanel a, int ea, ArtPanel b, int eb, {String align = 'start', double offset = 0, bool over = false, bool outside = false}) {
     if (ea < 1 || ea > 4 || eb < 1 || eb > 4) return false;
     final (aAx, _) = edgesOf(a)[ea - 1];
     final (bAx, bSign) = edgesOf(b)[eb - 1];
@@ -523,15 +562,32 @@ class ArtProject {
     };
     hi[lb] = lo[lb]! + len;
     // sous b (côté négatif de son épaisseur) ou dessus, collé à sa face
-    if (over) {
+    if (outside) {
+      // en applique : la pièce couvre le chant de b (elle part de sa face opposée)
+      if (over) {
+        lo[tb] = _lo(b, tb);
+        hi[tb] = lo[tb]! + h;
+      } else {
+        hi[tb] = _hi(b, tb);
+        lo[tb] = hi[tb]! - h;
+      }
+    } else if (over) {
       lo[tb] = _hi(b, tb);
       hi[tb] = lo[tb]! + h;
     } else {
       hi[tb] = _lo(b, tb);
       lo[tb] = hi[tb]! - h;
     }
-    // à fleur du chant choisi de b, vers l'intérieur
-    if (bSign > 0) {
+    // à fleur du chant choisi de b, vers l'intérieur ; en applique, devant ce chant
+    if (outside) {
+      if (bSign > 0) {
+        lo[bAx] = _hi(b, bAx);
+        hi[bAx] = lo[bAx]! + t;
+      } else {
+        hi[bAx] = _lo(b, bAx);
+        lo[bAx] = hi[bAx]! - t;
+      }
+    } else if (bSign > 0) {
       hi[bAx] = _hi(b, bAx);
       lo[bAx] = hi[bAx]! - t;
     } else {
@@ -545,7 +601,11 @@ class ArtProject {
       ..w = hi[0]! - lo[0]!
       ..h = hi[1]! - lo[1]!
       ..d = hi[2]! - lo[2]!;
-    if (a.role == ArtRole.decor || a.role == ArtRole.tablette) a.role = bAx == 0 ? ArtRole.montant : a.role;
+    if (outside && !a.role.isFront) {
+      a.role = ArtRole.porte;
+    } else if (a.role == ArtRole.decor || a.role == ArtRole.tablette) {
+      a.role = bAx == 0 ? ArtRole.montant : a.role;
+    }
     return true;
   }
 
@@ -557,7 +617,7 @@ class ArtProject {
     for (final l in links) {
       final a = byId[l.a], b = byId[l.b];
       if (a == null || b == null || identical(a, b)) continue;
-      linkEdges(a, l.ea, b, l.eb, align: l.align, offset: l.offset, over: l.over);
+      linkEdges(a, l.ea, b, l.eb, align: l.align, offset: l.offset, over: l.over, outside: l.outside);
     }
     return out;
   }

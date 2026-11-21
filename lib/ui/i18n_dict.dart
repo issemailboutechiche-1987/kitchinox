@@ -2377,6 +2377,17 @@ const Map<String, String> enDict = {
   "2800 × 2100 (mélaminé)": "2800 × 2100 (melamine)",
   "1220 × 610 (demi-feuille)": "1220 × 610 (half sheet)",
   "Ma bibliothèque": "My library",
+  "Caisson 1 porte": "1-door cabinet",
+  "Caisson 1 porte depuis cette feuille": "1-door cabinet from this sheet",
+  "Dimensions du caisson": "Cabinet dimensions",
+  "En applique": "Overlay",
+  "Façade en applique : la pièce se pose devant le chant (porte qui couvre le caisson)": "Overlay front: the part sits in front of the edge (door covering the cabinet)",
+  "Feuille coupée : 6 pièces et {0} liaisons notées. Vérifiez l’aperçu 3D, puis « Usiner ».": "Sheet cut: 6 parts and {0} links noted. Check the 3D preview, then \"Machine\".",
+  "Feuille trop petite pour un caisson {0} × {1} × {2} mm.": "Sheet too small for a {0} × {1} × {2} mm cabinet.",
+  "Posez d’abord une feuille (Nouveau → Feuille).": "Lay a sheet first (New → Sheet).",
+  "La feuille est coupée à la guillotine (2 côtés, dessous, dessus, fond, porte) et les 5 liaisons sont notées : vérifiez l’aperçu 3D puis « Usiner ».": "The sheet is guillotine-cut (2 sides, bottom, top, back, door) and the 5 links are noted: check the 3D preview, then \"Machine\".",
+  "Côté gauche": "Left side",
+  "Chute": "Offcut",
 };
 
 const Map<String, String> arDict = {
@@ -4756,4 +4767,15 @@ const Map<String, String> arDict = {
   "2800 × 2100 (mélaminé)": "2800 × 2100 (ميلامين)",
   "1220 × 610 (demi-feuille)": "1220 × 610 (نصف لوح)",
   "Ma bibliothèque": "مكتبتي",
+  "Caisson 1 porte": "خزانة بباب واحد",
+  "Caisson 1 porte depuis cette feuille": "خزانة بباب واحد من هذا اللوح",
+  "Dimensions du caisson": "أبعاد الخزانة",
+  "En applique": "متراكب",
+  "Façade en applique : la pièce se pose devant le chant (porte qui couvre le caisson)": "واجهة متراكبة: توضع القطعة أمام الحافة (باب يغطي الخزانة)",
+  "Feuille coupée : 6 pièces et {0} liaisons notées. Vérifiez l’aperçu 3D, puis « Usiner ».": "تم قطع اللوح: 6 قطع و{0} وصلات مسجلة. تحقق من المعاينة ثلاثية الأبعاد ثم «تشغيل».",
+  "Feuille trop petite pour un caisson {0} × {1} × {2} mm.": "اللوح صغير جدًا لخزانة {0} × {1} × {2} مم.",
+  "Posez d’abord une feuille (Nouveau → Feuille).": "ضع لوحًا أولًا (جديد ← لوح).",
+  "La feuille est coupée à la guillotine (2 côtés, dessous, dessus, fond, porte) et les 5 liaisons sont notées : vérifiez l’aperçu 3D puis « Usiner ».": "يُقطع اللوح بالمقصلة (جانبان، قاع، سقف، ظهر، باب) وتُسجَّل الوصلات الخمس: تحقق من المعاينة ثم «تشغيل».",
+  "Côté gauche": "الجانب الأيسر",
+  "Chute": "بقايا",
 };

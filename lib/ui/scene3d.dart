@@ -629,6 +629,7 @@ class Scene3dPainter {
                 cells: [FrontCell(cell.kind, 0, lv, cell.hinge, -1)],
                 realistic: true,
                 pxPerMm: 1,
+                golaProfile: false, // le profil Gola est fixé au caisson, il ne suit pas la porte
                 carcass: carcass,
                 gloss: fr.gloss,
               );
@@ -929,6 +930,8 @@ class Scene3dPainter {
         gloss: fr.gloss,
       );
       _paintInterior(canvas, r, openCells, total, carcassColor, m, c);
+      // profil Gola : il reste sur le caisson, visible porte ouverte
+      if (p.style.handle == 'gola') paintGolaProfile(canvas, r, m, cells: frontCells(m, c, realistic: true));
       canvas.restore();
       return;
     }

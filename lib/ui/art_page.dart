@@ -13,6 +13,7 @@ import '../engine/art_cad.dart';
 import '../engine/art_machining.dart';
 import '../engine/art_fittings.dart';
 import '../engine/art_cut_import.dart';
+import '../engine/art_sheet_cabinet.dart';
 import 'app_state.dart';
 import 'art_cad_toolbar.dart';
 import 'art_library.dart';
@@ -102,7 +103,7 @@ class _ArtPageState extends State<ArtPage> {
   // Lier : alignement le long du chant, dessus ou dessous, onglet
   String linkAlign = 'start';
   double linkOffset = 0;
-  bool linkOver = false, linkMiter = false;
+  bool linkOver = false, linkMiter = false, linkOutside = false;
   // Percer : diamètre et profondeur
   double drillDia = 8, drillDepth = 12;
   (V3, V3)? _dimEdge; // Cotation : arête touchée (on glisse pour décaler la cote)
@@ -196,6 +197,23 @@ class _ArtPageState extends State<ArtPage> {
     art.dimensions
       ..clear()
       ..addAll(a.dimensions);
+    // liaisons notées, coupes d'angle, assemblages par jonction, accessoires et calques suivent Annuler / Rétablir
+    art.edgeLinks
+      ..clear()
+      ..addAll(a.edgeLinks);
+    art.jointCuts
+      ..clear()
+      ..addAll(a.jointCuts);
+    art.jointFits
+      ..clear()
+      ..addAll(a.jointFits);
+    art.fittings = a.fittings;
+    art.hiddenLayers
+      ..clear()
+      ..addAll(a.hiddenLayers);
+    art.lockedLayers
+      ..clear()
+      ..addAll(a.lockedLayers);
     boxIndex = boxIndex.clamp(0, math.max(0, art.boxes.length - 1));
   }
 
@@ -1638,7 +1656,7 @@ class _ArtPageState extends State<ArtPage> {
       // même paire déjà notée : la nouvelle remplace l'ancienne
       art.edgeLinks.removeWhere((l) => l.a == first.$1.id && l.b == e.$1.id);
       art.edgeLinks.add(EdgeLink(first.$1.id, first.$2, e.$1.id, e.$2,
-          align: linkAlign, offset: linkOffset, over: linkOver, miter: linkMiter, joint: linkJoint));
+          align: linkAlign, offset: linkOffset, over: linkOver, miter: linkMiter, outside: linkOutside, joint: linkJoint));
       _linkFirst = null;
       selection
         ..clear()
@@ -1930,28 +1948,7 @@ class _ArtPageState extends State<ArtPage> {
 
   /// Coupe [p] en deux (sans historique : appelée dans une modification) ; les deux morceaux restent sélectionnés s'il l'était.
   void _split(ArtPanel p, int ax, double at) {
-    final k = widget.state.project.cut.kerf.toDouble();
-    final lo = ax == 0 ? p.x : ax == 1 ? p.y : p.z, hi = ax == 0 ? p.right : ax == 1 ? p.top : p.back;
-    void set(ArtPanel q, double from, double to) {
-      if (ax == 0) {
-        q.x = from;
-        q.w = to - from;
-      } else if (ax == 1) {
-        q.y = from;
-        q.h = to - from;
-      } else {
-        q.z = from;
-        q.d = to - from;
-      }
-    }
-
-    final a = p.copy(id: art.newId()), b = p.copy(id: art.newId());
-    set(a, lo, at - k / 2);
-    set(b, at + k / 2, hi);
-    final i = art.free.indexOf(p);
-    art.free
-      ..removeAt(i)
-      ..insertAll(i, [a, b]);
+    final (a, b) = art.splitPanel(p, ax, at, widget.state.project.cut.kerf.toDouble());
     if (selection.remove(p)) selection.addAll([a, b]);
     if (identical(selectedPanel, p)) selectedPanel = a;
   }
@@ -3162,6 +3159,13 @@ class _ArtPageState extends State<ArtPage> {
                                   selected: linkMiter,
                                   onSelected: (v) => setState(() => linkMiter = v),
                                 ),
+                                FilterChip(
+                                  key: const ValueKey('link_outside'),
+                                  tooltip: tr('Façade en applique : la pièce se pose devant le chant (porte qui couvre le caisson)'),
+                                  label: Text(tr('En applique')),
+                                  selected: linkOutside,
+                                  onSelected: (v) => setState(() => linkOutside = v),
+                                ),
                                 _jointPicker(linkJoint, (v) => setState(() => linkJoint = v)),
                                 if (art.edgeLinks.isNotEmpty)
                                   IconButton(
@@ -3180,6 +3184,12 @@ class _ArtPageState extends State<ArtPage> {
                             : activeTool == CadTool.cut
                             ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [
                                 _cutLinkSwitch(),
+                                IconButton(
+                                  key: const ValueKey('cut_cabinet'),
+                                  tooltip: tr('Caisson 1 porte depuis cette feuille'),
+                                  icon: const Icon(Icons.door_front_door_outlined),
+                                  onPressed: () => _cabinetFromSheet(),
+                                ),
                                 IconButton(
                                   key: const ValueKey('cut_import'),
                                   tooltip: tr('Importer un fichier de débit (CSV ou JSON)'),
@@ -3352,7 +3362,7 @@ class _ArtPageState extends State<ArtPage> {
               ),
               Positioned(
                 left: 10,
-                top: 10,
+                bottom: 10,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(color: scheme.surface.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(8)),
@@ -3439,6 +3449,9 @@ class _ArtPageState extends State<ArtPage> {
     switch (r.kind) {
       case 'sheet':
         _startFromSheet(length: r.length, width: r.width, thickness: r.thickness);
+      case 'cabinet':
+        _startFromSheet(length: r.length, width: r.width, thickness: r.thickness);
+        _cabinetFromSheet(w: r.cabW, h: r.cabH, d: r.cabD);
       case 'box':
         await _chooseBase();
       default:
@@ -3472,6 +3485,36 @@ class _ArtPageState extends State<ArtPage> {
       }
     } catch (_) {}
     _placeCutParts(parseCutFile(text));
+  }
+
+  /// Caisson 1 porte depuis une feuille à plat (la sélection, sinon la plus grande pièce à plat) :
+  /// coupes à la guillotine, liaisons notées, outil Lier et aperçu 3D ouverts. Il ne reste qu'à « Usiner ».
+  void _cabinetFromSheet({double w = 600, double h = 720, double d = 560}) {
+    final flat = art.free.where((p) => thicknessAxis(p) == 1 && !art.isLocked(p)).toList();
+    if (flat.isEmpty) {
+      _msg(tr('Posez d’abord une feuille (Nouveau → Feuille).'));
+      return;
+    }
+    final sel = selectedPanel != null && flat.contains(selectedPanel) ? selectedPanel! : flat.reduce((a, b) => a.w * a.d >= b.w * b.d ? a : b);
+    SheetCabinet? cab;
+    change(() {
+      cab = cutSheetCabinet(art, sel, w: w, h: h, d: d, kerf: widget.state.project.cut.kerf.toDouble());
+      if (cab == null) return;
+      art.edgeLinks.addAll(cab!.links);
+      _cutsDone += 9;
+      selection
+        ..clear()
+        ..addAll(cab!.parts);
+      selectedPanel = null;
+      if (!sidePinned) sideOpen = false; // la place pour la feuille et l'aperçu 3D
+    });
+    if (cab == null) {
+      _undo.removeLast(); // rien n'a été coupé
+      _msg(trp('Feuille trop petite pour un caisson {0} × {1} × {2} mm.', [w.round(), h.round(), d.round()]));
+      return;
+    }
+    _selectTool(CadTool.link);
+    _msg(trp('Feuille coupée : 6 pièces et {0} liaisons notées. Vérifiez l’aperçu 3D, puis « Usiner ».', [cab!.links.length]));
   }
 
   /// Importer un fichier de débit : les pièces se posent à plat, prêtes à lier.
