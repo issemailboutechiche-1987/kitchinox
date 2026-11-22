@@ -40,8 +40,22 @@ List<Map<String, dynamic>> universeFrontLayout(FurnitureSetup s) {
 
 /// Catalogue (format assets/catalog.json) d'un univers.
 Map<String, dynamic> universeCatalogJson(FurnitureUniverse u) {
-  final shelves = <String, List<Map<String, dynamic>>>{'base': [], 'wall': [], 'tall': []};
+  final shelves = <String, List<Map<String, dynamic>>>{'base': [], 'wall': [], 'tall': [], 'corner': []};
+  final tallHeights = {for (final m in u.models) if (universeShelf(m) == 'tall') ...m.heights}.toList()..sort();
   for (final m in u.models) {
+    // dressing d'angle (en L, pan coupé) : un vrai meuble d'angle, aux deux bras
+    if (m.setup.shape == 'L' || m.setup.shape == 'diagonal') {
+      shelves['corner']!.add({
+        'id': m.id,
+        'name': m.name,
+        if (m.setup.shape == 'L') ...{'width_left': m.widths, 'width_right': m.widths.first} else 'footprint': '${m.widths.first}x${m.widths.first}',
+        'available_heights': tallHeights.isEmpty ? m.heights : tallHeights,
+        'depth': m.depths.first,
+        'door_type': m.setup.shape == 'L' ? 'bifold_corner_door' : 'single_door',
+        'snapping': const {'corner_anchor': 'inner_90', 'floor_support': true},
+      });
+      continue;
+    }
     final shelf = universeShelf(m);
     final heights = m.heights;
     shelves[shelf]!.add({
@@ -62,8 +76,9 @@ Map<String, dynamic> universeCatalogJson(FurnitureUniverse u) {
     'base': 'Meubles bas (posés au sol)',
     'wall': 'Meubles suspendus',
     'tall': 'Colonnes et grands meubles',
+    'corner': 'Meubles d’angle',
   };
-  const ids = {'base': 'base_cabinets', 'wall': 'wall_cabinets', 'tall': 'tall_cabinets'};
+  const ids = {'base': 'base_cabinets', 'wall': 'wall_cabinets', 'tall': 'tall_cabinets', 'corner': 'corner_tall_cabinets'};
   return {
     'system': u.id,
     'unit_metric': 'mm',

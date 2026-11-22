@@ -1,0 +1,18 @@
+{
+"Ajouter l’eau": ["Add water", "إضافة الماء"],
+"Caissons blancs Alvic et portes MDF 19 super mat, facturés à l’article.": ["White Alvic carcasses and 19 mm super matt MDF doors, priced per item.", "هياكل Alvic بيضاء وأبواب MDF 19 سوبر مات، تُحسب بالقطعة."],
+"Caissons, façades et joues à l’article au tarif moyenne gamme, hors taxes ; le reste selon les fourchettes du marché marocain.": ["Carcasses, fronts and end panels per item at mid-range prices, excluding tax; the rest from Moroccan market ranges.", "الهياكل والواجهات والجانبيات بالقطعة بسعر الفئة المتوسطة دون ضريبة؛ والباقي حسب السوق المغربي."],
+"Hotte remplacée : {0}": ["Hood replaced: {0}", "تم استبدال الشفاط: {0}"],
+"La pièce n’a pas de porte": ["The room has no door", "الغرفة بلا باب"],
+"Moyenne gamme : devis mis à jour": ["Mid range: quote updated", "الفئة المتوسطة: تم تحديث عرض السعر"],
+"Moyenne gamme": ["Mid range", "الفئة المتوسطة"],
+"Place l’arrivée d’eau et l’évacuation, et raccorde les sanitaires.": ["Adds the water supply and drain, and connects the fixtures.", "يضع مصدر الماء والصرف ويربط الأجهزة الصحية."],
+"Pose une porte au meilleur endroit libre (une pièce a toujours une porte).": ["Places a door in the best free spot (a room always has a door).", "يضع بابًا في أفضل مكان (لكل غرفة باب)."],
+"Poser la porte": ["Add the door", "وضع الباب"],
+"Retire le meuble inaccessible. Dans un angle, posez un meuble d’angle en L.": ["Removes the unreachable unit. In a corner, use an L-shaped corner unit.", "يزيل الأثاث غير القابل للوصول. في الزاوية استعمل خزانة زاوية L."],
+"Salle de bain sans arrivée d’eau ou sans évacuation": ["Bathroom without water supply or drain", "حمام بلا ماء أو صرف"],
+"« {0} » : façade cachée par un autre meuble, inaccessible. Mettez un meuble d’angle en L.": ["\"{0}\": front hidden by another unit, unreachable. Use an L-shaped corner unit.", "«{0}»: واجهة مخفية خلف أثاث آخر. استعمل خزانة زاوية L."],
+"Hotte Murale Inclinée Verre Noir (Aspiration Périmétrale)": ["Angled black glass wall hood (perimeter suction)", "شفاط حائطي مائل بزجاج أسود"],
+"Meubles d’angle": ["Corner units", "أثاث الزاوية"],
+"Composition en L sur deux murs, meuble d’angle en L : tout est accessible.": ["L layout on two walls with an L corner unit: everything is reachable.", "توزيع L على جدارين مع خزانة زاوية: كل شيء في المتناول."]
+}

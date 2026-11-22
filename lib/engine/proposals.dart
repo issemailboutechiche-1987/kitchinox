@@ -12,6 +12,7 @@ import 'dart:math' as math;
 import 'access.dart';
 import 'catalog.dart';
 import 'clearance.dart';
+import 'essentials.dart';
 import 'fixes.dart';
 import 'layout_engine.dart';
 import 'project.dart';
@@ -106,6 +107,7 @@ List<LayoutProposal> proposeLayouts(LayoutEngine base, {int max = 6, String? fil
       p.room.setWallEnabled(w, walls.contains(w));
     }
     final e = LayoutEngine(base.catalog, p)..fillStyle = style;
+    ensureDoor(e, avoid: walls.toSet()); // porte obligatoire, sur un mur sans meubles si possible
     try {
       // un îlot éventuel est posé après les murs (il prend l'espace libre restant)
       for (final w in walls) {
@@ -126,6 +128,7 @@ List<LayoutProposal> proposeLayouts(LayoutEngine base, {int max = 6, String? fil
     if (p.items.isEmpty) continue;
     if (!clearDoorAccess(e)) continue; // l'entrée dans la cuisine doit rester praticable
     improveHinges(e);
+    if (!essentialOk(e)) continue;
     final issues = [...e.validate(), ...openingChecks(e), ...accessChecks(e), ...designChecks(e), ...waterChecks(e)];
     final errors = issues.where((i) => i.severity == Severity.error).length;
     final warnings = issues.where((i) => i.severity == Severity.warning).toList();
@@ -252,6 +255,12 @@ void applyProposal(LayoutEngine e, LayoutProposal pr) {
     ..clear()
     ..addAll([for (final o in q.objects) o.copy()]);
   p.points.removeWhere((x) => x.auto);
+  // la porte de la composition, si la pièce n'en avait pas ; l'eau d'une salle de bain, raccordée
+  if (!p.openings.any((o) => o.isDoor)) p.openings.addAll([for (final o in q.openings.where((o) => o.isDoor)) Opening.fromJson({...o.toJson(), 'uid': p.newUid('o')})]);
+  if (p.universe == 'bain') {
+    ensureWater(e);
+    ensureBathNetworks(e);
+  }
 }
 
 /// Nombre d'éléments de chaque rôle (pour la fiche de la proposition).

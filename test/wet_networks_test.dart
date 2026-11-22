@@ -73,7 +73,7 @@ void main() {
       expect(d, isNotNull);
       // la meilleure proposition ne laisse pas les appareils à eau à l'autre bout de la pièce
       expect(d!, lessThan(2600), reason: '${best.name} : ${d.round()} mm');
-      expect(q.points.where((x) => x.use == existingUse), hasLength(1));
+      expect(q.points.where((x) => x.use == existingUse && x.kind == NetKind.drain), hasLength(1), reason: 'l\'évacuation existante est gardée');
     }
   });
 

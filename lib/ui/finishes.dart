@@ -222,6 +222,36 @@ Color handleFinishColor(String? finish) {
   return (s.handle, size, handleFinishColor(finish));
 }
 
+/// Poignée prête à dessiner.
+class HandleLook {
+  final String kind, orient, pos;
+  final double size;
+  final Color color;
+  final bool pair;
+  const HandleLook(this.kind, this.size, this.color, {this.orient = 'auto', this.pos = 'auto', this.pair = false});
+  String get key => '$kind|$size|${color.toARGB32()}|$orient|$pos|$pair';
+}
+
+/// Poignées d'un meuble : ses portes, ses tiroirs.
+typedef HandleSet = ({HandleLook door, HandleLook drawer});
+
+HandleLook lookOfChoice(HandleChoice c, HandleCatalog? cat, {Color front = const Color(0xFFF2F2EE)}) {
+  final h = cat?.byId(c.id);
+  final size = (c.size ?? h?.defaultSize ?? 160).toDouble();
+  final finish = c.finish ?? ((h?.finishes.isEmpty ?? true) ? null : h!.finishes.first);
+  return HandleLook(c.kind, size, finish == HandleCatalog.golaLikeFront ? shade(front, -0.04) : handleFinishColor(finish), orient: c.orient, pos: c.pos, pair: c.pair);
+}
+
+HandleSet handleSetOf(KitchenStyle s, HandleCatalog? cat, CabinetModel m, {Color front = const Color(0xFFF2F2EE)}) {
+  HandleLook at(String zone) {
+    final c = s.handleAt(zone);
+    if (c.kind == 'gola') return HandleLook('gola', 160, golaColor(s, front));
+    return lookOfChoice(c, cat, front: front);
+  }
+
+  return (door: at(LayoutEngine.handleZone(m.kind)), drawer: at('tiroir'));
+}
+
 /// Couleur du profil Gola ([front] : couleur de la façade, quand il lui est assorti).
 Color golaColor(KitchenStyle s, Color front) => switch (s.handleFinish) {
       null || 'Aluminium' => const Color(0xFFB9BDC2),

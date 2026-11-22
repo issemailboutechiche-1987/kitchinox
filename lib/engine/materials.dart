@@ -111,7 +111,7 @@ class Appliance {
 
   String get dimsText {
     final parts = <String>[
-      if (width != null) 'L$width×H${height ?? '-'}×P${depth ?? '-'}',
+      if (width != null) ['L$width', if (height != null) 'H$height', if (depth != null) 'P$depth'].join('×'),
       if (niche != null) 'niche ${niche!.$1}×${niche!.$2}×${niche!.$3}',
       if (cutout != null) 'découpe plan ${cutout!.$1}×${cutout!.$2}',
     ];
@@ -346,7 +346,7 @@ class ProjectSpecs {
   double? edgePriceMin, edgePriceMax; // chant au mètre, pose comprise
   double cuttingPerSheet; // découpe (service) par feuille
   String hobEnergy; // 'gas' | 'electric' : alimentation de la plaque
-  String gamme; // 'standard' : MDF, chiffré à la feuille ; 'moyen' : Media Progetti, à l'article ; 'luxe' : contreplaqué latté, à l'article
+  String gamme; // 'standard' : MDF, chiffré à la feuille ; 'moyen' : caissons Alvic, à l'article ; 'luxe' : contreplaqué latté, à l'article
   String mpCarcass; // moyenne gamme : caissons 'alvic' ou 'alvic_hydro'
   String mpDoor; // moyenne gamme : portes 'auto', 'pi' (poignée intégrée) ou 'plain' (sans)
 
@@ -543,17 +543,24 @@ List<SupplyLine> hardwareList(LayoutEngine e, MaterialsDb db, ProjectSpecs specs
     if (m.id == 'base_drawers_multi') drawerRun += c.width;
   }
   // poignées ou profils Gola
-  final fronts = parts.where((p) => p.name.startsWith('Porte') || p.name == 'Façade tiroir').fold<int>(0, (a, p) => a + p.qty);
   if (gola) {
     final gf = e.project.style.handleFinish ?? HandleCatalog.golaFinishes.first;
     add('gola_profile_horizontal_L', (lowRun / 3000).ceilToDouble(), unit: 'barre 3 m', detail: gf);
     if (drawerRun > 0) add('gola_profile_horizontal_C', (drawerRun / 3000).ceilToDouble(), unit: 'barre 3 m', detail: gf);
     final talls = e.project.items.where((c) => e.modelOf(c).kind == CabinetKind.tall).length;
     if (talls > 0) add('gola_profile_vertical_tall', talls.toDouble(), unit: 'barre', detail: gf);
-    final wallDoors = parts.where((p) => p.name.startsWith('Porte') && p.length < 1000).fold<int>(0, (a, p) => a + p.qty);
-    add('push_to_open_latch', wallDoors.toDouble());
-  } else if (db.handles.byId(e.project.style.handleId) == null) {
-    add('handle_standard_screw_on', fronts.toDouble());
+    if (e.project.style.handleAt('haut').kind == 'gola') {
+      final wallDoors = parts.where((p) => p.name.startsWith('Porte') && p.length < 1000).fold<int>(0, (a, p) => a + p.qty);
+      add('push_to_open_latch', wallDoors.toDouble());
+    }
+  } else {
+    // endroits sans modèle du catalogue : poignée standard
+    var plain = 0;
+    for (final z in frontsByZone(e, parts).entries) {
+      final ch = e.project.style.handleAt(z.key);
+      if (ch.kind != 'push' && db.handles.byId(ch.id) == null) plain += z.value.fold<int>(0, (a, p) => a + p.qty);
+    }
+    if (plain > 0) add('handle_standard_screw_on', plain.toDouble());
   }
   // plinthe en barres de 4 m
   if (plinthLength > 0) add('kitchen_plinth_pvc_aluminium', (plinthLength / 4000).ceilToDouble(), unit: 'barre 4 m');
@@ -570,34 +577,69 @@ List<SupplyLine> hardwareList(LayoutEngine e, MaterialsDb db, ProjectSpecs specs
   ];
 }
 
-/// Poignées du catalogue choisi : à l'unité, en barres de 3 m (profil continu) ou usinage par façade.
+/// Façades à poignée, par endroit : (hauteur, largeur, nombre) et poignée choisie.
+Map<String, List<CutPart>> frontsByZone(LayoutEngine e, List<CutPart> parts) {
+  final kinds = <String, CabinetKind>{};
+  for (final c in e.project.items) {
+    final m = e.modelOf(c);
+    kinds[m.name] = m.kind;
+  }
+  final out = <String, List<CutPart>>{};
+  for (final p in parts) {
+    final drawer = p.name == 'Façade tiroir';
+    if (!drawer && !p.name.startsWith('Porte')) continue;
+    final name = p.cabinet.replaceFirst(RegExp(r'^Rep\. \d+ - '), '');
+    out.putIfAbsent(LayoutEngine.handleZone(kinds[name] ?? CabinetKind.base, drawer: drawer), () => []).add(p);
+  }
+  return out;
+}
+
+/// Poignées du catalogue : à l'unité, en barres de 3 m (profil continu) ou usinage par façade, selon l'endroit.
 List<SupplyLine> handleLines(LayoutEngine e, MaterialsDb db, List<CutPart> parts) {
   final st = e.project.style;
-  final h = db.handles.byId(st.handleId);
-  if (h == null || h.render == HandleRender.gola) return const [];
-  final fronts = parts.where((p) => p.name.startsWith('Porte') || p.name == 'Façade tiroir').toList();
-  final xxl = st.tallXxl ? db.handles.items.where((x) => x.render == HandleRender.xxl).firstOrNull : null;
-  final tallDoors = xxl == null ? 0 : fronts.where((p) => p.name.startsWith('Porte') && p.length >= 1200).fold<int>(0, (a, p) => a + p.qty);
-  final count = fronts.fold<int>(0, (a, p) => a + p.qty) - tallDoors;
-  final size = st.handleSize ?? h.defaultSize;
-  final finish = st.handleFinish ?? (h.finishes.isEmpty ? '' : h.finishes.first);
-  final detail = [
-    if (size > 0) '${h.sizeLabel.toLowerCase()} $size mm',
-    if (finish.isNotEmpty) finish,
-    if (h.drillingText(size).isNotEmpty) h.drillingText(size),
-  ].join(' · ');
+  final xxl = st.tallXxl && st.handle != 'gola' ? db.handles.items.where((x) => x.render == HandleRender.xxl).firstOrNull : null;
+  var tallDoors = 0, push = 0;
+  // mêmes modèle, taille et finition : une seule ligne
+  final groups = <String, (HandleModel, HandleChoice, List<CutPart>)>{};
+  for (final MapEntry(key: zone, value: list) in frontsByZone(e, parts).entries) {
+    final ch = st.handleAt(zone);
+    final mine = <CutPart>[];
+    for (final p in list) {
+      if (xxl != null && p.name.startsWith('Porte') && p.length >= 1200) {
+        tallDoors += p.qty;
+      } else {
+        mine.add(p);
+      }
+    }
+    if (ch.kind == 'push') push += mine.fold<int>(0, (a, p) => a + p.qty);
+    final h = db.handles.byId(ch.id);
+    if (h == null || h.render == HandleRender.gola || h.render == HandleRender.push || mine.isEmpty) continue;
+    final k = '${h.id}|${ch.size}|${ch.finish}|${zone == 'tiroir' && ch.pair}';
+    groups.putIfAbsent(k, () => (h, ch, <CutPart>[])).$3.addAll(mine);
+  }
   final out = <SupplyLine>[];
-  if (h.perBar) {
-    final len = fronts.fold<double>(0, (a, p) => a + p.width * p.qty);
-    out.add(SupplyLine('Quincaillerie', h.name, '$detail · ${(len / 1000).toStringAsFixed(1)} m de façades', (len / 3000).ceilToDouble(), 'barre 3 m', h.price));
-  } else if (h.perDoorMilling) {
-    out.add(SupplyLine('Quincaillerie', h.name, detail, count.toDouble(), 'façade', h.price));
-  } else {
-    out.add(SupplyLine('Quincaillerie', h.name, detail, count.toDouble(), 'pce', h.price));
+  for (final (h, ch, fronts) in groups.values) {
+    final size = ch.size ?? h.defaultSize;
+    final finish = ch.finish ?? (h.finishes.isEmpty ? '' : h.finishes.first);
+    final detail = [
+      if (size > 0) '${h.sizeLabel.toLowerCase()} $size mm',
+      if (finish.isNotEmpty) finish,
+      if (h.drillingText(size).isNotEmpty) h.drillingText(size),
+    ].join(' · ');
+    final count = fronts.fold<int>(0, (a, p) => a + p.qty * (ch.pair && p.name == 'Façade tiroir' && p.length >= 780 && h.holes > 0 ? 2 : 1));
+    if (h.perBar) {
+      final len = fronts.fold<double>(0, (a, p) => a + p.width * p.qty);
+      out.add(SupplyLine('Quincaillerie', h.name, '$detail · ${(len / 1000).toStringAsFixed(1)} m de façades', (len / 3000).ceilToDouble(), 'barre 3 m', h.price));
+    } else {
+      out.add(SupplyLine('Quincaillerie', h.name, detail, count.toDouble(), h.perDoorMilling ? 'façade' : 'pce', h.price));
+    }
   }
   if (xxl != null && tallDoors > 0) {
     out.add(SupplyLine('Quincaillerie', xxl.name, 'portes de colonne · ${xxl.drillingText(xxl.defaultSize)}', tallDoors.toDouble(), 'pce', xxl.price));
   }
+  // ouverture par pression : un loqueteau par façade
+  final latch = push == 0 ? null : db.hardware['push_to_open_latch'];
+  if (latch != null) out.add(SupplyLine('Quincaillerie', latch.name, 'façades sans poignée', push.toDouble(), 'pce', latch.offer('').price));
   return out;
 }
 

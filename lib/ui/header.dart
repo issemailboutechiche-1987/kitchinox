@@ -333,7 +333,10 @@ class _StepTab extends StatelessWidget {
       done: step.index < state.step.index,
       compact: compact,
       height: height,
-      onTap: () => state.goTo(step),
+      onTap: () {
+        if (state.step == PlanStep.space && step.index > PlanStep.space.index) state.edit(state.ensureEssentials);
+        state.goTo(step);
+      },
     );
   }
 }

@@ -1716,9 +1716,7 @@ class _PlannerPainter extends CustomPainter {
         line: lineOn(fr.color),
         opening: it.opening,
         variant: it.variant,
-        handle: p.style.handle,
-        handleSize: handleLook(p.style, st.db?.handles).$2,
-        handleColor: handleLook(p.style, st.db?.handles).$3,
+        handles: handleSetOf(p.style, st.db?.handles, r.model, front: fr.color),
 
         tallXxl: p.style.tallXxl,
         fillPaint: fr.paint(vertical: true),

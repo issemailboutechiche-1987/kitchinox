@@ -17,6 +17,7 @@ import '../engine/art_recipes.dart';
 import '../engine/art_relations.dart';
 import 'app_state.dart';
 import 'art_cad_toolbar.dart';
+import 'art_cursors.dart';
 import 'art_library.dart';
 import 'art_blueprint_pdf.dart';
 import 'art_camera.dart';
@@ -118,6 +119,9 @@ class _ArtPageState extends State<ArtPage> {
   // Percer : diamètre et profondeur
   double drillDia = 8, drillDepth = 12;
   (V3, V3)? _dimEdge; // Cotation : arête touchée (on glisse pour décaler la cote)
+  ArtPanel? _dimPanel; // pièce de cette arête
+  final ValueNotifier<(Offset, bool)?> _toolAt = ValueNotifier(null); // curseur dessiné de l'outil : place, au doigt
+  ShapeEdge? _dimCurve; // bord courbe touché : cote de rayon
   CadDimension? _dimPreview; // cote en cours (arête glissée ou 2e point au survol)
   bool cutRelative = false; // cote tapée : après la dernière coupe (relatif) ou depuis 0 (total)
   final Map<int, double> _lastCut = {}; // dernière ligne de coupe par axe (coordonnée feuille) // la petite coupe s'active après une première coupe
@@ -379,7 +383,7 @@ class _ArtPageState extends State<ArtPage> {
         CadTool.scale => 'Redimensionnez l’élément sélectionné.',
         CadTool.symmetry => selectedPanel != null ? 'Choisissez l’axe du miroir (X, Y ou Z).' : 'Sélectionnez un panneau à reproduire en miroir.',
         CadTool.tape => 'Cliquez sur le point de départ de la mesure.',
-        CadTool.dimension => 'Touchez une arête et glissez pour la coter, ou touchez deux points.',
+        CadTool.dimension => 'Touchez un bord et glissez pour le coter (rayon sur une courbe), ou touchez deux points.',
         CadTool.pushPull => 'Glissez une face pour l’étirer, ou cliquez-la puis tapez la valeur.',
         CadTool.edgeBand => selectedPanel != null ? 'Choisissez l’épaisseur de chant à appliquer.' : 'Cliquez sur un panneau pour lui appliquer un chant.',
         CadTool.groove => selectedPanel != null ? 'Appliquez ou retirez la rainure pour fond.' : 'Cliquez sur un panneau pour configurer sa rainure.',
@@ -423,6 +427,21 @@ class _ArtPageState extends State<ArtPage> {
       }
     }
     for (final p in art.panels) {
+      if (isShaped(p)) {
+        for (final hi in [true, false]) {
+          for (final e in shapeEdges(p, hi: hi)) {
+            final a = V3(e.a[0], e.a[1], e.a[2]), b = V3(e.b[0], e.b[1], e.b[2]);
+            out.add((a, e.curved ? 'Bord' : 'Coin'));
+            if (snapMid && !e.curved) out.add(((a + b) * 0.5, 'Milieu'));
+          }
+        }
+        if (snapMid) {
+          final ax = rankAxes(p);
+          final c = V3((p.x + p.right) / 2, (p.y + p.top) / 2, (p.z + p.back) / 2);
+          out.add((c.withAxis(ax[2], ax[2] == 0 ? p.right : (ax[2] == 1 ? p.top : p.back)), 'Centre'));
+        }
+        continue;
+      }
       final xs = [p.x, p.right], ys = [p.y, p.top], zs = [p.z, p.back];
       for (final x in xs) {
         for (final y in ys) {
@@ -1835,7 +1854,25 @@ class _ArtPageState extends State<ArtPage> {
   (V3, V3)? _pickPanelEdge(Offset px) {
     (V3, V3)? best;
     var bestD = 14.0;
+    _dimPanel = null;
+    _dimCurve = null;
     for (final p in art.panels) {
+      if (isShaped(p)) {
+        // pièce de forme : ses vrais bords (côté droit ou courbe), pas ceux de sa boîte
+        for (final hi in [true, false]) {
+          for (final e in shapeEdges(p, hi: hi)) {
+            final a = V3(e.a[0], e.a[1], e.a[2]), b = V3(e.b[0], e.b[1], e.b[2]);
+            final d = _distToSegment(px, cam.project(a).$1, cam.project(b).$1);
+            if (d < bestD - (hi ? 0 : 1)) {
+              bestD = d;
+              best = (a, b);
+              _dimPanel = p;
+              _dimCurve = e.curved ? e : null;
+            }
+          }
+        }
+        continue;
+      }
       final k = [for (final x in [p.x, p.right]) for (final y in [p.y, p.top]) for (final z in [p.z, p.back]) V3(x, y, z)];
       const edges = [(0, 1), (2, 3), (4, 5), (6, 7), (0, 2), (1, 3), (4, 6), (5, 7), (0, 4), (1, 5), (2, 6), (3, 7)];
       for (final (a, b) in edges) {
@@ -1843,6 +1880,8 @@ class _ArtPageState extends State<ArtPage> {
         if (d < bestD) {
           bestD = d;
           best = (k[a], k[b]);
+          _dimPanel = p;
+          _dimCurve = null;
         }
       }
     }
@@ -1852,6 +1891,42 @@ class _ArtPageState extends State<ArtPage> {
   /// Cote de l'arête [e] décalée selon le glisser [drag] (pixels) : l'axe perpendiculaire qui suit le mieux le doigt.
   CadDimension _edgeDim((V3, V3) e, Offset drag) {
     final (a, b) = e;
+    final host = _dimPanel, curve = _dimCurve;
+    if (host != null && curve != null) {
+      // courbe : le rayon, du centre au point touché
+      final c = V3(curve.center![0], curve.center![1], curve.center![2]);
+      var q = (a + b) * 0.5;
+      final end = _downAt == null ? null : _downAt! + drag;
+      if (end != null) {
+        // le trait suit le doigt sur la courbe (même cercle)
+        final near = [for (final x in shapeEdges(host)) if (x.curved && (x.radius - curve.radius).abs() < 1 && (V3(x.center![0], x.center![1], x.center![2]) - c).length < 2) (V3(x.a[0], x.a[1], x.a[2]) + V3(x.b[0], x.b[1], x.b[2])) * 0.5];
+        for (final x in near) {
+          if ((cam.project(x).$1 - end).distance < (cam.project(q).$1 - end).distance) q = x;
+        }
+      }
+      final edge = c + (q - c).unit * curve.radius;
+      return CadDimension(id: 'd${DateTime.now().millisecondsSinceEpoch}', p1: c, p2: edge, radius: true)
+        ..h1 = anchorOn(host, [c.x, c.y, c.z])
+        ..h2 = anchorOn(host, [edge.x, edge.y, edge.z]);
+    }
+    if (host != null && isShaped(host)) {
+      // côté d'une forme : cote parallèle au côté, décalée dans le plan de la pièce (ou en épaisseur)
+      final normal = V3.zero.withAxis(rankAxes(host)[2], 1);
+      var off = V3.zero;
+      var score = 0.0;
+      for (final dir in [normal.cross(b - a).unit, normal]) {
+        final sd = cam.project(a + dir * 100).$1 - cam.project(a).$1;
+        final l2 = sd.dx * sd.dx + sd.dy * sd.dy;
+        if (l2 < 1) continue;
+        final mm = (drag.dx * sd.dx + drag.dy * sd.dy) / l2 * 100;
+        if (mm.abs() * math.sqrt(l2) > score) {
+          score = mm.abs() * math.sqrt(l2);
+          off = dir * ((mm / 10).round() * 10.0);
+        }
+      }
+      return CadDimension(id: 'd${DateTime.now().millisecondsSinceEpoch}', p1: a + off, p2: b + off, a1: a, a2: b)
+        ..text = '${(b - a).length.round()} mm';
+    }
     final along = [0, 1, 2].reduce((m, k) => (b[k] - a[k]).abs() > (b[m] - a[m]).abs() ? k : m);
     var off = V3.zero;
     var best = 0.0;
@@ -2894,7 +2969,7 @@ class _ArtPageState extends State<ArtPage> {
       CadTool.select: 'Espace', CadTool.line: 'L', CadTool.rectangle: 'R', CadTool.circle: 'C', CadTool.move: 'M', CadTool.rotate: 'Q', CadTool.tape: 'T',
       CadTool.dimension: 'D', CadTool.pushPull: 'P', CadTool.edgeBand: 'B', CadTool.groove: 'G', CadTool.cut: 'X', CadTool.link: 'K', CadTool.drill: 'H',
     };
-    Widget cell(String key, IconData icon, String label, bool on, VoidCallback? tap, {String? tip}) => SizedBox(
+    Widget cell(String key, IconData icon, String label, bool on, VoidCallback? tap, {String? tip, CadTool? glyph}) => SizedBox(
           width: 64,
           height: 56,
           child: MouseRegion(
@@ -2910,7 +2985,9 @@ class _ArtPageState extends State<ArtPage> {
                 child: Opacity(
                   opacity: tap == null ? 0.38 : 1,
                   child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(icon, size: 22, color: on ? scheme.onPrimary : scheme.onSurface),
+                    glyph != null && hasToolGlyph(glyph)
+                        ? ToolGlyph(glyph, size: 24, color: on ? scheme.onPrimary : scheme.onSurface, paper: on ? scheme.primary : scheme.surface)
+                        : Icon(icon, size: 22, color: on ? scheme.onPrimary : scheme.onSurface),
                     const SizedBox(height: 3),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -2926,6 +3003,7 @@ class _ArtPageState extends State<ArtPage> {
           ),
         );
     Widget tool(CadTool x, String label) => cell('tool_${x.name}', _toolIcon(x), label, activeTool == x, () => _selectTool(x),
+        glyph: x,
         tip: keys[x] == null ? tr(x.description) : '${tr(x.description)} (${tr(keys[x]!)})');
     final shape = _shapes.skip(2).where((s) => s.$1 == activeTool).firstOrNull;
     final groups = <List<Widget>>[
@@ -3600,13 +3678,24 @@ class _ArtPageState extends State<ArtPage> {
           onPointerDown: (e) {
             _buttons = e.buttons;
             _kind = e.kind;
+            if (hasToolGlyph(activeTool)) _toolAt.value = (e.localPosition, e.kind == PointerDeviceKind.touch);
           },
-          onPointerUp: (_) => _buttons = 0,
+          onPointerMove: (e) {
+            if (hasToolGlyph(activeTool)) _toolAt.value = (e.localPosition, e.kind == PointerDeviceKind.touch);
+          },
+          onPointerUp: (e) {
+            _buttons = 0;
+            if (e.kind == PointerDeviceKind.touch) _toolAt.value = null;
+          },
+          onPointerCancel: (_) => _toolAt.value = null,
           onPointerSignal: (e) {
             if (e is PointerScrollEvent) cam.zoomAt(e.scrollDelta.dy > 0 ? 1.12 : 0.89);
           },
           child: MouseRegion(
+            cursor: hasToolGlyph(activeTool) ? SystemMouseCursors.none : MouseCursor.defer,
+            onExit: (_) => _toolAt.value = null,
             onHover: (e) {
+              if (hasToolGlyph(activeTool)) _toolAt.value = (e.localPosition, false);
               if (activeTool == CadTool.dimension && activePoints.isNotEmpty) {
                 _dimHover(e.localPosition);
                 return;
@@ -3720,6 +3809,13 @@ class _ArtPageState extends State<ArtPage> {
                   cadStatus = 'Cote ajoutée (${dim.text}).';
                   return;
                 }
+                if (activeTool == CadTool.dimension && _dimEdge != null && _dimCurve != null && !_moved) {
+                  final dim = _edgeDim(_dimEdge!, Offset.zero)..attach(art.panels);
+                  change(() => art.dimensions.add(dim));
+                  _dimEdge = null;
+                  cadStatus = 'Cote ajoutée (${dim.text}).';
+                  return;
+                }
                 _dimEdge = null;
                 if (panMode || (_buttons & (kMiddleMouseButton | kSecondaryMouseButton)) != 0) {
                   _buttons = 0;
@@ -3799,6 +3895,18 @@ class _ArtPageState extends State<ArtPage> {
                     gridStep: gridStep,
                   ),
                 ),
+                // curseur de l'outil : lame, perceuse, rouleau de chant, rainure
+                if (hasToolGlyph(activeTool))
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: ValueListenableBuilder(
+                        valueListenable: _toolAt,
+                        builder: (_, at, _) => at == null
+                            ? const SizedBox.shrink()
+                            : CustomPaint(key: const ValueKey('tool_cursor'), painter: ToolCursorPainter(activeTool, at.$1, touch: at.$2, isDark: isDark)),
+                      ),
+                    ),
+                  ),
                 Positioned(top: 10, left: 10, right: 10, child: Align(alignment: AlignmentDirectional.topEnd, child: _viewBar(Theme.of(context).colorScheme))),
                 // tiroir replié : languette pour le rouvrir, au bord droit
                 if (!sideOpen)
@@ -5790,6 +5898,11 @@ class _ScenePainter extends CustomPainter {
       )..layout();
       // au milieu, sauf sous l'aperçu de la coupe en cours
       if (nt.width + 40 < wPx && nt.height + 40 < dPx) nt.paint(c, mid + Offset(-nt.width / 2, dPx > 120 ? 18 : -nt.height / 2));
+      if (isShaped(sp)) {
+        final lt = TextPainter(text: TextSpan(text: shapeLabel(sp) ?? '', style: TextStyle(color: col, fontSize: 12, fontWeight: FontWeight.w800)), textDirection: TextDirection.ltr)..layout();
+        if (lt.width + 20 < wPx) lt.paint(c, mid + Offset(-lt.width / 2, -lt.height - 4));
+        continue;
+      }
       cote(ex.first, sp.w, dPx);
       cote(ez.first, sp.d, wPx);
     }
@@ -5979,7 +6092,7 @@ class _ScenePainter extends CustomPainter {
     // attachées aux pièces : elles suivent leurs déplacements, le montage et la vue éclatée
     final dimHosts = {for (final q in panels) q.id: q};
     for (final dim in [for (final d in art.dimensions) ?d.resolve(dimHosts), ?dimPreview]) {
-      _dim(c, dim.p1, dim.p2, dim.text, identical(dim, dimPreview) ? const Color(0xFFF26522) : const Color(0xFF0284C7), anchorA: dim.a1, anchorB: dim.a2);
+      _dim(c, dim.p1, dim.p2, dim.text, identical(dim, dimPreview) ? const Color(0xFFF26522) : const Color(0xFF0284C7), anchorA: dim.a1, anchorB: dim.a2, radius: dim.radius);
     }
 
     // 8. Face survolée pour Pousser / Tirer
@@ -6084,7 +6197,7 @@ class _ScenePainter extends CustomPainter {
     }
   }
 
-  void _dim(Canvas c, V3 a, V3 b, String text, Color col, {V3? anchorA, V3? anchorB}) {
+  void _dim(Canvas c, V3 a, V3 b, String text, Color col, {V3? anchorA, V3? anchorB, bool radius = false}) {
     final pa = p(a), pb = p(b);
     final paint = Paint()
       ..color = col
@@ -6101,13 +6214,32 @@ class _ScenePainter extends CustomPainter {
     c.drawLine(pa, pb, paint);
     final dir = pb - pa;
     final n = dir.distance == 0 ? Offset.zero : Offset(-dir.dy, dir.dx) / dir.distance * 5;
-    c.drawLine(pa - n, pa + n, paint);
-    c.drawLine(pb - n, pb + n, paint);
+    if (radius) {
+      // rayon : croix au centre, flèche sur la courbe
+      c.drawLine(pa - const Offset(5, 0), pa + const Offset(5, 0), paint);
+      c.drawLine(pa - const Offset(0, 5), pa + const Offset(0, 5), paint);
+      if (dir.distance > 1) {
+        final u = dir / dir.distance;
+        c.drawPath(Path()..addPolygon([pb, pb - u * 11 + n * 0.8, pb - u * 11 - n * 0.8], true), Paint()..color = col);
+      }
+    } else {
+      c.drawLine(pa - n, pa + n, paint);
+      c.drawLine(pb - n, pb + n, paint);
+    }
     final tp = TextPainter(text: TextSpan(text: text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: col)), textDirection: TextDirection.ltr)
       ..layout();
-    final at = Offset.lerp(pa, pb, 0.5)! - Offset(tp.width / 2, tp.height / 2);
-    c.drawRRect(RRect.fromRectAndRadius((at & tp.size).inflate(3), const Radius.circular(4)), Paint()..color = Colors.white.withValues(alpha: 0.92));
-    tp.paint(c, at);
+    // le texte s'aligne sur sa ligne, toujours à l'endroit
+    var angle = dir.distance < 1 ? 0.0 : math.atan2(dir.dy, dir.dx);
+    if (angle > math.pi / 2 + 0.01) angle -= math.pi;
+    if (angle < -math.pi / 2 - 0.01) angle += math.pi;
+    final mid = Offset.lerp(pa, pb, 0.5)!;
+    c.save();
+    c.translate(mid.dx, mid.dy);
+    c.rotate(angle);
+    final box = Rect.fromCenter(center: Offset.zero, width: tp.width, height: tp.height);
+    c.drawRRect(RRect.fromRectAndRadius(box.inflate(3), const Radius.circular(4)), Paint()..color = Colors.white.withValues(alpha: 0.92));
+    tp.paint(c, box.topLeft);
+    c.restore();
   }
 
   @override

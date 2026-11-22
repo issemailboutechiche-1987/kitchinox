@@ -101,7 +101,7 @@ Future<void> main() async {
   OpeningModel.parse(await rootBundle.loadString('assets/data/openings.json')); // portes et fenêtres
   KitchenFixtures.parse(await rootBundle.loadString('assets/data/accessories.json')); // éviers, mitigeurs, appareillage
   BrandCatalog.parse(await rootBundle.loadString('assets/data/brands.json')); // marques et prix (Maroc)
-  MediaProgetti.parse(await rootBundle.loadString('assets/data/media_progetti.json')); // caissons et portes moyenne gamme
+  MediaProgetti.parse(await rootBundle.loadString('assets/data/mid_range.json')); // caissons et portes moyenne gamme
   Market.parse(await rootBundle.loadString('assets/data/market.json')); // marques mondiales, prix indicatifs, fabricants
   SizeCatalog.parse(await rootBundle.loadString('assets/data/sizes.json')); // dimensions types et normes
   FurnitureAccessories.parse(await rootBundle.loadString('assets/data/furniture_accessories.json')); // accessoires de meubles
@@ -181,6 +181,7 @@ class _KitchenAppState extends State<KitchenApp> {
       onNewProject: (fresh) {
         s.project = fresh;
         s.engine = LayoutEngine(s.catalog, fresh);
+        s.ensureEssentials(); // porte (et eau en salle de bain) dès le départ
         s.step = PlanStep.space;
         s.refresh();
         Session.resetEmpty('cuisine', projectWorkJson(fresh.toJson()));
@@ -243,6 +244,7 @@ class _KitchenAppState extends State<KitchenApp> {
       onNewProject: (fresh) {
         s.project = fresh;
         s.engine = LayoutEngine(s.catalog, fresh);
+        s.ensureEssentials(); // porte (et eau en salle de bain) dès le départ
         s.step = PlanStep.space;
         s.refresh();
         Session.resetEmpty(id, projectWorkJson(fresh.toJson()));

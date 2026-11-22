@@ -103,7 +103,6 @@ class SceneExporter {
     final carcass = finishById(carcasses, style.carcass);
     final top = worktopFinish(style, style.worktop);
     final lowFront = frontFinish(style, style.frontLower ?? style.front);
-    final (_, hSize, hColor) = handleLook(style, st.db?.handles);
 
     // ---- pièce : murs (avec ouvertures), sol, crédence
     final walls = <Map<String, dynamic>>[];
@@ -177,7 +176,7 @@ class SceneExporter {
           final topPanels = m.kind.isLow
               ? [
                   at(s0 + 18, s1 - 18, t0, t0 + 70, b.z1 - 18, b.z1), // traverse arrière
-                  if (style.handle != 'gola') at(s0 + 18, s1 - 18, tf - 70, tf, b.z1 - 18, b.z1), // traverse avant (remplacée par le profil Gola)
+                  if (!e.golaOn(m)) at(s0 + 18, s1 - 18, tf - 70, tf, b.z1 - 18, b.z1), // traverse avant (remplacée par le profil Gola)
                 ]
               : [
                   at(s0 + 18, s1 - 18, t0, tf, b.z1 - 18, b.z1), // dessus plein (hauts et colonnes)
@@ -185,7 +184,7 @@ class SceneExporter {
 
           // profil Gola (sans poignée) : gorge en aluminium fixée dans le caisson, sous le plan de travail
           // (et entre deux tiroirs) ; les façades s'arrêtent dessous, en dégageant la prise de main
-          if (style.handle == 'gola' && !m.kind.isFiller && !m.isHoodUnit) {
+          if (e.golaOn(m) && !m.kind.isFiller && !m.isHoodUnit) {
             final gc = golaColor(style, fr.color);
             final golaMat = _plain(gc, rough: 0.4, metal: golaMetal(style) ? 0.6 : 0.05);
             // gorge de 26 mm de profondeur et 33 mm de haut : fond, lèvre basse, rebord haut
@@ -276,19 +275,20 @@ class SceneExporter {
       final cells = openableCells(m, c);
       final all = cellsOf(rowsOf(m, c) ?? seedRows(m, c), c.height);
       final apps = appliancesOf(m, c);
+      final hs = handleSetOf(style, st.db?.handles, m, front: fr.color);
+      var grips = <Map<String, dynamic>>[]; // poignées en relief de la dernière façade demandée
       Future<String> frontImg(String what, double wMm, double hMm, List<FrontCell>? cs, {String? opening, bool? handleTop}) async {
-        final key = 'front|${m.id}|$what|${wMm.round()}x${hMm.round()}|${fr.id}|${style.handle}|${style.handleId}|${style.handleSize}|'
-            '${style.handleFinish}|${style.tallXxl}|${opening ?? c.opening}|${c.variant}|${apps.join(',')}|${carcass.id}|${fr.textured}|$handleTop';
-        final img = await _image(key, wMm, hMm, (cv) {
-          paintFront(cv, Rect.fromLTWH(0, 0, wMm, hMm), m,
+        final key = 'front|${m.id}|$what|${wMm.round()}x${hMm.round()}|${fr.id}|${hs.door.key}|${hs.drawer.key}|'
+            '${style.tallXxl}|${opening ?? c.opening}|${c.variant}|${apps.join(',')}|${carcass.id}|${fr.textured}|$handleTop';
+        final found = <Map<String, dynamic>>[];
+        void paint(Canvas cv, void Function(GripSpec) onGrip) => paintFront(cv, Rect.fromLTWH(0, 0, wMm, hMm), m,
               fill: fr.color,
               stroke: shade(fr.color, -0.3),
               line: lineOn(fr.color),
               opening: opening ?? c.opening,
               variant: c.variant,
-              handle: style.handle,
-              handleSize: hSize,
-              handleColor: hColor,
+              handles: hs,
+              onGrip: onGrip,
               tallXxl: style.tallXxl,
               fillPaint: fr.paint(vertical: true),
               cells: cs,
@@ -299,7 +299,10 @@ class SceneExporter {
               gloss: fr.gloss,
               handleTop: handleTop,
               golaProfile: false); // la gorge est une pièce du caisson, pas un dessin sur la porte
-        });
+        // les poignées sont de vrais volumes : repérées une fois, pas peintes sur l'image
+        paint(Canvas(ui.PictureRecorder()), (g) => found.add(g.toJson()));
+        grips = found;
+        final img = await _image(key, wMm, hMm, (cv) => paint(cv, (_) {}));
         return img.key;
       }
 
@@ -341,7 +344,7 @@ class SceneExporter {
                       (c.opening == 'hinged_left' || (c.opening != 'hinged_right' && cell.hinge != 'right')) ? 'left' : 'right',
                     ),
                   ];
-            final gola = style.handle == 'gola' && m.isCarcass && !m.kind.isFiller;
+            final gola = e.golaOn(m) && m.isCarcass && !m.kind.isFiller;
             var fz0 = zTop - h, fz1 = zTop;
             if (gola && ((m.kind.isLow && cell.y < 0.5) || (all.indexOf(cell) > 0 && golaBetween(m, all[all.indexOf(cell) - 1], cell)))) {
               fz1 -= 30; // sous le profil : on passe les doigts dans la gorge
@@ -367,6 +370,7 @@ class SceneExporter {
                 'z0': fz0,
                 'z1': fz1,
                 'img': await frontImg('${cell.kind.name}-$hinge', lw, fz1 - fz0, m2, opening: hinge == 'left' ? 'hinged_left' : 'hinged_right', handleTop: isLower),
+                if (grips.isNotEmpty) 'grips': grips,
                 // porte vitrée : cadre de 60 mm et vrai verre, vus des deux côtés
                 if (cell.kind == CellKind.glass && lw > 160 && fz1 - fz0 > 160) 'glass': 60.0,
                 if (kind != 'static') 'inside': await interiorImg(cell, lw, fz1 - fz0),
@@ -388,6 +392,7 @@ class SceneExporter {
               'z1': b.z1,
               'img': await frontImg('corner-$bi-$hinge-${(bb - a).round()}', bb - a, height, [door],
                   opening: hinge == 'left' ? 'hinged_left' : 'hinged_right'),
+                if (grips.isNotEmpty) 'grips': grips,
               'insideT': 19.0,
             });
           }
@@ -399,7 +404,7 @@ class SceneExporter {
             final (da, db) = blindAtEnd ? (s0, s0 + dw) : (s1 - dw, s1);
             await addDoor(da, db, blindAtEnd ? 'left' : 'right');
             final (pa, pb) = blindAtEnd ? (db, s1) : (s0, da);
-            parts.add({'kind': 'static', 's0': pa, 's1': pb, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('blind$bi-${(pb - pa).round()}', pb - pa, height, const [])});
+            parts.add({'kind': 'static', 's0': pa, 's1': pb, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('blind$bi-${(pb - pa).round()}', pb - pa, height, const []), if (grips.isNotEmpty) 'grips': grips});
           } else if (bi == 0) {
             // bras le long du mur : de l'extrémité jusqu'au retour
             await addDoor(s0, math.min(s1, room.wall(c.wallId).length - c.depth), 'left');
@@ -407,7 +412,7 @@ class SceneExporter {
             await addDoor(math.max(s0, c.depth.toDouble()), s1, 'right');
           }
         } else {
-          parts.add({'kind': 'static', 's0': s0, 's1': s1, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('box$bi', width, height, frontCells(m, c, realistic: true))});
+          parts.add({'kind': 'static', 's0': s0, 's1': s1, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('box$bi', width, height, frontCells(m, c, realistic: true)), if (grips.isNotEmpty) 'grips': grips});
         }
         if (parts.isEmpty && niches) continue;
         fronts.add({'uid': c.uid, ..._frame(w), 't': t1, 'depth': c.depth, 'parts': parts, if (m.id.contains('mirror')) 'mirror': true});

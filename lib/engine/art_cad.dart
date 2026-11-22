@@ -505,6 +505,7 @@ class CadDimension {
   DimAnchor? h1, h2; // attaches aux pièces : la cote les suit
   List<double>? rankOff; // décalage de la ligne de cote (axes de la pièce)
   V3? a1, a2; // points cotés (la ligne de cote p1–p2 est décalée ; lignes de rappel a → p)
+  bool radius; // rayon : du centre ([p1]) au bord ([p2]), « R 300 »
 
   CadDimension({
     required this.id,
@@ -513,8 +514,9 @@ class CadDimension {
     this.offset = 40,
     this.a1,
     this.a2,
+    this.radius = false,
     String? text,
-  }) : text = text ?? '${(p2 - p1).length.round()} mm';
+  }) : text = text ?? (radius ? 'R ${(p2 - p1).length.round()}' : '${(p2 - p1).length.round()} mm');
 
   double get distance => (p2 - p1).length;
 
@@ -527,6 +529,7 @@ class CadDimension {
         if (h1 != null) 'h1': h1!.toJson(),
         if (h2 != null) 'h2': h2!.toJson(),
         if (rankOff != null) 'off': rankOff,
+        if (radius) 'r': true,
         if (a1 != null) 'a1': {'x': a1!.x, 'y': a1!.y, 'z': a1!.z},
         if (a2 != null) 'a2': {'x': a2!.x, 'y': a2!.y, 'z': a2!.z},
       };
@@ -540,6 +543,7 @@ class CadDimension {
       offset: (j['offset'] as num?)?.toDouble() ?? 40,
       a1: j['a1'] is Map ? parseV3(j['a1'] as Map) : null,
       a2: j['a2'] is Map ? parseV3(j['a2'] as Map) : null,
+      radius: j['r'] == true,
       text: j['text'] as String?,
     )
       ..h1 = DimAnchor.parse(j['h1'])
@@ -552,6 +556,7 @@ class CadDimension {
 
   /// Attache les deux bouts aux pièces qu'ils touchent.
   void attach(List<ArtPanel> panels) {
+    if (radius && h1 != null && h2 != null) return; // déjà attachée à sa pièce
     final q1 = _l(a1 ?? p1), q2 = _l(a2 ?? p2);
     // la même pièce pour les deux bouts quand c'est possible
     for (final p in panels) {
@@ -577,6 +582,7 @@ class CadDimension {
     final m1 = h1 == null ? null : panels[h1!.panel], m2 = h2 == null ? null : panels[h2!.panel];
     if ((h1 != null && m1 == null) || (h2 != null && m2 == null)) return null;
     final q1 = m1 == null ? (a1 ?? p1) : _v(h1!.at(m1)), q2 = m2 == null ? (a2 ?? p2) : _v(h2!.at(m2));
+    if (radius) return CadDimension(id: id, p1: q1, p2: q2, radius: true);
     final off = rankOff == null || m1 == null ? V3.zero : _v(offsetFromRank(m1, rankOff!));
     return CadDimension(id: id, p1: q1 + off, p2: q2 + off, a1: rankOff == null ? null : q1, a2: rankOff == null ? null : q2, offset: offset, text: '${(q2 - q1).length.round()} mm');
   }

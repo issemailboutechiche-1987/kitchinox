@@ -1823,7 +1823,7 @@ class SummaryPanel extends StatelessWidget {
               state.project.specs.gamme == 'luxe'
                   ? tr('Caissons en contreplaqué latté et façades MDF facturés à l’article (caisson, porte, joue, tiroir).')
                   : state.project.specs.gamme == 'moyen'
-                  ? tr('Caissons blancs Alvic et portes MDF 19 super mat Media Progetti, facturés à l’article.')
+                  ? tr('Caissons blancs Alvic et portes MDF 19 super mat, facturés à l’article.')
                   : tr('Caissons et façades en MDF, chiffrés à la feuille : panneaux, chants et découpe au tarif de l’atelier.'),
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -1996,13 +1996,15 @@ class _ApplianceSection extends StatelessWidget {
                 DropdownButtonFormField<String>(
                   key: ValueKey('${item.uid}-app$i-${ids[i]}'),
                   isExpanded: true,
+                  itemHeight: null, // noms entiers, sur deux lignes si besoin
                   initialValue: ids[i],
-                  decoration: InputDecoration(border: const OutlineInputBorder(), isDense: true, labelText: db.appliances[ids[i]]!.categoryName),
+                  selectedItemBuilder: (_) => [for (final a in db.ofCategory(db.appliances[ids[i]]!.category)) Text(tr(a.name), maxLines: 2, overflow: TextOverflow.ellipsis)],
+                  decoration: InputDecoration(border: const OutlineInputBorder(), isDense: true, labelText: tr(db.appliances[ids[i]]!.categoryName)),
                   items: [
                     for (final a in db.ofCategory(db.appliances[ids[i]]!.category))
                       DropdownMenuItem(
                         value: a.id,
-                        child: Text(tr(a.name), overflow: TextOverflow.ellipsis),
+                        child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(tr(a.name))),
                       ),
                   ],
                   onChanged: editable
@@ -2182,7 +2184,7 @@ class _SupplySections extends StatelessWidget {
           state.project.specs.gamme == 'luxe'
               ? tr('Caissons, façades, joues et tiroirs à l\'article (gamme luxe) ; le reste selon les fourchettes du marché marocain.')
               : state.project.specs.gamme == 'moyen'
-              ? tr('Caissons, façades et joues à l’article au tarif Media Progetti, hors taxes ; le reste selon les fourchettes du marché marocain.')
+              ? tr('Caissons, façades et joues à l’article au tarif moyenne gamme, hors taxes ; le reste selon les fourchettes du marché marocain.')
               : tr('Panneaux, chant et découpe au tarif de l\'atelier ; le reste selon les fourchettes du marché marocain.'),
           style: t.bodySmall,
         ),

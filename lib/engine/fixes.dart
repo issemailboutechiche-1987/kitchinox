@@ -9,6 +9,7 @@ import 'dart:math' as math;
 import 'access.dart';
 import 'brands_sizes.dart';
 import 'clearance.dart';
+import 'essentials.dart';
 import 'layout_engine.dart';
 import 'materials.dart';
 import 'catalog.dart';
@@ -30,6 +31,20 @@ IssueFix fixFor(LayoutEngine e, Issue i, {MaterialsDb? db}) {
   bool moved(MoveResult r) => r.moved;
 
   switch (i.code) {
+    case 'no_door':
+      return IssueFix(L('Pose une porte au meilleur endroit libre (une pièce a toujours une porte).'), label: L('Poser la porte'), apply: () => ensureDoor(e) != null);
+    case 'no_water':
+      return IssueFix(L('Place l’arrivée d’eau et l’évacuation, et raccorde les sanitaires.'), label: L('Ajouter l’eau'), apply: () {
+        ensureWater(e);
+        ensureBathNetworks(e);
+        return true;
+      });
+    case 'front_hidden':
+      return IssueFix(L('Retire le meuble inaccessible. Dans un angle, posez un meuble d’angle en L.'), label: L('Retirer'), apply: () {
+        if (c == null) return false;
+        e.remove(c.uid);
+        return true;
+      });
     case 'filler_gap':
       return IssueFix(L('Pose des fileurs (50 à 200 mm) dans les vides trop petits pour un caisson.'), label: L('Combler'), apply: () {
         final gaps = e.gaps().where((g) => g.fillable).toList();

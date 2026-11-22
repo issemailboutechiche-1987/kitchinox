@@ -7,6 +7,7 @@ library;
 import 'dart:math' as math;
 
 import 'catalog.dart';
+import 'essentials.dart';
 import 'fixes.dart';
 import 'front_layout.dart';
 import 'layout_engine.dart';
@@ -252,9 +253,20 @@ int _nearest(List<int> v, int want) => v.reduce((a, b) => (a - want).abs() <= (b
 /// Compositions recalculées pour la pièce : (famille, proposition).
 /// [withStyle] faux : vos finitions, un modèle par composition (onglet « Selon votre pièce »).
 /// [withStyle] vrai : la finition signature de chaque modèle, puis deux autres palettes (collection).
-List<(String, LayoutProposal)> proposeUniverse(LayoutEngine base, {bool withStyle = true}) {
+List<(String, LayoutProposal)> proposeUniverse(LayoutEngine original, {bool withStyle = true}) {
   final out = <(String, LayoutProposal)>[];
-  final src = base.project;
+  // porte obligatoire, en face du mur principal ; l'eau obligatoire en salle de bain
+  final src = Project.fromJson(original.project.toJson());
+  final base = LayoutEngine(original.catalog, src);
+  if (!src.openings.any((o) => o.isDoor)) {
+    final items = [...src.items], objects = [...src.objects];
+    src.items.clear();
+    src.objects.clear();
+    final main = ([...src.room.walls.where((w) => w.enabled)]..sort((a, b) => b.length != a.length ? b.length.compareTo(a.length) : src.room.order.indexOf(a.id).compareTo(src.room.order.indexOf(b.id)))).firstOrNull?.id;
+    ensureDoor(base, avoid: {?main}, on: src.room.outline == null ? _facing[main] : null);
+    src.items.addAll(items);
+    src.objects.addAll(objects);
+  }
   final walls = [for (final w in src.room.walls.where((w) => w.enabled)) w]..sort((a, b) => b.length.compareTo(a.length));
   final templates = universeTemplates[src.universe] ?? const <UniverseTemplate>[];
   final palettes = universePalettes[src.universe] ?? const <Palette>[];
@@ -287,20 +299,31 @@ List<(String, LayoutProposal)> proposeUniverse(LayoutEngine base, {bool withStyl
   return out;
 }
 
+const _facing = {'A': 'D', 'D': 'A', 'B': 'C', 'C': 'B'};
+
 /// Profondeur d'un dressing : les modules d'un mur voisin commencent après l'angle.
 const dressingDepth = 600.0;
 
-/// Dressings sur plusieurs murs : en L (2 m × 1,5 m au moins) et en U (3 m × 2,5 m au moins),
-/// le mur le plus long au fond, les murs voisins décalés de la profondeur du dressing dans l'angle.
+/// Dressings sur plusieurs murs, en L ou en U : un meuble d'angle en L à chaque angle (tout reste accessible),
+/// les modules des deux murs partent de ses bras.
 List<(String, LayoutProposal)> _cornerDressings(LayoutEngine base, List<UniverseTemplate> templates, bool withStyle) {
   final room = base.project.room;
+  final model = base.catalog.tryGet('wardrobe_corner_L_90');
   final order = [for (final id in room.order) if (room.wall(id).enabled) id];
-  if (order.length < 2) return const [];
-  final ids = [...order]..sort((a, b) => room.wall(b).length.compareTo(room.wall(a).length));
+  if (model == null || order.length < 2) return const [];
+  bool door(String id) => base.project.openings.any((o) => o.isDoor && o.wallId == id);
+  // mur du fond : le plus long sans porte
+  final ids = [...order]..sort((x, y) {
+      final d = (door(x) ? 1 : 0).compareTo(door(y) ? 1 : 0);
+      if (d != 0) return d;
+      final l = room.wall(y).length.compareTo(room.wall(x).length);
+      return l != 0 ? l : order.indexOf(x).compareTo(order.indexOf(y));
+    });
   final a = ids.first;
-  final i = order.indexOf(a);
-  final next = order[(i + 1) % order.length], prev = order[(i - 1 + order.length) % order.length];
-  final la = room.wall(a).length, ln = room.wall(next).length, lp = room.wall(prev).length;
+  final next = room.nextOf(a), prev = room.prevOf(a);
+  final la = room.wall(a).length;
+  final w1 = model.widths.first.toDouble(), w2 = (model.widthRight ?? model.widths.first).toDouble();
+  bool usable(String id) => room.isWallEnabled(id) && room.wall(id).orthogonal;
   final out = <(String, LayoutProposal)>[];
   LayoutProposal named(LayoutProposal pr, String id, String name, String desc, double bonus, String strength) => LayoutProposal(
         id: '${pr.id}_$id',
@@ -314,21 +337,43 @@ List<(String, LayoutProposal)> _cornerDressings(LayoutEngine base, List<Universe
         worktop: 0,
         storage: pr.storage,
       );
+  // meuble d'angle au bout du mur [wall] (son bras droit est sur le mur suivant), à la hauteur des colonnes
+  bool corner(Project p, String wall) {
+    final e = LayoutEngine(base.catalog, p);
+    final talls = p.items.where((c) => e.modelOf(c).kind == CabinetKind.tall).map((c) => c.height);
+    final h = talls.isEmpty ? null : model.heights.nearest(talls.reduce(math.max));
+    try {
+      e.add(model.id, wall, s: room.wall(wall).length - w1, height: h);
+      return true;
+    } on PlacementException {
+      return false;
+    }
+  }
+
   for (final tp in templates.where((t) => !t.center)) {
     final look = withStyle ? tp.signature : null;
-    final pa = _fit(base, tp, a, look);
-    if (pa == null || la < 2000 || ln < 1500) continue;
-    final pl = _fit(base, tp, next, look, into: pa.project, start: dressingDepth, avail: ln - dressingDepth);
-    if (pl == null) continue;
-    out.add(('Dressing en L',
-        named(pl, 'L', '${tp.name} en L', '${tp.description} Composition en L sur deux murs (au moins 2 m × 1,5 m, profondeur 60 cm).', 8,
-            'Dressing en L : ${(la / 1000).toStringAsFixed(1)} m × ${(ln / 1000).toStringAsFixed(1)} m')));
-    if (prev == next || la < 3000 || ln < 2500 || lp < 2500) continue;
-    final pu = _fit(base, tp, prev, look, into: pl.project, avail: lp - dressingDepth);
-    if (pu == null) continue;
+    if (!usable(next) || la < w1 + 800 || room.wall(next).length < w2 + 500) continue;
+    // en L : fond + mur suivant
+    final pa = _fit(base, tp, a, look, avail: la - w1);
+    if (pa != null && corner(pa.project, a)) {
+      final pl = _fit(base, tp, next, look, into: pa.project, start: w2, avail: room.wall(next).length - w2);
+      if (pl != null && essentialOk(LayoutEngine(base.catalog, pl.project))) {
+        out.add(('Dressing en L',
+            named(pl, 'L', '${tp.name} en L', '${tp.description} Composition en L sur deux murs, meuble d’angle en L : tout est accessible.', 8,
+                'Dressing en L : ${(la / 1000).toStringAsFixed(1)} m × ${(room.wall(next).length / 1000).toStringAsFixed(1)} m, angle en L')));
+      }
+    }
+    // en U : fond + les deux murs voisins
+    if (prev == next || !usable(prev) || la < w1 + w2 + 600 || room.wall(prev).length < w1 + 500 || la - 2 * dressingDepth < 800) continue;
+    final pu = _fit(base, tp, a, look, start: w2, avail: la - w1 - w2);
+    if (pu == null || !corner(pu.project, a) || !corner(pu.project, prev)) continue;
+    final pn = _fit(base, tp, next, look, into: pu.project, start: w2, avail: room.wall(next).length - w2);
+    if (pn == null) continue;
+    final pp = _fit(base, tp, prev, look, into: pn.project, avail: room.wall(prev).length - w1);
+    if (pp == null || !essentialOk(LayoutEngine(base.catalog, pp.project))) continue;
     out.add(('Dressing en U',
-        named(pu, 'U', '${tp.name} en U', '${tp.description} Composition en U sur trois murs (au moins 3 m × 2,5 m ; îlot central possible dans les grandes pièces).', 12,
-            'Dressing en U : fond ${(la / 1000).toStringAsFixed(1)} m, côtés ${(ln / 1000).toStringAsFixed(1)} et ${(lp / 1000).toStringAsFixed(1)} m')));
+        named(pp, 'U', '${tp.name} en U', '${tp.description} Composition en U sur trois murs, deux meubles d’angle en L : tout est accessible.', 12,
+            'Dressing en U : fond ${(la / 1000).toStringAsFixed(1)} m, côtés ${(room.wall(next).length / 1000).toStringAsFixed(1)} et ${(room.wall(prev).length / 1000).toStringAsFixed(1)} m')));
   }
   return out;
 }
@@ -453,6 +498,11 @@ LayoutProposal? _fit(LayoutEngine base, UniverseTemplate tp, String wallId, Pale
   }
   // objets de la composition : sanitaires, canapé, téléviseur, tapis…
   final objs = into != null ? 0 : placeTemplateObjects(e, tp.id, wallId, placed);
+  // salle de bain : l'eau est obligatoire, tout est raccordé
+  if (p.universe == 'bain') {
+    ensureWater(e);
+    ensureBathNetworks(e);
+  }
   final objNames = [
     for (final o in p.objects)
       if (o.fixture != null) o.fixture!.name.split(' ').first,

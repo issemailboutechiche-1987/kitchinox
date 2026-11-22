@@ -389,6 +389,7 @@ class AppState extends ChangeNotifier {
         ...engine.validate(),
         if (db != null) ...applianceChecks(engine, db!),
         if (project.networks) ...networkChecks(engine),
+        ...essentialChecks(engine),
         ...openingChecks(engine),
         ...accessChecks(engine),
         ...objectChecks(engine),
@@ -669,6 +670,15 @@ class AppState extends ChangeNotifier {
     return err;
   }
 
+  /// Porte obligatoire, eau obligatoire en salle de bain : posées si elles manquent.
+  void ensureEssentials() {
+    ensureDoor(engine);
+    if (project.universe == 'bain') {
+      ensureWater(engine);
+      ensureBathNetworks(engine);
+    }
+  }
+
   /// Dimensions d'une pièce type (et, en cuisine, la disposition des meubles qui va avec).
   String applyRoomPreset(RoomPreset pr) {
     edit(() {
@@ -676,6 +686,7 @@ class AppState extends ChangeNotifier {
       project.room.resize(width: pr.width, depth: pr.depth);
       final shape = project.universe == 'cuisine' ? pr.kitchenShape : null;
       if (shape != null) engine.applyShape(shape);
+      ensureEssentials();
     });
     notifyListeners();
     return trp('{0} : {1} x {2} mm', [tr(pr.name), pr.width.round(), pr.depth.round()]);
@@ -830,7 +841,11 @@ class AppState extends ChangeNotifier {
 
   /// Étape suivante ; renvoie le message qui l'empêche, le cas échéant.
   String? next() {
-    if (step == PlanStep.space && spaceMissing != null) return spaceMissing;
+    if (step == PlanStep.space) {
+      // une pièce a toujours une porte ; une salle de bain a toujours l'eau
+      if (!project.openings.any((o) => o.isDoor) || project.universe == 'bain') edit(ensureEssentials);
+      if (spaceMissing != null) return spaceMissing;
+    }
     if (step.index < PlanStep.values.length - 1) goTo(PlanStep.values[step.index + 1]);
     return null;
   }
@@ -1228,6 +1243,9 @@ class AppState extends ChangeNotifier {
           ..handleId = src.handleId
           ..handleFinish = src.handleFinish
           ..handleSize = src.handleSize
+          ..handleOrient = src.handleOrient
+          ..handlePos = src.handlePos
+          ..handlePair = src.handlePair
           ..floor = src.floor
           ..wall = src.wall
           ..splash = src.splash;
@@ -1341,6 +1359,42 @@ class AppState extends ChangeNotifier {
     final m = engine.modelOf(c);
     final a = db?.appliances[applianceId];
     String? msg;
+    // hotte : encastrée dans un caisson, ou murale visible ; on change de meuble pour qu'elle soit vraiment celle choisie
+    if (a?.category == 'hoods') {
+      final target = switch (applianceId) {
+        'hood_wall_inclined' => 'hood_free_inclined',
+        'hood_wall_decorative' => m.id == 'hood_free_box' ? m.id : 'hood_free_pyramid',
+        _ => m.isFreeHood ? 'wall_integrated_hood' : m.id,
+      };
+      if (target != m.id && catalog.tryGet(target) != null) {
+        final err = edit(() {
+          final was = c.copy();
+          final r = engine.replace(uid, target);
+          if (!r.moved) {
+            msg = r.reason;
+            return;
+          }
+          final now = project.byUid(uid)!;
+          final nm = engine.modelOf(now);
+          if (nm.isFreeHood) {
+            now.z = (project.standards.worktopTop + 650).toDouble();
+            final room = project.room.height - now.z;
+            final fit = nm.heights.values.where((h) => h <= room).toList();
+            now.height = fit.isEmpty ? nm.heights.values.first : fit.last;
+          } else {
+            final (z, h) = engine.hoodPlacement(nm, now.wallId);
+            now
+              ..z = z
+              ..height = h;
+          }
+          now
+            ..appliances = [applianceId]
+            ..front = was.front;
+          msg = trp('Hotte remplacée : {0}', [tr(nm.name)]);
+        });
+        return err ?? msg;
+      }
+    }
     final err = edit(() {
       final next = [...appliancesOf(m, c)];
       next[index] = applianceId;
@@ -1367,23 +1421,41 @@ class AppState extends ChangeNotifier {
     return err ?? msg;
   }
 
-  /// Choix d'une poignée du catalogue (avec son entraxe / sa longueur et sa finition).
-  void setHandle(HandleModel h, {int? size, String? finish}) => edit(() {
-        final st = project.style;
-        if (st.handleId != h.id) {
-          st.handleSize = null;
-          st.handleFinish = null;
+  /// Choix d'une poignée ([zone] nul : partout). Change de modèle : taille et finition repartent de celles du modèle.
+  void setHandle(HandleModel h, {int? size, String? finish, String? zone}) => editHandle((c) {
+        if (c.id != h.id) {
+          c
+            ..size = null
+            ..finish = null;
         }
-        st.handleId = h.id;
-        st.handle = switch (h.render) {
-          HandleRender.bar || HandleRender.xxl => h.render == HandleRender.xxl ? 'xxl' : 'bar',
-          HandleRender.knob => 'knob',
-          HandleRender.gola => 'gola',
-          _ => h.render.name,
-        };
-        if (size != null) st.handleSize = size;
-        if (finish != null) st.handleFinish = finish;
+        c
+          ..id = h.id
+          ..kind = h.render.kind;
+        if (size != null) c.size = size;
+        if (finish != null) c.finish = finish;
+      }, zone: zone);
+
+  /// Modifie la poignée d'un endroit (nul : la poignée générale).
+  void editHandle(void Function(HandleChoice c) change, {String? zone}) => edit(() {
+        final st = project.style;
+        final c = (zone == null ? st.handleChoice : st.handleByZone[zone] ?? st.handleChoice).copy();
+        change(c);
+        if (zone != null) {
+          st.handleByZone[zone] = c;
+          return;
+        }
+        st
+          ..handle = c.kind
+          ..handleId = c.id
+          ..handleSize = c.size
+          ..handleFinish = c.finish
+          ..handleOrient = c.orient
+          ..handlePos = c.pos
+          ..handlePair = c.pair;
       });
+
+  /// L'endroit reprend la poignée générale.
+  void clearHandleZone(String zone) => edit(() => project.style.handleByZone.remove(zone));
 
   /// Joue (costado) d'un côté d'un caisson : null automatique, true avec, false sans. Renvoie le message à afficher.
   String? setCheek(String uid, bool left, bool? on) {

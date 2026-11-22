@@ -626,9 +626,7 @@ class Scene3dPainter {
                 fill: fr.color,
                 stroke: shade(fr.color, -0.3),
                 line: lineOn(fr.color),
-                handle: p.style.handle,
-                handleSize: handleLook(p.style, handles).$2,
-                handleColor: handleLook(p.style, handles).$3,
+                handles: handleSetOf(p.style, handles, m, front: fr.color),
 
                 tallXxl: p.style.tallXxl,
                 fillPaint: fr.paint(vertical: true),
@@ -926,9 +924,7 @@ class Scene3dPainter {
         fill: fr.color,
         stroke: shade(fr.color, -0.3),
         line: lineOn(fr.color),
-        handle: p.style.handle,
-        handleSize: handleLook(p.style, handles).$2,
-        handleColor: handleLook(p.style, handles).$3,
+        handles: handleSetOf(p.style, handles, m, front: fr.color),
 
         tallXxl: p.style.tallXxl,
         fillPaint: fr.paint(vertical: true, origin: Offset(-s0, 0)),
@@ -941,7 +937,7 @@ class Scene3dPainter {
       );
       _paintInterior(canvas, r, openCells, total, carcassColor, m, c);
       // profil Gola : il reste sur le caisson, visible porte ouverte
-      if (p.style.handle == 'gola') paintGolaProfile(canvas, r, m, cells: frontCells(m, c, realistic: true), color: golaColor(p.style, frontOfItem(p.style, c, m).color));
+      if (p.style.handle == 'gola' && p.style.handleAt(LayoutEngine.handleZone(m.kind)).kind == 'gola') paintGolaProfile(canvas, r, m, cells: frontCells(m, c, realistic: true), color: golaColor(p.style, frontOfItem(p.style, c, m).color));
       canvas.restore();
       return;
     }
@@ -955,9 +951,7 @@ class Scene3dPainter {
       opening: c.opening,
       variant: c.variant,
       strokeWidth: 1.1 / scale,
-      handle: p.style.handle,
-      handleSize: handleLook(p.style, handles).$2,
-      handleColor: handleLook(p.style, handles).$3,
+      handles: handleSetOf(p.style, handles, m, front: fr.color),
 
       tallXxl: p.style.tallXxl,
       fillPaint: fr.paint(vertical: true, origin: Offset(-s0, 0)),

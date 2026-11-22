@@ -71,7 +71,7 @@ Future<Uint8List> buildExecutionPdf(LayoutEngine e,
   final drawer = TechDrawer(e);
   final reps = drawer.reperes;
   final walls = wallsToDraw(e);
-  final issues = [...e.validate(), if (p.networks) ...networkChecks(e)]..sort((a, b) => a.severity.index.compareTo(b.severity.index));
+  final issues = [...e.validate(), ...essentialChecks(e), if (p.networks) ...networkChecks(e)]..sort((a, b) => a.severity.index.compareTo(b.severity.index));
   final bom = buildBom(e);
 
   final format = PdfPageFormat.a3.landscape;

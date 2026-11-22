@@ -42,6 +42,40 @@ void main() {
     expect(m.totalEdgeMeters, closeTo(math.pi * 0.6, 0.01));
   });
 
+  test('bords : côtés droits du polygone, rayon des cercles, des arcs et des coins arrondis', () {
+    final hexa = flat('h', w: 1200, d: 1040);
+    setOutline(hexa, [for (var i = 0; i < 6; i++) [600 + 600 * math.cos(math.pi / 3 * i), 18, 520 + 519.6 * math.sin(math.pi / 3 * i) / 0.8660254 * 0.8660254]]);
+    hexa.shape = 'polygone';
+    expect(shapeEdges(hexa).where((e) => e.curved), isEmpty);
+    expect(shapeEdges(hexa), hasLength(6));
+    final rond = flat('r', w: 800, d: 800)..shape = 'rond';
+    expect(shapeEdges(rond).every((e) => e.curved && (e.radius - 400).abs() < 1), isTrue);
+    final coins = flat('c', w: 800, d: 400)
+      ..shape = 'arrondi'
+      ..radius = 60;
+    final ec = shapeEdges(coins);
+    expect(ec.where((e) => !e.curved), hasLength(4));
+    expect(ec.where((e) => e.curved).every((e) => (e.radius - 60).abs() < 1), isTrue);
+    // demi-disque : la corde et un arc R 500
+    final arc = flat('a', w: 1000, d: 500);
+    setOutline(arc, [for (var i = 0; i <= 30; i++) [500 - 500 * math.cos(math.pi * i / 30), 18, 500 * math.sin(math.pi * i / 30)]]);
+    final ea = shapeEdges(arc);
+    expect(ea.where((e) => !e.curved).length, 1);
+    expect(ea.where((e) => e.curved).every((e) => (e.radius - 500).abs() < 2), isTrue);
+    expect(shapeLabel(arc), 'arc R 500');
+    // cote de rayon : suit la pièce, relue
+    final e = ea.firstWhere((e) => e.curved);
+    final c = V3(e.center![0], e.center![1], e.center![2]);
+    final dim = CadDimension(id: 'd', p1: c, p2: c + const V3(0, 0, 500), radius: true)
+      ..h1 = anchorOn(arc, e.center!)
+      ..h2 = anchorOn(arc, [c.x, c.y, c.z + 500]);
+    expect(dim.text, 'R 500');
+    arc.x += 250;
+    final back = CadDimension.fromJson(jsonDecode(jsonEncode(dim.toJson())) as Map<String, dynamic>).resolve({'a': arc})!;
+    expect((back.radius, back.text), (true, 'R 500'));
+    expect(back.p1.x, closeTo(750, 1));
+  });
+
   test('coins arrondis : le rayon reste en mm quand la pièce change de taille', () {
     final p = flat('a', w: 800, d: 400)
       ..shape = 'arrondi'

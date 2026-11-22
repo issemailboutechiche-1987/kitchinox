@@ -27,6 +27,8 @@ const cornerSizes = <String, List<CornerSize>>{
     CornerSize(1250, 650, carcass: 1200, filler: 50),
   ],
   'corner_tall_l_shaped': [CornerSize(900, 900), CornerSize(1000, 1000)],
+  'wardrobe_corner_L_90': [CornerSize(900, 900), CornerSize(1000, 1000), CornerSize(1100, 1100)],
+  'wardrobe_corner_diagonal_45': [CornerSize(950, 950), CornerSize(1050, 1050)],
   'corner_tall_blind': [
     CornerSize(1050, 650, carcass: 1000, filler: 50),
     CornerSize(1250, 650, carcass: 1200, filler: 50),

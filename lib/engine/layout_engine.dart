@@ -248,6 +248,12 @@ class LayoutEngine {
 
   static const cheekT = EndPanel.thickness;
 
+  /// Endroit d'une façade pour le choix de la poignée.
+  static String handleZone(CabinetKind k, {bool drawer = false}) => drawer ? 'tiroir' : (k.isHigh ? 'haut' : (k == CabinetKind.tall || k == CabinetKind.cornerTall ? 'colonne' : 'bas'));
+
+  /// Meuble à profil Gola : le choix général, sauf un haut qui a sa propre poignée.
+  bool golaOn(CabinetModel m) => project.style.handle == 'gola' && project.style.handleAt(handleZone(m.kind)).kind == 'gola';
+
   /// Contour en vue de dessus.
   PlanShape planShape(PlacedCabinet c) {
     final m = modelOf(c);

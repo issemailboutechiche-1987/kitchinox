@@ -18,6 +18,7 @@ import 'art.dart';
 import 'furniture.dart';
 import 'openings_catalog.dart';
 import 'room_objects.dart';
+import 'handles.dart';
 import 'manual_cut.dart';
 import 'materials.dart';
 import 'networks.dart';
@@ -514,6 +515,10 @@ class KitchenStyle {
   int? handleSize; // entraxe / longueur / diamètre choisi (mm)
   String? handleFinish;
   bool tallXxl; // barres XXL verticales sur les colonnes
+  String handleOrient; // 'auto' | 'v' | 'h'
+  String handlePos; // 'auto' | 'centre'
+  bool handlePair; // deux poignées sur les tiroirs larges
+  final Map<String, HandleChoice> handleByZone; // poignée propre à un endroit (voir handleZones)
   String carcass;
   String floor; // sol
   String wall; // murs
@@ -544,6 +549,10 @@ class KitchenStyle {
     this.handleSize,
     this.handleFinish,
     this.tallXxl = false,
+    this.handleOrient = 'auto',
+    this.handlePos = 'auto',
+    this.handlePair = false,
+    Map<String, HandleChoice>? handleByZone,
     this.carcass = 'blanc',
     this.floor = 'parquet_clair',
     this.wall = 'blanc_casse',
@@ -563,7 +572,14 @@ class KitchenStyle {
     this.ovenHandle = 'bar',
     this.socketFinish = 'blanc',
     List<CustomTexture>? textures,
-  }) : textures = textures ?? [];
+  })  : handleByZone = handleByZone ?? {},
+        textures = textures ?? [];
+
+  /// Poignée générale.
+  HandleChoice get handleChoice => HandleChoice(kind: handle, id: handleId, size: handleSize, finish: handleFinish, orient: handleOrient, pos: handlePos, pair: handlePair);
+
+  /// Poignée d'un endroit. Avec le profil Gola, seuls les meubles hauts peuvent être différents (le profil est dans les caissons bas).
+  HandleChoice handleAt(String zone) => (handle == 'gola' && zone != 'haut') ? handleChoice : (handleByZone[zone] ?? handleChoice);
 
   /// Finition des façades d'un caisson : la sienne, sinon celle des hauts / des bas, sinon la générale.
   String frontOf(PlacedCabinet c, {required bool high}) => c.front ?? (high ? frontUpper : frontLower) ?? front;
@@ -578,6 +594,10 @@ class KitchenStyle {
         if (handleSize != null) 'handle_size': handleSize,
         if (handleFinish != null) 'handle_finish': handleFinish,
         if (tallXxl) 'tall_xxl': true,
+        if (handleOrient != 'auto') 'handle_orient': handleOrient,
+        if (handlePos != 'auto') 'handle_pos': handlePos,
+        if (handlePair) 'handle_pair': true,
+        if (handleByZone.isNotEmpty) 'handle_zones': {for (final e in handleByZone.entries) e.key: e.value.toJson()},
         'carcass': carcass,
         'floor': floor,
         'wall': wall,
@@ -609,6 +629,10 @@ class KitchenStyle {
         handleSize: (j['handle_size'] as num?)?.toInt(),
         handleFinish: j['handle_finish'] as String?,
         tallXxl: j['tall_xxl'] as bool? ?? false,
+        handleOrient: j['handle_orient'] as String? ?? 'auto',
+        handlePos: j['handle_pos'] as String? ?? 'auto',
+        handlePair: j['handle_pair'] == true,
+        handleByZone: {for (final e in ((j['handle_zones'] as Map?) ?? const {}).entries) '${e.key}': HandleChoice.fromJson((e.value as Map).cast<String, dynamic>())},
         carcass: j['carcass'] as String? ?? 'blanc',
         floor: j['floor'] as String? ?? 'parquet_clair',
         wall: j['wall'] as String? ?? 'blanc_casse',

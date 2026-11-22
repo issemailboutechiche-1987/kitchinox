@@ -702,91 +702,331 @@ class _SymbolPainter extends CustomPainter {
 
 // ------------------------------------------------------------------ poignées du catalogue
 
-class _HandlePicker extends StatelessWidget {
+class _HandlePicker extends StatefulWidget {
   final AppState state;
   final HandleCatalog cat;
   const _HandlePicker({required this.state, required this.cat});
+  @override
+  State<_HandlePicker> createState() => _HandlePickerState();
+}
+
+class _HandlePickerState extends State<_HandlePicker> {
+  String? zone; // nul : partout
+  String? family;
+
+  AppState get state => widget.state;
+  HandleCatalog get cat => widget.cat;
+
+  static String _mad(PriceRange p) => p.max == 0 ? tr('usinage inclus') : '${p.min.round()} - ${p.max.round()} MAD';
+  static String _unit(HandleModel h) => tr(h.perBar ? 'la barre de 3 m' : (h.perDoorMilling ? 'par façade' : 'pièce'));
+  static const _famIcons = {
+    'gola': 'Sans poignée',
+  };
+
+  static String _famShort(String id, String name) => switch (id) {
+        'knobs' => 'Boutons',
+        'gola' => 'Sans poignée',
+        'appliance_and_oversized_pulls' => 'XXL',
+        _ => name.startsWith('Poignées Barres')
+            ? 'Barres'
+            : name.startsWith('Poignées Profilées')
+                ? 'Sur chant'
+                : name.startsWith('Poignées Encastrées')
+                    ? 'Encastrées'
+                    : name.startsWith('Prises de Main')
+                        ? 'Usinées'
+                        : name.startsWith('Poignées Coquilles')
+                            ? 'Coquilles'
+                            : _famIcons[id] ?? name,
+      };
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final st = state.project.style;
-    final cur = cat.byId(st.handleId);
-    String mad(PriceRange p) => p.max == 0 ? 'usinage inclus' : '${p.min.round()} - ${p.max.round()} MAD';
+    final present = <String>{
+      for (final c in state.project.items) ...[
+        if (state.engine.modelOf(c).isCarcass) LayoutEngine.handleZone(state.engine.modelOf(c).kind),
+        if (openableCells(state.engine.modelOf(c), c).any((x) => x.kind == CellKind.drawer)) 'tiroir',
+      ],
+    };
+    // avec le profil Gola (dans les caissons bas), seuls les hauts peuvent être différents
+    final zones = [for (final z in handleZones.keys) if (present.contains(z) && (st.handle != 'gola' || z == 'haut')) z];
+    if (zone != null && !zones.contains(zone)) zone = null;
+    final choice = zone == null ? st.handleChoice : st.handleAt(zone!);
+    final own = zone != null && st.handleByZone.containsKey(zone);
+    final cur = cat.byId(choice.id) ?? (choice.kind == 'gola' ? HandleCatalog.gola : choice.kind == 'push' ? HandleCatalog.push : null);
+    final fam = family ?? cur?.familyId ?? cat.families.first.$1;
+    final drawerOnly = zone == 'tiroir';
+    final front = frontFinish(st, zone == 'haut' ? (st.frontUpper ?? st.front) : (st.frontLower ?? st.front));
+    HandleLook lookOf(HandleModel h, {HandleChoice? c}) => h.render == HandleRender.gola
+        ? HandleLook('gola', 160, golaColor(st, front.color))
+        : lookOfChoice(HandleChoice(kind: h.render.kind, id: h.id, size: c?.size, finish: c?.finish, orient: c?.orient ?? 'auto', pos: c?.pos ?? 'auto', pair: c?.pair ?? false), cat, front: front.color);
+    final look = cur == null ? HandleLook(choice.kind, 160, handleFinishColor(choice.finish), orient: choice.orient, pos: choice.pos, pair: choice.pair) : lookOf(cur, c: choice);
+    final canTurn = const {'bar', 'recess', 'pocket', 'xxl'}.contains(choice.kind) && !drawerOnly;
+    final canPlace = !const {'gola', 'push', 'edge', 'edgeFull', 'jProfile', 'groove', 'chamfer'}.contains(choice.kind);
+    Widget label(String s) => Padding(padding: const EdgeInsets.only(top: Tokens.s3, bottom: 6), child: Text(tr(s), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800)));
+
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      if (cur != null && cur.render != HandleRender.gola) ...[
-        Container(
-          padding: const EdgeInsets.all(Tokens.s3),
-          decoration: BoxDecoration(color: scheme.primaryContainer.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(Tokens.radius)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(tr(cur.name), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: Tokens.s2),
-            if (cur.sizes.isNotEmpty) ...[
-              Text(trp('{0} (mm)', [cur.sizeLabel]), style: t.labelMedium),
-              const SizedBox(height: 4),
-              Wrap(spacing: 6, runSpacing: 6, children: [
-                for (final v in cur.sizes)
-                  ChoiceChip(
-                      visualDensity: VisualDensity.compact,
-                      label: Text('$v'),
-                      selected: (st.handleSize ?? cur.defaultSize) == v,
-                      onSelected: (_) => state.setHandle(cur, size: v)),
-              ]),
-              const SizedBox(height: Tokens.s2),
-            ],
-            if (cur.finishes.isNotEmpty) ...[
-              Text(tr('Finition'), style: t.labelMedium),
-              const SizedBox(height: 4),
-              Wrap(spacing: 6, runSpacing: 6, children: [
-                for (final f in cur.finishes)
-                  ChoiceChip(
-                    visualDensity: VisualDensity.compact,
-                    avatar: CircleAvatar(backgroundColor: handleFinishColor(f), radius: 7),
-                    label: Text(f),
-                    selected: (st.handleFinish ?? cur.finishes.first) == f,
-                    onSelected: (_) => state.setHandle(cur, finish: f),
-                  ),
-              ]),
-              const SizedBox(height: Tokens.s2),
-            ],
-            Text(
-                '${mad(cur.price)} ${cur.perBar ? 'la barre de 3 m' : cur.perDoorMilling ? 'par façade (usinage)' : 'pièce'}'
-                '${cur.drillingText(st.handleSize ?? cur.defaultSize).isEmpty ? '' : ' · ${cur.drillingText(st.handleSize ?? cur.defaultSize)}'}',
-                style: t.bodySmall),
+      // où
+      if (zones.length > 1 || (st.handle == 'gola' && zones.isNotEmpty)) ...[
+        KxChoices<String>(
+          key: const ValueKey('handle_zone'),
+          segments: [
+            ButtonSegment(value: '', label: Text(tr('Partout'))),
+            for (final z in zones) ButtonSegment(value: z, label: Text('${tr(handleZones[z]!)}${st.handleByZone.containsKey(z) ? ' •' : ''}')),
+          ],
+          selected: {zone ?? ''},
+          onSelectionChanged: (v) => setState(() {
+            zone = v.first.isEmpty ? null : v.first;
+            family = null;
+          }),
+        ),
+        const SizedBox(height: Tokens.s2),
+        if (zone != null)
+          Row(children: [
+            Expanded(child: Text(tr(own ? 'Poignée propre à cet endroit.' : 'Comme partout. Choisissez un modèle pour le changer ici.'), style: t.bodySmall)),
+            if (own) TextButton(key: const ValueKey('handle_like_all'), onPressed: () => state.clearHandleZone(zone!), child: Text(tr('Comme partout'))),
           ]),
-        ),
-        const SizedBox(height: Tokens.s3),
       ],
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        dense: true,
-        title: Text(tr('Barres XXL verticales sur les colonnes')),
-        value: st.tallXxl,
-        onChanged: (v) => state.setTallXxl(v),
-      ),
-      for (final (_, fname, list) in cat.families) ...[
-        Padding(
-          padding: const EdgeInsets.only(top: Tokens.s3, bottom: Tokens.s2),
-          child: Text(fname, style: t.labelLarge?.copyWith(color: scheme.primary, fontWeight: FontWeight.w800)),
-        ),
-        for (final h in list)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: _ChoiceRow(
-              icon: switch (h.render) {
-                HandleRender.knob || HandleRender.recessRound => Icons.circle_outlined,
-                HandleRender.gola || HandleRender.groove || HandleRender.chamfer => Icons.space_bar,
-                HandleRender.edge || HandleRender.edgeFull || HandleRender.jProfile => Icons.border_top,
-                HandleRender.xxl => Icons.vertical_align_center,
-                _ => Icons.horizontal_rule,
-              },
-              label: h.render == HandleRender.gola ? h.name : '${h.name}\n${mad(h.price)}${h.perBar ? ' / barre 3 m' : h.perDoorMilling ? ' / façade' : ''}',
-              selected: st.handleId == h.id || (st.handleId == null && h.render == HandleRender.gola && st.handle == 'gola'),
-              onTap: () => state.setHandle(h),
-            ),
+      // aperçu et réglages du modèle choisi
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(Tokens.s3),
+        decoration: BoxDecoration(color: scheme.surfaceContainerLow, borderRadius: BorderRadius.circular(Tokens.radius), border: Border.all(color: scheme.outlineVariant)),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(
+            height: 150,
+            width: double.infinity,
+            child: CustomPaint(key: const ValueKey('handle_preview'), painter: _HandlePainter(state.catalog, look, front, zone: zone ?? 'bas', big: true)),
           ),
-      ],
+          const SizedBox(height: Tokens.s2),
+          Text(tr(cur?.name ?? 'Poignée standard'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+          if (cur != null && cur.render != HandleRender.gola && cur.render != HandleRender.push)
+            Text(
+                '${_mad(cur.price)} ${_unit(cur)}'
+                '${cur.drillingText(choice.size ?? cur.defaultSize).isEmpty ? '' : ' · ${tr(cur.drillingText(choice.size ?? cur.defaultSize))}'}',
+                style: t.bodySmall),
+          if (cur != null && cur.sizes.length > 1) ...[
+            label(trp('{0} (mm)', [tr(cur.sizeLabel)])),
+            KxChoices<int>(
+              style: const ButtonStyle(visualDensity: VisualDensity.compact),
+              segments: [for (final v in cur.sizes) ButtonSegment(value: v, label: Text('$v'))],
+              selected: {choice.size ?? cur.defaultSize},
+              onSelectionChanged: (v) => state.setHandle(cur, size: v.first, zone: zone),
+            ),
+          ],
+          if (cur != null && cur.finishes.isNotEmpty) ...[
+            label(cur.render == HandleRender.gola ? 'Couleur du profil' : 'Finition'),
+            Wrap(spacing: 10, runSpacing: 10, children: [
+              for (final f in cur.finishes)
+                () {
+                  final on = (choice.finish ?? cur.finishes.first) == f;
+                  final color = cur.render == HandleRender.gola
+                      ? golaColor(KitchenStyle(handle: 'gola', handleFinish: f), front.color)
+                      : handleFinishColor(f);
+                  return InkWell(
+                    key: ValueKey('handle_finish_$f'),
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => state.setHandle(cur, finish: f, zone: zone),
+                    child: SizedBox(
+                      width: 76,
+                      child: Column(children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color.lerp(color, Colors.white, 0.35)!, color, Color.lerp(color, Colors.black, 0.2)!]),
+                            border: Border.all(color: on ? scheme.primary : scheme.outlineVariant, width: on ? 3 : 1),
+                          ),
+                          child: on ? Icon(Icons.check, size: 20, color: color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white) : null,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(tr(f), textAlign: TextAlign.center, style: t.labelSmall?.copyWith(fontWeight: on ? FontWeight.w800 : null)),
+                      ]),
+                    ),
+                  );
+                }(),
+            ]),
+          ],
+          if (canTurn) ...[
+            label('Sens sur les portes'),
+            KxChoices<String>(
+              key: const ValueKey('handle_orient'),
+              segments: [
+                ButtonSegment(value: 'auto', label: Text(tr('Verticale')), icon: const Icon(Icons.more_vert)),
+                ButtonSegment(value: 'h', label: Text(tr('Horizontale')), icon: const Icon(Icons.more_horiz)),
+              ],
+              selected: {choice.orient == 'h' ? 'h' : 'auto'},
+              onSelectionChanged: (v) => state.editHandle((c) => c.orient = v.first, zone: zone),
+            ),
+          ],
+          if (canPlace) ...[
+            label('Place'),
+            KxChoices<String>(
+              key: const ValueKey('handle_pos'),
+              segments: [
+                ButtonSegment(value: 'auto', label: Text(tr('Près du bord'))),
+                ButtonSegment(value: 'centre', label: Text(tr('Au centre'))),
+              ],
+              selected: {choice.pos},
+              onSelectionChanged: (v) => state.editHandle((c) => c.pos = v.first, zone: zone),
+            ),
+            if (zone == null || drawerOnly)
+              SwitchListTile(
+                key: const ValueKey('handle_pair'),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                title: Text(tr('Deux poignées sur les tiroirs de 80 cm et plus')),
+                value: choice.pair,
+                onChanged: (v) => state.editHandle((c) => c.pair = v, zone: zone),
+              ),
+          ],
+          if (zone == null && st.handle != 'gola' && present.contains('colonne'))
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(tr('Barres XXL verticales sur les colonnes')),
+              value: st.tallXxl,
+              onChanged: (v) => state.setTallXxl(v),
+            ),
+        ]),
+        ),
+      ),
+      // modèles
+      const SizedBox(height: Tokens.s4),
+      KxChoices<String>(
+        key: const ValueKey('handle_family'),
+        style: const ButtonStyle(visualDensity: VisualDensity.compact),
+        segments: [for (final (id, name, _) in cat.families) ButtonSegment(value: id, label: Text(tr(_famShort(id, name))))],
+        selected: {fam},
+        onSelectionChanged: (v) => setState(() => family = v.first),
+      ),
+      const SizedBox(height: Tokens.s3),
+      LayoutBuilder(builder: (context, box) {
+        const gap = 10.0;
+        final cols = box.maxWidth > 520 ? 3 : 2;
+        final w = (box.maxWidth - gap * (cols - 1)) / cols;
+        return Wrap(spacing: gap, runSpacing: gap, children: [
+          for (final (id, _, list) in cat.families)
+            if (id == fam)
+              for (final h in list)
+                // le profil Gola se règle pour toute la cuisine (il est dans les caissons)
+                if (h.render != HandleRender.gola || zone == null)
+                  () {
+                    final on = cur?.id == h.id && (zone == null || own);
+                    return InkWell(
+                      key: ValueKey('handle_${h.id}'),
+                      borderRadius: BorderRadius.circular(Tokens.radius),
+                      onTap: () => state.setHandle(h, zone: zone),
+                      child: Container(
+                        width: w,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: on ? scheme.primary.withValues(alpha: 0.08) : scheme.surface,
+                          borderRadius: BorderRadius.circular(Tokens.radius),
+                          border: Border.all(color: on ? scheme.primary : scheme.outlineVariant, width: on ? 2 : 1),
+                        ),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          SizedBox(height: 92, width: double.infinity, child: CustomPaint(painter: _HandlePainter(state.catalog, lookOf(h, c: cur?.id == h.id ? choice : null), front, zone: zone ?? 'bas'))),
+                          const SizedBox(height: 6),
+                          Text(tr(h.name), maxLines: 3, overflow: TextOverflow.ellipsis, style: t.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: on ? scheme.primary : null)),
+                          if (h.render != HandleRender.gola && h.render != HandleRender.push) Text('${_mad(h.price)} ${_unit(h)}', style: t.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
+                        ]),
+                      ),
+                    );
+                  }(),
+        ]);
+      }),
     ]);
   }
+}
+
+/// La poignée dessinée sur une vraie façade (porte et tiroir en grand, angle de porte en vignette).
+class _HandlePainter extends CustomPainter {
+  final Catalog catalog;
+  final HandleLook look;
+  final Finish front;
+  final String zone;
+  final bool big;
+  _HandlePainter(this.catalog, this.look, this.front, {required this.zone, this.big = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final m = catalog.models.where((m) => m.isCarcass && !m.kind.isCorner && LayoutEngine.handleZone(m.kind) == (zone == 'tiroir' ? 'bas' : zone)).firstOrNull ??
+        catalog.models.where((m) => m.isCarcass && !m.kind.isCorner).firstOrNull;
+    if (m == null) return;
+    canvas.save();
+    canvas.clipRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8)));
+    canvas.drawRect(Offset.zero & size, Paint()..color = shade(front.color, -0.18));
+    void face(Rect px, double wMm, double hMm, CellKind kind) {
+      final k = px.width / wMm;
+      canvas.save();
+      canvas.translate(px.left, px.top);
+      canvas.scale(k);
+      paintFront(canvas, Rect.fromLTWH(0, 0, wMm, hMm), m,
+          fill: front.color,
+          stroke: shade(front.color, -0.3),
+          line: lineOn(front.color),
+          fillPaint: front.paint(vertical: true),
+          handles: (door: look, drawer: look),
+          cells: [FrontCell(kind, 0, hMm, 'left', -1)],
+          realistic: true,
+          pxPerMm: 1,
+          opening: 'hinged_left',
+          gloss: front.gloss);
+      canvas.restore();
+    }
+
+    if (big) {
+      // une porte et un tiroir large, en entier
+      const gap = 10.0;
+      final high = zone == 'haut';
+      if (zone == 'tiroir') {
+        final h = size.height - 16;
+        face(Rect.fromLTWH(8, 8, size.width - 16, h), (size.width - 16) / h * 300, 300, CellKind.drawer);
+      } else {
+        final dh = size.height - 16;
+        final dw = dh * 600 / 750;
+        face(Rect.fromLTWH(8, 8, dw, dh), 600, 750, CellKind.door);
+        if (!high) {
+          final left = 8 + dw + gap, rw = size.width - left - 8;
+          if (rw > 40) {
+            final k = dh / 750, hMm = 250.0;
+            for (var i = 0; i < 3; i++) {
+              face(Rect.fromLTWH(left, 8 + i * hMm * k, rw, hMm * k), rw / k, hMm - 3, CellKind.drawer);
+            }
+          }
+        } else {
+          final left = 8 + dw + gap;
+          if (size.width - left - 8 >= dw) face(Rect.fromLTWH(left, 8, dw, dh), 600, 750, CellKind.door);
+        }
+      }
+    } else {
+      // l'angle de la porte, agrandi, là où est la poignée
+      final drawer = zone == 'tiroir';
+      final wMm = drawer ? 420.0 : 330.0;
+      final hMm = wMm * size.height / size.width;
+      final k = size.width / wMm;
+      canvas.save();
+      if (drawer) {
+        face(Rect.fromLTWH(0, 0, size.width, size.height), wMm, hMm, CellKind.drawer);
+      } else {
+        const dw = 500.0, dh = 720.0;
+        // portion de porte : coin haut droit (bas pour les hauts)
+        final top = zone != 'haut' || look.kind == 'gola';
+        canvas.translate(size.width - dw * k - 6, top ? 6 : size.height - dh * k - 6);
+        face(Rect.fromLTWH(0, 0, dw * k, dh * k), dw, dh, CellKind.door);
+      }
+      canvas.restore();
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_HandlePainter o) => o.look.key != look.key || o.front.id != front.id || o.zone != zone || o.big != big;
 }

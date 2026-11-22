@@ -1,17 +1,13 @@
 {
- "supplier": "Media Progetti",
+ "supplier": "Moyenne gamme",
  "tier": "Moyenne gamme",
- "city": "Casablanca (Zone industrielle Dar Bouazza)",
- "activity": "Importateur, distributeur : meubles, cuisines, dérivés du bois",
+ "city": "",
+ "activity": "",
  "currency": "MAD",
  "prices_are": "TTC",
  "vat": 20,
  "date": "2023-12-30",
- "sources": [
-  "Devis CO312997 (Alvic antibactérien)",
-  "Devis CO312998 (Alvic hydrofuge antibactérien)",
-  "Devis CO313002 (portes Istanbul ép. 19)"
- ],
+ "sources": [],
  "lines": {
   "alvic": "Caisson blanc Alvic antibactérien",
   "alvic_hydro": "Caisson blanc Alvic hydrofuge antibactérien"

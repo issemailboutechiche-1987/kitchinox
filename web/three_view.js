@@ -264,6 +264,64 @@ function glassPanel(w, h, fw, front, edge, uid) {
   return g;
 }
 
+/** Poignées en volume (barre, bouton, coquille, cuir, profil sur chant), posées sur la façade de w × h mm. */
+function buildGrips(list, w, h, uid) {
+  const g = new THREE.Group();
+  const front = 0.0095; // face avant du panneau (18 mm, centré)
+  for (const q of list) {
+    const mat = new THREE.MeshStandardMaterial({ color: q.c, roughness: q.k === 'leather' ? 0.8 : 0.32, metalness: q.k === 'leather' ? 0 : 0.65 });
+    const add = (geo, x, y, z, rx = 0, ry = 0, rz = 0) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z);
+      m.rotation.set(rx, ry, rz);
+      m.castShadow = true;
+      m.userData.uid = uid;
+      g.add(m);
+      return m;
+    };
+    const x = (q.x - w / 2) * S, y = (h / 2 - q.y) * S;
+    const turn = q.v ? 0 : Math.PI / 2; // cylindre vertical ou couché
+    switch (q.k) {
+      case 'knob': {
+        const r = Math.max(10, q.size > 10 && q.size < 60 ? q.size / 2 : 15) * S;
+        add(new THREE.CylinderGeometry(r * 0.45, r * 0.55, 0.018, 20), x, y, front + 0.009, Math.PI / 2);
+        add(new THREE.CylinderGeometry(r, r * 0.8, 0.012, 28), x, y, front + 0.023, Math.PI / 2);
+        break;
+      }
+      case 'cup': {
+        const len = 0.095;
+        const geo = new THREE.CylinderGeometry(0.024, 0.024, len, 20, 1, true, 0, Math.PI);
+        const m = add(geo, x, y, front, 0, 0, Math.PI / 2);
+        m.material = mat.clone();
+        m.material.side = THREE.DoubleSide;
+        m.rotation.set(0, 0, Math.PI / 2);
+        m.rotateY(-Math.PI / 2);
+        break;
+      }
+      case 'leather':
+        add(new THREE.BoxGeometry(0.025, 0.07, 0.004), x, y - 0.022, front + 0.012, -0.18);
+        add(new THREE.CylinderGeometry(0.005, 0.005, 0.016, 14), x, y + 0.008, front + 0.008, Math.PI / 2);
+        break;
+      case 'edge':
+      case 'edgeFull':
+      case 'jProfile': {
+        const len = Math.max(20, q.len) * S, d = q.k === 'jProfile' ? 0.024 : 0.02;
+        const a = q.v ? [0.004, len, d] : [len, 0.004, d], b = q.v ? [0.014, len, 0.003] : [len, 0.014, 0.003];
+        add(new THREE.BoxGeometry(...a), x, y, front + d / 2 - 0.002);
+        add(new THREE.BoxGeometry(...b), x, y, front + d - 0.002);
+        break;
+      }
+      default: {
+        const len = Math.max(60, q.len) * S, r = (q.k === 'xxl' ? 9 : 6) * S, out = (q.k === 'xxl' ? 45 : 34) * S;
+        add(new THREE.CylinderGeometry(r, r, len, 18), x, y, front + out, 0, 0, turn);
+        const c = len / 2 - Math.min(0.02, len * 0.12);
+        for (const k of [-c, c]) add(new THREE.CylinderGeometry(r * 0.75, r * 0.75, out, 14), q.v ? x : x + k, q.v ? y + k : y, front + out / 2, Math.PI / 2);
+      }
+    }
+  }
+  return g;
+}
+
 function buildPart(f, uid, part, depth, carcassColor) {
   const out = new THREE.Group();
   const w = part.s1 - part.s0, h = part.z1 - part.z0;
@@ -301,6 +359,11 @@ function buildPart(f, uid, part, depth, carcassColor) {
   }
   panel.position.copy(local);
   pivot.add(panel);
+  if (part.grips) {
+    const grips = buildGrips(part.grips, w, h, uid);
+    grips.position.copy(local);
+    pivot.add(grips);
+  }
   out.add(frame);
   // intérieur (visible quand la case s'ouvre) et caisson du tiroir
   if (part.kind !== 'static' && part.inside) {

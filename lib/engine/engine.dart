@@ -18,6 +18,7 @@ export 'corners.dart';
 export 'cutting.dart';
 export 'stock.dart';
 export 'end_panels.dart';
+export 'essentials.dart';
 export 'fixes.dart';
 export 'layout_engine.dart';
 export 'manual_cut.dart';

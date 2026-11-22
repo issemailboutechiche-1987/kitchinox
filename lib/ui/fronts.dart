@@ -9,6 +9,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
+import 'finishes.dart';
 
 /// Cases de façade d'un caisson posé : sa composition, ou celle reconstituée pour les appareils
 /// en rendu réaliste (four, micro-ondes). null = dessin standard du modèle.
@@ -17,6 +18,16 @@ List<FrontCell>? frontCells(CabinetModel m, PlacedCabinet c, {bool realistic = f
   if (rows != null) return cellsOf(rows, c.height);
   if (realistic && (m.id == 'base_cooktop_oven' || m.id == 'tall_oven_microwave')) return cellsOf(seedRows(m, c), c.height);
   return null;
+}
+
+/// Poignée en relief sur une façade : centre (mm depuis le coin haut gauche), longueur, taille, couleur.
+class GripSpec {
+  final String kind;
+  final double x, y, len, size;
+  final bool vertical;
+  final Color color;
+  const GripSpec(this.kind, this.x, this.y, this.vertical, this.len, this.size, this.color);
+  Map<String, dynamic> toJson() => {'k': kind, 'x': x, 'y': y, 'v': vertical, 'len': len, 'size': size, 'c': color.toARGB32() & 0xFFFFFF};
 }
 
 void paintFront(
@@ -41,8 +52,20 @@ void paintFront(
   Color handleColor = const Color(0xFFB4B9BF),
   bool tallXxl = false, // barres XXL sur les portes de colonne
   bool? handleTop, // force la position de la poignée (haut ou bas de porte)
+  HandleSet? handles, // poignées des portes et des tiroirs (remplace handle, handleSize, handleColor)
+  void Function(GripSpec g)? onGrip, // poignées en relief (3D) : signalées au lieu d'être peintes
   bool golaProfile = true, // faux : façade seule (porte ouverte en 3D), le profil Gola reste sur le caisson
 }) {
+  var orient = 'auto', place = 'auto';
+  var pair = false;
+  if (handles != null) {
+    handle = handles.door.kind;
+    handleSize = handles.door.size;
+    handleColor = handles.door.color;
+    orient = handles.door.orient;
+    place = handles.door.pos;
+    pair = handles.door.pair;
+  }
   final u = pxPerMm ?? r.height / math.max(1, m.defaultHeight); // pixels par mm
   final body = fillPaint ?? (Paint()..color = fill);
   final edge = Paint()
@@ -69,6 +92,26 @@ void paintFront(
   final hole = Paint()..color = Color.lerp(handleColor, Colors.black, 0.75)!;
   const edgeTypes = {'edge', 'edgeFull', 'jProfile', 'groove', 'chamfer'};
 
+  /// Passe à la poignée des portes ou des tiroirs.
+  void use(HandleLook? l) {
+    if (l == null) return;
+    handle = l.kind;
+    handleSize = l.size;
+    handleColor = l.color;
+    orient = l.orient;
+    place = l.pos;
+    pair = l.pair;
+    steel.color = handleColor;
+    steelHi.color = Color.lerp(handleColor, Colors.white, 0.7)!;
+    hole.color = Color.lerp(handleColor, Colors.black, 0.75)!;
+  }
+
+  bool relief(String kind, Offset c, bool vertical, double len, double size) {
+    if (onGrip == null || !const {'bar', 'xxl', 'knob', 'cup', 'leather', 'edge', 'edgeFull', 'jProfile'}.contains(kind)) return false;
+    onGrip(GripSpec(kind, (c.dx - r.left) / u, (c.dy - r.top) / u, vertical, len / u, size, handleColor));
+    return true;
+  }
+
   void barReal(Offset c, bool vertical, double maxLen, {double? lengthMm, double thickMm = 12, bool appliance = false}) {
     final len = math.min((lengthMm ?? (handleSize > 60 ? handleSize + 30 : 160)) * u, maxLen * 0.8);
     final th = math.max(1.6, thickMm * u);
@@ -91,7 +134,12 @@ void paintFront(
 
   /// Poignée ponctuelle (barre, bouton, coquille, cuir, cuvette...) centrée en [c].
   void pointGrip(Offset c, bool vertical, double maxLen, {String? as}) {
-    switch (as ?? handle) {
+    final kind = as ?? handle;
+    if (kind == 'push' || kind == 'gola') return;
+    final shown = const {'bar', 'xxl', 'knob', 'cup', 'leather', 'recess', 'recessRound', 'pocket'}.contains(kind) ? kind : 'bar';
+    final barLen = math.min((kind == 'xxl' ? handleSize + 100 : (handleSize > 60 ? handleSize + 30 : 160)) * u, (kind == 'xxl' ? maxLen * 1.6 : maxLen) * 0.8);
+    if (relief(shown, c, vertical, shown == 'bar' || shown == 'xxl' ? barLen : 0, handleSize)) return;
+    switch (kind) {
       case 'knob':
         knobReal(c);
       case 'xxl':
@@ -137,6 +185,7 @@ void paintFront(
       x0 = d.center.dx - len / 2;
     }
     final r0 = Rect.fromLTWH(x0, top ? d.top : d.bottom - th, len, th);
+    if (relief(handle, r0.center, false, len, handleSize)) return;
     if (!realistic) {
       canvas.drawRect(r0, ln);
       return;
@@ -158,7 +207,7 @@ void paintFront(
 
   final knob = Paint()..color = line;
   void handleV(double x, double cy, double maxLen) {
-    if (handle == 'gola') return;
+    if (handle == 'gola' || handle == 'push') return;
     if (realistic) {
       pointGrip(Offset(x, cy), true, maxLen);
       return;
@@ -171,7 +220,7 @@ void paintFront(
   }
 
   void handleH(double cx, double y, double maxLen) {
-    if (handle == 'gola') return;
+    if (handle == 'gola' || handle == 'push') return;
     if (realistic) {
       pointGrip(Offset(cx, y), false, maxLen);
       return;
@@ -255,7 +304,7 @@ void paintFront(
         ? Rect.fromLTRB(d.left, d.top + 30 * u, d.right, d.bottom)
         : d;
     panel(dReal);
-    if (handle == 'gola') return; // En profil Gola, aucune poignée n'est posée sur la porte
+    if (handle == 'gola' || handle == 'push') return; // sans poignée : rien sur la porte
     if (tallXxl && realistic && m.kind == CabinetKind.tall && dReal.height / u > 1200) {
       final x = hingeLeft ? dReal.right - math.min(50 * u, dReal.width * 0.15) : dReal.left + math.min(50 * u, dReal.width * 0.15);
       pointGrip(Offset(x, dReal.bottom - 950 * u), true, dReal.height, as: 'xxl');
@@ -267,6 +316,7 @@ void paintFront(
         final x = hingeLeft ? dReal.right - 14 * u : dReal.left;
         final hlen = math.min(handleSize * u, 240 * u);
         final rGrip = Rect.fromLTWH(x, dReal.bottom - 1050 * u - hlen / 2, 14 * u, hlen);
+        if (relief(handle, rGrip.center, true, hlen, handleSize)) return;
         canvas.drawRect(rGrip, steel);
         canvas.drawRect(Rect.fromLTWH(hingeLeft ? rGrip.left : rGrip.right - 1.2 * u, rGrip.top, 1.2 * u, rGrip.height), steelHi);
       } else {
@@ -285,10 +335,21 @@ void paintFront(
     var cy = handleTop ? dReal.top + off : dReal.bottom - off;
     // porte de grande hauteur : poignée à hauteur de main (≈ 1050 mm du sol)
     if (dReal.height / u > 1200 && m.kind == CabinetKind.tall) cy = math.max(dReal.top + off, dReal.bottom - 950 * u);
+    if (place == 'centre' && dReal.height / u <= 1200) cy = dReal.center.dy;
+    final alongTop = orient == 'h' && const {'bar', 'cup', 'recess', 'pocket', 'xxl'}.contains(handle);
+    if (alongTop || handle == 'cup') {
+      // poignée horizontale : centrée sur la porte, à 60 mm du bord haut (bas) ou 50 mm du bas (haut)
+      final edge = realistic ? math.min(60 * u, dReal.height * 0.2) : dReal.height * 0.12;
+      final tallDoor = dReal.height / u > 1200 && m.kind == CabinetKind.tall;
+      final y = place == 'centre' && !tallDoor ? dReal.center.dy : (tallDoor ? cy : (handleTop ? dReal.top + edge : dReal.bottom - edge));
+      handleH(place == 'centre' || orient == 'h' ? dReal.center.dx : x, y, dReal.width);
+      return;
+    }
     handleV(x, cy, math.min(dReal.height, 900 * u));
   }
 
   void drawers(Rect d, List<double> ratios) {
+    use(handles?.drawer);
     var y = d.top;
     final total = ratios.fold<double>(0, (a, b) => a + b);
     for (var idx = 0; idx < ratios.length; idx++) {
@@ -313,10 +374,16 @@ void paintFront(
         y += h;
         continue;
       }
-      final hy = realistic ? dr.top + math.min(55 * u, dr.height * 0.3) : dr.top + math.min(dr.height * 0.25, 10);
-      handleH(dr.center.dx, hy, dr.width);
+      final hy = place == 'centre' ? dr.center.dy : (realistic ? dr.top + math.min(55 * u, dr.height * 0.3) : dr.top + math.min(dr.height * 0.25, 10));
+      if (pair && dr.width / u >= 780) {
+        handleH(dr.left + dr.width * 0.25, hy, dr.width / 2);
+        handleH(dr.left + dr.width * 0.75, hy, dr.width / 2);
+      } else {
+        handleH(dr.center.dx, hy, dr.width);
+      }
       y += h;
     }
+    use(handles?.door);
   }
 
   // ---------------------------------------------------------------- niches, vitrines, appareils

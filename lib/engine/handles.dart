@@ -22,7 +22,48 @@ enum HandleRender {
   cup, // coquille
   leather, // languette cuir
   xxl, // barre verticale pleine hauteur
-  gola; // sans poignée : profil Gola sur le caisson
+  gola, // sans poignée : profil Gola sur le caisson
+  push; // sans poignée : ouverture par pression
+
+  /// Rendu dessiné ('bar', 'knob'…) : celui gardé dans le style.
+  String get kind => name;
+}
+
+/// Endroits où la poignée peut être différente.
+const handleZones = {'haut': 'Meubles hauts', 'bas': 'Meubles bas', 'colonne': 'Colonnes', 'tiroir': 'Tiroirs'};
+
+/// Une poignée choisie : modèle, taille, finition, sens et place.
+class HandleChoice {
+  String kind; // rendu
+  String? id;
+  int? size;
+  String? finish;
+  String orient; // 'auto' | 'v' (verticale) | 'h' (horizontale)
+  String pos; // 'auto' (près du bord) | 'centre'
+  bool pair; // deux poignées sur les tiroirs larges (800 mm et plus)
+  HandleChoice({this.kind = 'bar', this.id, this.size, this.finish, this.orient = 'auto', this.pos = 'auto', this.pair = false});
+
+  HandleChoice copy() => HandleChoice.fromJson(toJson());
+
+  Map<String, dynamic> toJson() => {
+        'k': kind,
+        if (id != null) 'id': id,
+        if (size != null) 's': size,
+        if (finish != null) 'f': finish,
+        if (orient != 'auto') 'o': orient,
+        if (pos != 'auto') 'p': pos,
+        if (pair) 'x2': true,
+      };
+
+  factory HandleChoice.fromJson(Map<String, dynamic> j) => HandleChoice(
+        kind: j['k'] as String? ?? 'bar',
+        id: j['id'] as String?,
+        size: (j['s'] as num?)?.toInt(),
+        finish: j['f'] as String?,
+        orient: j['o'] as String? ?? 'auto',
+        pos: j['p'] as String? ?? 'auto',
+        pair: j['x2'] == true,
+      );
 }
 
 class HandleModel {
@@ -92,7 +133,10 @@ class HandleCatalog {
   static const golaFinishes = ['Aluminium', 'Inox brossé', 'Noir mat', 'Anthracite', 'Blanc', 'Champagne', 'Or brossé', 'Bronze', golaLikeFront];
   static const golaLikeFront = 'Comme les façades';
 
-  HandleModel? byId(String? id) => id == gola.id ? gola : items.where((h) => h.id == id).firstOrNull;
+  /// Sans poignée : ouverture par pression (loqueteau), la façade reste lisse.
+  static const push = HandleModel(id: 'push', name: 'Sans poignée (ouverture par pression)', familyId: 'gola', familyName: 'Sans poignée', render: HandleRender.push);
+
+  HandleModel? byId(String? id) => id == gola.id ? gola : id == push.id ? push : items.where((h) => h.id == id).firstOrNull;
 
   List<(String, String, List<HandleModel>)> get families {
     final out = <(String, String, List<HandleModel>)>[];
@@ -104,7 +148,7 @@ class HandleCatalog {
         f.$3.add(h);
       }
     }
-    out.add(('gola', 'Sans poignée', [gola]));
+    out.add(('gola', 'Sans poignée', [gola, push]));
     return out;
   }
 

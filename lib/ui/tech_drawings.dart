@@ -386,7 +386,7 @@ class TechDrawer {
           opening: it.opening,
           variant: it.variant,
           strokeWidth: 1.5 * u,
-          handle: p.style.handle);
+          handles: handleSetOf(p.style, null, x.model));
       _frontSymbols(c, x, rr, k);
     }
     // vides à combler : hachures orange et largeur

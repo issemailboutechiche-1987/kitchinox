@@ -67,6 +67,99 @@ List<List<double>> worldOutline(ArtPanel p, {bool hi = true}) {
   ];
 }
 
+/// Bord d'une pièce de forme : un côté droit de [a] à [b], ou un morceau de courbe ([center], [radius]).
+class ShapeEdge {
+  final List<double> a, b;
+  final List<double>? center;
+  final double radius;
+  const ShapeEdge(this.a, this.b, {this.center, this.radius = 0});
+  bool get curved => center != null;
+}
+
+/// Bords du contour, sur la face haute ou basse. Les courbes portent le centre et le rayon de leur cercle.
+List<ShapeEdge> shapeEdges(ArtPanel p, {bool hi = true}) {
+  final pts = worldOutline(p, hi: hi);
+  final n = pts.length;
+  if (n < 3) return const [];
+  final ax = rankAxes(p);
+  final uv = [for (final q in pts) (q[ax[0]], q[ax[1]])];
+  double len(int i) {
+    final (x0, y0) = uv[i % n];
+    final (x1, y1) = uv[(i + 1) % n];
+    return math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+  }
+
+  double turn(int i) {
+    final (x0, y0) = uv[(i - 1 + n) % n];
+    final (x1, y1) = uv[i % n];
+    final (x2, y2) = uv[(i + 1) % n];
+    var t = math.atan2(y2 - y1, x2 - x1) - math.atan2(y1 - y0, x1 - x0);
+    while (t > math.pi) {
+      t -= 2 * math.pi;
+    }
+    while (t < -math.pi) {
+      t += 2 * math.pi;
+    }
+    return t.abs();
+  }
+
+  bool soft(int i) => turn(i) > 0.004 && turn(i) < 0.55;
+  final curved = [
+    for (var i = 0; i < n; i++)
+      p.shape != 'polygone' &&
+          (soft(i) || soft(i + 1)) &&
+          // un côté droit entre deux arrondis est bien plus long que les facettes voisines
+          len(i) < 2.2 * math.max(soft(i) ? len(i - 1 + n) : 0, soft(i + 1) ? len(i + 1) : 0)
+  ];
+  (double, double, double)? circle((double, double) a, (double, double) b, (double, double) c) {
+    final d = 2 * (a.$1 * (b.$2 - c.$2) + b.$1 * (c.$2 - a.$2) + c.$1 * (a.$2 - b.$2));
+    if (d.abs() < 1e-6) return null;
+    double sq((double, double) q) => q.$1 * q.$1 + q.$2 * q.$2;
+    final x = (sq(a) * (b.$2 - c.$2) + sq(b) * (c.$2 - a.$2) + sq(c) * (a.$2 - b.$2)) / d;
+    final y = (sq(a) * (c.$1 - b.$1) + sq(b) * (a.$1 - c.$1) + sq(c) * (b.$1 - a.$1)) / d;
+    return (x, y, math.sqrt((a.$1 - x) * (a.$1 - x) + (a.$2 - y) * (a.$2 - y)));
+  }
+
+  List<double> at(double x, double y) => List<double>.filled(3, 0)
+    ..[ax[0]] = x
+    ..[ax[1]] = y
+    ..[ax[2]] = pts.first[ax[2]];
+  final out = List<ShapeEdge>.generate(n, (i) => ShapeEdge(pts[i], pts[(i + 1) % n]));
+  final done = List.filled(n, false);
+  for (var i = 0; i < n; i++) {
+    if (!curved[i] || done[i]) continue;
+    // la courbe entière : morceaux voisins, sans point anguleux entre eux
+    var first = i, count = 1;
+    while (count < n && curved[(first - 1 + n) % n] && soft(first)) {
+      first = (first - 1 + n) % n;
+      count++;
+    }
+    while (count < n && curved[(first + count) % n] && soft(first + count)) {
+      count++;
+    }
+    final closed = count >= n;
+    (double, double) v(int k) => uv[(first + k) % n];
+    final whole = closed ? circle(v(0), v(n ~/ 3), v(2 * n ~/ 3)) : circle(v(0), v(count ~/ 2), v(count));
+    final fits = whole != null &&
+        count >= 2 &&
+        [for (var k = 0; k <= count; k++) v(k)].every((q) => (math.sqrt((q.$1 - whole.$1) * (q.$1 - whole.$1) + (q.$2 - whole.$2) * (q.$2 - whole.$2)) - whole.$3).abs() < math.max(1.0, whole.$3 * 0.02));
+    for (var k = 0; k < count; k++) {
+      final e = (first + k) % n;
+      done[e] = true;
+      // courbe libre : rayon à cet endroit
+      final c = fits ? whole : circle(v(closed ? k - 2 + n : math.max(0, k - 2)), v(k), v(closed ? k + 3 : math.min(count, k + 3)));
+      if (c != null && c.$3 < 20000) out[e] = ShapeEdge(pts[e], pts[(e + 1) % n], center: at(c.$1, c.$2), radius: c.$3);
+    }
+  }
+  return out;
+}
+
+/// Attache à la pièce [p] n'importe quel point (le centre d'un arc peut être hors de la pièce).
+DimAnchor anchorOn(ArtPanel p, List<double> q) {
+  final ax = rankAxes(p);
+  return DimAnchor(p.id, [for (var i = 0; i < 3; i++) (q[ax[i]] - _loOf(p, ax[i])) / math.max(0.001, _sizeOf(p, ax[i]))]);
+}
+
 /// Longueur du contour (mm) : le chant à poser sur une pièce de forme.
 double perimeterOf(ArtPanel p) {
   final pts = worldOutline(p);
@@ -99,7 +192,12 @@ String? shapeLabel(ArtPanel p) {
     'rond' => l == w ? 'rond Ø $l' : 'ovale $l x $w',
     'arrondi' => 'coins R ${math.min(p.radius, w / 2).round()}',
     'polygone' => '${p.outline?.length ?? 6} côtés',
-    _ => 'forme libre',
+    _ => () {
+        // arc (une seule courbe) : son rayon
+        final c = shapeEdges(p).where((e) => e.curved).toList();
+        final r = {for (final e in c) e.radius.round()};
+        return c.length >= 4 && r.length == 1 ? 'arc R ${r.first}' : 'forme libre';
+      }(),
   };
 }
 

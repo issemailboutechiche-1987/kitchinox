@@ -33,7 +33,7 @@ Future<void> showBrandsDialog(BuildContext context, AppState st, void Function(S
   final estimate = BrandCatalog.hardwareEstimate(qty);
   final sheets = st.cutPlan.newSheets().where((s) => !s.material.startsWith('HDF')).length;
   final extra = <(String, Widget Function(BuildContext))>[
-    if (MediaProgetti.instance != null) ('Media Progetti', (c) => _MediaProgettiTab(state: st, tariff: MediaProgetti.instance!, onMessage: onMessage)),
+    if (MediaProgetti.instance != null) ('Moyenne gamme', (c) => _MediaProgettiTab(state: st, tariff: MediaProgetti.instance!, onMessage: onMessage)),
     if (Market.articles.isNotEmpty) ('Prix indicatifs', (c) => const _MarketArticles()),
     if (Market.panels.isNotEmpty) ('Panneaux par gamme', (c) => _MarketPanelsTab(state: st, onMessage: onMessage)),
     if (Market.brands.isNotEmpty) ('Marques mondiales', (c) => _MarketBrands(state: st, onMessage: onMessage)),
@@ -190,7 +190,7 @@ class MediaProgettiChoices extends StatelessWidget {
   }
 }
 
-/// Tarif Media Progetti : coordonnées, choix pour le devis, caissons et portes.
+/// Tarif moyenne gamme : coordonnées, choix pour le devis, caissons et portes.
 class _MediaProgettiTab extends StatelessWidget {
   final AppState state;
   final MediaProgetti tariff;
@@ -214,8 +214,7 @@ class _MediaProgettiTab extends StatelessWidget {
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${tariff.supplier} · ${tr(tariff.tier)}', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-            Text('${tr(tariff.activity)} · ${tariff.city}', style: t.bodySmall),
+            Text(tr('Moyenne gamme'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
             Text(trp('Prix TTC (TVA {0} %) du {1}, à confirmer avec le fournisseur. Le devis les compte hors taxes.', [tariff.vat.round(), tariff.date.split('-').reversed.join('/')]),
                 style: t.bodySmall),
           ]),
@@ -227,7 +226,7 @@ class _MediaProgettiTab extends StatelessWidget {
                 onPressed: () {
                   state.setGamme('moyen');
                   Navigator.pop(context);
-                  onMessage(tr('Moyenne gamme Media Progetti : devis mis à jour'));
+                  onMessage(tr('Moyenne gamme : devis mis à jour'));
                 },
                 child: Text(tr('Utiliser dans le devis'))),
       ]),

@@ -5,6 +5,7 @@
 library;
 
 import 'catalog.dart';
+import 'essentials.dart';
 import 'layout_engine.dart';
 import 'project.dart';
 import 'proposals.dart';
@@ -275,6 +276,7 @@ List<(KitchenTemplate, LayoutProposal)> buildTemplates(LayoutEngine base) {
     for (final w in project.room.walls.where((w) => w.enabled)) {
       e.placeHoods(w.id);
     }
+    if (!essentialOk(e)) continue;
     t.applyStyle(project.style);
     out.add((
       t,

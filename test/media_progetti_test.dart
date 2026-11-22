@@ -1,4 +1,4 @@
-// Tarif Media Progetti (moyenne gamme) : prix relevés, tailles estimées, devis hors taxes ; menu Marques et prix.
+// Tarif moyenne gamme : prix relevés, tailles estimées, devis hors taxes ; menu Marques et prix.
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -11,7 +11,7 @@ void main() {
   String f(String n) => File('assets/data/$n.json').readAsStringSync();
   late MediaProgetti t;
   setUpAll(() {
-    t = MediaProgetti.parse(f('media_progetti'));
+    t = MediaProgetti.parse(f('mid_range'));
     Market.parse(f('market'));
     BrandCatalog.parse(f('brands'));
     PublicPrices.parse(f('public_prices'));
@@ -85,7 +85,7 @@ void main() {
     expect(lines.any((l) => l.section == 'Panneaux' || l.section == 'Chants'), isFalse);
     final box = lines.where((l) => l.section == 'Caissons').toList();
     expect(box.fold<double>(0, (a, l) => a + l.qty), 4);
-    expect(box.every((l) => l.unitPrice.min > 100 && l.detail.startsWith('Media Progetti')), isTrue);
+    expect(box.every((l) => l.unitPrice.min > 100 && l.detail.startsWith('Moyenne gamme')), isTrue);
     expect(lines.where((l) => l.section == 'Façades'), isNotEmpty);
     for (final s in std.difference({'Panneaux', 'Chants'})) {
       expect(lines.any((l) => l.section == s), isTrue, reason: s);
@@ -136,7 +136,7 @@ void main() {
       expect(tester.takeException(), isNull, reason: tab);
     }
 
-    await open('Media Progetti');
+    await open('Moyenne gamme');
     expect(find.text('CBAB1000'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('mp_use')));
     await tester.pumpAndSettle();

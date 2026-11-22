@@ -151,7 +151,7 @@ SupplierQuote supplierQuote(LayoutEngine e, SupplierTariff t, {bool gloss = fals
 
 /// Lignes du devis selon la gamme du projet :
 /// - standard (MDF) : panneaux à la feuille, chants et découpe au tarif de l'atelier ;
-/// - moyenne gamme : caissons et façades à l'article au tarif Media Progetti ;
+/// - moyenne gamme : caissons et façades à l'article au tarif moyenne gamme ;
 /// - luxe (latté) : caissons, façades, joues et tiroirs facturés à l'article au tarif fournisseur,
 ///   le reste (plan de travail, électroménager, quincaillerie) inchangé.
 List<SupplyLine> quoteLines(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, CutPlan plan, Bom bom, SupplierTariff? t, {bool gloss = false}) {

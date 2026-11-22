@@ -1,4 +1,4 @@
-/// Tarif Media Progetti (Casablanca), moyenne gamme : caissons blancs Alvic et portes Istanbul ép. 19, à l'article.
+/// Tarif moyenne gamme : caissons blancs Alvic et portes Istanbul ép. 19, à l'article.
 /// Prix TTC relevés sur trois devis du 30/12/2023 (assets/data/media_progetti.json) ; le devis les compte hors taxes.
 /// Une taille qui n'est pas au tarif est estimée entre les tailles voisines, et marquée « estimé ».
 library;
@@ -158,7 +158,7 @@ class MediaProgetti {
       s.mpDoor == 'pi' || (s.mpDoor == 'auto' && const {'edge', 'groove', 'chamfer'}.contains(e.project.style.handle));
 }
 
-/// Caissons, façades et joues du projet au tarif Media Progetti, prix hors taxes.
+/// Caissons, façades et joues du projet au tarif moyenne gamme, prix hors taxes.
 List<SupplyLine> mediaProgettiLines(LayoutEngine e, MediaProgetti t, ProjectSpecs specs) {
   final line = t.lines.containsKey(specs.mpCarcass) ? specs.mpCarcass : t.lines.keys.first;
   final handle = MediaProgetti.integratedHandle(e, specs);
@@ -166,7 +166,7 @@ List<SupplyLine> mediaProgettiLines(LayoutEngine e, MediaProgetti t, ProjectSpec
   void add(String section, String name, double qty, MpPrice p) {
     if (qty <= 0) return;
     final ttc = p.price.toStringAsFixed(2).replaceAll('.', ',');
-    final detail = p.exact ? 'Media Progetti ${p.ref} · $ttc TTC' : 'Media Progetti · estimé · $ttc TTC';
+    final detail = p.exact ? 'Moyenne gamme ${p.ref} · $ttc TTC' : 'Moyenne gamme · estimé · $ttc TTC';
     final key = '$section|$name|$detail';
     groups[key] = (section, name, (groups[key]?.$3 ?? 0) + qty, t.ht(p.price), detail);
   }
@@ -223,7 +223,7 @@ const mpTypeLabels = {
   'angle_haut_c': 'haut angle en C',
 };
 
-/// Devis moyenne gamme : caissons et façades Media Progetti, le reste (tiroirs, plan de travail, quincaillerie,
+/// Devis moyenne gamme : caissons et façades, le reste (tiroirs, plan de travail, quincaillerie,
 /// électroménager) comme d'habitude ; sans poignées quand les portes ont la poignée intégrée.
 List<SupplyLine> mediaProgettiQuote(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, CutPlan plan, Bom bom, MediaProgetti t, SupplierTariff? other) {
   final noHandles = <String>{
@@ -234,7 +234,7 @@ List<SupplyLine> mediaProgettiQuote(LayoutEngine e, MaterialsDb db, ProjectSpecs
   };
   return [
     ...mediaProgettiLines(e, t, specs),
-    // fonds et arrières de tiroir : pas au tarif Media Progetti
+    // fonds et arrières de tiroir : pas à ce tarif
     if (other != null) ...supplierQuote(e, other).linesHt.where((l) => l.section == 'Tiroirs'),
     ...estimate(e, db, specs, plan, bom)
         .where((l) => l.section != 'Panneaux' && l.section != 'Chants' && !(l.section == 'Quincaillerie' && noHandles.contains(l.name))),
