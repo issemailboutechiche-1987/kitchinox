@@ -523,7 +523,7 @@ class StylePanel extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            swatches(worktopFinishes(st), st.worktop, (v) => state.setStyle(worktop: v)),
+            if (state.db == null) swatches(worktopFinishes(st), st.worktop, (v) => state.setStyle(worktop: v)) else _WorktopMaterialForm(state: state),
             const SizedBox(height: Tokens.s4),
             _TextureLibrary(state: state, target: 'worktop'),
             if (KitchenFixtures.sinks.isNotEmpty) ...[
@@ -773,7 +773,7 @@ class StylePanel extends StatelessWidget {
             const SizedBox(height: Tokens.s5),
             Text(tr('Crédence (entre le plan de travail et les hauts)'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: Tokens.s2),
-            ChoiceChip(label: Text(tr('Comme les murs')), selected: st.splash == null, onSelected: (_) => state.setRoomFinish(clearSplash: true)),
+            _SplashChoices(state: state),
             const SizedBox(height: Tokens.s2),
             swatches(splashFinishes(st), st.splash ?? '', (v) => state.setRoomFinish(splash: v)),
             const SizedBox(height: Tokens.s3),
@@ -818,13 +818,12 @@ class StylePanel extends StatelessWidget {
       ),
     };
     return _PanelFrame(
-      title: title,
+      title: tr(title),
       child: ListView(
         children: [
           Text(tr('Le rendu est appliqué en vue de face et en 3D.'), style: t.bodySmall),
           const SizedBox(height: Tokens.s4),
           body,
-          if (section == StyleSection.worktop && state.db != null) ...[const SizedBox(height: Tokens.s5), _WorktopMaterialForm(state: state)],
         ],
       ),
     );
@@ -835,7 +834,7 @@ class _Swatch extends StatelessWidget {
   final Finish finish;
   final bool selected;
   final VoidCallback onTap;
-  const _Swatch({required this.finish, required this.selected, required this.onTap});
+  const _Swatch({super.key, required this.finish, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1793,81 +1792,107 @@ String _triangleText(LayoutEngine e) {
 
 String _mad(PriceRange p) => p.min == p.max ? '${p.min.round()} MAD' : '${p.min.round()} – ${p.max.round()} MAD';
 
+/// Crédence : comme les murs, dans la matière du plan (toute la hauteur ou relevé de 10 cm).
+class _SplashChoices extends StatelessWidget {
+  final AppState state;
+  const _SplashChoices({required this.state});
+  @override
+  Widget build(BuildContext context) {
+    final cur = state.project.style.splash;
+    return Wrap(spacing: 6, runSpacing: 6, children: [
+      ChoiceChip(label: Text(tr('Comme les murs')), selected: cur == null, onSelected: (_) => state.setRoomFinish(clearSplash: true)),
+      ChoiceChip(
+          key: const ValueKey('splash_plan'),
+          avatar: const Icon(Icons.countertops_outlined, size: 18),
+          label: Text(tr('Comme le plan de travail')),
+          selected: cur == splashLikeTop,
+          onSelected: (_) => state.setRoomFinish(splash: splashLikeTop)),
+      ChoiceChip(key: const ValueKey('splash_plan_10'), label: Text(tr('Relevé 10 cm, comme le plan')), selected: cur == splashUpstand, onSelected: (_) => state.setRoomFinish(splash: splashUpstand)),
+    ]);
+  }
+}
+
+/// Plan de travail : matière, puis ses coloris (rendu et prix ensemble), puis son épaisseur.
 class _WorktopMaterialForm extends StatelessWidget {
   final AppState state;
   const _WorktopMaterialForm({required this.state});
+
   @override
   Widget build(BuildContext context) {
     final db = state.db!;
-    final sp = state.project.specs;
+    final p = state.project;
+    final sp = p.specs, st = p.style;
     final t = Theme.of(context).textTheme;
-    final mat = db.worktop(sp.worktopMaterial) ?? db.worktops.first;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(tr('Matière du plan de travail'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: Tokens.s2),
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          initialValue: mat.id,
-          decoration: InputDecoration(border: OutlineInputBorder(), isDense: true, labelText: tr('Matière')),
-          items: [
-            for (final w in db.worktops)
-              DropdownMenuItem(
-                value: w.id,
-                child: Text(tr(w.name), overflow: TextOverflow.ellipsis),
-              ),
-          ],
-          onChanged: (v) {
-            final w = db.worktop(v!)!;
-            state.edit(
-              () => sp
-                ..worktopMaterial = v
-                ..worktopVariant = 0
-                ..worktopThickness = w.thicknesses.isEmpty ? sp.worktopThickness : w.thicknesses.last,
-            );
-          },
-        ),
-        const SizedBox(height: Tokens.s3),
-        if (mat.variants.length > 1)
-          DropdownButtonFormField<int>(
-            isExpanded: true,
-            initialValue: sp.worktopVariant.clamp(0, mat.variants.length - 1),
-            decoration: InputDecoration(border: OutlineInputBorder(), isDense: true, labelText: tr('Coloris')),
-            items: [
-              for (var i = 0; i < mat.variants.length; i++)
-                DropdownMenuItem(
-                  value: i,
-                  child: Text(trp('{0} · {1}/m.l.', [tr(mat.variants[i].label), _mad(mat.variants[i].price)]), overflow: TextOverflow.ellipsis),
-                ),
-            ],
-            onChanged: (v) => state.edit(() => sp.worktopVariant = v!),
+    final scheme = Theme.of(context).colorScheme;
+    final (matId, variant) = worktopOf(p);
+    final mat = db.worktop(matId) ?? db.worktops.first;
+    final custom = worktopFinishes(st).where((f) => f.id.startsWith('tex:')).toList();
+    final own = !worktopLooks.containsKey(st.worktop); // photo importée
+    final v = mat.variants.isEmpty ? null : mat.variants[variant.clamp(0, mat.variants.length - 1)];
+    final th = mat.thicknesses.isEmpty || mat.thicknesses.contains(sp.worktopThickness) ? sp.worktopThickness : mat.thicknesses.last;
+    Widget title(String s) => Padding(
+        padding: const EdgeInsets.only(top: Tokens.s3, bottom: Tokens.s2), child: Text(tr(s), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)));
+    // « Chaleur : Moyenne… » : les deux moitiés se traduisent séparément
+    String note(String n) {
+      final k = n.indexOf(' : ');
+      return k < 0 ? tr(n) : '${tr(n.substring(0, k))} : ${tr(n.substring(k + 3))}';
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      title('1. Matière'),
+      Wrap(spacing: 6, runSpacing: 6, children: [
+        for (final w in db.worktops)
+          ChoiceChip(
+            key: ValueKey('wt_${w.id}'),
+            label: Text(tr(_short(w.name))),
+            selected: w.id == mat.id,
+            onSelected: (_) => state.setWorktopMaterial(w.id),
           ),
-        if (mat.thicknesses.isNotEmpty) ...[
-          const SizedBox(height: Tokens.s3),
-          Wrap(
-            spacing: Tokens.s2,
-            children: [
-              for (final th in mat.thicknesses)
-                ChoiceChip(
-                  label: Text(trp('{0} mm', [th])),
-                  selected: sp.worktopThickness == th,
-                  onSelected: (_) => state.edit(() => sp.worktopThickness = th),
-                ),
-            ],
-          ),
-        ],
-        const SizedBox(height: Tokens.s2),
-        for (final n in mat.notes) Text(n, style: t.bodySmall),
-        if (mat.edgeProfiles.isNotEmpty) Text(trp('Chants : {0}', [mat.edgeProfiles.join(', ')]), style: t.bodySmall),
-        if (mat.variants.length == 1) Text(trp('Prix : {0} par mètre linéaire', [_mad(mat.variants.first.price)]), style: t.bodySmall),
-        Text(
-          trp('La hauteur du plan reste à {0} mm (norme), la matière sert au devis et au débit.', [state.project.standards.worktopTop]),
-          style: t.bodySmall?.copyWith(fontStyle: FontStyle.italic),
-        ),
+      ]),
+      title('2. Coloris'),
+      Wrap(spacing: Tokens.s3, runSpacing: Tokens.s3, children: [
+        for (final id in looksOf(mat.id))
+          _Swatch(key: ValueKey('look_$id'), finish: finishById(worktops, id), selected: st.worktop == id, onTap: () => state.setStyle(worktop: id)),
+      ]),
+      if (custom.isNotEmpty) ...[
+        title('Vos photos'),
+        Wrap(spacing: Tokens.s3, runSpacing: Tokens.s3, children: [for (final f in custom) _Swatch(finish: f, selected: st.worktop == f.id, onTap: () => state.setStyle(worktop: f.id))]),
+        if (own) Text(tr('Photo importée : le prix est celui de la matière choisie ci-dessus.'), style: t.bodySmall),
       ],
-    );
+      if (mat.thicknesses.isNotEmpty) ...[
+        title('3. Épaisseur'),
+        Wrap(spacing: Tokens.s2, children: [
+          for (final x in mat.thicknesses)
+            ChoiceChip(label: Text(trp('{0} mm', [x])), selected: th == x, onSelected: (_) => state.edit(() => sp.worktopThickness = x)),
+        ]),
+      ],
+      if (state.engine.kitchen) ...[
+        title('4. Crédence'),
+        _SplashChoices(state: state),
+        if (!splashMatchesTop(st)) Text(tr('Autres crédences (carreaux, zellige…) : « Sol et murs ».'), style: t.bodySmall),
+      ],
+      const SizedBox(height: Tokens.s3),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(Tokens.s3),
+        decoration: BoxDecoration(color: scheme.primary.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(Tokens.radius)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${tr(worktopFinish(st, st.worktop).name)} · ${trp('{0} mm', [th])}', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+          if (v != null) Text(tr(v.label), style: t.bodySmall),
+          if (splashMatchesTop(st)) Text(trp(st.splash == splashUpstand ? 'Relevé de 10 cm assorti : {0} m²' : 'Crédence assortie : {0} m²', [splashArea(state.engine).toStringAsFixed(2)]), style: t.bodySmall),
+          const SizedBox(height: 4),
+          Text(v == null || v.price.isZero ? tr('Prix à demander') : trp('{0} le mètre linéaire', [_mad(v.price)]), style: t.titleSmall?.copyWith(color: scheme.primary, fontWeight: FontWeight.w800)),
+        ]),
+      ),
+      const SizedBox(height: Tokens.s2),
+      for (final n in mat.notes) Text(note(n), style: t.bodySmall),
+      if (mat.edgeProfiles.isNotEmpty) Text(trp('Chants : {0}', [mat.edgeProfiles.map(tr).join(', ')]), style: t.bodySmall),
+      Text(trp('La hauteur du plan reste à {0} mm (norme).', [p.standards.worktopTop]), style: t.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+    ]);
   }
+
+  /// « Granit Naturel (Zellijj Granit) » → « Granit Naturel ».
+  static String _short(String name) => name.split(' (').first.split(' & ').first;
 }
 
 class _ApplianceSection extends StatelessWidget {

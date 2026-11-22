@@ -163,6 +163,13 @@
             "min": 1900,
             "max": 2900
           }
+        },
+        {
+          "name": "Marbre vert",
+          "price_per_ml_mad": {
+            "min": 0,
+            "max": 0
+          }
         }
       ]
     },

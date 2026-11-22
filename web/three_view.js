@@ -1052,23 +1052,18 @@ function buildFixture(o, sceneData) {
 
       const hasDrainer = layout === 'drainer' || layout === '2_drainer';
       const isDouble = layout === '2' || layout === '2_drainer';
-      const bowlD = d * 0.74;
-      const cz = d * 0.54;
-
-      // Cadre extérieur ouvert (la cuve reste creuse et visible de haut)
-      // Bord gauche et bord droit
-      const rimL = mesh(new THREE.BoxGeometry(rimThick, rimH, d), sinkMat);
-      rimL.position.set(-hw + rimThick / 2, topY - rimH / 2, d / 2);
-      const rimR = mesh(new THREE.BoxGeometry(rimThick, rimH, d), sinkMat);
-      rimR.position.set(hw - rimThick / 2, topY - rimH / 2, d / 2);
-      // Bord avant
-      const rimFront = mesh(new THREE.BoxGeometry(w, rimH, 30), sinkMat);
-      rimFront.position.set(0, topY - rimH / 2, d - 15);
-      // Gorge arrière (plage de robinetterie)
+      // cuve entre la plage de robinetterie et le bord avant
       const deckDepth = Math.max(70, d * 0.26);
-      const rimBack = mesh(new THREE.BoxGeometry(w, rimH, deckDepth), sinkMat);
-      rimBack.position.set(0, topY - rimH / 2, deckDepth / 2);
-      m.add(rimL, rimR, rimFront, rimBack);
+      const halfD = (d - 36 - deckDepth - 6) / 2;
+      const cz = deckDepth + 6 + halfD;
+      const bowlD = halfD * 2 + 30;
+      const BN = 3.8; // arrondi de la cuve, le même pour le trou de la plage
+      const bowls = []; // [centre x, demi-largeur]
+
+      const addBowl = (x, a) => {
+        bowls.push([x, a]);
+        m.add(mesh(bowl(x, cz, a, halfD, 190, topY - 1, BN, 0.6), sinkMatBowl));
+      };
 
       if (hasDrainer && !isDouble) {
         // 1 bac à gauche + égouttoir design à droite
@@ -1078,9 +1073,6 @@ function buildFixture(o, sceneData) {
         const drX0 = bowlX + bowlW / 2 + 10;
         const drX1 = hw - rimThick;
         const drW = drX1 - drX0;
-        const drainDeck = mesh(new THREE.BoxGeometry(drW, rimH, d - deckDepth - 30), sinkMat);
-        drainDeck.position.set((drX0 + drX1) / 2, topY - rimH / 2, deckDepth + (d - deckDepth - 30) / 2);
-        m.add(drainDeck);
 
         // Égouttoir avec rainures d'écoulement biseautées
         if (!isUndermount) {
@@ -1093,7 +1085,7 @@ function buildFixture(o, sceneData) {
           }
         }
         // Cuve profonde
-        m.add(mesh(bowl(bowlX, cz, bowlW / 2 - 15, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMatBowl));
+        addBowl(bowlX, bowlW / 2 - 15);
         // Bonde panier inox 90 mm + bouchon filtre
         m.add(at(mesh(new THREE.CylinderGeometry(45, 42, 5, 32), chrome), bowlX, topY - 188, cz));
         m.add(at(mesh(new THREE.CylinderGeometry(18, 18, 8, 24), darkMat), bowlX, topY - 185, cz));
@@ -1106,28 +1098,29 @@ function buildFixture(o, sceneData) {
         const singleW = (w - 90) / 2;
         const b1X = -hw + 35 + singleW / 2;
         const b2X = hw - 35 - singleW / 2;
-        const divider = mesh(new THREE.BoxGeometry(20, rimH, d - deckDepth - 30), sinkMat);
-        divider.position.set(0, topY - rimH / 2, deckDepth + (d - deckDepth - 30) / 2);
-        m.add(divider);
-
-        m.add(mesh(bowl(b1X, cz, singleW / 2 - 10, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMatBowl));
+        addBowl(b1X, singleW / 2 - 10);
         m.add(at(mesh(new THREE.CylinderGeometry(45, 42, 5, 32), chrome), b1X, topY - 188, cz));
         m.add(at(mesh(new THREE.CylinderGeometry(18, 18, 8, 24), darkMat), b1X, topY - 185, cz));
 
-        m.add(mesh(bowl(b2X, cz, singleW / 2 - 10, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMatBowl));
+        addBowl(b2X, singleW / 2 - 10);
         m.add(at(mesh(new THREE.CylinderGeometry(45, 42, 5, 32), chrome), b2X, topY - 188, cz));
         m.add(at(mesh(new THREE.CylinderGeometry(18, 18, 8, 24), darkMat), b2X, topY - 185, cz));
       } else {
         // 1 bac simple / compact
         const bowlW = w - 60;
         const bowlX = 0;
-        m.add(mesh(bowl(bowlX, cz, bowlW / 2 - 10, bowlD / 2 - 15, 190, topY - 2, 3.8, 0.6), sinkMatBowl));
+        addBowl(bowlX, bowlW / 2 - 10);
         m.add(at(mesh(new THREE.CylinderGeometry(45, 42, 5, 32), chrome), bowlX, topY - 188, cz));
         m.add(at(mesh(new THREE.CylinderGeometry(18, 18, 8, 24), darkMat), bowlX, topY - 185, cz));
         const overFlow = mesh(new THREE.BoxGeometry(32, 12, 4), chrome);
         overFlow.position.set(bowlX, topY - 35, cz - (bowlD / 2 - 16));
         m.add(overFlow);
       }
+
+      // Plage d'une pièce, percée à la forme exacte de chaque cuve : pas de jour dans les coins
+      const deck = roundRectPath(new THREE.Shape(), -hw, 0, hw, d, 12);
+      for (const [x, a] of bowls) deck.holes.push(sePath(new THREE.Path(), x, cz, a, halfD, BN, 64, true));
+      m.add(mesh(extrudeUp(deck, topY - rimH, rimH, 0), sinkMat));
 
       // Mitigeur réaliste placé sur la gorge arrière
       const fMat = o.faucetFinish === 'noir_mat' ? tapBlack

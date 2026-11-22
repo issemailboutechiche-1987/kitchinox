@@ -18,6 +18,8 @@ import 'handles.dart';
 import 'layout_engine.dart';
 import 'project.dart';
 import 'room_objects.dart';
+import 'worktop_looks.dart';
+import 'backsplash.dart';
 
 class PriceRange {
   final double min, max;
@@ -699,11 +701,21 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
     }
   }
   // plan de travail
-  final wt = db.worktop(specs.worktopMaterial);
+  final (wtId, wtVariant) = worktopOf(e.project);
+  final wt = db.worktop(wtId);
   if (wt != null && bom.worktopLength > 0 && wt.variants.isNotEmpty) {
-    final v = wt.variants[math.min(specs.worktopVariant, wt.variants.length - 1)];
-    out.add(SupplyLine('Plan de travail', wt.name, '${v.label} · ${specs.worktopThickness} mm', double.parse((bom.worktopLength / 1000).toStringAsFixed(2)),
+    final v = wt.variants[math.min(wtVariant, wt.variants.length - 1)];
+    // épaisseur : celle choisie si la matière l'a, sinon la plus courante de la matière
+    final th = wt.thicknesses.isEmpty || wt.thicknesses.contains(specs.worktopThickness) ? specs.worktopThickness : wt.thicknesses.last;
+    out.add(SupplyLine('Plan de travail', wt.name, '${v.label} · $th mm', double.parse((bom.worktopLength / 1000).toStringAsFixed(2)),
         'm.l.', v.price));
+    // crédence ou relevé dans la même matière : prix au mètre (600 mm de profondeur) ramené au m²
+    if (splashMatchesTop(e.project.style)) {
+      final m2 = double.parse(splashArea(e).toStringAsFixed(2));
+      if (m2 > 0) {
+        out.add(SupplyLine('Plan de travail', e.project.style.splash == splashUpstand ? 'Relevé assorti 10 cm' : 'Crédence assortie', '${v.label} · $th mm', m2, 'm²', v.price * (1 / 0.6)));
+      }
+    }
   }
   out.addAll(hardwareList(e, db, specs, plan.parts, bom.plinthLength));
   out.addAll(assemblySupplyLines(e, plan.parts)); // visserie, fixations et pose

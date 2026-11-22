@@ -1401,8 +1401,24 @@ class AppState extends ChangeNotifier {
       final st = project.style;
       if (front != null) st.front = front;
       if (worktop != null) st.worktop = worktop;
+      if (worktop != null) syncWorktop(project);
       if (handle != null) st.handle = handle;
       if (carcass != null) st.carcass = carcass;
+    });
+  }
+
+  /// Matière du plan de travail : son premier coloris (ou celui déjà choisi), son épaisseur courante.
+  void setWorktopMaterial(String id) {
+    final m = db?.worktop(id);
+    edit(() {
+      project.specs.worktopMaterial = id;
+      if (worktopLooks[project.style.worktop]?.$1 != id) {
+        project.specs.worktopVariant = 0;
+        // photo importée : le rendu reste, seule la matière facturée change
+        if (worktopLooks.containsKey(project.style.worktop)) project.style.worktop = lookFor(id, 0) ?? project.style.worktop;
+      }
+      if (m != null && m.thicknesses.isNotEmpty && !m.thicknesses.contains(project.specs.worktopThickness)) project.specs.worktopThickness = m.thicknesses.last;
+      syncWorktop(project);
     });
   }
 

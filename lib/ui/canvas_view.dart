@@ -1620,12 +1620,8 @@ class _PlannerPainter extends CustomPainter {
     textured(wallRect, wf);
     // crédence derrière les bas, jusqu'au bas des hauts
     if (p.style.splash != null) {
-      for (final (a, b) in st.engine.runs(st.wallId, (m) => st.engine.kitchen && m.kind.isLow)) {
-        var zTop = p.standards.worktopTop + 600.0;
-        for (final c in p.items.where((c) => c.wallId == st.wallId && st.engine.modelOf(c).kind.isHigh && c.s < b && a < c.right)) {
-          zTop = math.min(zTop, c.z);
-        }
-        textured(v.rect(a, p.standards.worktopTop.toDouble(), b, zTop), sf);
+      for (final s in splashSegments(st.engine).where((s) => s.wall == st.wallId)) {
+        textured(v.rect(s.s0, s.z0, s.s1, s.z1), sf);
       }
     }
     textured(v.rect(-300, -150, len + 300, 0), ff);

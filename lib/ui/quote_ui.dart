@@ -11,6 +11,7 @@ import 'busy.dart';
 import 'i18n.dart';
 import 'quote_pdf.dart';
 import 'brands_ui.dart';
+import 'finishes.dart';
 import 'theme.dart';
 import 'web_io.dart';
 
@@ -301,7 +302,10 @@ class _Section extends StatelessWidget {
         ];
       case 'Plan de travail':
         if (db == null || db.worktops.isEmpty) return const [];
-        final mat = db.worktop(sp.worktopMaterial) ?? db.worktops.first;
+        // le même choix qu'à l'étape Style : matière, puis coloris (rendu et prix ensemble)
+        final mat = db.worktop(worktopOf(st.project).$1) ?? db.worktops.first;
+        final looks = looksOf(mat.id);
+        final cur = looks.contains(st.project.style.worktop) ? st.project.style.worktop : null;
         return [
           box(DropdownButtonFormField<String>(
             key: ValueKey('quote_wt_${mat.id}'),
@@ -309,24 +313,17 @@ class _Section extends StatelessWidget {
             initialValue: mat.id,
             decoration: deco(tr('Matière')),
             items: [for (final w in db.worktops) DropdownMenuItem(value: w.id, child: Text(tr(w.name), overflow: TextOverflow.ellipsis))],
-            onChanged: (id) {
-              final w = db.worktop(id!)!;
-              st.edit(() => sp
-                ..worktopMaterial = id
-                ..worktopVariant = 0
-                ..worktopThickness = w.thicknesses.isEmpty ? sp.worktopThickness : w.thicknesses.last);
-            },
+            onChanged: (id) => st.setWorktopMaterial(id!),
           )),
-          if (mat.variants.length > 1)
-            box(DropdownButtonFormField<int>(
-              key: ValueKey('quote_wtv_${mat.id}_${sp.worktopVariant}'),
+          if (looks.length > 1)
+            box(DropdownButtonFormField<String>(
+              key: ValueKey('quote_wtv_${mat.id}_$cur'),
               isExpanded: true,
-              initialValue: sp.worktopVariant.clamp(0, mat.variants.length - 1),
+              initialValue: cur,
+              hint: Text(tr('Photo importée')),
               decoration: deco(tr('Coloris')),
-              items: [
-                for (var i = 0; i < mat.variants.length; i++) DropdownMenuItem(value: i, child: Text(tr(mat.variants[i].label), overflow: TextOverflow.ellipsis)),
-              ],
-              onChanged: (i) => st.edit(() => sp.worktopVariant = i!),
+              items: [for (final id in looks) DropdownMenuItem(value: id, child: Text(tr(finishById(worktops, id).name), overflow: TextOverflow.ellipsis))],
+              onChanged: (id) => st.setStyle(worktop: id),
             )),
         ];
       case 'Quincaillerie':

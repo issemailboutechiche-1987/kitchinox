@@ -139,61 +139,9 @@ class SceneExporter {
         ],
       });
     }
-    final splash = <Map<String, dynamic>>[];
-    for (final w in room.walls.where((w) => w.enabled)) {
-      for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
-        final zBottom = std.worktopTop.toDouble();
-        var zTop = zBottom + 600.0;
-        for (final c in p.items.where((c) => c.wallId == w.id && e.modelOf(c).kind.isHigh && c.s < b && a < c.right)) {
-          zTop = math.min(zTop, c.z);
-        }
-        if (zTop <= zBottom) continue;
-
-        // Découpe précise de la crédence autour des ouvertures (fenêtres et portes)
-        final wallOps = p.openings
-            .where((o) => o.wallId == w.id && o.right > a && o.s < b && o.z < zTop && o.z + o.height > zBottom)
-            .toList()
-          ..sort((x, y) => x.s.compareTo(y.s));
-
-        if (wallOps.isEmpty) {
-          splash.add({'wall': w.id, 's0': a, 's1': b, 'z0': zBottom, 'z1': zTop});
-        } else {
-          var curS = a;
-          for (final o in wallOps) {
-            final os0 = math.max(a, o.s);
-            final os1 = math.min(b, o.right);
-            if (os0 > curS + 1.0) {
-              var segZ = zBottom + 600.0;
-              for (final c in p.items.where((c) => c.wallId == w.id && e.modelOf(c).kind.isHigh && c.s < os0 && curS < c.right)) {
-                segZ = math.min(segZ, c.z);
-              }
-              if (segZ > zBottom) {
-                splash.add({'wall': w.id, 's0': curS, 's1': os0, 'z0': zBottom, 'z1': segZ});
-              }
-            }
-            // Allège sous la fenêtre si le dormant est au-dessus du plan de travail
-            if (!o.isDoor && o.z > zBottom + 5.0) {
-              final sillTop = math.min(zTop, o.z);
-              splash.add({'wall': w.id, 's0': os0, 's1': os1, 'z0': zBottom, 'z1': sillTop});
-            }
-            // Au-dessus de la fenêtre si l'imposte est sous zTop
-            if (!o.isDoor && o.z + o.height < zTop - 5.0) {
-              splash.add({'wall': w.id, 's0': os0, 's1': os1, 'z0': o.z + o.height, 'z1': zTop});
-            }
-            curS = math.max(curS, os1);
-          }
-          if (b > curS + 1.0) {
-            var segZ = zBottom + 600.0;
-            for (final c in p.items.where((c) => c.wallId == w.id && e.modelOf(c).kind.isHigh && c.s < b && curS < c.right)) {
-              segZ = math.min(segZ, c.z);
-            }
-            if (segZ > zBottom) {
-              splash.add({'wall': w.id, 's0': curS, 's1': b, 'z0': zBottom, 'z1': segZ});
-            }
-          }
-        }
-      }
-    }
+    final splash = <Map<String, dynamic>>[
+      for (final s in splashSegments(e)) {'wall': s.wall, 's0': s.s0, 's1': s.s1, 'z0': s.z0, 'z1': s.z1},
+    ];
 
     // ---- solides : caissons, plans de travail, plinthes, îlot, appareils
     final solids = <Map<String, dynamic>>[];

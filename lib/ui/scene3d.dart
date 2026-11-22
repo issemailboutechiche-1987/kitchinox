@@ -157,6 +157,7 @@ class Scene3dPainter {
 
     // ---- murs du fond (ceux tournés vers l'observateur), avec portes et fenêtres
     final wf = wallFinish(style), sf = splashFinish(style);
+    final splash = splashSegments(e);
     final wallColor = wf.color;
     for (final w in room.walls) {
       if (!cam.faces(w.nx, w.ny, 0)) continue;
@@ -183,49 +184,8 @@ class Scene3dPainter {
             });
           }
 
-          for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
-            final zBottom = std.worktopTop.toDouble();
-            var zTop = zBottom + 600.0;
-            for (final c in p.items.where((c) => c.wallId == w.id && e.modelOf(c).kind.isHigh && c.s < b && a < c.right)) {
-              zTop = math.min(zTop, c.z);
-            }
-            if (zTop <= zBottom) continue;
-
-            final wallOps = p.openings
-                .where((o) => o.wallId == w.id && o.right > a && o.s < b && o.z < zTop && o.z + o.height > zBottom)
-                .toList()
-              ..sort((x, y) => x.s.compareTo(y.s));
-
-            if (wallOps.isEmpty) {
-              drawSplash(a, b, zBottom, zTop);
-            } else {
-              var curS = a;
-              for (final o in wallOps) {
-                final os0 = math.max(a, o.s);
-                final os1 = math.min(b, o.right);
-                if (os0 > curS + 1.0) {
-                  var segZ = zBottom + 600.0;
-                  for (final c in p.items.where((c) => c.wallId == w.id && e.modelOf(c).kind.isHigh && c.s < os0 && curS < c.right)) {
-                    segZ = math.min(segZ, c.z);
-                  }
-                  drawSplash(curS, os0, zBottom, segZ);
-                }
-                if (!o.isDoor && o.z > zBottom + 5.0) {
-                  drawSplash(os0, os1, zBottom, math.min(zTop, o.z));
-                }
-                if (!o.isDoor && o.z + o.height < zTop - 5.0) {
-                  drawSplash(os0, os1, o.z + o.height, zTop);
-                }
-                curS = math.max(curS, os1);
-              }
-              if (b > curS + 1.0) {
-                var segZ = zBottom + 600.0;
-                for (final c in p.items.where((c) => c.wallId == w.id && e.modelOf(c).kind.isHigh && c.s < b && curS < c.right)) {
-                  segZ = math.min(segZ, c.z);
-                }
-                drawSplash(curS, b, zBottom, segZ);
-              }
-            }
+          for (final s in splash.where((s) => s.wall == w.id)) {
+            drawSplash(s.s0, s.s1, s.z0, s.z1);
           }
         }
         canvas.drawPath(

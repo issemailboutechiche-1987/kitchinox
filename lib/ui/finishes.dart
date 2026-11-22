@@ -41,21 +41,36 @@ const fronts = [
   Finish('inox_facade', 'Inox brossé', Color(0xFFC6CACE), grain: Color(0xFFB4B8BC), tex: 'steel', tile: 600, gloss: true),
 ];
 
-/// Plans de travail utilisés au Maroc : marbre, granit, quartz (type Silestone), céramique frittée
-/// (type Dekton), solid surface (type Corian). Ni bois ni stratifié.
+/// Plans de travail : les coloris de chaque matière du tarif (voir worktop_looks.dart).
 const worktops = [
   Finish('quartz_blanc', 'Quartz blanc', Color(0xFFEDEBE5), grain: Color(0xFFDAD7CF), tex: 'quartz_white', tile: 700),
   Finish('quartz_gris', 'Quartz gris perle', Color(0xFFC9C8C3), grain: Color(0xFFB2B0AA), tex: 'quartz_grey', tile: 700),
   Finish('silestone_veine', 'Quartz veiné (type Silestone)', Color(0xFFEFECE7), grain: Color(0xFFBFB8AE), tex: 'marble_white', tile: 1800),
   Finish('terrazzo', 'Quartz effet terrazzo', Color(0xFFE5DED3), grain: Color(0xFFC9A28A), tex: 'terrazzo', tile: 800),
-  Finish('marbre', 'Marbre blanc', Color(0xFFE8E4DE), grain: Color(0xFFBFB8AE), tex: 'marble_white', tile: 1400),
-  Finish('marbre_noir', 'Marbre noir', Color(0xFF2B2B2E), grain: Color(0xFF8E8D8A), tex: 'marble_black', tile: 1400),
+  Finish('quartz_anthracite', 'Quartz anthracite', Color(0xFF4A4C4F), grain: Color(0xFF63666A), tex: 'quartz_dark', tile: 700),
+  Finish('quartz_beige', 'Quartz beige Sahara', Color(0xFFDCCFB9), grain: Color(0xFFC3B294), tex: 'quartz_beige', tile: 700),
+  Finish('marbre', 'Marbre blanc Carrare', Color(0xFFE8E4DE), grain: Color(0xFFBFB8AE), tex: 'marble_white', tile: 1400),
+  Finish('marbre_calacatta', 'Marbre Calacatta doré', Color(0xFFF1ECE2), grain: Color(0xFFB58A4C), tex: 'marble_gold', tile: 1600),
+  Finish('marbre_creme', 'Marbre Crema Marfil', Color(0xFFE6D8C0), grain: Color(0xFFC4AA84), tex: 'marble_cream', tile: 1400),
+  Finish('marbre_emperador', 'Marbre Emperador brun', Color(0xFF4F3B30), grain: Color(0xFFC9B49A), tex: 'marble_brown', tile: 1400),
+  Finish('marbre_noir', 'Marbre noir Marquina', Color(0xFF2B2B2E), grain: Color(0xFF8E8D8A), tex: 'marble_black', tile: 1400),
   Finish('marbre_vert', 'Marbre vert', Color(0xFF2F4A3F), grain: Color(0xFF9FB3A5), tex: 'marble_green', tile: 1400),
-  Finish('granit_noir', 'Granit noir', Color(0xFF2A2B2D), grain: Color(0xFF3D3E41), tex: 'granite_black', tile: 500),
+  Finish('granit_rose', 'Granit rose Porrino', Color(0xFFC3A08F), grain: Color(0xFF8E6B5C), tex: 'granite_pink', tile: 500),
+  Finish('granit_zimbabwe', 'Granit noir Zimbabwe', Color(0xFF1E1F21), grain: Color(0xFF38393C), tex: 'granite_black', tile: 380),
+  Finish('granit_labrador', 'Granit Labrador bleu', Color(0xFF34404C), grain: Color(0xFF7FA3C2), tex: 'granite_blue', tile: 500),
+  Finish('granit_cuir', 'Granit tranche cuir', Color(0xFF4A443D), grain: Color(0xFF6E6457), tex: 'granite_leather', tile: 600),
+  Finish('granit_noir', 'Granit noir absolu', Color(0xFF2A2B2D), grain: Color(0xFF3D3E41), tex: 'granite_black', tile: 500),
   Finish('granit_gris', 'Granit gris', Color(0xFF9A9894), grain: Color(0xFF6E6C69), tex: 'granite_grey', tile: 500),
   Finish('beton', 'Céramique effet béton (type Dekton)', Color(0xFF9FA09C), grain: Color(0xFF8C8D89), tex: 'concrete_smooth', tile: 2400),
   Finish('dekton_noir', 'Céramique anthracite (type Dekton)', Color(0xFF3A3B3D), grain: Color(0xFF2C2D2F), tex: 'concrete_dark', tile: 2400),
   Finish('dekton_marbre', 'Céramique effet marbre (type Dekton)', Color(0xFFF0EEEA), grain: Color(0xFFC4BEB4), tex: 'marble_white', tile: 2200),
+  Finish('onyx_blanc', 'Onyx blanc', Color(0xFFF1EDE2), grain: Color(0xFFD9CDB2), tex: 'onyx_white', tile: 1200),
+  Finish('onyx_miel', 'Onyx miel', Color(0xFFD7A75E), grain: Color(0xFFF3DFB4), tex: 'onyx_honey', tile: 1200),
+  Finish('onyx_vert', 'Onyx vert', Color(0xFFA9C29B), grain: Color(0xFFEFF3E2), tex: 'onyx_green', tile: 1200),
+  Finish('hpl_noir', 'Compact noir', Color(0xFF2A2A2C)),
+  Finish('hpl_blanc', 'Compact blanc', Color(0xFFF2F1ED)),
+  Finish('hpl_chene', 'Postformé chêne', Color(0xFFCDA77D), grain: Color(0xFFB8905F), tex: 'wood_oak', tile: 900),
+  Finish('hpl_beton', 'Postformé béton', Color(0xFF9FA09C), grain: Color(0xFF8C8D89), tex: 'concrete', tile: 1200),
   Finish('corian_blanc', 'Solid surface blanc (type Corian)', Color(0xFFF5F4F1)),
   Finish('corian_gris', 'Solid surface gris (type Corian)', Color(0xFFBEBDB9)),
 ];
@@ -162,7 +177,9 @@ Finish wallFinish(KitchenStyle s) => finishById(wallFinishes(s), s.wall);
 
 /// Crédence : sa finition, sinon celle des murs.
 Finish splashFinish(KitchenStyle s) =>
-    s.splash == null ? wallFinish(s) : finishById([...splashFinishes(s), ...wallFinishes(s)], s.splash!);
+    splashMatchesTop(s)
+        ? worktopFinish(s, s.worktop)
+        : s.splash == null ? wallFinish(s) : finishById([...splashFinishes(s), ...wallFinishes(s)], s.splash!);
 
 Finish frontFinish(KitchenStyle s, String id) => finishById(frontFinishes(s), id);
 Finish worktopFinish(KitchenStyle s, String id) => finishById(worktopFinishes(s), id);
