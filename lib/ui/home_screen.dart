@@ -10,6 +10,7 @@ import 'furniture_page.dart';
 import 'logo.dart';
 import 'manual_cut_page.dart';
 import 'saved_projects_dialog.dart';
+import 'stock_page.dart';
 import 'theme.dart';
 import 'i18n.dart';
 
@@ -68,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       (Icons.local_laundry_service_outlined, 'Buanderie', 'Lave-linge, sèche-linge, colonnes, bac à laver et tri sélectif', () => widget.onUniverse != null ? widget.onUniverse!('buanderie') : openFurniture(context, widget.state, 'buanderie')),
       (Icons.palette_outlined, 'Art', 'Création libre : dessinez vos meubles, 3D et débit', () => openArt(context, widget.state)),
       (Icons.content_cut, 'Débitage', 'Débit manuel, fichiers SketchCut (.sct) ou kitchinox', () => openManualCut(context, widget.state, offerOpen: true)),
+      (Icons.inventory_outlined, 'Stock et chutes', 'Feuilles et chutes de l’atelier, réutilisées au débit', () => openStock(context, widget.state)),
       (Icons.sell_outlined, 'Marques et tarifs', 'Catalogues quincaillerie, panneaux et prix fournisseurs', () => showBrandsDialog(context, widget.state, (m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m))))),
       (Icons.folder_special_outlined, 'Projets enregistrés', 'Consultez, ouvrez et dupliquez vos conceptions horodatées', () => showSavedProjectsDialog(context, widget.state, onOpenProject: (universe, proj) {
         widget.state.project = proj;

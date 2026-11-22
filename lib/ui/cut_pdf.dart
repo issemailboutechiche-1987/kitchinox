@@ -368,11 +368,13 @@ Future<Uint8List> buildCutPdf(LayoutEngine e, CutPlan plan,
     final parts = plan.parts.where((x) => x.material == mat).toList();
     final count = parts.fold<int>(0, (a, x) => a + x.qty);
     final partsArea = parts.fold<double>(0, (a, x) => a + x.area * x.qty) / 1e6;
-    // Utiliser les dimensions réelles de la première feuille de ce matériau (pas les dims globales)
-    final sheetL = sheets.isNotEmpty ? sheets.first.length.toDouble() : cs.sheetLength.toDouble();
-    final sheetW = sheets.isNotEmpty ? sheets.first.width.toDouble() : cs.sheetWidth.toDouble();
+    final fresh = sheets.where((s) => !s.fromStock).toList(), reused = sheets.where((s) => s.fromStock).toList();
+    // dimensions réelles de la première feuille neuve de ce matériau (pas les dimensions globales)
+    final (fL, fW) = fresh.isNotEmpty ? (fresh.first.length, fresh.first.width) : cs.sheetDimensionsFor(mat);
+    final sheetL = fL.toDouble(), sheetW = fW.toDouble();
+    final reusedArea = reused.fold<double>(0, (a, s) => a + s.length * s.width) / 1e6;
     final sheetArea = sheetL * sheetW / 1e6;
-    final allArea = sheetArea * sheets.length;
+    final allArea = sheetArea * fresh.length + reusedArea;
     final remn = sheets.expand((s) => s.remnants).fold<double>(0, (a, r) => a + r.$3 * r.$4) / 1e6;
     final waste = math.max(0.0, allArea - partsArea - remn);
     final frontEdge = parts.where(isFrontPart).fold<double>(0, (a, x) => a + x.edgeLength * x.qty) / 1000;
@@ -400,11 +402,11 @@ Future<Uint8List> buildCutPdf(LayoutEngine e, CutPlan plan,
             columnWidths: const {0: pw.FlexColumnWidth(3), 1: pw.FlexColumnWidth(2), 2: pw.FlexColumnWidth(3), 3: pw.FlexColumnWidth(2)},
             children: [
               row('Format de feuille', '${sheetL.toInt()} X ${sheetW.toInt()}', 'Nombre de pièces', '$count'),
-              row('Nombre de feuilles', '${sheets.length}', 'Surface des pièces', _m2(partsArea)),
+              row('Nombre de feuilles', '${fresh.length}', 'Surface des pièces', _m2(partsArea)),
               row('Surface d\'une feuille', _m2(sheetArea), 'Surface des chutes', _m2(remn)),
               row('Surface de toutes les feuilles', _m2(allArea), 'Surface de déchet', _m2(waste)),
-              row('Chutes réutilisées', '0', 'Chant ${_n(sp.frontEdge, 1)} mm (façades)', '${_n(frontEdge)} m'),
-              row('Surface des chutes réutilisées', '0 m2', 'Chant ${_n(sp.carcassEdge, 1)} mm (caissons)', '${_n(carcassEdge)} m'),
+              row('Chutes réutilisées', reused.isEmpty ? '0' : '${reused.length} (${reused.map((s) => s.stockId).join(', ')})', 'Chant ${_n(sp.frontEdge, 1)} mm (façades)', '${_n(frontEdge)} m'),
+              row('Surface des chutes réutilisées', reused.isEmpty ? '0 m2' : _m2(reusedArea), 'Chant ${_n(sp.carcassEdge, 1)} mm (caissons)', '${_n(carcassEdge)} m'),
               row('Longueur de coupe', '${_n(plan.cutLengthOf(mat))} m', 'Longueur de rainures', '${_n(grooves)} m'),
               row('Taux d\'utilisation', allArea == 0 ? '-' : '${_n(100 * partsArea / allArea)} %', 'Méthode', 'scie, $method'),
             ],
@@ -539,13 +541,13 @@ Future<Uint8List> buildCutPdf(LayoutEngine e, CutPlan plan,
             decoration: const pw.BoxDecoration(border: pw.Border(top: pw.BorderSide(width: 0.8))),
             padding: const pw.EdgeInsets.only(top: 3),
             child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              tx(trp('{0} X {1}  -  {2} ({3})   |   Quantité - 1   |   {4} bande(s)', [s.length, s.width, i + 1, sheets.length, s.strips]), fs: 10),
+              tx(trp('{0} X {1}  -  {2} ({3})   |   Quantité - 1   |   {4} bande(s)', [s.length, s.width, s.fromStock ? i + 1 : i + 1 - reused.length, s.fromStock ? reused.length : fresh.length, s.strips]), fs: 10),
               tx(trp('Nombre de pièces : {0}   |   Surface des pièces : {1}   |   {2} %', [s.placements.length, _m2(area), _n(100 * s.usage)]), fs: 10),
             ]),
           );
       pw.Widget title(String what) => pw.Padding(
             padding: const pw.EdgeInsets.only(top: 4, bottom: 6),
-            child: pw.Text(_t(trp('Feuille {0} / {1}  -  {2}', [i + 1, sheets.length, what])), style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
+            child: pw.Text(_t(s.fromStock ? trp('Chute {0} ({1} x {2})  -  {3}', [s.stockId, s.length, s.width, what]) : trp('Feuille {0} / {1}  -  {2}', [i + 1 - reused.length, fresh.length, what])), style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
           );
       String grooveText(CutPart x) => x.grooveLength == 0 ? '' : (x.grooveLong > 0 ? 'long.' : 'larg.');
 

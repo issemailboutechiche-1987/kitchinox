@@ -339,7 +339,7 @@ String _buildInformationSheet(AppState state, List<CutPart> parts, CutPlan plan,
 
   final fSheet = cs.sheetDimensionsFor(cs.frontKey), bSheet = cs.sheetDimensionsFor(cs.backMaterial);
   final sheetArea = cs.sheetLength * cs.sheetWidth / 1e6;
-  final numSheets = plan.sheets.length;
+  final numSheets = plan.newSheets().length;
   final allSheetsArea = plan.sheets.fold<double>(0, (a, s) => a + s.length * s.width) / 1e6; // chaque panneau a son format
   final partsCount = parts.fold<int>(0, (a, x) => a + x.qty);
   final partsArea = parts.fold<double>(0, (a, x) => a + x.area * x.qty) / 1e6;

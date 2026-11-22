@@ -8,7 +8,9 @@ import 'package:flutter/services.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
+import 'sct_export.dart';
 import 'session.dart';
+import 'stock_page.dart';
 import 'busy.dart';
 import 'cut_pdf.dart';
 import 'tech_drawings.dart';
@@ -216,7 +218,7 @@ class _ManualCutPageState extends State<ManualCutPage> {
     setState(() {
       widget.state.project.manual = job;
       _gen++;
-      _plan = job.parts.any((p) => p.length > 0 && p.width > 0) ? job.plan() : null;
+      _plan = job.parts.any((p) => p.length > 0 && p.width > 0) ? _nest(job) : null;
     });
     widget.state.refresh();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -226,7 +228,7 @@ class _ManualCutPageState extends State<ManualCutPage> {
     Session.autosave('debit', () => jsonEncode(job.toJson()));
     if (recalc && job.parts.any((p) => p.length > 0 && p.width > 0 && p.qty > 0)) {
       try {
-        _plan = job.plan();
+        _plan = _nest(job);
       } catch (_) {}
     }
     setState(() {});
@@ -244,13 +246,26 @@ class _ManualCutPageState extends State<ManualCutPage> {
     }
   }
 
+  CutPlan _nest(ManualCut j) => nest(j.cutParts, j.settings..stockMode = widget.state.project.cut.stockMode);
+
+  /// Découpe faite : chutes utilisées sorties du stock, restes rangés.
+  Future<void> _cutDone() async {
+    final msg = await showCutDone(context, widget.state, _nest(job),
+        project: stockLabelFor(widget.state, manual: job.order),
+        settings: job.settings..stockMode = widget.state.project.cut.stockMode,
+        freeze: (f) => job.stockFrozen = f);
+    if (msg == null || !mounted) return;
+    _changed();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   Future<void> _calc() async {
-    final plan = await runBusy(context, tr('Optimisation du débit…'), () => job.plan());
+    final plan = await runBusy(context, tr('Optimisation du débit…'), () => _nest(job));
     if (mounted) setState(() => _plan = plan);
   }
 
   Future<void> _pdf() async {
-    final plan = _plan ?? job.plan();
+    final plan = _plan ?? _nest(job);
     if (plan.parts.isEmpty) return;
     setState(() => _busy = true);
     try {
@@ -262,9 +277,15 @@ class _ManualCutPageState extends State<ManualCutPage> {
     }
   }
 
-  void _sct() {
-    final plan = _plan ?? job.plan();
+  Future<void> _sct() async {
+    final plan = _plan ?? _nest(job);
     if (plan.parts.isEmpty) return;
+    if (plan.stockSheets().isNotEmpty) {
+      // chutes utilisées : un fichier par chute
+      final msg = await exportSctFiles(context, plan, name: job.order);
+      if (msg != null && mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      return;
+    }
     downloadBytes('${job.order}.sct', toSct(plan, job.material, order: job.order, thickness: '${job.thickness}').codeUnits);
   }
 
@@ -545,7 +566,8 @@ class _ManualCutPageState extends State<ManualCutPage> {
           spacing: 12,
           runSpacing: 6,
           children: [
-            Text(trp('{0} feuille(s)', [plan.sheets.length]), style: t.labelMedium),
+            Text(trp('{0} feuille(s)', [plan.newSheets().length]), style: t.labelMedium),
+            if (plan.stockSheets().isNotEmpty) Text(trp('+ {0} chute(s) du stock : {1}', [plan.stockSheets().length, plan.stockSheets().map((s) => s.stockId).join(', ')]), style: t.labelMedium),
             Text('•', style: t.labelMedium),
             Text(trp('{0} pièces', [plan.partCount]), style: t.labelMedium),
             Text('•', style: t.labelMedium),
@@ -588,8 +610,8 @@ class _ManualCutPageState extends State<ManualCutPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    trp('Feuille {0} ({1} × {2} mm) · {3} % utilisé · {4} pièces',
-                        [s.number, s.width, s.length, (s.usage * 100).toStringAsFixed(1), s.placements.length]),
+                    trp(s.fromStock ? 'Chute {0} ({1} × {2} mm) · {3} % utilisé · {4} pièces' : 'Feuille {0} ({1} × {2} mm) · {3} % utilisé · {4} pièces',
+                        [s.stockId ?? s.number, s.width, s.length, (s.usage * 100).toStringAsFixed(1), s.placements.length]),
                     style: t.labelMedium?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -615,7 +637,12 @@ class _ManualCutPageState extends State<ManualCutPage> {
                   kxItem('Plan de coupe (PDF)', _busy ? null : _pdf, icon: Icons.picture_as_pdf_outlined, key: 'menu_pdf'),
                   kxItem('Fichier .sct', _sct, icon: Icons.content_cut, key: 'menu_sct'),
                 ]),
-                KxMenu('Outils', 'menu_tools', [kxItem('Recalculer', _calc, icon: Icons.calculate_outlined, key: 'menu_calc')]),
+                KxMenu('Outils', 'menu_tools', [
+                  kxItem('Recalculer', _calc, icon: Icons.calculate_outlined, key: 'menu_calc'),
+                  const Divider(height: 1),
+                  kxItem('Stock et chutes', () => openStock(context, widget.state).then((_) => _changed()), icon: Icons.inventory_outlined, key: 'menu_stock'),
+                  kxItem('Valider la découpe…', _cutDone, icon: Icons.task_alt, key: 'menu_cut_done'),
+                ]),
               ],
               trailing: [
                 IconButton(tooltip: tr('Ouvrir .sct / kitchinox'), onPressed: _open, icon: const Icon(Icons.file_open_outlined)),

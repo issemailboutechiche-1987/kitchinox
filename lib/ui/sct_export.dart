@@ -47,6 +47,21 @@ List<SctFile> sctFiles(CutPlan plan, {required String name}) {
           };
     final sheet = cs.sheetDimensionsFor(mat);
     final t = cs.thicknessFor(mat);
+    int count(List<CutPart> l) => l.fold<int>(0, (a, p) => a + p.qty);
+    for (final s in plan.stockSheets(mat)) {
+      out.add(SctFile(
+        mat,
+        kind,
+        trp('Chute {0}', [s.stockId]),
+        '${_safe(name)}_Chute_${_safe(s.stockId!)}_${s.length}x${s.width}_${t}mm.sct',
+        toSct(plan, mat, order: '${name}_${s.stockId}', thickness: '$t', offcut: s),
+        (s.length, s.width),
+        t,
+        count(sctParts(plan, mat, offcut: s)),
+        1,
+      ));
+    }
+    if (sctParts(plan, mat).isEmpty) continue; // tout tient dans les chutes
     out.add(SctFile(
       mat,
       kind,
@@ -55,8 +70,8 @@ List<SctFile> sctFiles(CutPlan plan, {required String name}) {
       toSct(plan, mat, order: '${name}_$key', thickness: '$t'),
       sheet,
       t,
-      plan.parts.where((p) => p.material == mat).fold<int>(0, (a, p) => a + p.qty),
-      plan.sheets.where((s) => s.material == mat).length,
+      count(sctParts(plan, mat)),
+      plan.newSheets(mat).length,
     ));
   }
   return out..sort((a, b) => a.kind.index.compareTo(b.kind.index));
@@ -91,7 +106,7 @@ Future<String?> exportSctFiles(BuildContext context, CutPlan plan, {required Str
                 ]),
                 for (final f in files)
                   CheckboxListTile(
-                    key: ValueKey('sct_${f.material}'),
+                    key: ValueKey(f.title.startsWith(tr('Chute')) ? 'sct_${f.fileName}' : 'sct_${f.material}'),
                     value: chosen.contains(f),
                     onChanged: (v) => setD(() => v == true ? chosen.add(f) : chosen.remove(f)),
                     secondary: Icon(

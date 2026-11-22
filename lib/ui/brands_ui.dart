@@ -31,7 +31,7 @@ Future<void> showBrandsDialog(BuildContext context, AppState st, void Function(S
   }
   final qty = projectHardwareQty(st);
   final estimate = BrandCatalog.hardwareEstimate(qty);
-  final sheets = st.cutPlan.sheets.where((s) => !s.material.startsWith('HDF')).length;
+  final sheets = st.cutPlan.newSheets().where((s) => !s.material.startsWith('HDF')).length;
   return showDialog<void>(
     context: context,
     builder: (ctx) => DefaultTabController(

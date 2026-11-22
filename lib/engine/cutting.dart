@@ -18,6 +18,7 @@ import 'corners.dart';
 import 'end_panels.dart';
 import 'front_layout.dart';
 import 'layout_engine.dart';
+import 'stock.dart';
 
 class SheetPreset {
   final String label;
@@ -89,6 +90,9 @@ const woodSheetPresets = <String, List<SheetPreset>>{
 };
 
 /// Types de panneaux du projet : chacun a sa matière, son format de feuille, son épaisseur et son prix.
+/// Chutes de l'atelier offertes au débit (renseigné par l'application ; null dans les tests : aucune).
+List<StockPiece> Function()? stockSource;
+
 enum PanelKind { carcass, front, back, drawer }
 
 class CutSettings {
@@ -119,9 +123,33 @@ class CutSettings {
   bool includeShelves; // étagères dans le débit
   bool includeRails; // traverses au lieu d'un dessus plein
   int method; // méthode SketchCut : 1 par longueur, 2 par largeur, 3 optimale
+  /// Chutes du stock : 'always' (dès qu'elles servent), 'save' (seulement si elles évitent une feuille neuve), 'off'.
+  String stockMode;
+
+  /// Prix d'une chute au devis, en % du prix de la même surface de feuille neuve.
+  int offcutPct;
+
+  /// Chutes au moment de la découpe validée : le plan ne change plus quand le stock bouge.
+  List<StockPiece>? stockFrozen;
+  List<StockPiece>? _stock; // liste reçue avec la demande de calcul
+  (int, int)? _sheet; // format imposé (débit dans une chute)
+
+  /// Chutes utilisables par ce débit.
+  List<StockPiece> get stock => _stock ?? (stockMode == 'off' ? const [] : stockFrozen ?? stockSource?.call() ?? const []);
+
+  /// Copie indépendante (chutes comprises).
+  CutSettings copy() => CutSettings.fromJson(toNestJson());
+
+  /// Réglages et chutes : tout ce dont dépend le débit.
+  Map<String, dynamic> toNestJson() {
+    final st = stock;
+    return {...toJson(), if (st.isNotEmpty) 'stock': [for (final p in st) p.toJson()]};
+  }
+
   String machine; // 'scie' (scie à panneaux : bandes puis tronçons) | 'cnc' (imbrication libre)
 
   (int, int) sheetDimensionsFor(String material) {
+    if (_sheet != null) return _sheet!;
     // matière qui porte son format (« … · 2440×1220 ») : celui du tarif
     final f = RegExp(r'(\d{3,4})\s*[x×]\s*(\d{3,4})\s*\)?$').firstMatch(material);
     if (f != null) return (int.parse(f.group(1)!), int.parse(f.group(2)!));
@@ -205,6 +233,9 @@ class CutSettings {
     this.includeRails = false,
     this.method = 1,
     this.machine = 'scie',
+    this.stockMode = 'always',
+    this.offcutPct = 100,
+    this.stockFrozen,
   });
 
   Map<String, dynamic> toJson() => {
@@ -237,10 +268,14 @@ class CutSettings {
     'include_rails': includeRails,
     'method': method,
     'machine': machine,
+    if (stockMode != 'always') 'stock_mode': stockMode,
+    if (offcutPct != 100) 'offcut_pct': offcutPct,
+    if (stockFrozen != null) 'stock_frozen': [for (final p in stockFrozen!) p.toJson()],
   };
 
   factory CutSettings.fromJson(Map<String, dynamic> j) {
     final d = CutSettings();
+    List<StockPiece> pieces(Object? v) => [for (final x in v as List) StockPiece.fromJson((x as Map).cast<String, dynamic>())];
     return CutSettings(
       sheetLength: j['sheet_length'] ?? d.sheetLength,
       sheetWidth: j['sheet_width'] ?? d.sheetWidth,
@@ -271,7 +306,10 @@ class CutSettings {
       includeRails: j['include_rails'] ?? d.includeRails,
       method: j['method'] ?? d.method,
       machine: j['machine'] ?? d.machine,
-    );
+      stockMode: j['stock_mode'] ?? d.stockMode,
+      offcutPct: j['offcut_pct'] ?? d.offcutPct,
+      stockFrozen: j['stock_frozen'] == null ? null : pieces(j['stock_frozen']),
+    ).._stock = j['stock'] == null ? null : pieces(j['stock']);
   }
 }
 
@@ -616,6 +654,10 @@ class CutSheet {
 
   /// Nombre de bandes (refentes sur toute la longueur) pour la scie à panneaux.
   int strips = 0;
+
+  /// Chute du stock débitée (null : feuille neuve).
+  String? stockId;
+  bool get fromStock => stockId != null;
   CutSheet(this.number, this.material, this.length, this.width, int trim) {
     _free.add(_Free(trim.toDouble(), trim.toDouble(), (length - 2 * trim).toDouble(), (width - 2 * trim).toDouble()));
   }
@@ -636,6 +678,12 @@ class CutPlan {
   final List<CutSheet> sheets;
   final List<CutPart> notPlaced;
   const CutPlan(this.settings, this.parts, this.sheets, this.notPlaced);
+
+  /// Feuilles neuves (sans les chutes du stock), d'une matière ou de toutes.
+  Iterable<CutSheet> newSheets([String? material]) => sheets.where((s) => !s.fromStock && (material == null || s.material == material));
+
+  /// Chutes du stock utilisées.
+  Iterable<CutSheet> stockSheets([String? material]) => sheets.where((s) => s.fromStock && (material == null || s.material == material));
 
   int get partCount => parts.fold(0, (a, p) => a + p.qty);
   double get partsArea => parts.fold<double>(0, (a, p) => a + p.area * p.qty) / 1e6;
@@ -706,14 +754,147 @@ extension StableSort<T> on List<T> {
   }
 }
 
-CutPlan nest(List<CutPart> parts, CutSettings cs) => cs.machine == 'cnc' ? _nestFree(parts, cs) : _nestStrips(parts, cs);
+CutPlan nest(List<CutPart> parts, CutSettings cs) {
+  final base = _nestNew(parts, cs);
+  final stock = cs.stock;
+  return stock.isEmpty ? base : _withStock(parts, cs, base, stock);
+}
+
+/// Débit dans des feuilles neuves seulement.
+CutPlan _nestNew(List<CutPart> parts, CutSettings cs) => cs.machine == 'cnc' ? _nestFree(parts, cs) : _nestStrips(parts, cs);
+
+/// Part d'une chute à remplir au moins pour qu'elle vaille la peine d'être sortie du rayon.
+const _minOffcutFill = 0.4;
+
+/// Sert les chutes du stock avant les feuilles neuves, matière par matière. Deux essais (petites chutes d'abord,
+/// grandes d'abord) ; jamais plus de feuilles neuves ni de pièces refusées qu'avec des feuilles neuves seulement.
+CutPlan _withStock(List<CutPart> parts, CutSettings cs, CutPlan base, List<StockPiece> stock) {
+  final sheets = <CutSheet>[];
+  final notPlaced = <CutPart>[];
+  final used = <String>{}; // une chute ne sert qu'une fois, même si deux matières du plan lui correspondent
+  for (final mat in {for (final p in parts) p.material}) {
+    final t = cs.thicknessFor(mat);
+    final own = base.sheets.where((s) => s.material == mat).toList();
+    final refused = base.notPlaced.where((p) => p.material == mat).toList();
+    var bestSheets = own, bestRefused = refused;
+    final pieces = <(CutPart, int)>[
+      for (var i = 0; i < parts.length; i++)
+        if (parts[i].material == mat)
+          for (var q = 0; q < parts[i].qty; q++) (parts[i], i + 1),
+    ];
+    final offers = [
+      for (final p in stock)
+        if (p.offcut && !used.contains(p.id) && p.matches(mat, t) && pieces.any((x) => _fitsIn(x.$1, p, cs))) p,
+    ]..stableSort((a, b) => a.area.compareTo(b.area));
+    if (offers.isNotEmpty) {
+      var bestArea = 0;
+      final few = offers.length > 40 ? offers.sublist(offers.length - 40) : offers;
+      for (final order in [few, if (few.length > 1) few.reversed.toList()]) {
+        final cand = _fillOffcuts(pieces, mat, cs, order);
+        if (cand.$1.isEmpty) continue;
+        final rest = _nestRest(cand.$2, cs);
+        final fresh = rest.sheets.length, before = bestSheets.where((s) => !s.fromStock).length;
+        final area = cand.$1.fold<int>(0, (a, s) => a + s.partsArea);
+        if (rest.notPlaced.length > bestRefused.length) continue;
+        if (fresh > before && rest.notPlaced.length == bestRefused.length) continue;
+        if (cs.stockMode == 'save' && fresh >= own.length && rest.notPlaced.length == refused.length) continue;
+        if (fresh == before && rest.notPlaced.length == bestRefused.length && area <= bestArea) continue;
+        bestSheets = [...cand.$1, ...rest.sheets];
+        bestRefused = rest.notPlaced;
+        bestArea = area;
+      }
+    }
+    for (final s in bestSheets) {
+      if (s.stockId != null) used.add(s.stockId!);
+      final c = CutSheet(sheets.length + 1, mat, s.length, s.width, 0)
+        ..strips = s.strips
+        ..cutLen = s.cutLen
+        ..stockId = s.stockId;
+      c._free
+        ..clear()
+        ..addAll(s._free);
+      c.placements.addAll(s.placements);
+      sheets.add(c);
+    }
+    notPlaced.addAll(bestRefused);
+  }
+  return CutPlan(cs, parts, sheets, notPlaced);
+}
+
+bool _fitsIn(CutPart p, StockPiece s, CutSettings cs) {
+  final l = s.length - 2 * cs.trim, w = s.width - 2 * cs.trim;
+  return (p.length <= l && p.width <= w) || (p.canRotate && p.width <= l && p.length <= w);
+}
+
+/// Remplit les chutes l'une après l'autre ; renvoie les chutes retenues et les pièces restantes.
+(List<CutSheet>, List<(CutPart, int)>) _fillOffcuts(List<(CutPart, int)> pieces, String mat, CutSettings cs, List<StockPiece> offers) {
+  final out = <CutSheet>[];
+  final rest = [...pieces];
+  for (final o in offers) {
+    final fit = rest.where((x) => _fitsIn(x.$1, o, cs)).toList();
+    if (fit.isEmpty) continue;
+    final ocs = CutSettings.fromJson(cs.toJson()).._sheet = (o.length, o.width);
+    final orders = [
+      [...fit]..stableSort((a, b) => b.$1.area.compareTo(a.$1.area)),
+      [...fit]..stableSort((a, b) => b.$1.length.compareTo(a.$1.length)),
+      [...fit]..stableSort((a, b) => b.$1.width.compareTo(a.$1.width)),
+    ];
+    CutSheet? best;
+    for (final a in const [true, false]) {
+      for (final order in orders) {
+        for (var f = 0; f < 3; f++) {
+          for (var sp = 0; sp < 3; sp++) {
+            for (final wide in const [false, true]) {
+              final p = _guillRun(order, mat, ocs, 1, alongLength: a, fit: f, split: sp, wideStrip: wide, maxSheets: 1);
+              if (p.sheets.isNotEmpty && (best == null || p.sheets.first.partsArea > best.partsArea)) best = p.sheets.first;
+            }
+          }
+        }
+      }
+    }
+    if (best == null || best.usage < _minOffcutFill) continue;
+    best.stockId = o.id;
+    out.add(best);
+    for (final pl in best.placements) {
+      final at = rest.indexWhere((x) => identical(x.$1, pl.part) && x.$2 == pl.index);
+      if (at >= 0) rest.removeAt(at);
+    }
+  }
+  return (out, rest);
+}
+
+/// Débit en feuilles neuves des pièces restantes, rapporté aux pièces et numéros d'origine.
+CutPlan _nestRest(List<(CutPart, int)> rest, CutSettings cs) {
+  final qty = <int, int>{};
+  final orig = <int, CutPart>{};
+  for (final (p, i) in rest) {
+    qty[i] = (qty[i] ?? 0) + 1;
+    orig[i] = p;
+  }
+  final ids = qty.keys.toList()..sort();
+  final copies = [
+    for (final i in ids)
+      CutPart(orig[i]!.material, orig[i]!.name, orig[i]!.cabinet, orig[i]!.length, orig[i]!.width, qty[i]!,
+          canRotate: orig[i]!.canRotate, edgeLong: orig[i]!.edgeLong, edgeShort: orig[i]!.edgeShort,
+          grooveLong: orig[i]!.grooveLong, grooveShort: orig[i]!.grooveShort),
+  ];
+  final plan = _nestNew(copies, cs);
+  for (final s in plan.sheets) {
+    for (var k = 0; k < s.placements.length; k++) {
+      final p = s.placements[k];
+      final i = ids[p.index - 1];
+      s.placements[k] = SheetPlacement(orig[i]!, i, p.x, p.y, p.dx, p.dy, p.rotated);
+    }
+  }
+  return CutPlan(cs, const [], plan.sheets, [for (final p in plan.notPlaced) orig[ids[copies.indexWhere((c) => identical(c, p))]]!]);
+}
 
 // ---------------------------------------------------------------------------
 // Cache et calcul hors du fil de l'interface
 // ---------------------------------------------------------------------------
 
 /// Clé d'un débit : réglages + pièces (mêmes pièces, mêmes réglages → même plan).
-String nestKey(List<CutPart> parts, CutSettings cs) => '${jsonEncode(cs.toJson())}|${parts.map((p) => '${p.key}x${p.qty}').join(';')}';
+String nestKey(List<CutPart> parts, CutSettings cs) => '${jsonEncode(cs.toNestJson())}|${parts.map((p) => '${p.key}x${p.qty}').join(';')}';
 
 final _nestMemo = <String, CutPlan>{};
 
@@ -753,7 +934,7 @@ CutPart cutPartFromJson(Map<String, dynamic> j) => CutPart('${j['m']}', '${j['n'
 
 /// Demande de débit à envoyer à un fil de calcul (Web Worker, Isolate) : texte JSON compact.
 String nestRequest(int id, List<CutPart> parts, CutSettings cs) =>
-    jsonEncode({'id': id, 'cs': cs.toJson(), 'parts': [for (final p in parts) cutPartToJson(p)]});
+    jsonEncode({'id': id, 'cs': cs.toNestJson(), 'parts': [for (final p in parts) cutPartToJson(p)]});
 
 /// Exécute une demande de débit (côté fil de calcul) et renvoie le plan en JSON.
 /// Les pièces sont désignées par leur rang dans la demande : rien de lourd ne transite.
@@ -771,6 +952,7 @@ String nestJob(String request) {
     'sheets': [
       for (final s in plan.sheets)
         {
+          if (s.stockId != null) 'sid': s.stockId,
           'n': s.number, 'm': s.material, 'l': s.length, 'w': s.width, 'st': s.strips, 'cut': s.cutLen,
           'free': [for (final f in s._free) [f.x, f.y, f.w, f.h]],
           'pl': [for (final p in s.placements) [at[p.part], p.index, p.x, p.y, p.dx, p.dy, p.rotated ? 1 : 0]],
@@ -787,6 +969,7 @@ CutPlan nestFromResponse(Map<String, dynamic> j, List<CutPart> parts, CutSetting
     final m = x as Map<String, dynamic>;
     final s = CutSheet(m['n'] as int, '${m['m']}', m['l'] as int, m['w'] as int, 0)
       ..strips = m['st'] as int
+      ..stockId = m['sid'] as String?
       ..cutLen = (m['cut'] as num).toDouble();
     s._free
       ..clear()
@@ -902,13 +1085,37 @@ CutPlan _nestWith(List<CutPart> parts, CutSettings cs, {required bool areaFit, r
 // Export SketchCut PRO (.sct, format <V3.0>) : pièces à optimiser dans SketchCut
 // ---------------------------------------------------------------------------
 
+/// Pièces d'un fichier .sct : celles des feuilles neuves, ou celles de la chute [offcut].
+List<CutPart> sctParts(CutPlan plan, String material, {CutSheet? offcut}) {
+  final inStock = <int, int>{};
+  for (final s in offcut != null ? [offcut] : plan.stockSheets(material)) {
+    for (final p in s.placements) {
+      inStock[p.index] = (inStock[p.index] ?? 0) + 1;
+    }
+  }
+  final out = <CutPart>[];
+  for (var i = 0; i < plan.parts.length; i++) {
+    final p = plan.parts[i];
+    if (p.material != material) continue;
+    final n = inStock[i + 1] ?? 0;
+    final q = offcut != null ? n : p.qty - n;
+    if (q <= 0) continue;
+    out.add(q == p.qty
+        ? p
+        : CutPart(p.material, p.name, p.cabinet, p.length, p.width, q,
+            canRotate: p.canRotate, edgeLong: p.edgeLong, edgeShort: p.edgeShort, grooveLong: p.grooveLong, grooveShort: p.grooveShort));
+  }
+  return out;
+}
+
 /// Fichier .sct d'un matériau : les pièces sont « non découpées », SketchCut calcule le plan.
-String toSct(CutPlan plan, String material, {String order = 'kitchinox', String thickness = '18', DateTime? date}) {
+/// Les pièces posées dans une chute du stock n'y sont pas : elles ont leur fichier, au format de la chute ([offcut]).
+String toSct(CutPlan plan, String material, {String order = 'kitchinox', String thickness = '18', DateTime? date, CutSheet? offcut}) {
   final cs = plan.settings;
-  final (sL, sW) = cs.sheetDimensionsFor(material);
+  final (sL, sW) = offcut != null ? (offcut.length, offcut.width) : cs.sheetDimensionsFor(material);
   final d = date ?? DateTime.now();
   String b(bool v) => v ? '1' : '0';
-  final parts = plan.parts.where((p) => p.material == material).toList();
+  final parts = sctParts(plan, material, offcut: offcut);
   final out = <String>[
     '<V3.0>',
     '1',

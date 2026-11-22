@@ -33,6 +33,8 @@ import 'ui/labels_pdf.dart';
 import 'ui/pdf_export.dart';
 import 'ui/tech_preview.dart';
 import 'ui/textures.dart';
+import 'ui/stock_page.dart';
+import 'ui/stock_store.dart';
 import 'ui/theme.dart';
 import 'ui/toolbar.dart';
 import 'ui/web_io.dart';
@@ -104,6 +106,9 @@ Future<void> main() async {
   FurnitureAccessories.parse(await rootBundle.loadString('assets/data/furniture_accessories.json')); // accessoires de meubles
   ArtRecipes.parse(await rootBundle.loadString('assets/data/art_recipes.json')); // recettes du mode Art
   PublicPrices.parse(await rootBundle.loadString('assets/data/public_prices.json')); // prix publics des panneaux
+  StockStore.instance
+    ..load()
+    ..attach(state); // chutes de l'atelier servies par le débit
   state.addListener(() => Session.autosave('cuisine', () => projectWorkJson(state.project.toJson())));
   final bank = TextureBank.instance;
   bank.addListener(state.refresh);
@@ -259,7 +264,12 @@ class _KitchenAppState extends State<KitchenApp> {
   final _fresh = <String, Project Function()>{};
 
   /// Planificateur avec la question « enregistrer ou quitter » en sortant.
-  Widget _guarded(String id, AppState s) => LeaveGuard(
+  Widget _guarded(String id, AppState s) {
+    StockStore.instance.attach(s); // chutes de l'atelier pour l'espace ouvert
+    return _guard(id, s);
+  }
+
+  Widget _guard(String id, AppState s) => LeaveGuard(
         id: id,
         current: () => projectWorkJson(s.project.toJson()),
         revert: (saved) {
@@ -569,7 +579,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
           progress: progress);
       progress.dispose();
       downloadBytes('${number == null ? '' : '${number}_'}${st.project.name}_plan_de_decoupe.pdf', bytes, mime: 'application/pdf');
-      _msg(trp('Plan de découpe : {0} pièces sur {1} panneau(x)', [plan.partCount, plan.sheets.length]));
+      _msg(trp('Plan de découpe : {0} pièces sur {1} panneau(x)', [plan.partCount, plan.newSheets().length]));
     } catch (e, st) {
       // ignore: avoid_print
       print('PDF découpe ERREUR: $e\n$st');
@@ -577,6 +587,15 @@ class _PlannerScreenState extends State<PlannerScreen> {
     } finally {
       if (mounted) setState(() => _pdfBusy = false);
     }
+  }
+
+  /// Découpe faite : chutes utilisées sorties du stock, restes rangés.
+  Future<void> _cutDone() async {
+    final plan = await _plan();
+    if (!mounted) return;
+    final cs = st.project.cut;
+    final msg = await showCutDone(context, st, plan, project: stockLabelFor(st), settings: cs, freeze: (f) => cs.stockFrozen = f);
+    if (msg != null) _msg(msg);
   }
 
   Future<void> _generateCodes() async {
@@ -1001,6 +1020,9 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         kxItem('Réglages du débit et tarifs', _cutSettings, icon: Icons.straighten),
         kxItem('Débit manuel', () => openManualCut(context, st), icon: Icons.edit_note),
         kxItem('Contrôles', _issues, icon: Icons.rule),
+        const Divider(height: 1),
+        kxItem('Stock et chutes', () => openStock(context, st), icon: Icons.inventory_outlined, key: 'menu_stock'),
+        kxItem('Valider la découpe…', _cutDone, icon: Icons.task_alt, key: 'menu_cut_done'),
       ]),
       KxMenu('Fenêtre', 'menu_window', [
         for (final s in PlanStep.values) kxItem(s.label, () => st.goTo(s), checked: st.step == s),
@@ -1142,6 +1164,8 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
                 onGenerateCodes: _generateCodes,
                 onSct: _sct,
                 onManualCut: () => openManualCut(context, st),
+                onStock: () => openStock(context, st),
+                onCutDone: _cutDone,
                 onCutSettings: _cutSettings,
                 onSave: _save,
                 onIssues: _issues,

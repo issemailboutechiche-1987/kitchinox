@@ -616,7 +616,8 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
   final cs = plan.settings;
   // panneaux : une ligne par matériau débité
   for (final mat in plan.materials) {
-    final n = plan.sheets.where((s) => s.material == mat).length;
+    final n = plan.newSheets(mat).length;
+    final offcuts = plan.stockSheets(mat).toList();
     final kind = cs.panelKind(mat);
     final main = mat == cs.carcassMaterial || mat == cs.frontKey;
     final decor = mat.startsWith('MDF plaqué') || mat.startsWith('Panneau décor');
@@ -653,9 +654,18 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
             : pt == null
                 ? ' · prix à demander'
                 : '';
-    out.add(SupplyLine('Panneaux', decor ? '$mat (${pt?.name ?? 'décor'})' : (main ? pt?.name ?? mat : mat),
-        '$sL x $sW x $thick mm$how', n.toDouble(), 'feuille', price));
-    if (specs.cuttingPerSheet > 0) {
+    final label = decor ? '$mat (${pt?.name ?? 'décor'})' : (main ? pt?.name ?? mat : mat);
+    if (n > 0 || offcuts.isEmpty) {
+      out.add(SupplyLine('Panneaux', label, '$sL x $sW x $thick mm$how', n.toDouble(), 'feuille', price));
+    }
+    if (offcuts.isNotEmpty) {
+      // chutes du stock : au prorata du prix de la feuille, selon le réglage du projet
+      final k = cs.offcutPct / 100 / (sL * sW / 1e6);
+      final m2 = offcuts.fold<double>(0, (a, s) => a + s.length * s.width) / 1e6;
+      out.add(SupplyLine('Panneaux', 'Chutes du stock', '$label · $thick mm · ${offcuts.length} chute(s)', double.parse(m2.toStringAsFixed(2)), 'm²',
+          PriceRange(price.min * k, price.max * k)));
+    }
+    if (specs.cuttingPerSheet > 0 && n > 0) {
       out.add(SupplyLine('Panneaux', 'Découpe à la scie à panneaux', 'service par feuille', n.toDouble(), 'feuille',
           PriceRange(specs.cuttingPerSheet, specs.cuttingPerSheet)));
     }

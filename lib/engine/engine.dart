@@ -14,6 +14,7 @@ export 'handles.dart';
 export 'kitchen_fixtures.dart';
 export 'corners.dart';
 export 'cutting.dart';
+export 'stock.dart';
 export 'end_panels.dart';
 export 'fixes.dart';
 export 'layout_engine.dart';

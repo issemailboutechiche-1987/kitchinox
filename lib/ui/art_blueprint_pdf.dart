@@ -52,7 +52,7 @@ Future<Uint8List> buildArtBlueprint(ArtProject art, CutSettings cs, {required St
   final panels = art.panels;
   final ids = {for (var i = 0; i < panels.length; i++) panels[i].id: 'P${i + 1}'};
   final m = computeMachiningElements(panels, fittings: art.fittings, jointCuts: art.jointCuts, jointFits: art.jointFits);
-  final plan = nest(art.cutParts(), cs);
+  final plan = art.plan(cs);
   final hardware = art.hardware();
   final b = art.bounds;
   final x0 = panels.isEmpty ? 0.0 : panels.map((p) => p.x).reduce(math.min), x1 = panels.isEmpty ? 0.0 : panels.map((p) => p.right).reduce(math.max);
@@ -208,7 +208,7 @@ Future<Uint8List> buildArtBlueprint(ArtProject art, CutSettings cs, {required St
 
   // ------------------------------------------------------------------ page 1 : ensemble
   final mats = <String, int>{};
-  for (final sh in plan.sheets) {
+  for (final sh in plan.newSheets()) {
     mats[sh.material] = (mats[sh.material] ?? 0) + 1;
   }
   final edgeM = m.edgeByThickness;
@@ -249,7 +249,8 @@ Future<Uint8List> buildArtBlueprint(ArtProject art, CutSettings cs, {required St
               tx(tr('Résumé'), fs: 11, strong: true),
               pw.SizedBox(height: 4),
               tx(trp('Encombrement : {0} × {1} × {2} mm (L × H × P)', [_mm(x1 - x0), _mm(y1 - y0), _mm(z1 - z0)])),
-              tx(trp('{0} pièces · {1} feuille(s) à débiter', [panels.length, plan.sheets.length])),
+              tx(trp('{0} pièces · {1} feuille(s) à débiter', [panels.length, plan.newSheets().length])),
+              if (plan.stockSheets().isNotEmpty) tx(trp('Chutes du stock : {0}', [plan.stockSheets().map((s) => s.stockId).join(', ')])),
               pw.SizedBox(height: 6),
               tx(tr('Matières'), strong: true),
               for (final e in mats.entries) tx('· ${e.key} : ${e.value} ${tr('feuille(s)')}', fs: 8),

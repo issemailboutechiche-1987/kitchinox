@@ -11,6 +11,7 @@ import 'art_machining.dart';
 import 'art_relations.dart';
 import 'art_fittings.dart';
 import 'cutting.dart';
+import 'stock.dart';
 import 'public_prices.dart';
 
 /// Rôle d'un panneau : détermine le dessin, la matière par défaut, les chants et la quincaillerie.
@@ -264,6 +265,9 @@ class ArtProject {
   final List<EdgeLink> edgeLinks = [];
   /// Support noté (pieds + plinthe…), appliqué avec les liaisons par « Usiner ».
   ArtSupport? support;
+
+  /// Chutes du stock au moment de la découpe validée (plan figé).
+  List<StockPiece>? stockFrozen;
   /// Calques masqués / verrouillés : « comp:nom » pour un composant des caissons, identifiant pour une pièce libre.
   final Set<String> hiddenLayers = {}, lockedLayers = {};
 
@@ -332,6 +336,7 @@ class ArtProject {
         if (jointFits.isNotEmpty) 'joint_fits': jointFits,
         if (edgeLinks.isNotEmpty) 'edge_links': [for (final l in edgeLinks) l.toJson()],
         if (support != null) 'support': support!.toJson(),
+        if (stockFrozen != null) 'stock_frozen': [for (final p in stockFrozen!) p.toJson()],
         if (hiddenLayers.isNotEmpty) 'hidden': hiddenLayers.toList(),
         if (lockedLayers.isNotEmpty) 'locked': lockedLayers.toList(),
       };
@@ -350,6 +355,7 @@ class ArtProject {
         ..jointFits.addAll({for (final e in ((j['joint_fits'] as Map?) ?? const {}).entries) '${e.key}': '${e.value}'})
         ..edgeLinks.addAll([for (final l in (j['edge_links'] as List? ?? const [])) EdgeLink.fromJson((l as Map).cast<String, dynamic>())])
         ..support = j['support'] == null ? null : ArtSupport.fromJson((j['support'] as Map).cast<String, dynamic>())
+        ..stockFrozen = j['stock_frozen'] == null ? null : [for (final p in j['stock_frozen'] as List) StockPiece.fromJson((p as Map).cast<String, dynamic>())]
         ..hiddenLayers.addAll([for (final e in (j['hidden'] as List? ?? const [])) '$e'])
         ..lockedLayers.addAll([for (final e in (j['locked'] as List? ?? const [])) '$e']);
 
@@ -831,7 +837,10 @@ class ArtProject {
     return [for (final e in out.entries) (e.key, e.value.$1, e.value.$2.ceil())];
   }
 
-  CutPlan plan(CutSettings cs) => nest(cutParts(), cs);
+  /// Réglages du débit pour cette création : mêmes réglages que le projet, chutes figées à part.
+  CutSettings cutFor(CutSettings cs) => CutSettings.fromJson(cs.toJson())..stockFrozen = stockFrozen;
+
+  CutPlan plan(CutSettings cs) => nest(cutParts(), cutFor(cs));
 }
 
 /// Modèles de départ du mode Art.

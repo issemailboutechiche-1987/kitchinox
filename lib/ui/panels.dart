@@ -1646,11 +1646,27 @@ class SummaryPanel extends StatelessWidget {
                     children: [
                       stat('${plan.partCount}', 'pièces à débiter'),
                       const SizedBox(width: Tokens.s2),
-                      stat('${plan.sheets.length}', 'panneaux ${{for (final s in plan.sheets) '${s.length.round()}×${s.width.round()}'}.join(' · ')}'),
+                      stat('${plan.newSheets().length}', 'panneaux ${{for (final s in plan.newSheets()) '${s.length.round()}×${s.width.round()}'}.join(' · ')}'),
                       const SizedBox(width: Tokens.s2),
                       stat('${pct.toStringAsFixed(0)} %', 'utilisation'),
                     ],
                   ),
+                  if (plan.stockSheets().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      Icon(Icons.recycling, size: 18, color: scheme.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                            trp('+ {0} chute(s) du stock : {1}', [plan.stockSheets().length, plan.stockSheets().map((s) => s.stockId).join(', ')]),
+                            style: t.bodySmall),
+                      ),
+                    ]),
+                  ],
+                  if (p.cut.stockFrozen != null) ...[
+                    const SizedBox(height: 6),
+                    Text(tr('Découpe validée : le plan est figé.'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+                  ],
                   // optimisation en arrière-plan : l'écran reste utilisable, les chiffres se mettent à jour à la fin
                   if (state.cutPending) ...[
                     const SizedBox(height: 6),

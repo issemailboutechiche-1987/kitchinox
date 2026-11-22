@@ -5,6 +5,7 @@ library;
 import 'dart:convert';
 
 import 'cutting.dart';
+import 'stock.dart';
 
 class ManualPart {
   int length, width, qty;
@@ -35,6 +36,9 @@ class ManualCut {
   bool grain;
   final List<ManualPart> parts;
 
+  /// Chutes du stock au moment de la découpe validée (plan figé).
+  List<StockPiece>? stockFrozen;
+
   ManualCut({
     this.order = 'Débit manuel',
     this.material = 'MDF 18',
@@ -50,7 +54,7 @@ class ManualCut {
 
   CutSettings get settings => CutSettings(
       sheetLength: sheetLength, sheetWidth: sheetWidth, kerf: kerf, trim: trim, method: method, machine: 'scie',
-      carcassMaterial: material, carcassThickness: thickness, doorThickness: thickness);
+      carcassMaterial: material, carcassThickness: thickness, doorThickness: thickness, stockFrozen: stockFrozen);
 
   /// Pièces valides pour l'optimiseur (la rotation est coupée sur une matière à fil).
   List<CutPart> get cutParts => [
@@ -75,6 +79,7 @@ class ManualCut {
         'trim': trim,
         'method': method,
         'grain': grain,
+        if (stockFrozen != null) 'stock_frozen': [for (final p in stockFrozen!) p.toJson()],
         'parts': [for (final p in parts) p.toJson()],
       };
 
@@ -92,7 +97,7 @@ class ManualCut {
       method: i('method', d.method),
       grain: j['grain'] as bool? ?? false,
       parts: [for (final p in (j['parts'] as List? ?? const [])) ManualPart.fromJson((p as Map).cast<String, dynamic>())],
-    );
+    )..stockFrozen = j['stock_frozen'] == null ? null : [for (final p in j['stock_frozen'] as List) StockPiece.fromJson((p as Map).cast<String, dynamic>())];
   }
 
   /// Lit un fichier SketchCut PRO (.sct, format V3.0) : feuille, méthode, trait, recoupe, pièces.

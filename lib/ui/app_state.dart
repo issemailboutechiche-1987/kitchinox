@@ -430,7 +430,7 @@ class AppState extends ChangeNotifier {
       nestRemember(key, plan);
       return _useCut(key, plan);
     }
-    _launchCut(key, parts, CutSettings.fromJson(project.cut.toJson()), n);
+    _launchCut(key, parts, project.cut.copy(), n);
     return _cutPlan ?? CutPlan(project.cut, parts, const [], const []);
   }
 
@@ -497,7 +497,7 @@ class AppState extends ChangeNotifier {
     _cutTimer?.cancel();
     _cutTimer = null;
     _wantKey = key;
-    final ready = await _nestAway(key, parts, CutSettings.fromJson(project.cut.toJson()), parts.fold<int>(0, (a, p) => a + p.qty));
+    final ready = await _nestAway(key, parts, project.cut.copy(), parts.fold<int>(0, (a, p) => a + p.qty));
     if (_wantKey == key) {
       _useCut(key, ready);
       _memo.remove('cutPlan');
@@ -1243,6 +1243,12 @@ class AppState extends ChangeNotifier {
 
   /// Redessine (textures chargées...).
   void refresh() => notifyListeners();
+
+  /// Le stock de l'atelier a changé : débit et devis à refaire.
+  void stockChanged() {
+    _memo.clear();
+    notifyListeners();
+  }
 
   /// Remplace le caisson sélectionné par un autre modèle du catalogue, au même endroit.
   String? replaceItem(String uid, String modelId) {

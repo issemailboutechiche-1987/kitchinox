@@ -28,6 +28,7 @@ import 'finishes.dart';
 import 'manual_cut_page.dart';
 import 'kx_top_bar.dart';
 import 'sct_export.dart';
+import 'stock_page.dart';
 import 'session.dart';
 import 'theme.dart';
 import 'web_io.dart';
@@ -2637,6 +2638,17 @@ class _ArtPageState extends State<ArtPage> {
     if (msg != null) _msg(msg);
   }
 
+  /// Découpe faite : chutes utilisées sorties du stock, restes rangés.
+  Future<void> _cutDone() async {
+    final cs = widget.state.project.cut;
+    final msg = await showCutDone(context, widget.state, art.plan(cs),
+        project: stockLabelFor(widget.state, art: art.name), settings: art.cutFor(cs), freeze: (f) => art.stockFrozen = f);
+    if (msg != null && mounted) {
+      setState(() {});
+      _msg(msg);
+    }
+  }
+
   void _toManual() {
     final cs = widget.state.project.cut;
     final parts = art.cutParts();
@@ -2821,6 +2833,9 @@ class _ArtPageState extends State<ArtPage> {
             tool(CadTool.drill, icon: Icons.adjust),
             tool(CadTool.groove, icon: Icons.horizontal_rule),
             tool(CadTool.edgeBand, icon: Icons.border_outer),
+            const Divider(height: 1),
+            item('Stock et chutes', () => openStock(context, widget.state), icon: Icons.inventory_outlined, key: 'menu_stock'),
+            item('Valider la découpe…', _cutDone, icon: Icons.task_alt, key: 'menu_cut_done'),
           ]),
           menu('Fenêtre', 'menu_window', [
             item('Démarrer', () => side('bases'), icon: Icons.play_circle_outline),
@@ -4583,26 +4598,28 @@ class _ArtPageState extends State<ArtPage> {
   // ---- 5. débit et quincaillerie (tout le meuble)
   Widget _cut(TextTheme t, ColorScheme scheme) {
     final parts = art.cutParts();
-    final plan = nestCached(parts, widget.state.project.cut);
+    final plan = nestCached(parts, art.cutFor(widget.state.project.cut));
     final sp = widget.state.project.specs;
     final edge = parts.fold<double>(0, (a, p) => a + p.edgeLength * p.qty) / 1000;
     final mdf = plan.sheets.where((s) => !s.material.startsWith('HDF')).length;
     final warn = [for (final b in art.boxes) ...b.warnings()];
     final checks = artChecks(art.free.isEmpty ? const [] : art.panels, widget.state.project.cut, jointCuts: art.jointCuts);
     // prix des feuilles : celui du tarif pour les matières choisies, sinon le prix atelier du projet
-    final sheetCost = plan.sheets.fold<double>(0, (a, sh) {
+    final sheetCost = plan.newSheets().fold<double>(0, (a, sh) {
       final pp = PublicPrices.panels.where((q) => sh.material.startsWith('${q.name} ${q.thickness} ·')).firstOrNull;
       if (pp != null) return a + pp.price;
       return sh.material.startsWith('HDF') ? a : a + (sp.sheetPrice ?? 850);
     });
     assert(mdf >= 0);
-    final cost = sheetCost + plan.sheets.length * sp.cuttingPerSheet + edge * (sp.edgePriceMin ?? 9);
+    final cost = sheetCost + plan.newSheets().length * sp.cuttingPerSheet + edge * (sp.edgePriceMin ?? 9);
     final byMat = <String, List<CutPart>>{};
     for (final p in parts) {
       (byMat[p.material] ??= []).add(p);
     }
     return ListView(padding: const EdgeInsets.fromLTRB(Tokens.s3, Tokens.s3, Tokens.s3, Tokens.s4), children: [
-      Text(trp('{0} caisson(s) · {1} pièces · {2} feuille(s)', [art.boxes.length, parts.fold<int>(0, (a, p) => a + p.qty), plan.sheets.length]), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+      Text(trp('{0} caisson(s) · {1} pièces · {2} feuille(s)', [art.boxes.length, parts.fold<int>(0, (a, p) => a + p.qty), plan.newSheets().length]), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+      if (plan.stockSheets().isNotEmpty)
+        Text(trp('+ {0} chute(s) du stock : {1}', [plan.stockSheets().length, plan.stockSheets().map((s) => s.stockId).join(', ')]), style: t.bodySmall),
       Text(trp('Chant {0} m · panneaux + chant + découpe ≈ {1} MAD', [edge.toStringAsFixed(1), cost.round()]), style: t.bodySmall),
       for (final ck in checks)
         Padding(
