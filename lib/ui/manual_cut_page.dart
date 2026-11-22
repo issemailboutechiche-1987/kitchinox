@@ -12,6 +12,7 @@ import 'session.dart';
 import 'busy.dart';
 import 'cut_pdf.dart';
 import 'tech_drawings.dart';
+import 'kx_top_bar.dart';
 import 'theme.dart';
 import 'web_io.dart';
 import 'i18n.dart';
@@ -599,19 +600,35 @@ class _ManualCutPageState extends State<ManualCutPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(tr('Débitage en temps réel')),
-        actions: [
-          TextButton.icon(onPressed: _open, icon: const Icon(Icons.file_open_outlined), label: Text(tr('Ouvrir .sct / kitchinox'))),
-          const SizedBox(width: Tokens.s2),
-          FilledButton.icon(onPressed: _calc, icon: const Icon(Icons.calculate_outlined), label: Text(tr('Recalculer'))),
-          const SizedBox(width: Tokens.s2),
-          OutlinedButton.icon(
-              onPressed: _busy ? null : _pdf, icon: const Icon(Icons.picture_as_pdf_outlined), label: Text(tr('Plan de coupe (PDF)'))),
-          const SizedBox(width: Tokens.s2),
-          OutlinedButton.icon(onPressed: _sct, icon: const Icon(Icons.content_cut), label: Text(tr('Fichier .sct'))),
-          const SizedBox(width: Tokens.s4),
-        ],
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(KxTopBar.height + 1),
+        child: SafeArea(
+          bottom: false,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            KxTopBar(
+              history: false,
+              onHome: () => Navigator.of(context).maybePop(),
+              menus: [
+                KxMenu('Fichier', 'menu_file', [
+                  kxItem('Ouvrir .sct / kitchinox', _open, icon: Icons.file_open_outlined, key: 'menu_open'),
+                  const Divider(height: 1),
+                  kxItem('Plan de coupe (PDF)', _busy ? null : _pdf, icon: Icons.picture_as_pdf_outlined, key: 'menu_pdf'),
+                  kxItem('Fichier .sct', _sct, icon: Icons.content_cut, key: 'menu_sct'),
+                ]),
+                KxMenu('Outils', 'menu_tools', [kxItem('Recalculer', _calc, icon: Icons.calculate_outlined, key: 'menu_calc')]),
+              ],
+              trailing: [
+                IconButton(tooltip: tr('Ouvrir .sct / kitchinox'), onPressed: _open, icon: const Icon(Icons.file_open_outlined)),
+                IconButton(tooltip: tr('Fichier .sct'), onPressed: _sct, icon: const Icon(Icons.content_cut)),
+                IconButton(tooltip: tr('Plan de coupe (PDF)'), onPressed: _busy ? null : _pdf, icon: const Icon(Icons.picture_as_pdf_outlined)),
+                const SizedBox(width: Tokens.s2),
+                FilledButton.icon(onPressed: _calc, icon: const Icon(Icons.calculate_outlined), label: Text(tr('Recalculer'))),
+                const SizedBox(width: Tokens.s2),
+              ],
+            ),
+            const Divider(height: 1),
+          ]),
+        ),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {

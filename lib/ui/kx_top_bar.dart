@@ -29,7 +29,8 @@ class KxTopBar extends StatelessWidget {
   final List<KxMenu> menus;
   final VoidCallback? onUndo, onRedo, onSave;
   final List<Widget> trailing;
-  const KxTopBar({super.key, this.onHome, required this.menus, this.onUndo, this.onRedo, this.onSave, this.trailing = const []});
+  final bool history; // boutons annuler / rétablir
+  const KxTopBar({super.key, this.onHome, required this.menus, this.onUndo, this.onRedo, this.onSave, this.trailing = const [], this.history = true});
 
   @override
   Widget build(BuildContext context) {
@@ -77,8 +78,8 @@ class KxTopBar extends StatelessWidget {
             ),
           ),
         ),
-        IconButton(tooltip: tr('Annuler (Ctrl+Z)'), onPressed: onUndo, icon: const Icon(Icons.undo)),
-        IconButton(tooltip: tr('Rétablir (Ctrl+Y)'), onPressed: onRedo, icon: const Icon(Icons.redo)),
+        if (history) IconButton(tooltip: tr('Annuler (Ctrl+Z)'), onPressed: onUndo, icon: const Icon(Icons.undo)),
+        if (history) IconButton(tooltip: tr('Rétablir (Ctrl+Y)'), onPressed: onRedo, icon: const Icon(Icons.redo)),
         if (onSave != null) IconButton(tooltip: tr('Enregistrer le projet'), onPressed: onSave, icon: const Icon(Icons.save_outlined)),
         ...trailing,
       ]),
