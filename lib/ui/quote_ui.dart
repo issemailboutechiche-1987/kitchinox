@@ -10,6 +10,7 @@ import 'app_state.dart';
 import 'busy.dart';
 import 'i18n.dart';
 import 'quote_pdf.dart';
+import 'brands_ui.dart';
 import 'theme.dart';
 import 'web_io.dart';
 
@@ -115,12 +116,17 @@ class _QuoteView extends StatelessWidget {
                           showSelectedIcon: false,
                           segments: [
                             ButtonSegment(value: 'standard', label: Text(tr('Standard · MDF')), icon: const Icon(Icons.view_module_outlined)),
+                            if (MediaProgetti.instance != null) ButtonSegment(value: 'moyen', label: Text(tr('Moyenne · Alvic')), icon: const Icon(Icons.kitchen_outlined)),
                             ButtonSegment(value: 'luxe', label: Text(tr('Luxe · latté')), icon: const Icon(Icons.diamond_outlined)),
                           ],
                           selected: {st.project.specs.gamme},
                           onSelectionChanged: (s) => st.setGamme(s.first),
                         ),
                       ),
+                      if (st.project.specs.gamme == 'moyen') ...[
+                        const SizedBox(height: Tokens.s3),
+                        MediaProgettiChoices(state: st),
+                      ],
                       const SizedBox(height: Tokens.s3),
                     ],
                     for (final s in q.sections) _Section(st: st, quote: q, section: s, locked: locked),
@@ -192,7 +198,7 @@ class _Section extends StatelessWidget {
                   cs.carcassMaterial = v;
                   if (v.contains('Latté')) {
                     st.project.specs.gamme = 'luxe';
-                  } else {
+                  } else if (st.project.specs.gamme == 'luxe') {
                     st.project.specs.gamme = 'standard';
                   }
                   final cat = v.contains('Latté')

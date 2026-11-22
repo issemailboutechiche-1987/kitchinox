@@ -344,7 +344,9 @@ class ProjectSpecs {
   double? edgePriceMin, edgePriceMax; // chant au mètre, pose comprise
   double cuttingPerSheet; // découpe (service) par feuille
   String hobEnergy; // 'gas' | 'electric' : alimentation de la plaque
-  String gamme; // 'standard' : MDF, chiffré à la feuille ; 'luxe' : contreplaqué latté, facturé à l'article
+  String gamme; // 'standard' : MDF, chiffré à la feuille ; 'moyen' : Media Progetti, à l'article ; 'luxe' : contreplaqué latté, à l'article
+  String mpCarcass; // moyenne gamme : caissons 'alvic' ou 'alvic_hydro'
+  String mpDoor; // moyenne gamme : portes 'auto', 'pi' (poignée intégrée) ou 'plain' (sans)
 
   ProjectSpecs({
     this.carcassPanel = 'mdf_melamine_hydrofuge',
@@ -364,6 +366,8 @@ class ProjectSpecs {
     this.cuttingPerSheet = 53,
     this.hobEnergy = 'gas',
     this.gamme = 'standard',
+    this.mpCarcass = 'alvic',
+    this.mpDoor = 'auto',
   });
 
   Map<String, dynamic> toJson() => {
@@ -384,6 +388,8 @@ class ProjectSpecs {
         'cutting_per_sheet': cuttingPerSheet,
         'hob_energy': hobEnergy,
         'gamme': gamme,
+        if (mpCarcass != 'alvic') 'mp_carcass': mpCarcass,
+        if (mpDoor != 'auto') 'mp_door': mpDoor,
       };
 
   factory ProjectSpecs.fromJson(Map<String, dynamic> j) {
@@ -406,6 +412,8 @@ class ProjectSpecs {
       cuttingPerSheet: (j['cutting_per_sheet'] as num?)?.toDouble() ?? d.cuttingPerSheet,
       hobEnergy: j['hob_energy'] as String? ?? d.hobEnergy,
       gamme: j['gamme'] as String? ?? d.gamme,
+      mpCarcass: j['mp_carcass'] as String? ?? d.mpCarcass,
+      mpDoor: j['mp_door'] as String? ?? d.mpDoor,
     );
   }
 }

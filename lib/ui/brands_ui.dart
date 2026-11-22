@@ -32,10 +32,17 @@ Future<void> showBrandsDialog(BuildContext context, AppState st, void Function(S
   final qty = projectHardwareQty(st);
   final estimate = BrandCatalog.hardwareEstimate(qty);
   final sheets = st.cutPlan.newSheets().where((s) => !s.material.startsWith('HDF')).length;
+  final extra = <(String, Widget Function(BuildContext))>[
+    if (MediaProgetti.instance != null) ('Media Progetti', (c) => _MediaProgettiTab(state: st, tariff: MediaProgetti.instance!, onMessage: onMessage)),
+    if (Market.articles.isNotEmpty) ('Prix indicatifs', (c) => const _MarketArticles()),
+    if (Market.panels.isNotEmpty) ('Panneaux par gamme', (c) => _MarketPanelsTab(state: st, onMessage: onMessage)),
+    if (Market.brands.isNotEmpty) ('Marques mondiales', (c) => _MarketBrands(state: st, onMessage: onMessage)),
+    if (Market.makers.isNotEmpty) ('Fabricants', (c) => const _MarketMakers()),
+  ];
   return showDialog<void>(
     context: context,
     builder: (ctx) => DefaultTabController(
-      length: cats.length,
+      length: cats.length + extra.length,
       child: Dialog(
         insetPadding: const EdgeInsets.all(Tokens.s5),
         child: SizedBox(
@@ -49,7 +56,7 @@ Future<void> showBrandsDialog(BuildContext context, AppState st, void Function(S
                 IconButton(tooltip: tr('Fermer'), onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
               ]),
             ),
-            TabBar(isScrollable: true, tabs: [for (final c in cats) Tab(text: c.label)]),
+            TabBar(isScrollable: true, tabs: [for (final c in cats) Tab(text: tr(c.label)), for (final (l, _) in extra) Tab(text: tr(l))]),
             Expanded(
               child: TabBarView(children: [
                 for (final c in cats)
@@ -156,6 +163,7 @@ Future<void> showBrandsDialog(BuildContext context, AppState st, void Function(S
                     const SizedBox(height: Tokens.s2),
                     Text(tr('Prix indicatifs du marché marocain (2026), à confirmer avec le fournisseur.'), style: t.labelSmall),
                   ]),
+                for (final (_, w) in extra) w(ctx),
               ]),
             ),
           ]),
@@ -163,6 +171,229 @@ Future<void> showBrandsDialog(BuildContext context, AppState st, void Function(S
       ),
     ),
   );
+}
+
+/// Choix de la moyenne gamme : caissons Alvic standard ou hydrofuges, portes avec ou sans poignée intégrée.
+class MediaProgettiChoices extends StatelessWidget {
+  final AppState state;
+  const MediaProgettiChoices({super.key, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final sp = state.project.specs;
+    return Wrap(spacing: Tokens.s2, runSpacing: Tokens.s2, children: [
+      for (final (k, label) in [('alvic', tr('Caisson Alvic antibactérien')), ('alvic_hydro', tr('Caisson Alvic hydrofuge'))])
+        ChoiceChip(key: ValueKey('mp_$k'), label: Text(label), selected: sp.mpCarcass == k, onSelected: (_) => state.edit(() => sp.mpCarcass = k)),
+      for (final (k, label) in [('auto', tr('Portes selon les poignées')), ('pi', tr('Poignée intégrée')), ('plain', tr('Sans poignée intégrée'))])
+        ChoiceChip(key: ValueKey('mp_$k'), label: Text(label), selected: sp.mpDoor == k, onSelected: (_) => state.edit(() => sp.mpDoor = k)),
+    ]);
+  }
+}
+
+/// Tarif Media Progetti : coordonnées, choix pour le devis, caissons et portes.
+class _MediaProgettiTab extends StatelessWidget {
+  final AppState state;
+  final MediaProgetti tariff;
+  final void Function(String) onMessage;
+  const _MediaProgettiTab({required this.state, required this.tariff, required this.onMessage});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    String dh(double v) => '${v.toStringAsFixed(2).replaceAll('.', ',')} MAD';
+    Widget row(MpItem i, String name) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Row(children: [
+            SizedBox(width: 120, child: Text(i.ref, style: t.labelSmall)),
+            Expanded(child: Text(name, style: t.bodySmall)),
+            Text(dh(i.price), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+          ]),
+        );
+    final used = state.project.specs.gamme == 'moyen';
+    return ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${tariff.supplier} · ${tr(tariff.tier)}', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            Text('${tr(tariff.activity)} · ${tariff.city}', style: t.bodySmall),
+            Text(trp('Prix TTC (TVA {0} %) du {1}, à confirmer avec le fournisseur. Le devis les compte hors taxes.', [tariff.vat.round(), tariff.date.split('-').reversed.join('/')]),
+                style: t.bodySmall),
+          ]),
+        ),
+        used
+            ? Chip(label: Text(tr('Dans le devis')))
+            : FilledButton(
+                key: const ValueKey('mp_use'),
+                onPressed: () {
+                  state.setGamme('moyen');
+                  Navigator.pop(context);
+                  onMessage(tr('Moyenne gamme Media Progetti : devis mis à jour'));
+                },
+                child: Text(tr('Utiliser dans le devis'))),
+      ]),
+      for (final l in tariff.lines.entries)
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          initiallyExpanded: l.key == 'alvic',
+          title: Text(tr(l.value), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+          children: [
+            for (final i in tariff.carcasses.where((i) => i.line == l.key))
+              row(i, '${tr(mpTypeLabels[i.type] ?? i.type)} ${i.h} x ${i.w} x ${i.d}'),
+          ],
+        ),
+      for (final handle in [true, false])
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: Text(tr(handle ? tariff.doorHandle : tariff.doorPlain), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+          children: [for (final i in tariff.doors.where((i) => i.handle == handle)) row(i, '${i.h} x ${i.w} mm')],
+        ),
+    ]);
+  }
+}
+
+/// Prix indicatifs, de la vis à la feuille, en dirhams et en euros.
+class _MarketArticles extends StatelessWidget {
+  const _MarketArticles();
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    String n(double v) => v == v.roundToDouble() ? '${v.round()}' : v.toString().replaceAll('.', ',');
+    return ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
+      Text(tr(Market.note), style: t.bodySmall),
+      for (final c in Market.categories) ...[
+        const SizedBox(height: Tokens.s3),
+        Text(tr(c), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        for (final a in Market.articles.where((a) => a.category == c))
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(children: [
+              Expanded(child: Text(tr(a.name), style: t.bodySmall)),
+              SizedBox(width: 150, child: Text(_mad(a.mad), textAlign: TextAlign.end, style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700))),
+              SizedBox(width: 110, child: Text('${n(a.eur.min)} – ${n(a.eur.max)} EUR', textAlign: TextAlign.end, style: t.labelSmall)),
+            ]),
+          ),
+      ],
+    ]);
+  }
+}
+
+/// Panneaux par gamme : marques, formats, épaisseurs, prix ; applicable au projet.
+class _MarketPanelsTab extends StatelessWidget {
+  final AppState state;
+  final void Function(String) onMessage;
+  const _MarketPanelsTab({required this.state, required this.onMessage});
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
+      Text(tr('Choisir un format met le prix moyen de la gamme et ce format dans le devis et le débit (18 mm).'), style: t.bodySmall),
+      for (final p in Market.panels)
+        Card(
+          margin: const EdgeInsets.only(top: Tokens.s3),
+          child: Padding(
+            padding: const EdgeInsets.all(Tokens.s3),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text(tr(p.tier), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800))),
+                Text('${_mad(p.mad)} · ${p.eur.min.round()} – ${p.eur.max.round()} EUR', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+              ]),
+              Text(p.brands.join(' · '), style: t.bodyMedium),
+              Text(p.types.map(tr).join(' · '), style: t.bodySmall),
+              Text(trp('Épaisseurs : {0} mm', [p.thicknesses.join(', ')]), style: t.bodySmall),
+              Text(tr(p.usage), style: t.bodySmall),
+              const SizedBox(height: Tokens.s2),
+              Wrap(spacing: Tokens.s2, runSpacing: Tokens.s2, children: [
+                for (final (l, w) in p.sizes)
+                  () {
+                    final price = ((p.mad.min + p.mad.max) / 2).roundToDouble();
+                    final on = state.project.specs.sheetPrice == price && state.project.cut.sheetLength == l && state.project.cut.sheetWidth == w;
+                    return ActionChip(
+                      key: ValueKey('mk_${p.tier}_${l}_$w'),
+                      avatar: on ? const Icon(Icons.check, size: 16) : null,
+                      label: Text('$l x $w'),
+                      onPressed: () {
+                        state.applyPublicPanel(PublicPanel('market', p.tier, 'market', l, w, 18, price));
+                        Navigator.pop(context);
+                        onMessage(trp('{0} : {1} MAD la feuille, devis et débit mis à jour', [tr(p.tier), price.round()]));
+                      },
+                    );
+                  }(),
+              ]),
+            ]),
+          ),
+        ),
+    ]);
+  }
+}
+
+/// Marques mondiales de quincaillerie ; celles qui ont un prix au Maroc peuvent servir au devis.
+class _MarketBrands extends StatelessWidget {
+  final AppState state;
+  final void Function(String) onMessage;
+  const _MarketBrands({required this.state, required this.onMessage});
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
+      for (final b in Market.brands)
+        () {
+          final priced = BrandCatalog.hardwareBrand(b.name.split(' (').first);
+          return Card(
+            margin: const EdgeInsets.only(bottom: Tokens.s2),
+            child: ListTile(
+              title: Text('${b.name} · ${tr(b.country)}', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              subtitle: Text([
+                b.specialties.map(tr).join(' · '),
+                if (b.test.isNotEmpty) trp('Essais : {0}', [tr(b.test)]),
+                b.site,
+              ].join('\n')),
+              isThreeLine: true,
+              trailing: Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: Tokens.s2, children: [
+                Text(tr(b.tier), style: t.labelSmall),
+                if (priced != null)
+                  state.project.specs.hardwareBrand == priced.name
+                      ? Chip(label: Text(tr('Dans le devis')))
+                      : OutlinedButton(
+                          onPressed: () {
+                            state.setHardwareBrand(priced.name);
+                            Navigator.pop(context);
+                            onMessage(trp('Quincaillerie {0} : devis mis à jour', [tr(priced.name)]));
+                          },
+                          child: Text(tr('Choisir'))),
+              ]),
+            ),
+          );
+        }(),
+    ]);
+  }
+}
+
+/// Fabricants exportateurs : présentation, contact, catalogue.
+class _MarketMakers extends StatelessWidget {
+  const _MarketMakers();
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
+      Text(tr('Coordonnées à vérifier sur le site du fabricant avant de commander.'), style: t.bodySmall),
+      for (final m in Market.makers)
+        Card(
+          margin: const EdgeInsets.only(top: Tokens.s2),
+          child: Padding(
+            padding: const EdgeInsets.all(Tokens.s3),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text(m.name, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800))),
+                Text('${tr(m.sector)} · ${tr(m.country)}', style: t.labelSmall),
+              ]),
+              Text(tr(m.about), style: t.bodySmall),
+              const SizedBox(height: 4),
+              SelectableText('${m.address}\n${m.phone} · ${m.email}\n${m.site} · ${m.catalog}', style: t.bodySmall),
+            ]),
+          ),
+        ),
+    ]);
+  }
 }
 
 /// Dimensions types de la pièce (cuisine, salle de bain, dressing) : un clic les applique.

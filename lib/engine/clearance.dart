@@ -22,6 +22,13 @@ List<FrontCell> openableCells(CabinetModel m, PlacedCabinet c) {
   return cellsOf(rows, c.height).where((x) => _moves(x.kind)).toList();
 }
 
+/// Hauteur réelle d'une case pour 1 de hauteur de composition (toutes les cases comptent, four et niches compris).
+double cellScale(CabinetModel m, PlacedCabinet c) {
+  final all = m.id == 'base_integrated_dishwasher_door' ? openableCells(m, c) : cellsOf(rowsOf(m, c) ?? seedRows(m, c), c.height);
+  final total = all.isEmpty ? 0.0 : all.last.y + all.last.h;
+  return total > 0 ? c.height / total : 1.0;
+}
+
 bool _moves(CellKind k) => k == CellKind.door || k == CellKind.door2 || k == CellKind.glass || k == CellKind.flap || k == CellKind.drawer;
 
 /// Points des parties mobiles d'un caisson ouvert à [p] (0..1), par partie.

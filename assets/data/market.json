@@ -1,0 +1,445 @@
+{
+ "updated": "2026",
+ "note": "Prix indicatifs détail / semi-gros, à confirmer avec le fournisseur.",
+ "brands": [
+  [
+   "Blum",
+   "Autriche",
+   "Premium / Luxe",
+   [
+    "Charnières CLIP top BLUMOTION",
+    "Tiroirs LÉGRABOX / MERIVOBOX / TANDEMBOX",
+    "Systèmes relevables AVENTOS",
+    "Ouverture électrique SERVO-DRIVE"
+   ],
+   "100 000 cycles (tiroirs) / 200 000 cycles (charnières)",
+   "blum.com"
+  ],
+  [
+   "Hettich",
+   "Allemagne",
+   "Premium / Standard+",
+   [
+    "Charnières Sensys",
+    "Tiroirs AvanTech YOU / ArciTech / InnoTech Atira",
+    "Coulisses Quadro",
+    "Systèmes coulissants WingLine"
+   ],
+   "EN 15338 niveaux 2 et 3",
+   "hettich.com"
+  ],
+  [
+   "Häfele",
+   "Allemagne",
+   "Standard à Premium",
+   [
+    "Systèmes d'éclairage LED Loox",
+    "Tiroirs Matrix Box",
+    "Ferrures d'assemblage Minifix",
+    "Accessoires d'aménagement intérieur"
+   ],
+   "",
+   "hafele.com"
+  ],
+  [
+   "Grass",
+   "Autriche",
+   "Premium / Luxe",
+   [
+    "Charnières Tiomos",
+    "Tiroirs Vionaro / Nova Pro Scala",
+    "Coulisses Dynapro",
+    "Systèmes relevables Kinvaro"
+   ],
+   "100 000 cycles",
+   "grass.eu"
+  ],
+  [
+   "Salice",
+   "Italie",
+   "Premium",
+   [
+    "Charnières invisibles Air",
+    "Tiroirs Lineabox",
+    "Systèmes de portes coulissantes coplanaires",
+    "Systèmes relevables Wind"
+   ],
+   "",
+   "salice.com"
+  ],
+  [
+   "Kesseböhmer",
+   "Allemagne",
+   "Premium / Luxe",
+   [
+    "Colonnes extractibles Tandem / Dispensa",
+    "Meubles d'angle LeMans II / MagicCorner",
+    "Systèmes relevables FREE"
+   ],
+   "",
+   "kesseboehmer.com"
+  ],
+  [
+   "Samet",
+   "Turquie",
+   "Économique / Standard",
+   [
+    "Charnières Master / Impro",
+    "Tiroirs Smart Box / Flow Box",
+    "Systèmes relevables D-Lite"
+   ],
+   "",
+   "samet.com.tr"
+  ],
+  [
+   "DTC (Dongtai)",
+   "Chine",
+   "Économique / Standard",
+   [
+    "Charnières soft-close C80",
+    "Tiroirs Dragon-Pro",
+    "Coulisses sous-plan"
+   ],
+   "",
+   "dtcdiy.com"
+  ]
+ ],
+ "articles": [
+  [
+   "Visserie",
+   "Vis aggloméré 3.5x16mm ou 4x30mm (boîte de 1000)",
+   6,
+   15,
+   55,
+   140
+  ],
+  [
+   "Assemblage",
+   "Tourillon bois 8x30mm (sachet de 500)",
+   5,
+   10,
+   45,
+   95
+  ],
+  [
+   "Assemblage",
+   "Excentrique Minifix + goujon (lot de 100)",
+   12,
+   25,
+   110,
+   240
+  ],
+  [
+   "Chants",
+   "Bande de chant ABS 22x1mm (rouleau de 100m)",
+   25,
+   55,
+   220,
+   500
+  ],
+  [
+   "Quincaillerie",
+   "Charnière standard avec amortisseur (pièce - Éco vs Blum)",
+   0.9,
+   4.5,
+   8,
+   45
+  ],
+  [
+   "Quincaillerie",
+   "Paire de coulisses à billes sortie totale 450mm",
+   4,
+   10,
+   35,
+   95
+  ],
+  [
+   "Quincaillerie",
+   "Kit tiroir métallique double paroi soft-close (ex: Tandembox / InnoTech)",
+   28,
+   65,
+   280,
+   680
+  ],
+  [
+   "Quincaillerie",
+   "Système relevable porte haute (ex: Blum AVENTOS HF)",
+   75,
+   130,
+   750,
+   1350
+  ],
+  [
+   "Accessoires",
+   "Pied de meuble cuisine réglable plastique (pièce)",
+   0.4,
+   1.2,
+   4,
+   12
+  ],
+  [
+   "Accessoires",
+   "Poignée profilé Gola aluminium (barre de 3m)",
+   18,
+   40,
+   160,
+   380
+  ],
+  [
+   "Accessoires",
+   "Panier coulissant range-épices / bouteilles 150-300mm",
+   35,
+   110,
+   350,
+   1150
+  ],
+  [
+   "Accessoires",
+   "Mécanisme d'angle (Magic Corner / LeMans)",
+   140,
+   380,
+   1400,
+   4200
+  ],
+  [
+   "Panneaux bois",
+   "Feuille MDF brut 18mm (2440x1220mm)",
+   22,
+   38,
+   250,
+   420
+  ],
+  [
+   "Panneaux bois",
+   "Feuille MDF mélaminé blanc 18mm (2440x1220mm)",
+   35,
+   58,
+   420,
+   650
+  ],
+  [
+   "Panneaux bois",
+   "Feuille MDF hydrofuge HMR 18mm (2440x1220mm)",
+   55,
+   85,
+   650,
+   950
+  ]
+ ],
+ "panels": [
+  {
+   "tier": "Économique",
+   "brands": [
+    "Kastamonu",
+    "Starwood",
+    "Cemas",
+    "Production locale / import"
+   ],
+   "types": [
+    "MDF brut",
+    "Panneau de particules mélaminé (PPM) blanc ou décor simple"
+   ],
+   "sizes": [
+    [
+     2440,
+     1220
+    ],
+    [
+     2800,
+     2100
+    ],
+    [
+     3660,
+     1830
+    ]
+   ],
+   "thicknesses": [
+    6,
+    8,
+    16,
+    18
+   ],
+   "eur": [
+    22,
+    55
+   ],
+   "mad": [
+    250,
+    650
+   ],
+   "usage": "Caissons intérieurs, fonds de meubles, cuisines économiques"
+  },
+  {
+   "tier": "Standard",
+   "brands": [
+    "Egger",
+    "Kronospan",
+    "Finsa",
+    "Unilin",
+    "Sonae Arauco"
+   ],
+   "types": [
+    "MDF mélaminé décor bois texturé",
+    "MDF Hydrofuge (HMR)",
+    "Mélaminé structuré synchrone"
+   ],
+   "sizes": [
+    [
+     2800,
+     2070
+    ],
+    [
+     2800,
+     2100
+    ],
+    [
+     2440,
+     1220
+    ]
+   ],
+   "thicknesses": [
+    8,
+    16,
+    18,
+    19,
+    25
+   ],
+   "eur": [
+    50,
+    110
+   ],
+   "mad": [
+    540,
+    1100
+   ],
+   "usage": "Façades et caissons de cuisines durables, salles de bain (version hydrofuge)"
+  },
+  {
+   "tier": "Luxe / Haut de gamme",
+   "brands": [
+    "Alvic (Luxe / Zenit)",
+    "Arpa Industriale (Fenix NTM)",
+    "Cleaf",
+    "Egger PerfectSense",
+    "Niemann (Acrylux)"
+   ],
+   "types": [
+    "MDF Laqué High Gloss / Super Mat anti-traces",
+    "Stratifié nanotechnologique auto-réparant (Fenix)",
+    "Panneau acrylique",
+    "Placage bois naturel verni"
+   ],
+   "sizes": [
+    [
+     2750,
+     1220
+    ],
+    [
+     2800,
+     1300
+    ],
+    [
+     2800,
+     2070
+    ],
+    [
+     3050,
+     1300
+    ]
+   ],
+   "thicknesses": [
+    18,
+    19,
+    20
+   ],
+   "eur": [
+    95,
+    280
+   ],
+   "mad": [
+    900,
+    2900
+   ],
+   "usage": "Façades de cuisines haut de gamme, îlots centraux, agencement architectural"
+  }
+ ],
+ "makers": [
+  [
+   "Julius Blum GmbH",
+   "Quincaillerie de meuble",
+   "Autriche",
+   "Charnières, tiroirs et systèmes relevables, fondé en 1952.",
+   "Industriestraße 1, 6973 Höchst, Autriche",
+   "+43 5578 705-0",
+   "info@blum.com",
+   "blum.com",
+   "e-services.blum.com"
+  ],
+  [
+   "Hettich Holding GmbH & Co. oHG",
+   "Quincaillerie de meuble",
+   "Allemagne",
+   "Tiroirs AvanTech YOU et charnières amorties Sensys.",
+   "Anton-Hettich-Straße 12-16, 32278 Kirchlengern, Allemagne",
+   "+49 5223 77-0",
+   "info@hettich.com",
+   "hettich.com",
+   "shop.hettich.com"
+  ],
+  [
+   "EGGER Holzwerkstoffe GmbH",
+   "Panneaux à base de bois",
+   "Autriche",
+   "Mélaminés, MDF, stratifiés et chants assortis.",
+   "Weiberndorf 20, 6380 St. Johann in Tirol, Autriche",
+   "+43 50 600-0",
+   "info@egger.com",
+   "egger.com",
+   "egger.com/fr/meuble-agencement/telechargements"
+  ],
+  [
+   "Kronospan",
+   "Panneaux à base de bois",
+   "Autriche / International",
+   "MDF, HDF, OSB et mélaminé, présent en Afrique du Nord.",
+   "Kaindorf 100, 8224 Kaindorf, Autriche",
+   "+43 3334 2000",
+   "info@kronospan.com",
+   "kronospan.com",
+   "kronospan.com/en_US/downloads"
+  ],
+  [
+   "Kastamonu Entegre",
+   "Panneaux à base de bois",
+   "Turquie",
+   "MDF, mélaminé et panneaux brillants (GlossMax).",
+   "Altunizade Mah. Mahir İz Cad. No:25, 34662 Üsküdar/Istanbul, Turquie",
+   "+90 216 554 30 00",
+   "export@keas.com.tr",
+   "kastamonuentegre.com",
+   "kastamonuentegre.com/en/products"
+  ],
+  [
+   "Grupo Alvic",
+   "Panneaux décoratifs haut de gamme",
+   "Espagne",
+   "Laqués brillants (Luxe), super mats (Zenit) et texturés (Syncron).",
+   "Ctra. de Córdoba s/n, 23660 Alcaudete, Jaén, Espagne",
+   "+34 953 70 60 00",
+   "export@grupoalvic.com",
+   "grupoalvic.com",
+   "grupoalvic.com/fr/telechargements"
+  ],
+  [
+   "Samet Kalıp ve Madeni Eşya San. ve Tic. A.Ş.",
+   "Quincaillerie de meuble",
+   "Turquie",
+   "Charnières, tiroirs et systèmes relevables à prix compétitifs.",
+   "Atatürk Mah. Adnan Menderes Cad. No:8-13, 34522 Esenyurt/Istanbul, Turquie",
+   "+90 212 886 24 00",
+   "export@samet.com.tr",
+   "samet.com.tr",
+   "samet.com.tr/en/catalogs"
+  ]
+ ]
+}

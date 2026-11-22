@@ -13,6 +13,7 @@ import 'end_panels.dart';
 import 'front_layout.dart';
 import 'layout_engine.dart';
 import 'materials.dart';
+import 'media_progetti.dart';
 
 class SupplierTariff {
   final String source;
@@ -117,8 +118,7 @@ SupplierQuote supplierQuote(LayoutEngine e, SupplierTariff t, {bool gloss = fals
     // façades : chaque case qui s'ouvre (portes doubles = deux portes)
     final cells = openableCells(m, c);
     if (cells.isEmpty) continue;
-    final total = cells.fold<double>(0, (s, x) => s + x.h);
-    final scale = total > 0 ? c.height / total : 1.0;
+    final scale = cellScale(m, c);
     var drawers = 0;
     for (final cell in cells) {
       final hh = cell.h * scale / 1000;
@@ -143,9 +143,12 @@ SupplierQuote supplierQuote(LayoutEngine e, SupplierTariff t, {bool gloss = fals
 
 /// Lignes du devis selon la gamme du projet :
 /// - standard (MDF) : panneaux à la feuille, chants et découpe au tarif de l'atelier ;
+/// - moyenne gamme : caissons et façades à l'article au tarif Media Progetti ;
 /// - luxe (latté) : caissons, façades, joues et tiroirs facturés à l'article au tarif fournisseur,
 ///   le reste (plan de travail, électroménager, quincaillerie) inchangé.
 List<SupplyLine> quoteLines(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, CutPlan plan, Bom bom, SupplierTariff? t, {bool gloss = false}) {
+  final mp = MediaProgetti.instance;
+  if (specs.gamme == 'moyen' && mp != null) return mediaProgettiQuote(e, db, specs, plan, bom, mp, t);
   final base = estimate(e, db, specs, plan, bom);
   if (specs.gamme != 'luxe' || t == null) return base;
   return [

@@ -19,6 +19,7 @@ import 'finishes.dart';
 import 'fronts.dart';
 import 'net_symbols.dart';
 import 'openings_ui.dart';
+import 'brands_ui.dart';
 import 'theme.dart';
 import 'textures.dart';
 import 'toolbar.dart';
@@ -1740,6 +1741,7 @@ class SummaryPanel extends StatelessWidget {
               showSelectedIcon: false,
               segments: [
                 ButtonSegment(value: 'standard', label: Text(tr('Standard · MDF')), icon: Icon(Icons.view_module_outlined)),
+                if (MediaProgetti.instance != null) ButtonSegment(value: 'moyen', label: Text(tr('Moyenne · Alvic')), icon: const Icon(Icons.kitchen_outlined)),
                 ButtonSegment(value: 'luxe', label: Text(tr('Luxe · latté')), icon: Icon(Icons.diamond_outlined)),
               ],
               selected: {state.project.specs.gamme},
@@ -1749,9 +1751,12 @@ class SummaryPanel extends StatelessWidget {
             Text(
               state.project.specs.gamme == 'luxe'
                   ? tr('Caissons en contreplaqué latté et façades MDF facturés à l’article (caisson, porte, joue, tiroir).')
+                  : state.project.specs.gamme == 'moyen'
+                  ? tr('Caissons blancs Alvic et portes MDF 19 super mat Media Progetti, facturés à l’article.')
                   : tr('Caissons et façades en MDF, chiffrés à la feuille : panneaux, chants et découpe au tarif de l’atelier.'),
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (state.project.specs.gamme == 'moyen') ...[const SizedBox(height: Tokens.s2), MediaProgettiChoices(state: state)],
           ],
           if (state.db != null) _SupplySections(state: state),
           if (state.db != null) ...[
@@ -1767,7 +1772,7 @@ class SummaryPanel extends StatelessWidget {
               ),
             ),
           ],
-          if (state.supplierEstimate != null && state.project.specs.gamme != 'luxe') _SupplierCompare(state: state),
+          if (state.supplierEstimate != null && state.project.specs.gamme == 'standard') _SupplierCompare(state: state),
           const SizedBox(height: Tokens.s5),
           Text(tr('Contrôles'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
           IssuesList(state: state),
@@ -2079,6 +2084,8 @@ class _SupplySections extends StatelessWidget {
         Text(
           state.project.specs.gamme == 'luxe'
               ? tr('Caissons, façades, joues et tiroirs à l\'article (gamme luxe) ; le reste selon les fourchettes du marché marocain.')
+              : state.project.specs.gamme == 'moyen'
+              ? tr('Caissons, façades et joues à l’article au tarif Media Progetti, hors taxes ; le reste selon les fourchettes du marché marocain.')
               : tr('Panneaux, chant et découpe au tarif de l\'atelier ; le reste selon les fourchettes du marché marocain.'),
           style: t.bodySmall,
         ),
