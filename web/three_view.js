@@ -237,15 +237,47 @@ function buildRoom(d) {
 // miroir : métal poli qui reflète l'environnement de la pièce
 const mirrorMat = new THREE.MeshStandardMaterial({ color: 0xf4f7f8, metalness: 1, roughness: 0.02 });
 
+/** Porte vitrée : quatre montants (la matière de la façade devant et derrière) et une vitre transparente. */
+function glassPanel(w, h, fw, front, edge, uid) {
+  const g = new THREE.Group();
+  const bar = (x0, x1, y0, y1) => {
+    const geo = new THREE.BoxGeometry((x1 - x0) * S, (y1 - y0) * S, 0.018);
+    const uv = geo.attributes.uv;
+    // portion de l'image de façade sous ce montant ; au dos, la même, retournée
+    const u0 = x0 / w, u1 = x1 / w, v0 = y0 / h, v1 = y1 / h;
+    for (let i = 16; i < 20; i++) uv.setXY(i, u0 + (u1 - u0) * uv.getX(i), v0 + (v1 - v0) * uv.getY(i));
+    for (let i = 20; i < 24; i++) uv.setXY(i, u1 + (u0 - u1) * uv.getX(i), v0 + (v1 - v0) * uv.getY(i));
+    const m = new THREE.Mesh(geo, [edge, edge, edge, edge, front, front]);
+    m.position.set(((x0 + x1) / 2 - w / 2) * S, ((y0 + y1) / 2 - h / 2) * S, 0);
+    m.castShadow = m.receiveShadow = true;
+    m.userData.uid = uid;
+    g.add(m);
+  };
+  bar(0, fw, 0, h);
+  bar(w - fw, w, 0, h);
+  bar(fw, w - fw, 0, fw);
+  bar(fw, w - fw, h - fw, h);
+  const pane = new THREE.Mesh(new THREE.BoxGeometry((w - 2 * fw) * S, (h - 2 * fw) * S, 0.004), glass);
+  pane.userData.uid = uid;
+  pane.renderOrder = 2; // après l'intérieur du meuble
+  g.add(pane);
+  return g;
+}
+
 function buildPart(f, uid, part, depth, carcassColor) {
   const out = new THREE.Group();
   const w = part.s1 - part.s0, h = part.z1 - part.z0;
   const front = f.mirror ? mirrorMat : imageMat(part.img, { rough: 0.45 });
   const edge = new THREE.MeshStandardMaterial({ color: 0xdedbd4, roughness: 0.6 });
   const back = new THREE.MeshStandardMaterial({ color: carcassColor, roughness: 0.7 });
-  const geo = new THREE.BoxGeometry(w * S, h * S, 0.018);
-  const panel = new THREE.Mesh(geo, [edge, edge, edge, edge, front, back]);
-  panel.castShadow = panel.receiveShadow = true;
+  let panel;
+  if (part.glass && !f.mirror) {
+    panel = glassPanel(w, h, part.glass, front, edge, uid);
+  } else {
+    const geo = new THREE.BoxGeometry(w * S, h * S, 0.018);
+    panel = new THREE.Mesh(geo, [edge, edge, edge, edge, front, back]);
+    panel.castShadow = panel.receiveShadow = true;
+  }
   panel.userData.uid = uid;
   // repère fixe (orientation du mur, point d'articulation) puis pivot animé en local
   const frame = new THREE.Group();

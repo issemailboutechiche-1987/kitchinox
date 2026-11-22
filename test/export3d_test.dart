@@ -12,6 +12,17 @@ import 'package:kitchen_planner/ui/scene_export.dart';
 import 'package:kitchen_planner/ui/textures.dart';
 
 void main() {
+  testWidgets('porte vitrée : cadre et vitre transparente exportés', (t) async {
+    await t.runAsync(() async {
+      final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+      st.engine.applyShape(RoomShape.linear);
+      final c = st.engine.add('wall_glass_door', 'A', s: 0, width: 600, z: 1500);
+      final sc = await SceneExporter().build(st);
+      final parts = [for (final f in sc['fronts'] as List) if (f['uid'] == c.uid) ...(f['parts'] as List)];
+      expect(parts.where((q) => q['glass'] == 60.0), isNotEmpty);
+    });
+  });
+
   final cat = Catalog.parse(File('assets/catalog.json').readAsStringSync());
   testWidgets('export de la scène 3D', (t) async {
     final e0 = LayoutEngine(cat, Project(room: Room(width: 4200, depth: 3400, height: 2600)));

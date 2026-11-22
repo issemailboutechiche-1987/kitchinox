@@ -9,6 +9,7 @@ import 'art_box.dart';
 import 'art_cad.dart';
 import 'art_machining.dart';
 import 'art_relations.dart';
+import 'art_shape.dart';
 import 'art_fittings.dart';
 import 'cutting.dart';
 import 'stock.dart';
@@ -41,6 +42,10 @@ class ArtPanel {
   Comp? comp; // composant universel (caissons paramétriques)
   /// Perçages posés à la main : position depuis le coin bas avant gauche de la pièce, face (axe, sens), Ø, profondeur.
   final List<ArtHole> holes = [];
+  /// Forme découpée dans la boîte : 'rond', 'arrondi' ([radius]), 'polygone', 'libre' ([outline]) ; null : rectangle.
+  String? shape;
+  double radius = 0; // coins arrondis (mm)
+  List<(double, double)>? outline; // contour en fractions (long, court) de la boîte
   String? note; // usinage particulier noté au débit (disque CNC, découpe circulaire)
   String? hingeType; // porte : type de charnière (null : celui du meuble)
   String? material; // panneau du tarif (MDF, latté, stratifié, mince) : matière, épaisseur et format de feuille
@@ -87,7 +92,11 @@ class ArtPanel {
   double get back => z + d;
   double get thickness => [w, h, d].reduce(math.min);
 
-  ArtPanel copy({String? id}) => _copy(id)..holes.addAll(holes.map((h) => h.copy()));
+  ArtPanel copy({String? id}) => _copy(id)
+    ..shape = shape
+    ..radius = radius
+    ..outline = outline == null ? null : [...outline!]
+    ..holes.addAll(holes.map((h) => h.copy()));
 
   ArtPanel _copy(String? id) => ArtPanel(
         id: id ?? this.id,
@@ -129,6 +138,9 @@ class ArtPanel {
         if (material != null) 'mat': material,
         if (hingeType != null) 'hinge_type': hingeType,
         if (note != null) 'note': note,
+        if (shape != null) 'shape': shape,
+        if (radius > 0) 'radius': radius,
+        if (outline != null) 'outline': [for (final (u, v) in outline!) [u, v]],
         if (holes.isNotEmpty) 'holes': [for (final h in holes) h.toJson()],
         'edge_long': edgeLong,
         'edge_short': edgeShort,
@@ -142,6 +154,9 @@ class ArtPanel {
       };
 
   factory ArtPanel.fromJson(Map<String, dynamic> j) => _fromJson(j)
+    ..shape = j['shape'] as String?
+    ..radius = (j['radius'] as num?)?.toDouble() ?? 0
+    ..outline = j['outline'] is List ? [for (final q in j['outline'] as List) (((q as List)[0] as num).toDouble(), (q[1] as num).toDouble())] : null
     ..holes.addAll([for (final h in (j['holes'] as List? ?? const [])) ArtHole.fromJson((h as Map).cast<String, dynamic>())]);
 
   static ArtPanel _fromJson(Map<String, dynamic> j) => ArtPanel(
@@ -569,6 +584,14 @@ class ArtProject {
     final a = p.copy(id: newId()), b = p.copy(id: newId());
     set(a, lo, at - kerf / 2);
     set(b, at + kerf / 2, hi);
+    if (isShaped(p)) {
+      // la forme est coupée avec la pièce
+      final pts = worldOutline(p);
+      for (final (q, cut, below) in [(a, at - kerf / 2, true), (b, at + kerf / 2, false)]) {
+        final c = clipOutline(pts, ax, cut, below: below);
+        if (c.length >= 3) fitToOutline(q, c);
+      }
+    }
     final i = free.indexOf(p);
     free
       ..removeAt(i)
@@ -743,9 +766,11 @@ class ArtProject {
       if (a <= 0 || b <= 0) continue;
       final front = p.role.isFront || p.role == ArtRole.decor || p.role == ArtRole.plateau;
       final w = work[p.id];
+      // pièce de forme : son chant suit le contour (noté), pas les côtés de la boîte
+      final form = shapeLabel(p);
       final manual = p.edgeLong > 0 || p.edgeShort > 0;
-      final eLong = manual ? p.edgeLong : (w?.edgeLong ?? 0).clamp(0, 2);
-      final eShort = manual ? p.edgeShort : (w?.edgeShort ?? 0).clamp(0, 2);
+      final eLong = form != null ? 0 : manual ? p.edgeLong : (w?.edgeLong ?? 0).clamp(0, 2);
+      final eShort = form != null ? 0 : manual ? p.edgeShort : (w?.edgeShort ?? 0).clamp(0, 2);
       final gLong = p.hasGroove ? math.max(1, p.grooveLong) : (w?.grooveLong ?? 0);
       final gShort = p.hasGroove ? p.grooveShort : (w?.grooveShort ?? 0);
       final cuts = [
@@ -754,7 +779,7 @@ class ArtProject {
       ];
       final c = CutPart(
         materialOf(p),
-        [p.role.label, if (cuts.isNotEmpty) '(${cuts.toSet().join(', ')})', if (p.note != null) '(${p.note})'].join(' '),
+        [p.role.label, if (cuts.isNotEmpty) '(${cuts.toSet().join(', ')})', if (p.note != null) '(${p.note})', if (form != null) '($form, contour ${(perimeterOf(p) / 1000).toStringAsFixed(2)} m)'].join(' '),
         'Art',
         a,
         b,

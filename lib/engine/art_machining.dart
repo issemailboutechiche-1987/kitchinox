@@ -16,6 +16,7 @@ import 'dart:math' as math;
 
 import 'art.dart';
 import 'art_fittings.dart';
+import 'art_shape.dart';
 import 'cutting.dart';
 import 'i18n_hook.dart';
 import '../ui/art_camera.dart' show V3;
@@ -586,6 +587,22 @@ MachiningSummary computeMachiningElements(List<ArtPanel> panels, {ArtFittings? f
     final longAx = _size(p, inPlane[0]) >= _size(p, inPlane[1]) ? inPlane[0] : inPlane[1];
     final th = p.role.isFront || p.role == ArtRole.decor || p.role == ArtRole.plateau ? 2.0 : 1.0;
     final w = work[p.id]!;
+    if (isShaped(p)) {
+      // pièce de forme : le chant suit son contour
+      final mid = p.thickness / 2;
+      final pts = worldOutline(p, hi: false);
+      for (var i = 0; i < pts.length; i++) {
+        final a = [...pts[i]], b = [...pts[(i + 1) % pts.length]];
+        a[ta] += mid;
+        b[ta] += mid;
+        final from = V3(a[0], a[1], a[2]), to = V3(b[0], b[1], b[2]);
+        final len = (to - from).length;
+        if (len < 0.5) continue;
+        els.add(MachiningElement(kind: MachiningKind.edge, position: from, normal: (to - from).unit, length: len, diameter: th, panelId: p.id));
+      }
+      w.edgeThickness = th;
+      continue;
+    }
     for (final ax in inPlane) {
       for (final s in const [-1.0, 1.0]) {
         if (!p.role.isFront && ax == 2 && s > 0) continue; // arête du dos : contre le mur

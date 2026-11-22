@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../engine/art.dart';
+import '../engine/art_shape.dart';
 
 /// Vecteur 3D (mm) : x à droite (axe rouge), y vers le haut (axe bleu), z vers l'arrière (axe vert).
 class V3 {
@@ -194,6 +195,8 @@ Face? pickFace(ArtCamera cam, List<ArtPanel> panels, Offset px) {
   var bestDepth = double.infinity;
   final (o, d) = cam.ray(px);
   for (final p in panels) {
+    final shaped = isShaped(p);
+    final flat = shaped ? rankAxes(p)[2] : -1;
     for (final f in facesOf(p)) {
       final n = f.normal;
       if (n.dot(d) >= 0) continue; // face vue de dos
@@ -209,6 +212,9 @@ Face? pickFace(ArtCamera cam, List<ArtPanel> panels, Offset px) {
         _ => inside(0, p.x, p.right) && inside(1, p.y, p.top),
       };
       if (ok) {
+        // pièce de forme : dans son contour ; par le chant, seulement vue presque de profil
+        if (shaped && f.axis == flat && !insideOutline(p, [hit.x, hit.y, hit.z])) continue;
+        if (shaped && f.axis != flat && d[flat].abs() > 0.35) continue;
         best = f;
         bestDepth = t;
       }

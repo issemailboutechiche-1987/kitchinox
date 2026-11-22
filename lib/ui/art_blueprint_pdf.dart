@@ -395,14 +395,35 @@ Future<Uint8List> buildArtBlueprint(ArtProject art, CutSettings cs, {required St
     final ox = 28.0, oy = 22.0;
     double X(double val) => ox + val * s;
     double Y(double val) => oy + val * s;
+    final form = isShaped(p) ? worldOutline(p) : const <List<double>>[];
+    void body() {
+      if (form.isEmpty) {
+        g.drawRect(X(0), Y(0), L * s, W * s);
+        return;
+      }
+      // pièce de forme : son contour dans la boîte
+      for (var i = 0; i < form.length; i++) {
+        final px = X(form[i][u] - _lo(p, u)), py = Y(form[i][v] - _lo(p, v));
+        i == 0 ? g.moveTo(px, py) : g.lineTo(px, py);
+      }
+      g.closePath();
+    }
+
+    g.setFillColor(_pc(artColor(p.finish)));
+    body();
     g
-      ..setFillColor(_pc(artColor(p.finish)))
-      ..drawRect(X(0), Y(0), L * s, W * s)
       ..fillPath()
       ..setStrokeColor(PdfColors.black)
-      ..setLineWidth(0.8)
-      ..drawRect(X(0), Y(0), L * s, W * s)
-      ..strokePath();
+      ..setLineWidth(0.8);
+    body();
+    g.strokePath();
+    if (form.isNotEmpty) {
+      g
+        ..setStrokeColor(PdfColors.grey500)
+        ..setLineWidth(0.3)
+        ..drawRect(X(0), Y(0), L * s, W * s)
+        ..strokePath();
+    }
     // chants (orange épais) et rainures (gris)
     for (final e in m.elements.where((e) => e.panelId == p.id && (e.kind == MachiningKind.edge || e.kind == MachiningKind.groove))) {
       final a = e.position, z = e.end;

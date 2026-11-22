@@ -69,6 +69,7 @@ class _ArtPageState extends State<ArtPage> {
   String makeTab = 'debit'; // Débit et plans : debit | usinage
   bool home = true; // page d'accueil : par quoi commencer
   String? open = 'sheet'; // rubrique ouverte du tiroir : info | sheet | box | pieces | assemble | make
+  String? _tip; // explication de l'outil survolé, dans la barre du bas
   ArtPanel? _trayFor; // pièce pour laquelle la rubrique Infos s'est ouverte
   bool showFronts = true;
   bool showDims = true;
@@ -359,12 +360,12 @@ class _ArtPageState extends State<ArtPage> {
       cadStatus = switch (tool) {
         CadTool.select => 'Sélectionnez un panneau ou une zone.',
         CadTool.line => 'Cliquez pour poser le 1er point de la ligne.',
-        CadTool.freehand => 'Glissez pour dessiner à main levée.',
+        CadTool.freehand => 'Dessinez le contour sans lever le doigt : il se ferme et se lisse tout seul.',
         CadTool.rectangle => 'Cliquez le 1er coin (au sol : tablette ; sur une face : panneau contre elle).',
-        CadTool.rotatedRectangle => 'Point 1 : départ de la ligne de base.',
+        CadTool.roundedRectangle => 'Cliquez le 1er coin, puis le coin opposé. Rayon des coins : ci-dessous ou L;H;R.',
         CadTool.circle => 'Cliquez pour poser le centre du cercle.',
-        CadTool.polygon => 'Cliquez pour poser le centre du polygone (6 côtés).',
-        CadTool.arc => 'Point 1 : départ de l’arc.',
+        CadTool.polygon => 'Cliquez pour poser le centre du polygone.',
+        CadTool.arc => 'Arc : départ, arrivée, puis le sommet de la courbe. La pièce est fermée par la corde.',
         CadTool.move => selectedPanel != null || selectedShape != null ? 'Glissez le panneau (il s’aimante aux autres) ou tapez dx;dy;dz.' : 'Sélectionnez d’abord un panneau ou une esquisse.',
         CadTool.rotate => selectedPanel != null || selectedShape != null ? 'Pivotez de 90° avec les boutons ci-dessous.' : 'Sélectionnez d’abord un panneau.',
         CadTool.scale => 'Redimensionnez l’élément sélectionné.',
@@ -527,7 +528,7 @@ class _ArtPageState extends State<ArtPage> {
   List<int> get _dimAxes => switch (_drawAxis) { 1 => const [0, 2], 2 => const [0, 1], _ => const [2, 1] };
 
   bool get _isPlanarTool =>
-      activeTool == CadTool.line || activeTool == CadTool.rectangle || activeTool == CadTool.circle || activeTool == CadTool.polygon;
+      const {CadTool.line, CadTool.rectangle, CadTool.roundedRectangle, CadTool.circle, CadTool.polygon, CadTool.arc}.contains(activeTool);
 
   /// Cote affichée à côté du doigt pendant le tracé.
   String? get _liveLabel {
@@ -536,9 +537,10 @@ class _ArtPageState extends State<ArtPage> {
     final a = activePoints.last;
     String n(double v) => '${v.abs().round()}';
     return switch (activeTool) {
-      CadTool.rectangle => '${n(h[_dimAxes[0]] - activePoints.first[_dimAxes[0]])} × ${n(h[_dimAxes[1]] - activePoints.first[_dimAxes[1]])} mm',
+      CadTool.rectangle || CadTool.roundedRectangle => '${n(h[_dimAxes[0]] - activePoints.first[_dimAxes[0]])} × ${n(h[_dimAxes[1]] - activePoints.first[_dimAxes[1]])} mm',
       CadTool.line => '${n((h - a).length)} mm',
-      CadTool.circle || CadTool.polygon => 'R ${n((h - activePoints.first).length)} mm',
+      CadTool.circle => 'Ø ${n(2 * (h - activePoints.first).length)} mm',
+      CadTool.polygon => 'R ${n((h - activePoints.first).length)} mm',
       _ => null,
     };
   }
@@ -558,6 +560,9 @@ class _ArtPageState extends State<ArtPage> {
       _drawOnFront = false;
     }
   }
+
+  /// Point sous le doigt sur le plan de dessin, sans aimant (main levée).
+  V3 _rawOnPlane(Offset px) => cam.hitPlane(px, _drawAxis, _drawPlane) ?? (activePoints.isEmpty ? V3.zero : activePoints.last);
 
   /// Point sous le doigt, sur le plan de dessin (aimanté à la grille et aux coins).
   V3 _onDrawPlane(Offset px) {
@@ -602,6 +607,73 @@ class _ArtPageState extends State<ArtPage> {
       d: hi[2]! - lo[2]!,
       finish: role.isFront ? 'blanc_mat' : 'blanc',
     );
+  }
+
+  int polySides = 6; // polygone : nombre de côtés
+  double cornerRadius = 50; // rectangle arrondi : rayon des coins
+
+  /// Contour de la forme en cours entre ses deux points (rond et polygone : centre puis bord).
+  List<V3> _shapePoints(V3 a, V3 b) {
+    final (u, w) = (_dimAxes[0], _dimAxes[1]);
+    if (activeTool == CadTool.roundedRectangle) {
+      final u0 = math.min(a[u], b[u]), u1 = math.max(a[u], b[u]), w0 = math.min(a[w], b[w]), w1 = math.max(a[w], b[w]);
+      final r = math.min(cornerRadius, math.min(u1 - u0, w1 - w0) / 2);
+      return [
+        for (final (cu, cw, t0) in [(u1 - r, w1 - r, 0.0), (u0 + r, w1 - r, math.pi / 2), (u0 + r, w0 + r, math.pi), (u1 - r, w0 + r, 3 * math.pi / 2)])
+          for (var i = 0; i <= 8; i++) a.withAxis(u, cu + r * math.cos(t0 + math.pi / 16 * i)).withAxis(w, cw + r * math.sin(t0 + math.pi / 16 * i)),
+      ];
+    }
+    final r = math.max(10.0, (b - a).length);
+    final n = activeTool == CadTool.polygon ? polySides : 48;
+    // polygone : un sommet sous le doigt
+    final t0 = activeTool == CadTool.polygon ? math.atan2(b[w] - a[w], b[u] - a[u]) : 0.0;
+    return [for (var i = 0; i < n; i++) a.withAxis(u, a[u] + r * math.cos(t0 + 2 * math.pi * i / n)).withAxis(w, a[w] + r * math.sin(t0 + 2 * math.pi * i / n))];
+  }
+
+  List<V3> _arcPoints(V3 a, V3 m, V3 b) {
+    final pts = arcThrough([a.x, a.y, a.z], [m.x, m.y, m.z], [b.x, b.y, b.z], _dimAxes[0], _dimAxes[1]);
+    return [for (final q in pts ?? const <List<double>>[]) V3(q[0], q[1], q[2])];
+  }
+
+  /// Pose la pièce de forme (rond, polygone, rectangle arrondi) entre ses deux points.
+  void _finishShape(V3 a, V3 b) => _addShape(_shapePoints(a, b),
+      shape: switch (activeTool) { CadTool.circle => 'rond', CadTool.roundedRectangle => 'arrondi', _ => 'polygone' });
+
+  /// Contour fermé du plan de dessin → pièce à cette forme (ou esquisse si « une forme devient un panneau » est coupé).
+  void _addShape(List<V3> pts, {String shape = 'libre'}) {
+    if (!autoExtrude) {
+      change(() => art.sketches.add(CadPolyline(id: 's${DateTime.now().millisecondsSinceEpoch}', points: [...pts], closed: true)));
+    } else {
+      final (lo, hi) = CadPolyline(id: 'b', points: pts, closed: true).bounds;
+      final p = _panelFromRect(lo, hi, math.max(1.0, pushPullThickness));
+      if (p == null) {
+        _msg(tr('Forme trop petite.'));
+      } else {
+        switch (shape) {
+          case 'rond':
+            p.shape = 'rond';
+          case 'arrondi':
+            p
+              ..shape = 'arrondi'
+              ..radius = cornerRadius;
+          default:
+            setOutline(p, [for (final q in pts) [q.x, q.y, q.z]], shape: shape);
+        }
+        change(() {
+          art.free.add(p);
+          selection
+            ..clear()
+            ..add(p);
+          selectedPanel = p;
+        });
+        _msg(trp('{0} : {1} × {2} mm, épaisseur {3} mm', [tr(shapeLabel(p) ?? p.role.label), _dimAxes[0] == 0 ? p.w.round() : p.h.round(), _dimAxes[1] == 1 ? p.h.round() : p.d.round(), p.thickness.round()]));
+      }
+    }
+    activePoints.clear();
+    previewShape = null;
+    _guides.clear();
+    cadStatus = 'Forme posée. Touchez pour en dessiner une autre.';
+    setState(() {});
   }
 
   /// Contour du rectangle a–b dans le plan de dessin (aperçu).
@@ -657,6 +729,7 @@ class _ArtPageState extends State<ArtPage> {
 
   String get _measureHint => switch (activeTool) {
         CadTool.rectangle => activePoints.isEmpty ? tr('Cliquez le 1er coin') : tr('L;H ex. 600;720'),
+        CadTool.roundedRectangle => activePoints.isEmpty ? tr('rayon des coins, ex. 50') : tr('L;H;R ex. 600;400;50'),
         CadTool.line => tr('longueur, ex. 450'),
         CadTool.circle || CadTool.polygon => tr('rayon'),
         CadTool.pushPull => tr('épaisseur ou poussée, ex. 18'),
@@ -753,9 +826,17 @@ class _ArtPageState extends State<ArtPage> {
         }
       case CadTool.circle || CadTool.polygon when activePoints.length == 1:
         final c = activePoints.first;
-        final r = v[0].abs();
+        final h = _hover ?? c;
+        final dir = h - c;
+        final u = _dimAxes[0];
+        _finishShape(c, dir.length < 1 ? c.withAxis(u, c[u] + v[0].abs()) : c + dir.unit * v[0].abs());
+      case CadTool.roundedRectangle when activePoints.isEmpty:
+        setState(() => cornerRadius = v[0].abs());
+      case CadTool.roundedRectangle:
+        final a = activePoints.first;
         final (u, w) = (_dimAxes[0], _dimAxes[1]);
-        _finishRect(c.withAxis(u, c[u] - r).withAxis(w, c[w] - r), c.withAxis(u, c[u] + r).withAxis(w, c[w] + r));
+        if (v.length > 2) cornerRadius = v[2].abs();
+        _finishShape(a, a.withAxis(u, a[u] + v[0] * dirOf(u)).withAxis(w, a[w] + (v.length > 1 ? v[1] : v[0]) * dirOf(w)));
       default:
         final p = selectedPanel;
         if (p == null) return;
@@ -1072,7 +1153,7 @@ class _ArtPageState extends State<ArtPage> {
   }
 
   void _updatePreview(Offset px) {
-    final planar = activeTool == CadTool.line || activeTool == CadTool.rectangle || activeTool == CadTool.circle || activeTool == CadTool.polygon;
+    final planar = _isPlanarTool;
     final pt = planar && activePoints.isNotEmpty ? _onDrawPlane(px) : _unproject(px);
     if (activeTool == CadTool.rectangle && activePoints.isNotEmpty) {
       previewShape = _rectOutline(activePoints.first, pt);
@@ -1091,25 +1172,14 @@ class _ArtPageState extends State<ArtPage> {
     } else if (activeTool == CadTool.rectangle && activePoints.isNotEmpty) {
       previewShape = CadRect.fromDiagonal('preview', activePoints.first, pt);
       setState(() {});
-    } else if (activeTool == CadTool.rotatedRectangle && activePoints.length == 1) {
-      previewShape = CadLine(id: 'preview', p1: activePoints.first, p2: pt);
-      setState(() {});
-    } else if (activeTool == CadTool.rotatedRectangle && activePoints.length == 2) {
-      previewShape = CadRect.from3Points('preview', activePoints[0], activePoints[1], pt);
-      setState(() {});
-    } else if (activeTool == CadTool.circle && activePoints.isNotEmpty) {
-      final r = (pt - activePoints.first).length;
-      previewShape = CadCircle(id: 'preview', centerPt: activePoints.first, radius: r);
-      setState(() {});
-    } else if (activeTool == CadTool.polygon && activePoints.isNotEmpty) {
-      final r = (pt - activePoints.first).length;
-      previewShape = CadPolygon(id: 'preview', centerPt: activePoints.first, radius: r, sides: 6);
+    } else if (const {CadTool.roundedRectangle, CadTool.circle, CadTool.polygon}.contains(activeTool) && activePoints.isNotEmpty) {
+      previewShape = CadPolyline(id: 'preview', points: _shapePoints(activePoints.first, pt), closed: true);
       setState(() {});
     } else if (activeTool == CadTool.arc && activePoints.length == 1) {
       previewShape = CadLine(id: 'preview', p1: activePoints.first, p2: pt);
       setState(() {});
     } else if (activeTool == CadTool.arc && activePoints.length == 2) {
-      previewShape = CadArc(id: 'preview', startPt: activePoints[0], endPt: activePoints[1], controlPt: pt);
+      previewShape = CadPolyline(id: 'preview', points: _arcPoints(activePoints[0], pt, activePoints[1]), closed: true);
       setState(() {});
     } else if (activeTool == CadTool.tape && activePoints.isNotEmpty) {
       activeTape = CadTapeMeasure(activePoints.first, pt);
@@ -1124,20 +1194,7 @@ class _ArtPageState extends State<ArtPage> {
       points: List.from(activePoints),
       closed: true,
     );
-    final (bMin, bMax) = poly.bounds;
-    final newPanel = autoExtrude ? _panelFromRect(bMin, bMax, math.max(1.0, pushPullThickness)) : null;
-    if (newPanel != null) {
-      change(() {
-        art.free.add(newPanel);
-        selectedPanel = newPanel;
-      });
-      _msg(trp('Contour fermé : panneau 3D créé ({0}×{1} mm, épaisseur {2} mm)', [newPanel.w.round(), newPanel.h.round(), newPanel.d.round()]));
-    } else {
-      change(() => art.sketches.add(poly));
-      _msg(tr('Contour polygonal 2D créé.'));
-    }
-    activePoints.clear();
-    previewShape = null;
+    _addShape(poly.points);
     activeSnapTarget = null;
     cadStatus = 'Création terminée.';
     setState(() {});
@@ -1231,103 +1288,26 @@ class _ArtPageState extends State<ArtPage> {
       if (_kind == PointerDeviceKind.mouse && cutMode != 'small' && _cutAt != null) _applyCut();
       return;
     }
-    if (activeTool == CadTool.rotatedRectangle) {
+    if (const {CadTool.roundedRectangle, CadTool.circle, CadTool.polygon}.contains(activeTool)) {
       if (activePoints.isEmpty) {
         activePoints.add(pt);
-        cadStatus = 'Point 2 : fin de la base (orientation).';
-        setState(() {});
-      } else if (activePoints.length == 1) {
-        activePoints.add(pt);
-        cadStatus = 'Point 3 : largeur / hauteur perpendiculaire.';
-        setState(() {});
-      } else {
-        final r = CadRect.from3Points('rr${DateTime.now().millisecondsSinceEpoch}', activePoints[0], activePoints[1], pt);
-        if (autoExtrude) {
-          final p = r.extrude(art.newId(), pushPullThickness);
-          if (p != null) {
-            change(() {
-              art.free.add(p);
-              selectedPanel = p;
-            });
-            _msg(trp('Panneau 3D créé ({0}×{1} mm, épaisseur {2} mm)', [p.w.round(), p.h.round(), p.d.round()]));
-          }
-        } else {
-          change(() => art.sketches.add(r));
-          _msg(tr('Rectangle orienté créé.'));
-        }
-        activePoints.clear();
-        previewShape = null;
-        cadStatus = 'Rectangle orienté créé.';
-      }
-    } else if (activeTool == CadTool.circle) {
-      if (activePoints.isEmpty) {
-        activePoints.add(pt);
-        cadStatus = 'Cliquez pour définir le rayon.';
+        cadStatus = switch (activeTool) {
+          CadTool.roundedRectangle => 'Cliquez le coin opposé ou tapez les cotes (ex. 600;400;50).',
+          CadTool.circle => 'Touchez le bord du rond ou tapez le rayon.',
+          _ => 'Touchez un sommet du polygone ou tapez le rayon.',
+        };
         setState(() {});
       } else {
-        final radius = math.max(10.0, (pt - activePoints.first).length);
-        final c = CadCircle(id: 'c${DateTime.now().millisecondsSinceEpoch}', centerPt: activePoints.first, radius: radius);
-        if (autoExtrude) {
-          final o = activePoints.first;
-          final (u, w) = (_dimAxes[0], _dimAxes[1]);
-          final p = _panelFromRect(o.withAxis(u, o[u] - radius).withAxis(w, o[w] - radius), o.withAxis(u, o[u] + radius).withAxis(w, o[w] + radius), pushPullThickness);
-          if (p != null) {
-            change(() {
-              art.free.add(p);
-              selectedPanel = p;
-            });
-            _msg(trp('Panneau 3D créé (rayon {0} mm, épaisseur {1} mm)', [radius.round(), pushPullThickness.round()]));
-          }
-        } else {
-          change(() => art.sketches.add(c));
-          _msg(tr('Cercle créé.'));
-        }
-        activePoints.clear();
-        previewShape = null;
-        cadStatus = 'Cercle créé.';
-      }
-    } else if (activeTool == CadTool.polygon) {
-      if (activePoints.isEmpty) {
-        activePoints.add(pt);
-        cadStatus = 'Cliquez pour définir le rayon du polygone.';
-        setState(() {});
-      } else {
-        final radius = math.max(10.0, (pt - activePoints.first).length);
-        final p = CadPolygon(id: 'p${DateTime.now().millisecondsSinceEpoch}', centerPt: activePoints.first, radius: radius, sides: 6);
-        if (autoExtrude) {
-          final o = activePoints.first;
-          final (u, w) = (_dimAxes[0], _dimAxes[1]);
-          final pan = _panelFromRect(o.withAxis(u, o[u] - radius).withAxis(w, o[w] - radius), o.withAxis(u, o[u] + radius).withAxis(w, o[w] + radius), pushPullThickness);
-          if (pan != null) {
-            change(() {
-              art.free.add(pan);
-              selectedPanel = pan;
-            });
-            _msg(trp('Panneau polygone créé ({0} côtés, épaisseur {1} mm)', [6, pushPullThickness.round()]));
-          }
-        } else {
-          change(() => art.sketches.add(p));
-          _msg(tr('Polygone régulier (6 côtés) créé.'));
-        }
-        activePoints.clear();
-        previewShape = null;
-        cadStatus = 'Polygone régulier (6 côtés) créé.';
+        _finishShape(activePoints.first, pt);
       }
     } else if (activeTool == CadTool.arc) {
-      if (activePoints.isEmpty) {
+      if (activePoints.length < 2) {
         activePoints.add(pt);
-        cadStatus = 'Point 2 : fin de l’arc.';
-        setState(() {});
-      } else if (activePoints.length == 1) {
-        activePoints.add(pt);
-        cadStatus = 'Point 3 : flèche / courbure de l’arc.';
+        cadStatus = activePoints.length == 1 ? 'Arc : point d’arrivée.' : 'Arc : touchez le sommet de la courbe.';
         setState(() {});
       } else {
-        final a = CadArc(id: 'a${DateTime.now().millisecondsSinceEpoch}', startPt: activePoints[0], endPt: activePoints[1], controlPt: pt);
-        change(() => art.sketches.add(a));
-        activePoints.clear();
-        previewShape = null;
-        cadStatus = 'Arc créé.';
+        final pts = _arcPoints(activePoints[0], pt, activePoints[1]);
+        pts.length < 3 ? _msg(tr('Les trois points sont alignés : pas d’arc.')) : _addShape(pts);
       }
     } else if (activeTool == CadTool.tape) {
       if (activePoints.isEmpty) {
@@ -1348,6 +1328,7 @@ class _ArtPageState extends State<ArtPage> {
         setState(() {});
       } else {
         final dim = CadDimension(id: 'd${DateTime.now().millisecondsSinceEpoch}', p1: activePoints.first, p2: pt);
+        dim.attach(art.panels);
         change(() => art.dimensions.add(dim));
         activePoints.clear();
         _dimPreview = null;
@@ -1473,6 +1454,7 @@ class _ArtPageState extends State<ArtPage> {
         } else {
           clone.z = p.back + 20;
         }
+        flipOutline(clone, axis == 'X' ? 0 : (axis == 'Y' ? 1 : 2));
         art.free.add(clone);
         selectedPanel = clone;
       });
@@ -1523,6 +1505,7 @@ class _ArtPageState extends State<ArtPage> {
       }
       change(() {
         // quart de tour autour de l'axe perpendiculaire au plan de travail, centre conservé
+        if (workPlane.axis == thicknessAxis(p)) p.outline = p.outline == null ? null : [for (final (u, v) in p.outline!) (u, 1 - v)];
         final cx = p.x + p.w / 2, cy = p.y + p.h / 2, cz = p.z + p.d / 2;
         switch (workPlane.axis) {
           case 1:
@@ -1928,6 +1911,9 @@ class _ArtPageState extends State<ArtPage> {
     return out;
   }
 
+  /// Contours orange : inutiles en liaison et en grande coupe (toute la feuille est visée).
+  bool get _showSelection => activeTool != CadTool.link && !(activeTool == CadTool.cut && (cutMode == 'big' || cutMode == 'circle'));
+
   /// Découpe et liaison (vue de dessus) : longueur et largeur de chaque pièce à plat, pour les coter sur la feuille.
   List<ArtPanel> _sizedParts() => activeTool == CadTool.cut || activeTool == CadTool.link
       ? [for (final p in art.free) if (thicknessAxis(p) == 1 && !art.isHidden(p)) p]
@@ -1975,6 +1961,7 @@ class _ArtPageState extends State<ArtPage> {
         ..w = dia
         ..d = dia
         ..y = host.top + 2
+        ..shape = 'rond'
         ..note = L('disque Ø {0}, CNC', [dia.round()]);
       change(() {
         host.note = [if (host.note != null) host.note!, L('découpe Ø {0} à {1} ; {2}', [dia.round(), (c.x - host.x).round(), (c.z - host.z).round()])].join(' · ');
@@ -2118,6 +2105,23 @@ class _ArtPageState extends State<ArtPage> {
                       ),
                       const SizedBox(height: 12),
                     ],
+                    if (p.shape == null || p.shape == 'arrondi') ...[
+                      TextFormField(
+                        key: ValueKey('round_${p.id}'),
+                        initialValue: p.shape == 'arrondi' ? '${p.radius.round()}' : '0',
+                        decoration: InputDecoration(labelText: tr('Coins arrondis, rayon (mm)'), isDense: true, border: const OutlineInputBorder()),
+                        keyboardType: TextInputType.number,
+                        onChanged: (v) {
+                          final r = double.tryParse(v);
+                          if (r == null || r < 0) return;
+                          change(() => p
+                            ..radius = r
+                            ..shape = r > 0 ? 'arrondi' : null);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                    ] else
+                      Padding(padding: const EdgeInsets.only(bottom: 8), child: Text('${tr('Forme')} : ${tr(shapeLabel(p) ?? '')}', style: const TextStyle(fontWeight: FontWeight.bold))),
                     // orientation rapide d'une pièce coupée
                     Wrap(spacing: 6, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
                       Text(tr('Poser :'), style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -2778,7 +2782,7 @@ class _ArtPageState extends State<ArtPage> {
             tool(CadTool.line, icon: Icons.show_chart),
             tool(CadTool.freehand, icon: Icons.gesture),
             tool(CadTool.rectangle, icon: Icons.rectangle_outlined),
-            tool(CadTool.rotatedRectangle, icon: Icons.rotate_90_degrees_ccw),
+            tool(CadTool.roundedRectangle, icon: Icons.rounded_corner),
             tool(CadTool.circle, icon: Icons.circle_outlined),
             tool(CadTool.arc, icon: Icons.architecture),
             tool(CadTool.polygon, icon: Icons.hexagon_outlined),
@@ -2864,7 +2868,7 @@ class _ArtPageState extends State<ArtPage> {
     (CadTool.polygon, Icons.hexagon_outlined),
     (CadTool.arc, Icons.architecture),
     (CadTool.freehand, Icons.gesture),
-    (CadTool.rotatedRectangle, Icons.crop_rotate),
+    (CadTool.roundedRectangle, Icons.rounded_corner),
   ];
 
   IconData _toolIcon(CadTool x) => switch (x) {
@@ -2893,8 +2897,9 @@ class _ArtPageState extends State<ArtPage> {
     Widget cell(String key, IconData icon, String label, bool on, VoidCallback? tap, {String? tip}) => SizedBox(
           width: 64,
           height: 56,
-          child: Tooltip(
-            message: tip ?? tr(label),
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _tip = tip ?? tr(label)),
+            onExit: (_) => setState(() => _tip = null),
             child: Material(
               color: on ? scheme.primary : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
@@ -2937,11 +2942,11 @@ class _ArtPageState extends State<ArtPage> {
         tool(CadTool.line, 'Ligne'),
         PopupMenuButton<CadTool>(
           key: const ValueKey('tool_draw'),
-          tooltip: tr('Autres formes'),
+          tooltip: '',
           padding: EdgeInsets.zero,
           onSelected: _selectTool,
           itemBuilder: (_) => [for (final (x, icon) in _shapes.skip(2)) PopupMenuItem(value: x, child: ListTile(leading: Icon(icon), title: Text(tr(x.label)), selected: activeTool == x))],
-          child: IgnorePointer(child: cell('tool_shapes', shape?.$2 ?? Icons.interests_outlined, shape?.$1.label ?? 'Formes', shape != null, () {})),
+          child: IgnorePointer(child: cell('tool_shapes', shape?.$2 ?? Icons.category_outlined, shape?.$1.label ?? 'Formes', shape != null, () {})),
         ),
         tool(CadTool.pushPull, 'Pousser'),
       ],
@@ -3232,7 +3237,7 @@ class _ArtPageState extends State<ArtPage> {
           const SizedBox(width: Tokens.s3),
           Expanded(
             child: Text(
-              idle && cadStatus.isEmpty ? tr('Touchez une pièce pour la choisir. Un doigt tourne la vue, deux doigts la déplacent.') : tr(cadStatus),
+              _tip ?? (idle && cadStatus.isEmpty ? tr('Touchez une pièce pour la choisir. Un doigt tourne la vue, deux doigts la déplacent.') : tr(cadStatus)),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: t.bodyMedium,
@@ -3649,9 +3654,9 @@ class _ArtPageState extends State<ArtPage> {
                   _pressPlaced = true;
                 }
                 if (activeTool == CadTool.freehand) {
-                  final pt = _unproject(d.localFocalPoint);
+                  _setDrawPlane(d.localFocalPoint);
                   activePoints.clear();
-                  activePoints.add(pt);
+                  activePoints.add(_rawOnPlane(d.localFocalPoint));
                 }
               },
               onScaleUpdate: (d) {
@@ -3699,8 +3704,7 @@ class _ArtPageState extends State<ArtPage> {
                     cam.orbit(delta);
                   }
                 } else if (activeTool == CadTool.freehand) {
-                  final pt = _unproject(d.localFocalPoint);
-                  activePoints.add(pt);
+                  activePoints.add(_rawOnPlane(d.localFocalPoint));
                   previewShape = CadFreehand(id: 'temp', points: [...activePoints]);
                   setState(() {});
                 } else if (activePoints.isNotEmpty) {
@@ -3709,7 +3713,7 @@ class _ArtPageState extends State<ArtPage> {
               },
               onScaleEnd: (_) {
                 if (activeTool == CadTool.dimension && _dimEdge != null && _moved && _dimPreview != null) {
-                  final dim = _dimPreview!;
+                  final dim = _dimPreview!..attach(art.panels);
                   change(() => art.dimensions.add(dim));
                   _dimEdge = null;
                   _dimPreview = null;
@@ -3737,11 +3741,14 @@ class _ArtPageState extends State<ArtPage> {
                   return;
                 }
                 if (activeTool == CadTool.freehand && activePoints.length >= 2) {
-                  final fh = CadFreehand(id: 'f${DateTime.now().millisecondsSinceEpoch}', points: [...activePoints]);
-                  change(() => art.sketches.add(fh));
-                  activePoints.clear();
-                  previewShape = null;
-                  setState(() {});
+                  final ring = smoothStroke([for (final q in activePoints) [q.x, q.y, q.z]], tol: math.max(4, 6 / math.max(0.05, _px(activePoints.first, activePoints.first + cam.right * 1))));
+                  if (ring.length < 3 || activePoints.length < 8) {
+                    activePoints.clear();
+                    previewShape = null;
+                    setState(() {});
+                  } else {
+                    _addShape([for (final q in ring) V3(q[0], q[1], q[2])]);
+                  }
                 } else if (!_moved && _downAt != null) {
                   _handleTap(_downAt!);
                 }
@@ -3765,8 +3772,8 @@ class _ArtPageState extends State<ArtPage> {
                     previewShape: previewShape,
                     activeTape: activeTape,
                     hoveredFace: hoveredFace,
-                    selectedPanel: selectedPanel,
-                    selection: selection.map((q) => q.id).toSet(),
+                    selectedPanel: _showSelection ? selectedPanel : null,
+                    selection: _showSelection ? selection.map((q) => q.id).toSet() : const {},
                     selectedShape: selectedShape,
                     isMachiningMode: isMachiningMode,
                     activeSnapTarget: activeSnapTarget,
@@ -3777,6 +3784,7 @@ class _ArtPageState extends State<ArtPage> {
                     cutPreview: _cutPreview(),
                     sizedParts: _sizedParts(),
                     sizesInside: activeTool == CadTool.link,
+                    partNames: activeTool == CadTool.cut || activeTool == CadTool.link ? {for (var i = 0; i < art.panels.length; i++) art.panels[i].id: 'P${i + 1}'} : const {},
                     dimPreview: activeTool == CadTool.dimension ? _dimPreview : null,
                     cutLabel: _cutAt == null || activeTool != CadTool.cut || cutMode == 'circle'
                         ? null
@@ -3940,13 +3948,25 @@ class _ArtPageState extends State<ArtPage> {
                                 ),
                               ])
                             : activeTool.isDrawing
-                            ? SizedBox(width: 230, child: _materialPicker(drawMaterial, (v) {
+                            ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [
+                                if (activeTool == CadTool.polygon) ...[
+                                  Text(tr('Côtés')),
+                                  for (final n in const [3, 5, 6, 8])
+                                    ChoiceChip(key: ValueKey('poly_$n'), label: Text('$n'), selected: polySides == n, onSelected: (_) => setState(() => polySides = n)),
+                                ],
+                                if (activeTool == CadTool.roundedRectangle) ...[
+                                  Text(tr('Rayon des coins')),
+                                  for (final r in const [10.0, 20.0, 50.0, 100.0])
+                                    ChoiceChip(key: ValueKey('corner_${r.round()}'), label: Text('${r.round()}'), selected: cornerRadius == r, onSelected: (_) => setState(() => cornerRadius = r)),
+                                ],
+                                SizedBox(width: 230, child: _materialPicker(drawMaterial, (v) {
                                 setState(() {
                                   drawMaterial = v;
                                   final pp = v == null ? null : PublicPrices.byId(v);
                                   if (pp != null) pushPullThickness = pp.thickness.toDouble();
                                 });
-                              }, label: 'Matière des panneaux'))
+                              }, label: 'Matière des panneaux')),
+                              ])
                             : null,
                         onSetRole: selectedPanel != null && art.free.contains(selectedPanel)
                             ? (r) => change(() {
@@ -4012,7 +4032,7 @@ class _ArtPageState extends State<ArtPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(color: scheme.surface.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(8)),
                   child: Text(
-                      art.edgeLinks.isEmpty ? tr('Aperçu 3D') : trp('Aperçu 3D assemblé · {0} liaison(s) à usiner', [art.edgeLinks.length]),
+                      art.edgeLinks.isEmpty ? tr('Aperçu 3D') : trp('Aperçu 3D assemblé · {0} liaison(s) à monter', [art.edgeLinks.length]),
                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
                 ),
               ),
@@ -4327,15 +4347,18 @@ class _ArtPageState extends State<ArtPage> {
 
   Widget _linkRow(TextTheme t, ColorScheme scheme, int i) {
     final l = art.edgeLinks[i];
+    const linkColors = [Color(0xFF2563EB), Color(0xFF16A34A), Color(0xFF9333EA), Color(0xFFDB2777), Color(0xFF0891B2), Color(0xFFB45309), Color(0xFF4F46E5), Color(0xFF65A30D)];
+    final all = art.panels;
     String name(String id) {
-      final p = art.free.where((q) => q.id == id).firstOrNull;
-      return p == null ? id : (p.note != null ? tr(p.note!) : tr(p.role.label));
+      final k = all.indexWhere((q) => q.id == id);
+      if (k < 0) return id;
+      return 'P${k + 1}${all[k].note != null ? ' ${tr(all[k].note!)}' : ''}';
     }
 
     return ListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(radius: 11, backgroundColor: const Color(0xFF2563EB), child: Text('${i + 1}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800))),
+      leading: CircleAvatar(radius: 11, backgroundColor: linkColors[i % linkColors.length], child: Text('${i + 1}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800))),
       title: Text('${name(l.a)} → ${name(l.b)}', maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: IconButton(
         tooltip: tr('Retirer cette liaison'),
@@ -5033,29 +5056,67 @@ class _PresetDialog extends StatelessWidget {
 // ------------------------------------------------------------------ rendu 3D
 
 void _paintPanels(Canvas c, ArtCamera cam, List<ArtPanel> panels, {double edge = 1, bool byComp = false, Comp? focus, bool isDark = false, double opacity = 1}) {
-  final faces = <(double, Face)>[];
+  // (profondeur, pièce, contour, normale) : les six faces d'une boîte, ou le contour et le chant d'une pièce de forme
+  final faces = <(double, ArtPanel, List<V3>, V3)>[];
+  void add(ArtPanel panel, List<V3> pts, V3 normal, V3 center) {
+    final toCam = cam.ortho ? cam.forward * -1 : (cam.eye - center);
+    if (normal.dot(toCam) <= 0) return;
+    faces.add((cam.project(center).$2, panel, pts, normal));
+  }
+
   for (final panel in panels) {
+    if (isShaped(panel)) {
+      final flat = rankAxes(panel)[2];
+      final up = V3.zero.withAxis(flat, 1);
+      List<V3> v3(List<List<double>> l) => [for (final q in l) V3(q[0], q[1], q[2])];
+      final hi = v3(worldOutline(panel)), lo = v3(worldOutline(panel, hi: false));
+      V3 mid(List<V3> l) => l.fold(V3.zero, (a, b) => a + b) * (1 / l.length);
+      final ch = mid(hi), cl = mid(lo);
+      for (var i = 0; i < hi.length; i++) {
+        final k = (i + 1) % hi.length;
+        final e = hi[k] - hi[i];
+        if (e.length < 0.01) continue;
+        var n = e.cross(up).unit;
+        final c = (hi[i] + lo[k]) * 0.5;
+        // vers l'extérieur du contour
+        final probe = c + n * 0.5;
+        if (insideOutline(panel, [probe.x, probe.y, probe.z])) n = n * -1;
+        // juste derrière la face, pour que le chant passe sous elle
+        final toCam = cam.ortho ? cam.forward * -1 : (cam.eye - c);
+        if (n.dot(toCam) > 0) faces.add((cam.project(c).$2 + panel.thickness * 0.01, panel, [hi[i], hi[k], lo[k], lo[i]], n));
+      }
+      add(panel, hi, up, ch);
+      add(panel, lo, up * -1, cl);
+      continue;
+    }
     for (final f in facesOf(panel)) {
-      final toCam = cam.ortho ? cam.forward * -1 : (cam.eye - f.center);
-      if (f.normal.dot(toCam) <= 0) continue;
-      faces.add((cam.project(f.center).$2, f));
+      add(panel, f.corners, f.normal, f.center);
     }
   }
   faces.sort((a, b) => b.$1.compareTo(a.$1));
   final light = const V3(-0.35, 0.85, -0.4).unit;
   final fillLight = const V3(0.4, 0.3, 0.5).unit;
-  for (final (_, f) in faces) {
-    final cs = f.corners.map((v) => cam.project(v).$1).toList();
+  for (final (_, pn, pts, normal) in faces) {
+    final cs = pts.map((v) => cam.project(v).$1).toList();
     final path = Path()..addPolygon(cs, true);
-    final comp = f.panel.comp;
-    final base = byComp && comp != null ? Color(comp.color) : artColor(f.panel.finish);
+    final smoothSide = pts.length == 4 && isShaped(pn); // facette du chant : sans trait entre les facettes
+    final comp = pn.comp;
+    final base = byComp && comp != null ? Color(comp.color) : artColor(pn.finish);
     final hsl = HSLColor.fromColor(base);
-    final direct = math.max(0.0, f.normal.dot(light));
-    final fill = math.max(0.0, f.normal.dot(fillLight)) * 0.15;
+    final direct = math.max(0.0, normal.dot(light));
+    final fill = math.max(0.0, normal.dot(fillLight)) * 0.15;
     final lum = 0.58 + 0.34 * direct + fill;
     final ghost = focus != null && comp != focus;
     final fillColor = hsl.withLightness((hsl.lightness * lum + 0.03).clamp(0.0, 1.0)).toColor();
     c.drawPath(path, Paint()..color = ghost ? fillColor.withValues(alpha: 0.12) : fillColor.withValues(alpha: opacity));
+    if (smoothSide && pts.length == 4 && outlineOf(pn).length > 8) {
+      // petit liseré de la même couleur : pas de jour entre les facettes
+      c.drawPath(path, Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8
+        ..color = ghost ? fillColor.withValues(alpha: 0.05) : fillColor.withValues(alpha: opacity));
+      continue;
+    }
     c.drawPath(path, Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = edge
@@ -5086,6 +5147,7 @@ class _ScenePainter extends CustomPainter {
   final String? liveLabel; // cote affichée à côté du curseur
   final (V3, V3)? cutLine; // ligne de coupe en cours (outil Couper)
   final V3? cutCircle; // centre de la coupe circulaire (CNC)
+  final Map<String, String> partNames; // numéro de chaque pièce (P1, P2…)
   final bool sizesInside; // une seule étiquette « L × l » au milieu de chaque pièce (liaison)
   final List<ArtPanel> sizedParts; // pièces à plat à coter (découpe, liaison)
   final List<(V3, V3, String)> cutPreview; // largeurs des futurs morceaux
@@ -5127,6 +5189,7 @@ class _ScenePainter extends CustomPainter {
     this.cutPreview = const [],
     this.sizedParts = const [],
     this.sizesInside = false,
+    this.partNames = const {},
     this.dimPreview,
     this.cutLabel,
     this.sheetOrigin,
@@ -5423,7 +5486,7 @@ class _ScenePainter extends CustomPainter {
 
     // 1. Chants sur les arêtes des panneaux
     for (final pn in panels) {
-      if (pn.edgeLong > 0 || pn.edgeShort > 0) {
+      if ((pn.edgeLong > 0 || pn.edgeShort > 0) && !isShaped(pn)) {
         final col = pn.edgeThickness >= 2.0
             ? const Color(0xFFEF4444)
             : (pn.edgeThickness >= 1.0 ? _orange : const Color(0xFFF59E0B));
@@ -5459,6 +5522,24 @@ class _ScenePainter extends CustomPainter {
       ..color = _orange;
     const edges = [(0, 1), (2, 3), (4, 5), (6, 7), (0, 2), (1, 3), (4, 6), (5, 7), (0, 4), (1, 5), (2, 6), (3, 7)];
     for (final sp in panels.where((q) => chosen.contains(q.id))) {
+      if (isShaped(sp)) {
+        for (final hi in const [true, false]) {
+          final o = [for (final q in worldOutline(sp, hi: hi)) V3(q[0], q[1], q[2])];
+          for (var i = 0; i < o.length; i++) {
+            final b = o[(i + 1) % o.length];
+            final m = (o[i] + b) * 0.5, at = p(m);
+            final g = pickFace(cam, panels, at);
+            var hidden = false;
+            if (g != null) {
+              final (e, d) = cam.ray(at);
+              final dn = d[g.axis];
+              hidden = dn.abs() > 1e-9 && (g.plane - e[g.axis]) / dn < (m - e).dot(d) - 3;
+            }
+            if (!hidden) c.drawLine(p(o[i]), p(b), sel);
+          }
+        }
+        continue;
+      }
       final k = [for (final x in [sp.x, sp.right]) for (final y in [sp.y, sp.top]) for (final z in [sp.z, sp.back]) V3(x, y, z)];
       for (final (a, b) in edges) {
         seen(k[a], k[b], sel);
@@ -5534,6 +5615,7 @@ class _ScenePainter extends CustomPainter {
     // 3 bis. Chants et rainures visibles sur les pièces (hors vue usinage, qui les montre déjà)
     if (!isMachiningMode && !exploded && panels.isNotEmpty) {
       final work = computeMachiningElements(panels, fittings: art.fittings, jointCuts: art.jointCuts, jointFits: art.jointFits);
+      final byShape = {for (final q in panels) if (isShaped(q)) q.id};
       for (final el in work.elements) {
         if (el.kind == MachiningKind.drill) {
           final f = pickFace(cam, panels, p(el.position));
@@ -5547,6 +5629,7 @@ class _ScenePainter extends CustomPainter {
           continue;
         }
         if (el.kind != MachiningKind.edge && el.kind != MachiningKind.groove) continue;
+        if (el.kind == MachiningKind.edge && byShape.contains(el.panelId)) continue; // chant d'un contour : déjà dessiné
         if (el.kind == MachiningKind.edge) {
           seen(el.position, el.end, Paint()
             ..strokeWidth = el.diameter >= 2 ? 3.2 : 2.2
@@ -5586,7 +5669,7 @@ class _ScenePainter extends CustomPainter {
       if (s.isClosed) c.drawPath(path, fillPaint);
       c.drawPath(path, strokePaint);
 
-      for (final pt in pts) {
+      for (final pt in pts.length > 12 ? [pts.first, pts.last] : pts) {
         c.drawCircle(pt, 3.5, Paint()..color = const Color(0xFF0284C7));
         c.drawCircle(pt, 2.0, Paint()..color = Colors.white);
       }
@@ -5687,23 +5770,34 @@ class _ScenePainter extends CustomPainter {
 
       if (sizesInside) {
         final tp = TextPainter(
-          text: TextSpan(text: '${sp.w.round()} × ${sp.d.round()}', style: TextStyle(color: col, fontSize: 12, fontWeight: FontWeight.w800)),
+          text: TextSpan(children: [
+            TextSpan(text: '${partNames[sp.id] ?? ''}\n', style: TextStyle(color: waste ? col : const Color(0xFF0F172A), fontSize: 15, fontWeight: FontWeight.w800)),
+            TextSpan(text: '${sp.w.round()} × ${sp.d.round()}', style: TextStyle(color: col, fontSize: 12, fontWeight: FontWeight.w800)),
+          ]),
+          textAlign: TextAlign.center,
           textDirection: TextDirection.ltr,
         )..layout();
         if (tp.width + 16 < (ex.first.$2 - ex.first.$1).distance) tp.paint(c, mid - Offset(tp.width / 2, tp.height / 2));
         continue;
       }
       final wPx = (ex.first.$2 - ex.first.$1).distance, dPx = (ez.first.$2 - ez.first.$1).distance;
+      final nt = TextPainter(
+        text: TextSpan(text: partNames[sp.id] ?? '', style: TextStyle(color: waste ? col : const Color(0xFF0F172A), fontSize: 16, fontWeight: FontWeight.w800)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      // au milieu, sauf sous l'aperçu de la coupe en cours
+      if (nt.width + 40 < wPx && nt.height + 40 < dPx) nt.paint(c, mid + Offset(-nt.width / 2, dPx > 120 ? 18 : -nt.height / 2));
       cote(ex.first, sp.w, dPx);
       cote(ez.first, sp.d, wPx);
     }
 
     // 5 quinquies. Outil Lier : chant choisi (orange épais) et numéros des chants
     // liaisons notées : hachures sur les deux chants, reliées par un trait, numéro au milieu
+    const linkColors = [Color(0xFF2563EB), Color(0xFF16A34A), Color(0xFF9333EA), Color(0xFFDB2777), Color(0xFF0891B2), Color(0xFFB45309), Color(0xFF4F46E5), Color(0xFF65A30D)];
     for (final (ea, eb, label) in pendingLinks) {
-      const blue = Color(0xFF2563EB);
+      final col = linkColors[((int.tryParse(label) ?? 1) - 1) % linkColors.length];
       final hatch = Paint()
-        ..color = blue
+        ..color = col
         ..strokeWidth = 1.2;
       final mids = <Offset>[];
       for (final (a3, b3) in [ea, eb]) {
@@ -5713,16 +5807,16 @@ class _ScenePainter extends CustomPainter {
         if (len < 1) continue;
         final u = d / len, n = Offset(-u.dy, u.dx);
         for (var t = 4.0; t < len - 2; t += 6) {
-          c.drawLine(a + u * t - n * 5, a + u * t + n * 5, hatch);
+          c.drawLine(a + u * t - n * 4, a + u * t + n * 4, hatch);
         }
         c.drawLine(a, b, Paint()
-          ..color = blue
-          ..strokeWidth = 3);
-        mids.add((a + b) / 2);
+          ..color = col
+          ..strokeWidth = 4);
+        mids.add(a + u * (len * 0.28)); // à côté du numéro du chant
       }
       if (mids.length == 2) {
         final dash = Paint()
-          ..color = blue
+          ..color = col.withValues(alpha: 0.45)
           ..strokeWidth = 1.6;
         final d = mids[1] - mids[0];
         final len = d.distance;
@@ -5732,8 +5826,10 @@ class _ScenePainter extends CustomPainter {
             c.drawLine(mids[0] + u * t, mids[0] + u * math.min(t + 6, len), dash);
           }
         }
-        final at = (mids[0] + mids[1]) / 2;
-        c.drawCircle(at, 10, Paint()..color = blue);
+      }
+      for (final at in mids) {
+        c.drawCircle(at, 11, Paint()..color = Colors.white);
+        c.drawCircle(at, 10, Paint()..color = col);
         final tp = TextPainter(
           text: TextSpan(text: label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
           textDirection: TextDirection.ltr,
@@ -5877,7 +5973,9 @@ class _ScenePainter extends CustomPainter {
     }
 
     // 7. Lignes de cotation permanentes
-    for (final dim in [...art.dimensions, ?dimPreview]) {
+    // attachées aux pièces : elles suivent leurs déplacements, le montage et la vue éclatée
+    final dimHosts = {for (final q in panels) q.id: q};
+    for (final dim in [for (final d in art.dimensions) ?d.resolve(dimHosts), ?dimPreview]) {
       _dim(c, dim.p1, dim.p2, dim.text, identical(dim, dimPreview) ? const Color(0xFFF26522) : const Color(0xFF0284C7), anchorA: dim.a1, anchorB: dim.a2);
     }
 

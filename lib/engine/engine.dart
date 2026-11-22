@@ -4,6 +4,7 @@ library;
 export 'access.dart';
 export 'art.dart';
 export 'art_box.dart';
+export 'art_shape.dart';
 export 'assembly.dart';
 export 'bom.dart';
 export 'catalog.dart';

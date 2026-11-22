@@ -600,6 +600,34 @@ class Scene3dPainter {
               canvas.drawPath(q, edgePaint);
               canvas.drawPath(q, edgeLine);
             }
+            // porte vitrée ouverte : cadre et verre transparent, des deux côtés
+            final glazed = cell.kind == CellKind.glass && ease > 0.02 && lu > 160 && lv > 160;
+            final pane = Rect.fromLTWH(60, 60, lu - 120, lv - 120);
+            void drawGlass() {
+              canvas.drawRect(pane, Paint()..color = const Color(0x33B7D3E0));
+              canvas.drawRect(
+                  pane,
+                  Paint()
+                    ..shader = const LinearGradient(
+                            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0x00FFFFFF), Color(0x55FFFFFF), Color(0x00FFFFFF)], stops: [0.25, 0.45, 0.65])
+                        .createShader(pane));
+              canvas.drawRect(pane, edgeLine);
+            }
+
+            if (glazed && !frontVisible) {
+              _onPlane(canvas, add3(origin, off, 1), u, v, () {
+                final r = Rect.fromLTWH(0, 0, lu, lv);
+                canvas.drawPath(
+                    Path()
+                      ..fillType = PathFillType.evenOdd
+                      ..addRect(r)
+                      ..addRect(pane),
+                    Paint()..color = shade(fr.color, -0.05));
+                drawGlass();
+                canvas.drawRect(r, edgeLine);
+              });
+              return;
+            }
             if (!frontVisible) {
               // on voit l'intérieur de la porte : contre-porte inox du lave-vaisselle, sinon le dos du panneau
               _onPlane(canvas, add3(origin, off, 1), u, v, () {
@@ -619,6 +647,13 @@ class Scene3dPainter {
             }
             _onPlane(canvas, origin, u, v, () {
               final r = Rect.fromLTWH(0, 0, lu, lv);
+              if (glazed) {
+                canvas.save();
+                canvas.clipPath(Path()
+                  ..fillType = PathFillType.evenOdd
+                  ..addRect(r)
+                  ..addRect(pane));
+              }
               paintFront(
                 canvas,
                 r,
@@ -639,6 +674,10 @@ class Scene3dPainter {
                 carcass: carcass,
                 gloss: fr.gloss,
               );
+              if (glazed) {
+                canvas.restore();
+                drawGlass();
+              }
               // chant de la porte et ombre selon l'angle
               canvas.drawRect(
                 r,
@@ -647,7 +686,7 @@ class Scene3dPainter {
                   ..strokeWidth = 4
                   ..color = shade(fr.color, -0.25),
               );
-              if (shadeK > 0) canvas.drawRect(r, Paint()..color = Colors.black.withValues(alpha: shadeK));
+              if (shadeK > 0 && !glazed) canvas.drawRect(r, Paint()..color = Colors.black.withValues(alpha: shadeK));
             });
           },
         ));

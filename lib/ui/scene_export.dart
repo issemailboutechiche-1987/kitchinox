@@ -394,6 +394,8 @@ class SceneExporter {
                 'z0': fz0,
                 'z1': fz1,
                 'img': await frontImg('${cell.kind.name}-$hinge', lw, fz1 - fz0, m2, opening: hinge == 'left' ? 'hinged_left' : 'hinged_right', handleTop: isLower),
+                // porte vitrée : cadre de 60 mm et vrai verre, vus des deux côtés
+                if (cell.kind == CellKind.glass && lw > 160 && fz1 - fz0 > 160) 'glass': 60.0,
                 if (kind != 'static') 'inside': await interiorImg(cell, lw, fz1 - fz0),
                 if (kind != 'static') 'insideT': 19.0,
               });

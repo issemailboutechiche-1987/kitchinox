@@ -8,6 +8,7 @@
 import 'dart:math' as math;
 
 import 'art.dart';
+import 'art_shape.dart';
 import '../ui/art_camera.dart';
 
 /// Outils CAO disponibles dans l'atelier Art.
@@ -16,7 +17,7 @@ enum CadTool {
   line('Ligne', 'Tracer des segments précis'),
   freehand('Main levée', 'Tracé libre et courbes'),
   rectangle('Rectangle', 'Rectangle standard par deux points opposés'),
-  rotatedRectangle('Rectangle orienté', 'Rectangle incliné par trois points (base + angle/hauteur)'),
+  roundedRectangle('Rectangle arrondi', 'Rectangle à coins arrondis par deux points opposés'),
   circle('Cercle', 'Cercle défini par son centre et son rayon'),
   polygon('Polygone', 'Polygone régulier (triangle, hexagone, octogone, etc.)'),
   arc('Arc', 'Arc de cercle défini par trois points'),
@@ -41,7 +42,7 @@ enum CadTool {
       this == line ||
       this == freehand ||
       this == rectangle ||
-      this == rotatedRectangle ||
+      this == roundedRectangle ||
       this == circle ||
       this == polygon ||
       this == arc;
@@ -501,6 +502,8 @@ class CadDimension {
   V3 p1, p2;
   double offset; // décalage de la ligne de cote perpendiculaire
   String text;
+  DimAnchor? h1, h2; // attaches aux pièces : la cote les suit
+  List<double>? rankOff; // décalage de la ligne de cote (axes de la pièce)
   V3? a1, a2; // points cotés (la ligne de cote p1–p2 est décalée ; lignes de rappel a → p)
 
   CadDimension({
@@ -521,6 +524,9 @@ class CadDimension {
         'p2': {'x': p2.x, 'y': p2.y, 'z': p2.z},
         'offset': offset,
         'text': text,
+        if (h1 != null) 'h1': h1!.toJson(),
+        if (h2 != null) 'h2': h2!.toJson(),
+        if (rankOff != null) 'off': rankOff,
         if (a1 != null) 'a1': {'x': a1!.x, 'y': a1!.y, 'z': a1!.z},
         if (a2 != null) 'a2': {'x': a2!.x, 'y': a2!.y, 'z': a2!.z},
       };
@@ -535,7 +541,44 @@ class CadDimension {
       a1: j['a1'] is Map ? parseV3(j['a1'] as Map) : null,
       a2: j['a2'] is Map ? parseV3(j['a2'] as Map) : null,
       text: j['text'] as String?,
-    );
+    )
+      ..h1 = DimAnchor.parse(j['h1'])
+      ..h2 = DimAnchor.parse(j['h2'])
+      ..rankOff = j['off'] is List ? [for (final x in j['off'] as List) (x as num).toDouble()] : null;
+  }
+
+  static List<double> _l(V3 v) => [v.x, v.y, v.z];
+  static V3 _v(List<double> l) => V3(l[0], l[1], l[2]);
+
+  /// Attache les deux bouts aux pièces qu'ils touchent.
+  void attach(List<ArtPanel> panels) {
+    final q1 = _l(a1 ?? p1), q2 = _l(a2 ?? p2);
+    // la même pièce pour les deux bouts quand c'est possible
+    for (final p in panels) {
+      final x = anchorAt([p], q1), y = anchorAt([p], q2);
+      if (x != null && y != null) {
+        h1 = x;
+        h2 = y;
+        break;
+      }
+    }
+    h1 ??= anchorAt(panels, q1);
+    h2 ??= anchorAt(panels, q2);
+    final host = panels.where((p) => p.id == h1?.panel).firstOrNull;
+    if (host != null && a1 != null) rankOff = offsetToRank(host, _l(p1 - a1!));
+  }
+
+  /// La cote à sa place actuelle (pièces déplacées, tournées, montées) ; null : sa pièce n'existe plus.
+  CadDimension? resolve(Map<String, ArtPanel> panels) {
+    if (h1 == null && h2 == null) {
+      // ancienne cote d'arête dont la pièce est partie : rien à coter
+      return a1 != null && panels.isNotEmpty ? null : this;
+    }
+    final m1 = h1 == null ? null : panels[h1!.panel], m2 = h2 == null ? null : panels[h2!.panel];
+    if ((h1 != null && m1 == null) || (h2 != null && m2 == null)) return null;
+    final q1 = m1 == null ? (a1 ?? p1) : _v(h1!.at(m1)), q2 = m2 == null ? (a2 ?? p2) : _v(h2!.at(m2));
+    final off = rankOff == null || m1 == null ? V3.zero : _v(offsetFromRank(m1, rankOff!));
+    return CadDimension(id: id, p1: q1 + off, p2: q2 + off, a1: rankOff == null ? null : q1, a2: rankOff == null ? null : q2, offset: offset, text: '${(q2 - q1).length.round()} mm');
   }
 }
 
