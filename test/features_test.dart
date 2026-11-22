@@ -221,7 +221,7 @@ void main() {
 
   test('panneaux : « MDF 16 mm » des tiroirs n’est pas un fond ; caissons et façades de même nom restent distincts', () {
     final cs = CutSettings();
-    expect(cs.samePanel, isTrue, reason: 'mêmes format et épaisseur : mêmes feuilles');
+    expect(cs.frontKey, isNot(cs.carcassMaterial), reason: 'toujours 3 panneaux : caissons, façades, fonds');
     expect(cs.panelKind('MDF 16 mm'), PanelKind.drawer);
     expect(cs.thicknessFor('MDF 16 mm'), 16);
     expect(cs.panelKind('HDF 3 (fonds)'), PanelKind.back);
@@ -231,7 +231,6 @@ void main() {
     cs
       ..frontSheetLength = 2800
       ..frontSheetWidth = 1220;
-    expect(cs.samePanel, isFalse);
     expect(cs.sheetDimensionsFor(cs.carcassMaterial), (2800, 2100), reason: 'le format des façades ne s’applique pas aux caissons');
     expect(cs.sheetDimensionsFor(cs.frontKey), (2800, 1220));
     expect(backMaterialName('HDF 6 mm', 8), 'HDF 8 mm');

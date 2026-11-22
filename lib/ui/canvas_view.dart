@@ -715,7 +715,7 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
                   label: switch (st.view) {
                     ViewMode.plan => tr('Plan vu du dessus'),
                     ViewMode.front => trp('Vue de face, {0}', [Room.wallNames[st.wallId]]),
-                    ViewMode.view3d => tr('Vue 3D de la cuisine'),
+                    ViewMode.view3d => tr(st.engine.kitchen ? 'Vue 3D de la cuisine' : 'Vue 3D'),
                   },
                   child: CustomPaint(
                     size: size,
@@ -1101,6 +1101,13 @@ class _PlannerPainter extends CustomPainter {
     }
 
     // caissons vus de dessus
+    for (final j in endPanels(st.engine)) {
+      final w = st.project.room.wall(j.wallId);
+      final b = w.strip(j.s, EndPanel.thickness, j.depth, j.z0, j.height);
+      final jr = Rect.fromPoints(v.toScreen(b.x0, b.y0), v.toScreen(b.x1, b.y1));
+      canvas.drawRect(jr, Paint()..color = frontFinish(st.project.style, j.finishId(st.project.style)).color);
+      canvas.drawRect(jr, _stroke(pc.dimension.withValues(alpha: 0.6), 1));
+    }
     final shapes = _planOrder(st.engine.planView());
     for (final s in shapes) {
       _planCabinet(canvas, v, s);
@@ -1625,6 +1632,12 @@ class _PlannerPainter extends CustomPainter {
       }
     }
     textured(v.rect(-300, -150, len + 300, 0), ff);
+    // joues (costados)
+    for (final j in endPanels(st.engine).where((j) => j.wallId == st.wallId)) {
+      final jr = v.rect(j.s, j.z0, j.s + EndPanel.thickness, j.z1);
+      textured(jr, frontFinish(p.style, j.finishId(p.style)));
+      canvas.drawRect(jr, _stroke(pc.dimension.withValues(alpha: 0.45), 1));
+    }
 
     // repère de hauteur mini des hauts : seulement quand un élément haut est sélectionné
     final showMin = st.selectedModel?.kind.isHigh ?? false;
@@ -1663,8 +1676,9 @@ class _PlannerPainter extends CustomPainter {
     }
 
     // plan de travail continu
-    for (final (a, b) in st.engine.runs(st.wallId, (m) => st.engine.kitchen && m.kind.isLow)) {
-      final r = v.rect(a, std.baseTop.toDouble(), b, std.worktopTop.toDouble());
+    for (final (a, b) in st.engine.runs(st.wallId, (m) => st.engine.hasWorktop && m.kind.isLow)) {
+      final wz = st.engine.worktopZ(st.wallId, a, b);
+      final r = v.rect(a, wz, b, wz + std.worktopThickness);
       canvas.drawRect(r, Paint()..color = top.color);
       if (top.textured) {
         canvas.save();

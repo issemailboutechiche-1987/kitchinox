@@ -20,6 +20,7 @@ import 'fronts.dart';
 import 'net_symbols.dart';
 import 'openings_ui.dart';
 import 'brands_ui.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 import 'textures.dart';
 import 'toolbar.dart';
@@ -277,7 +278,7 @@ class _CatalogPanelState extends State<CatalogPanel> {
                     Expanded(
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        child: SegmentedButton<String>(
+                        child: KxChoices<String>(
                           key: const ValueKey('add_wall'),
                           showSelectedIcon: false,
                           style: const ButtonStyle(visualDensity: VisualDensity.compact),
@@ -479,14 +480,16 @@ class StylePanel extends StatelessWidget {
       children: [for (final f in list) _Swatch(finish: f, selected: f.id == current, onTap: () => on(f.id))],
     );
     final split = st.frontUpper != null || st.frontLower != null;
+    final hasHigh = state.project.items.any((c) => state.engine.modelOf(c).kind.isHigh);
     final perItem = state.project.items.where((c) => c.front != null).length;
     Widget frontsBody() => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SegmentedButton<bool>(
+        if (state.engine.kitchen || hasHigh)
+        KxChoices<bool>(
           showSelectedIcon: false,
           segments: [
-            ButtonSegment(value: false, label: Text(tr('Toute la cuisine')), icon: Icon(Icons.kitchen_outlined)),
+            ButtonSegment(value: false, label: Text(tr(state.engine.kitchen ? 'Toute la cuisine' : 'Tout le projet')), icon: Icon(state.engine.kitchen ? Icons.kitchen_outlined : Icons.select_all)),
             ButtonSegment(value: true, label: Text(tr('Hauts / bas')), icon: Icon(Icons.vertical_split_outlined)),
           ],
           selected: {split},
@@ -495,6 +498,12 @@ class StylePanel extends StatelessWidget {
         const SizedBox(height: Tokens.s4),
         if (!split)
           swatches(frontFinishes(st), st.front, (v) => state.setStyle(front: v))
+        else if (!state.engine.kitchen && !hasHigh)
+          // un seul type de meuble : une seule façade
+          swatches(frontFinishes(st), st.frontLower ?? st.front, (v) => state.edit(() => st
+            ..front = v
+            ..frontLower = null
+            ..frontUpper = null))
         else ...[
           Text(tr('Éléments hauts'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(height: Tokens.s2),
@@ -543,7 +552,7 @@ class StylePanel extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: Tokens.s2),
-              SegmentedButton<String>(
+              KxChoices<String>(
                 showSelectedIcon: false,
                 segments: [
                   if (KitchenFixtures.sink(st.sink).mounting.contains('inset')) ButtonSegment(value: 'inset', label: Text(tr('À encastrer'))),
@@ -555,7 +564,7 @@ class StylePanel extends StatelessWidget {
               const SizedBox(height: Tokens.s3),
               Text(tr('Finition de l’évier'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: Tokens.s2),
-              SegmentedButton<String>(
+              KxChoices<String>(
                 showSelectedIcon: false,
                 segments: [
                   ButtonSegment(value: 'inox', label: Text(tr('Inox brossé'))),
@@ -583,7 +592,7 @@ class StylePanel extends StatelessWidget {
               const SizedBox(height: Tokens.s3),
               Text(tr('Finition de la robinetterie'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: Tokens.s2),
-              SegmentedButton<String>(
+              KxChoices<String>(
                 showSelectedIcon: false,
                 segments: [
                   ButtonSegment(value: 'chrome', label: Text(tr('Chrome poli'))),
@@ -597,7 +606,7 @@ class StylePanel extends StatelessWidget {
               const SizedBox(height: Tokens.s3),
               Text(tr('Style de levier du mitigeur'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: Tokens.s2),
-              SegmentedButton<String>(
+              KxChoices<String>(
                 showSelectedIcon: false,
                 segments: [
                   ButtonSegment(value: 'side_pin', label: Text(tr('Manette fine'))),
@@ -608,10 +617,11 @@ class StylePanel extends StatelessWidget {
                 selected: {st.faucetLever},
                 onSelectionChanged: (v) => state.edit(() => st.faucetLever = v.first),
               ),
+              if (state.engine.kitchen) ...[
               const SizedBox(height: Tokens.s4),
               Text(tr('Plaque de cuisson'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: Tokens.s2),
-              SegmentedButton<String>(
+              KxChoices<String>(
                 showSelectedIcon: false,
                 segments: [
                   ButtonSegment(value: 'induction', label: Text(tr('Induction'))),
@@ -624,7 +634,7 @@ class StylePanel extends StatelessWidget {
               const SizedBox(height: Tokens.s3),
               Text(tr('Largeur de la plaque'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: Tokens.s2),
-              SegmentedButton<int>(
+              KxChoices<int>(
                 showSelectedIcon: false,
                 segments: [
                   ButtonSegment(value: 0, label: Text(tr('Auto'))),
@@ -640,7 +650,7 @@ class StylePanel extends StatelessWidget {
               const SizedBox(height: Tokens.s2),
               Text(tr('Finition'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: Tokens.s1),
-              SegmentedButton<String>(
+              KxChoices<String>(
                 showSelectedIcon: false,
                 segments: [
                   ButtonSegment(value: 'black_inox', label: Text(tr('Inox & Verre noir'))),
@@ -655,7 +665,7 @@ class StylePanel extends StatelessWidget {
               const SizedBox(height: Tokens.s3),
               Text(tr('Poignée / Levier de four'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: Tokens.s1),
-              SegmentedButton<String>(
+              KxChoices<String>(
                 showSelectedIcon: false,
                 segments: [
                   ButtonSegment(value: 'bar', label: Text(tr('Barre ronde'))),
@@ -666,6 +676,7 @@ class StylePanel extends StatelessWidget {
                 selected: {st.ovenHandle},
                 onSelectionChanged: (v) => state.edit(() => st.ovenHandle = v.first),
               ),
+              ],
             ],
           ],
         ),
@@ -685,10 +696,38 @@ class StylePanel extends StatelessWidget {
               onChanged: (v) => state.setFinishOptions(endPanels: v),
               title: Text(tr('Joues de finition automatiques')),
               subtitle: Text(
-                trp('{0} extrémité(s) visible(s) habillée(s) dans la finition des façades. Ajoutées au débit et à la liste.', [endPanels(state.engine).length]),
+                trp('{0} extrémité(s) visible(s) habillée(s) dans la finition des façades. Ajoutées au débit et à la liste.', [endPanels(state.engine, auto: true).where((j) => j.item == null).length]),
               ),
             ),
-            if (st.endPanels) ...[
+            Text(tr('Joues (costados) sur les caissons'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(
+              trp('{0} joue(s) ajoutée(s). Pour un seul caisson : touchez-le, puis « Joues (costados) ».', [endPanels(state.engine, auto: false).length]),
+              style: t.bodySmall,
+            ),
+            const SizedBox(height: Tokens.s2),
+            Wrap(spacing: Tokens.s2, runSpacing: Tokens.s2, children: [
+              OutlinedButton.icon(
+                key: const ValueKey('cheeks_visible'),
+                onPressed: state.engine.cheekCandidates().isEmpty ? null : () => _cheekMsg(context, state.addCheeks()),
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(trp('Sur tous les côtés visibles ({0})', [state.engine.cheekCandidates().length])),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey('cheeks_all'),
+                onPressed: () => _cheekMsg(context, state.addCheeks(visibleOnly: false)),
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(tr('Sur tous les caissons')),
+              ),
+              if (state.project.items.any((c) => c.cheekL != null || c.cheekR != null))
+                TextButton.icon(
+                  key: const ValueKey('cheeks_clear'),
+                  onPressed: state.clearCheeks,
+                  icon: const Icon(Icons.restart_alt, size: 18),
+                  label: Text(tr('Tout remettre en automatique')),
+                ),
+            ]),
+            if (endPanels(state.engine).isNotEmpty || st.endPanels) ...[
               const SizedBox(height: Tokens.s3),
               Text(tr('Finition des joues et côtés visibles'), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: Tokens.s1),
@@ -697,20 +736,20 @@ class StylePanel extends StatelessWidget {
                 style: t.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline),
               ),
               const SizedBox(height: Tokens.s2),
-              SegmentedButton<String>(
+              KxChoices<String>(
                 showSelectedIcon: false,
                 segments: [
                   ButtonSegment(value: 'auto', label: Text(tr('Automatique'))),
-                  ButtonSegment(value: 'lower', label: Text(tr('Comme les bas / colonnes'))),
-                  ButtonSegment(value: 'upper', label: Text(tr('Comme les hauts'))),
+                  if (hasHigh) ButtonSegment(value: 'lower', label: Text(tr('Comme les bas / colonnes'))),
+                  if (hasHigh) ButtonSegment(value: 'upper', label: Text(tr('Comme les hauts'))),
                   ButtonSegment(value: 'custom', label: Text(tr('Personnalisée'))),
                 ],
                 selected: {
                   st.endPanelFinish == null
                       ? 'auto'
-                      : st.endPanelFinish == (st.frontLower ?? st.front)
+                      : hasHigh && st.endPanelFinish == (st.frontLower ?? st.front)
                           ? 'lower'
-                          : (st.endPanelFinish == (st.frontUpper ?? st.front) ? 'upper' : 'custom')
+                          : (hasHigh && st.endPanelFinish == (st.frontUpper ?? st.front) ? 'upper' : 'custom')
                 },
                 onSelectionChanged: (v) {
                   final sel = v.first;
@@ -757,7 +796,7 @@ class StylePanel extends StatelessWidget {
         ),
       ),
       StyleSection.room => (
-        'Sol, murs et crédence',
+        state.engine.kitchen ? 'Sol, murs et crédence' : 'Sol et murs',
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -771,19 +810,21 @@ class StylePanel extends StatelessWidget {
             const SizedBox(height: Tokens.s2),
             swatches(wallFinishes(st), st.wall, (v) => state.setRoomFinish(wall: v)),
             const SizedBox(height: Tokens.s5),
+            if (state.engine.kitchen) ...[
             Text(tr('Crédence (entre le plan de travail et les hauts)'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: Tokens.s2),
             _SplashChoices(state: state),
             const SizedBox(height: Tokens.s2),
             swatches(splashFinishes(st), st.splash ?? '', (v) => state.setRoomFinish(splash: v)),
             const SizedBox(height: Tokens.s3),
+            ],
             _TextureLibrary(state: state, target: 'wall'),
             const SizedBox(height: Tokens.s5),
             Text(tr('Appareillage électrique (Prises & Interrupteurs)'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: Tokens.s1),
             Text(tr('Finition des plaques et mécanismes'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: Tokens.s2),
-            SegmentedButton<String>(
+            KxChoices<String>(
               showSelectedIcon: false,
               segments: [
                 ButtonSegment(value: 'blanc', label: Text(tr('Blanc'))),
@@ -829,6 +870,10 @@ class StylePanel extends StatelessWidget {
     );
   }
 }
+
+void _cheekMsg(BuildContext context, (int, int) r) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+      behavior: SnackBarBehavior.floating,
+      content: Text(trp(r.$2 == 0 ? '{0} joue(s) ajoutée(s)' : '{0} joue(s) ajoutée(s), {1} sans place', [r.$1, r.$2]))));
 
 class _Swatch extends StatelessWidget {
   final Finish finish;
@@ -1017,7 +1062,7 @@ Widget _header(BuildContext context, String title, String sub, VoidCallback onCl
   );
 }
 
-Widget _wallPicker(AppState state, String current, void Function(String) on, {bool onlyEnabled = true}) => SegmentedButton<String>(
+Widget _wallPicker(AppState state, String current, void Function(String) on, {bool onlyEnabled = true}) => KxChoices<String>(
   showSelectedIcon: false,
   segments: [
     for (final w in [
@@ -1143,7 +1188,7 @@ class _CabinetForm extends StatelessWidget {
         if (m.heights.values.length > 1) _Section('Hauteur (mm)', [chips(m.heights.values, item.height, (v) => _resize(h: v))]),
         if (m.hasDoors || m.openingOptions.isNotEmpty || (m.isCarcass && !m.kind.isCorner && item.width <= 700))
           _Section('Sens d’ouverture', [
-            SegmentedButton<String>(
+            KxChoices<String>(
               segments: [
                 ButtonSegment(value: 'hinged_left', label: Text(tr('Charnières à gauche')), icon: const Icon(Icons.arrow_back, size: 16)),
                 ButtonSegment(value: 'hinged_right', label: Text(tr('Charnières à droite')), icon: const Icon(Icons.arrow_forward, size: 16)),
@@ -1151,6 +1196,33 @@ class _CabinetForm extends StatelessWidget {
               selected: {item.opening == 'hinged_right' ? 'hinged_right' : 'hinged_left'},
               onSelectionChanged: editable ? (s) => state.edit(() => item.opening = s.first) : null,
             ),
+          ]),
+        if (state.engine.canHaveCheeks(m))
+          _Section('Joues (costados)', [
+            for (final left in [true, false])
+              Padding(
+                padding: const EdgeInsets.only(bottom: Tokens.s2),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(tr(left ? 'Côté gauche' : 'Côté droit'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  KxChoices<String>(
+                    key: ValueKey('cheek_${left ? 'l' : 'r'}'),
+                    segments: [
+                      ButtonSegment(value: 'auto', label: Text(tr('Automatique'))),
+                      ButtonSegment(value: 'oui', label: Text(tr('Avec joue'))),
+                      ButtonSegment(value: 'non', label: Text(tr('Sans joue'))),
+                    ],
+                    selected: {item.hasCheek(left) ? 'oui' : (item.cheek(left) ?? 'auto')},
+                    onSelectionChanged: editable
+                        ? (v) {
+                            final msg = state.setCheek(item.uid, left, v.first == 'auto' ? null : v.first == 'oui');
+                            if (msg != null) onMessage(msg);
+                          }
+                        : null,
+                  ),
+                ]),
+              ),
+            Text(tr('Panneau de 18 mm dans la finition des façades, au débit et au devis. Automatique : posée si le côté finit un linéaire.'), style: t.bodySmall),
           ]),
         if (m.variants.length > 1)
           _Section('Variante', [
@@ -1362,7 +1434,7 @@ class _OpeningForm extends StatelessWidget {
           ]),
         if (m == null || m.hinged && !m.twoLeaves || m.sliding || m.pivot)
           _Section(m != null && m.sliding ? 'Coulisse vers' : 'Charnières', [
-            SegmentedButton<String>(
+            KxChoices<String>(
               showSelectedIcon: false,
               segments: [
                 ButtonSegment(value: 'left', label: Text(tr('Gauche'))),
@@ -1679,7 +1751,7 @@ class SummaryPanel extends StatelessWidget {
             },
           ),
           const SizedBox(height: Tokens.s3),
-          Text(trp('Cuisine {0} · {1}', [state.engine.layoutShape(), _triangleText(state.engine)]), style: t.bodySmall),
+          if (state.engine.kitchen) Text(trp('Cuisine {0} · {1}', [state.engine.layoutShape(), _triangleText(state.engine)]), style: t.bodySmall),
           Text(
             trp('Pièce {0} × {1} × {2} mm · {3} · {4} ouverture(s)', [
               p.room.width.round(),
@@ -1736,7 +1808,7 @@ class SummaryPanel extends StatelessWidget {
           ],
           if (state.db != null && state.supplier != null) ...[
             SizedBox(height: Tokens.s4),
-            SegmentedButton<String>(
+            KxChoices<String>(
               showSelectedIcon: false,
               segments: [
                 ButtonSegment(value: 'standard', label: Text(tr('Standard · MDF')), icon: Icon(Icons.view_module_outlined)),
@@ -1954,7 +2026,7 @@ class _ApplianceSection extends StatelessWidget {
         const SizedBox(height: Tokens.s2),
         Text(tr('Finition de l’évier'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: Tokens.s1),
-        SegmentedButton<String>(
+        KxChoices<String>(
           showSelectedIcon: false,
           segments: [
             ButtonSegment(value: 'inox', label: Text(tr('Inox'))),
@@ -1967,7 +2039,7 @@ class _ApplianceSection extends StatelessWidget {
         const SizedBox(height: Tokens.s3),
         Text(tr('Finition de la robinetterie'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: Tokens.s1),
-        SegmentedButton<String>(
+        KxChoices<String>(
           showSelectedIcon: false,
           segments: [
             ButtonSegment(value: 'chrome', label: Text(tr('Chrome'))),
@@ -1981,7 +2053,7 @@ class _ApplianceSection extends StatelessWidget {
         const SizedBox(height: Tokens.s3),
         Text(tr('Style de levier du mitigeur'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: Tokens.s1),
-        SegmentedButton<String>(
+        KxChoices<String>(
           showSelectedIcon: false,
           segments: [
             ButtonSegment(value: 'side_pin', label: Text(tr('Manette fine'))),
@@ -1999,7 +2071,7 @@ class _ApplianceSection extends StatelessWidget {
         const SizedBox(height: Tokens.s2),
         Text(tr('Finition de façade'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: Tokens.s1),
-        SegmentedButton<String>(
+        KxChoices<String>(
           showSelectedIcon: false,
           segments: [
             ButtonSegment(value: 'black_inox', label: Text(tr('Inox/Verre'))),
@@ -2014,7 +2086,7 @@ class _ApplianceSection extends StatelessWidget {
         const SizedBox(height: Tokens.s3),
         Text(tr('Poignée / Levier de four'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: Tokens.s1),
-        SegmentedButton<String>(
+        KxChoices<String>(
           showSelectedIcon: false,
           segments: [
             ButtonSegment(value: 'bar', label: Text(tr('Barre ronde'))),

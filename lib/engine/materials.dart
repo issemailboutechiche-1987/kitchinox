@@ -545,10 +545,11 @@ List<SupplyLine> hardwareList(LayoutEngine e, MaterialsDb db, ProjectSpecs specs
   // poignées ou profils Gola
   final fronts = parts.where((p) => p.name.startsWith('Porte') || p.name == 'Façade tiroir').fold<int>(0, (a, p) => a + p.qty);
   if (gola) {
-    add('gola_profile_horizontal_L', (lowRun / 3000).ceilToDouble(), unit: 'barre 3 m');
-    if (drawerRun > 0) add('gola_profile_horizontal_C', (drawerRun / 3000).ceilToDouble(), unit: 'barre 3 m');
+    final gf = e.project.style.handleFinish ?? HandleCatalog.golaFinishes.first;
+    add('gola_profile_horizontal_L', (lowRun / 3000).ceilToDouble(), unit: 'barre 3 m', detail: gf);
+    if (drawerRun > 0) add('gola_profile_horizontal_C', (drawerRun / 3000).ceilToDouble(), unit: 'barre 3 m', detail: gf);
     final talls = e.project.items.where((c) => e.modelOf(c).kind == CabinetKind.tall).length;
-    if (talls > 0) add('gola_profile_vertical_tall', talls.toDouble(), unit: 'barre');
+    if (talls > 0) add('gola_profile_vertical_tall', talls.toDouble(), unit: 'barre', detail: gf);
     final wallDoors = parts.where((p) => p.name.startsWith('Porte') && p.length < 1000).fold<int>(0, (a, p) => a + p.qty);
     add('push_to_open_latch', wallDoors.toDouble());
   } else if (db.handles.byId(e.project.style.handleId) == null) {

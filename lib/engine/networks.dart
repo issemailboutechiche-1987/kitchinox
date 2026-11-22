@@ -312,7 +312,12 @@ List<NetPoint> generateNetworks(LayoutEngine e, {String hobEnergy = 'gas'}) {
         if (wetAt(c.wallId, s) >= 600) add(NetKind.socket, c.wallId, s.clamp(0, len).toDouble(), 1200, NetUse.mirror, forUid: c.uid);
         add(NetKind.led, c.wallId, mid, c.z + c.height + 40, NetUse.lighting, forUid: c.uid);
       }
-      if (id.contains('washing_machine')) {
+      if (id.startsWith('laundry_sink')) {
+        add(NetKind.waterCold, c.wallId, mid - 100, NetHeights.waterSupply, NetUse.sink, forUid: c.uid);
+        add(NetKind.waterHot, c.wallId, mid + 100, NetHeights.waterSupply, NetUse.sink, forUid: c.uid);
+        add(NetKind.drain, c.wallId, mid, NetHeights.drain, NetUse.sink, forUid: c.uid);
+      }
+      if (id.contains('washing_machine') || id.contains('washer_dryer')) {
         add(NetKind.socket20, c.wallId, mid - 150, 1100, NetUse.washer, forUid: c.uid);
         add(NetKind.valveMachine, c.wallId, mid + 100, 1100, NetUse.washer, forUid: c.uid);
         add(NetKind.drain, c.wallId, mid, 600, NetUse.washer, forUid: c.uid);

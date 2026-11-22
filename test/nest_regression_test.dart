@@ -25,7 +25,12 @@ void main() {
   test('débit identique à la référence (scie à panneaux, 3 méthodes, CNC)', () {
     final st = stress();
     final e = st.engine;
-    final parts = cutList(e, st.project.cut, repereNumbers(e));
+    // la référence débite caissons et façades dans la même feuille : on garde son jeu de pièces pour juger l'algorithme
+    final parts = [
+      for (final p in cutList(e, st.project.cut, repereNumbers(e)))
+        CutPart(p.material.replaceAll(' (façades)', ''), p.name, p.cabinet, p.length, p.width, p.qty,
+            canRotate: p.canRotate, edgeLong: p.edgeLong, edgeShort: p.edgeShort, grooveLong: p.grooveLong, grooveShort: p.grooveShort)
+    ];
     final out = StringBuffer();
     final counts = <int, int>{};
     for (final m in [1, 2, 3]) {

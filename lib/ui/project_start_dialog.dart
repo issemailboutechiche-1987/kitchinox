@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 import 'web_io.dart';
 import 'i18n.dart';
@@ -397,7 +398,7 @@ class _ProjectStartDialogState extends State<ProjectStartDialog> {
             style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: Tokens.s2),
-          SegmentedButton<String>(
+          KxChoices<String>(
             segments: [
               ButtonSegment(
                 value: 'free',

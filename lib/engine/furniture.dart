@@ -142,6 +142,8 @@ class FurnitureSetup {
   bool liftUp; // abattant relevable (au lieu d'un abattant qui s'ouvre vers le bas)
   String shape; // 'box' | 'L' | 'diagonal' | 'desk' | 'slats'
   int returnWidth; // angle : largeur sur le mur de retour
+  bool floor; // posé à même le sol (niche à machines), sans plinthe
+  List<Map<String, dynamic>> rows; // façade imposée, du haut vers le bas (vide : déduite des portes et tiroirs)
 
   FurnitureSetup({
     this.doors = 0,
@@ -159,6 +161,8 @@ class FurnitureSetup {
     this.liftUp = false,
     this.shape = 'box',
     this.returnWidth = 0,
+    this.floor = false,
+    this.rows = const [],
   });
 
   FurnitureSetup copy() => FurnitureSetup.fromJson(toJson());
@@ -179,6 +183,8 @@ class FurnitureSetup {
         'lift_up': liftUp,
         'shape': shape,
         'return_width': returnWidth,
+        if (floor) 'floor': true,
+        if (rows.isNotEmpty) 'rows': rows,
       };
 
   factory FurnitureSetup.fromJson(Map<String, dynamic> j) => FurnitureSetup(
@@ -197,6 +203,8 @@ class FurnitureSetup {
         liftUp: j['lift_up'] as bool? ?? false,
         shape: j['shape'] as String? ?? 'box',
         returnWidth: (j['return_width'] as num?)?.toInt() ?? 0,
+        floor: j['floor'] as bool? ?? false,
+        rows: [for (final r in (j['rows'] as List? ?? const [])) (r as Map).cast<String, dynamic>()],
       );
 
   /// Composition par défaut d'après le type de module.

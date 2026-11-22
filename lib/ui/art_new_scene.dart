@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../engine/art_recipes.dart';
 import 'i18n.dart';
+import 'kx_choices.dart';
 
 class NewArtScene {
   final String kind; // sheet | recipe | box | empty
@@ -117,7 +118,7 @@ class _NewArtSceneDialogState extends State<NewArtSceneDialog> {
         child: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             if (!widget.recipeOnly && widget.fixedKind == null) ...[
-              SegmentedButton<String>(
+              KxChoices<String>(
                 key: const ValueKey('new_kind'),
                 showSelectedIcon: false,
                 segments: [

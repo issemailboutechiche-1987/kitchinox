@@ -318,7 +318,7 @@ void main() {
       expect(bom.worktopLength, 1500 + 880);
       expect(bom.cabinetCount, 3);
       expect(bom.lines.where((l) => l.ref == 'base_standard_single_door').single.qty, 2);
-      expect(bom.toCsv(), contains('Plan de travail'));
+      expect(bom.toRows().map((r) => r.first), contains('Plan de travail'));
       // extrémités libres : A à 2100 et B à 1500
       expect(bom.lines.where((l) => l.section == 'Finitions').fold<int>(0, (s, l) => s + l.qty), 2);
     });
@@ -449,7 +449,7 @@ void main() {
       expect(part('Côté').edgeText, '1 x 750');
       expect(parts.any((p) => p.name == 'Traverse' || p.name == 'Étagère'), isFalse);
       expect((part('Porte').length, part('Porte').width), (746, 596));
-      expect(part('Porte').material, 'MDF');
+      expect(part('Porte').material, 'MDF (façades)');
       expect(part('Côté').material, 'MDF');
     });
 

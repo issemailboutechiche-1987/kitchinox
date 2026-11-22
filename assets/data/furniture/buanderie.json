@@ -31,7 +31,20 @@
       ],
       "depth": 650,
       "pullout_laundry_shelf": true,
-      "vibration_isolation_pads": true
+      "vibration_isolation_pads": true,
+      "composition": {
+        "doors": 1,
+        "rows": [
+          {
+            "k": "door",
+            "h": 0
+          },
+          {
+            "k": "niche",
+            "h": 1745
+          }
+        ]
+      }
     },
     {
       "id": "laundry_washer_dryer_side_by_side",
@@ -41,11 +54,20 @@
         1400
       ],
       "available_heights": [
-        860,
-        900
+        850
       ],
-      "depth": 650,
-      "continuous_worktop": true
+      "depth": 600,
+      "continuous_worktop": true,
+      "composition": {
+        "open": true,
+        "floor": true,
+        "rows": [
+          {
+            "k": "niche",
+            "h": 0
+          }
+        ]
+      }
     },
     {
       "id": "laundry_sink_deep_basin",
@@ -55,11 +77,14 @@
         800
       ],
       "available_heights": [
-        860,
-        900
+        750,
+        800
       ],
       "depth": 600,
-      "water_drain_cabinet": true
+      "water_drain_cabinet": true,
+      "composition": {
+        "doors": 2
+      }
     },
     {
       "id": "laundry_broom_vacuum_tower",
@@ -73,7 +98,11 @@
         2100,
         2200
       ],
-      "depth": 600
+      "depth": 600,
+      "composition": {
+        "doors": 1,
+        "shelves": 2
+      }
     },
     {
       "id": "laundry_sorting_baskets_cabinet",
@@ -83,11 +112,14 @@
         800
       ],
       "available_heights": [
-        860,
-        900
+        750,
+        800
       ],
       "depth": 600,
-      "tilt_out_baskets": true
+      "tilt_out_baskets": true,
+      "composition": {
+        "flaps": 2
+      }
     },
     {
       "id": "laundry_ironing_board_drawer",
@@ -97,11 +129,26 @@
         600
       ],
       "available_heights": [
-        860,
-        900
+        750,
+        800
       ],
       "depth": 600,
-      "fold_out_ironing": true
+      "fold_out_ironing": true,
+      "composition": {
+        "drawers": 1,
+        "drawer_front": 200,
+        "doors": 1,
+        "rows": [
+          {
+            "k": "drawer",
+            "h": 200
+          },
+          {
+            "k": "door",
+            "h": 0
+          }
+        ]
+      }
     },
     {
       "id": "laundry_detergent_wall_unit",
@@ -117,7 +164,14 @@
         720
       ],
       "depth": 350,
-      "lift_up_door": true
+      "lift_up_door": true,
+      "composition": {
+        "flaps": 1,
+        "lift_up": true,
+        "wall_hung": true,
+        "z": 1450,
+        "shelves": 1
+      }
     },
     {
       "id": "laundry_drying_rack_hanging_rod",
@@ -132,7 +186,14 @@
         900
       ],
       "depth": 350,
-      "clothes_hanging_rod": true
+      "clothes_hanging_rod": true,
+      "composition": {
+        "open": true,
+        "wall_hung": true,
+        "z": 1450,
+        "shelves": 1,
+        "rods": 1
+      }
     },
     {
       "id": "laundry_linen_tower",
@@ -146,7 +207,11 @@
         2100,
         2200
       ],
-      "depth": 600
+      "depth": 600,
+      "composition": {
+        "doors": 1,
+        "shelves": 5
+      }
     }
   ],
   "accessories": [

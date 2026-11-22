@@ -511,7 +511,13 @@ class AppState extends ChangeNotifier {
   bool get frontsGloss => frontFinish(project.style, project.style.frontLower ?? project.style.front).gloss;
   List<SupplyLine> get estimateLines =>
       db == null ? const [] : _cached('estimate', () => quoteLines(engine, db!, project.specs, cutPlan, bom, supplier, gloss: frontsGloss));
-  void setGamme(String g) => edit(() => project.specs.gamme = g);
+  /// Gamme luxe : caissons en latté, façades MDF ; les autres reviennent au MDF (un panneau choisi à la main est gardé).
+  void setGamme(String g) => edit(() {
+        project.specs.gamme = g;
+        final cs = project.cut;
+        if (g == 'luxe' && cs.carcassMaterial == 'MDF') cs.carcassMaterial = carcassMaterialChoices.first;
+        if (g != 'luxe' && cs.carcassMaterial == carcassMaterialChoices.first) cs.carcassMaterial = 'MDF';
+      });
 
   // ---- devis final
   /// Devis du projet tel qu'il se calcule maintenant (choix de gamme, prix saisis, remise, TVA).
@@ -1377,6 +1383,50 @@ class AppState extends ChangeNotifier {
         };
         if (size != null) st.handleSize = size;
         if (finish != null) st.handleFinish = finish;
+      });
+
+  /// Joue (costado) d'un côté d'un caisson : null automatique, true avec, false sans. Renvoie le message à afficher.
+  String? setCheek(String uid, bool left, bool? on) {
+    String? msg;
+    edit(() => msg = engine.setCheek(uid, left, on).$2);
+    return msg;
+  }
+
+  /// Ajoute une joue sur chaque côté visible ([visibleOnly] faux : des deux côtés de tous les caissons).
+  (int, int) addCheeks({bool visibleOnly = true}) {
+    var done = 0, refused = 0;
+    edit(() {
+      final todo = visibleOnly
+          ? engine.cheekCandidates()
+          : [
+              for (final c in project.items)
+                if (engine.canHaveCheeks(engine.modelOf(c)))
+                  for (final left in [true, false])
+                    // pas contre un mur, et une seule joue entre deux caissons
+                    if (!c.hasCheek(left)) (c, left),
+            ];
+      for (final (c, left) in todo) {
+        if (!visibleOnly && _sideTaken(c, left)) continue;
+        engine.setCheek(c.uid, left, true).$1 ? done++ : refused++;
+      }
+    });
+    return (done, refused);
+  }
+
+  /// Contre un mur, ou déjà une joue du voisin.
+  bool _sideTaken(PlacedCabinet c, bool left) {
+    final w = project.room.wall(c.wallId);
+    if (w.id != 'I' && (left ? c.s < 17 : c.right > w.length - 17)) return true;
+    final box = engine.cheekBox(c, left).box;
+    return project.items.any((o) => o != c && [true, false].any((l) => o.hasCheek(l) && engine.cheekBox(o, l).box.intersects(box)));
+  }
+
+  /// Retire toutes les joues ajoutées à la main (et les « sans »).
+  void clearCheeks() => edit(() {
+        for (final c in project.items) {
+          engine.setCheek(c.uid, true, null);
+          engine.setCheek(c.uid, false, null);
+        }
       });
 
   void setTallXxl(bool v) => edit(() => project.style.tallXxl = v);

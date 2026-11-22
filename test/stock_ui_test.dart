@@ -92,6 +92,8 @@ void main() {
 
   testWidgets('export puis import du stock ; fichier étranger refusé', (t) async {
     store.update((s) => s.add(material: 'MDF', thickness: 18, length: 900, width: 600));
+    expect(store.importXlsx(store.exportXlsx()), isTrue);
+    expect(store.importXlsx([0]), isFalse);
     final text = store.export();
     store.update((s) => s.pieces.clear());
     expect(store.import('{"kind":"autre"}'), isFalse);

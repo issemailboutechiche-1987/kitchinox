@@ -1,5 +1,4 @@
 // Stock de l'atelier : chutes et feuilles entières, réservations, étiquettes QR, découpes validées.
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -11,6 +10,7 @@ import 'i18n.dart';
 import 'kx_top_bar.dart';
 import 'stock_labels_pdf.dart';
 import 'stock_store.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 import 'web_io.dart';
 
@@ -103,10 +103,10 @@ class _StockPageState extends State<StockPage> {
     downloadBytes('etiquettes_stock.pdf', await buildStockLabelsPdf(list), mime: 'application/pdf');
   }
 
-  void _export() => downloadBytes('kitchinox_stock_${stockToday()}.json', utf8.encode(store.export()), mime: 'application/json');
+  void _export() => downloadBytes('kitchinox_stock_${stockToday()}.xlsx', store.exportXlsx(), mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
   Future<void> _import() async {
-    final f = await pickFile(accept: '.json');
+    final f = await pickFile(accept: '.xlsx');
     if (f == null || !mounted) return;
     final ok = await showDialog<bool>(
       context: context,
@@ -120,7 +120,7 @@ class _StockPageState extends State<StockPage> {
       ),
     );
     if (ok != true) return;
-    _msg(store.import(utf8.decode(f.bytes, allowMalformed: true)) ? tr('Stock importé') : tr('Ce fichier n’est pas un stock kitchinox.'));
+    _msg(store.importXlsx(f.bytes) ? tr('Stock importé') : tr('Ce fichier n’est pas un stock kitchinox.'));
   }
 
   Future<void> _settings() async {
@@ -246,7 +246,7 @@ class _StockPageState extends State<StockPage> {
             Padding(
               padding: const EdgeInsets.all(Tokens.s4),
               child: Wrap(spacing: Tokens.s4, runSpacing: Tokens.s3, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                SegmentedButton<int>(
+                KxChoices<int>(
                   segments: [
                     ButtonSegment(value: 0, icon: const Icon(Icons.crop_landscape_outlined), label: Text(trp('Chutes ({0})', [stock.offcuts.length]))),
                     ButtonSegment(value: 1, icon: const Icon(Icons.layers_outlined), label: Text(trp('Feuilles ({0})', [stock.sheets.fold<int>(0, (a, p) => a + p.qty)]))),

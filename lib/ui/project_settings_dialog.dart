@@ -9,6 +9,7 @@ import '../engine/cutting.dart';
 import '../engine/standards.dart';
 import 'app_state.dart';
 import 'i18n.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 
 Future<void> showProjectSettingsDialog(BuildContext context, AppState state, void Function(String) onMessage) {
@@ -520,7 +521,7 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                                     const SizedBox(height: Tokens.s3),
                                     Text(tr('Type de machine de découpe'), style: t.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
                                     const SizedBox(height: Tokens.s1),
-                                    SegmentedButton<String>(
+                                    KxChoices<String>(
                                       showSelectedIcon: false,
                                       segments: [
                                         ButtonSegment(value: 'scie', label: Text(tr('Scie à panneaux (bandes)'))),
@@ -546,7 +547,7 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                               const SizedBox(height: Tokens.s3),
                               Text(tr('Hauteur caisson bas'), style: t.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
                               const SizedBox(height: Tokens.s1),
-                              SegmentedButton<int>(
+                              KxChoices<int>(
                                 showSelectedIcon: false,
                                 segments: [
                                   ButtonSegment(value: 700, label: Text('700 mm')),
@@ -560,7 +561,7 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                               const SizedBox(height: Tokens.s3),
                               Text(tr('Hauteur de plinthe'), style: t.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
                               const SizedBox(height: Tokens.s1),
-                              SegmentedButton<int>(
+                              KxChoices<int>(
                                 showSelectedIcon: false,
                                 segments: [
                                   ButtonSegment(value: 80, label: Text('80 mm')),
@@ -574,7 +575,7 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                               const SizedBox(height: Tokens.s3),
                               Text(tr('Hauteur des caissons hauts'), style: t.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
                               const SizedBox(height: Tokens.s1),
-                              SegmentedButton<int>(
+                              KxChoices<int>(
                                 showSelectedIcon: false,
                                 segments: const [
                                   ButtonSegment(value: 600, label: Text('600 mm')),
@@ -588,7 +589,7 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                               const SizedBox(height: Tokens.s3),
                               Text(tr('Hauteur de crédence (sous hauts)'), style: t.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
                               const SizedBox(height: Tokens.s1),
-                              SegmentedButton<int>(
+                              KxChoices<int>(
                                 showSelectedIcon: false,
                                 segments: const [
                                   ButtonSegment(value: 500, label: Text('500 mm')),

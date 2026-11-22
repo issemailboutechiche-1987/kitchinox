@@ -42,7 +42,6 @@ import 'ui/i18n.dart';
 import 'ui/app_settings.dart';
 import 'ui/art_library.dart';
 import 'ui/client_ui.dart';
-import 'ui/excel_export.dart';
 import 'ui/project_start_dialog.dart';
 
 Future<void> main() async {
@@ -417,9 +416,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
 
   /// Ouvrir : un projet kitchinox (.kin) ou un débit SketchCut (.sct, ouvert dans le Débitage).
   Future<void> _open() async {
-    final f = await pickFile(accept: '.kin,.sct');
+    final f = await pickFile(accept: '.kin,.sct,.xlsx');
     if (f == null) return;
-    if (f.name.toLowerCase().endsWith('.sct')) {
+    if (RegExp(r'\.(sct|xlsx)$', caseSensitive: false).hasMatch(f.name)) {
       final r = manualCutFromFile(f.name, f.bytes, st);
       if (r == null || !mounted) {
         _msg(trp('Fichier non reconnu : {0}', [f.name]));
@@ -509,19 +508,20 @@ class _PlannerScreenState extends State<PlannerScreen> {
     _msg(tr('Fichier .kin téléchargé'));
   }
 
-  void _exportCsv() {
-    downloadBytes('${st.project.name}_liste.csv', utf8.encode(st.bom.toCsv()), mime: 'text/csv');
-    _msg(tr('Liste exportée (CSV)'));
+  static const _xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+  /// Liste des éléments (récapitulatif) en Excel.
+  void _exportList() {
+    downloadBytes('${st.project.name}_liste.xlsx', xlsxTable(tr('Liste'), st.bom.toRows(), widths: const [18, 28, 40, 22, 40, 10, 12]), mime: _xlsxMime);
+    _msg(tr('Liste exportée (Excel)'));
   }
 
-  void _exportExcel() {
-    final bytes = buildExcelExport(st);
-    downloadBytes(
-      '${st.project.name}_export.xlsx',
-      bytes,
-      mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    _msg(tr('Classeur Excel (.xlsx) téléchargé avec succès'));
+  /// Débit en Excel : un classeur par panneau (caissons, façades, fonds), comme les fichiers .sct.
+  Future<void> _exportExcel() async {
+    final plan = await _plan();
+    if (!mounted) return;
+    final msg = await exportPanelFiles(context, excelFiles(plan, name: st.project.name, project: st.project), title: 'Export Excel (.xlsx)');
+    if (msg != null) _msg(msg);
   }
 
   bool _pdfBusy = false;
@@ -963,7 +963,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
     return [
       KxMenu('Fichier', 'menu_file', [
         kxItem('Nouveau projet', _newProjectWithClient, icon: Icons.add_box_outlined),
-        kxItem('Ouvrir… (.kin, .sct)', _open, icon: Icons.folder_open_outlined, key: 'menu_open'),
+        kxItem('Ouvrir… (.kin, .sct, Excel)', _open, icon: Icons.folder_open_outlined, key: 'menu_open'),
         kxItem('Projets enregistrés', () => showSavedProjectsDialog(context, st), icon: Icons.folder_special_outlined),
         const Divider(height: 1),
         kxItem('Enregistrer', _save, icon: Icons.save_outlined, key: 'menu_save'),
@@ -974,7 +974,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         kxItem('Plan de découpe (PDF)', _cutPdf, icon: Icons.grid_on),
         kxItem('Fichiers SketchCut (.sct)', _sct, icon: Icons.content_cut, key: 'menu_sct'),
         kxItem('Exporter vers Excel (.xlsx)', _exportExcel, icon: Icons.table_chart_outlined),
-        kxItem('Exporter la liste (CSV)', _exportCsv, icon: Icons.table_view_outlined),
+        kxItem('Exporter la liste (Excel)', _exportList, icon: Icons.table_view_outlined),
         const Divider(height: 1),
         kxItem('Quitter', () => Navigator.of(context).maybePop(), icon: Icons.logout),
       ]),
@@ -1020,7 +1020,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
       KxMenu('Outils', 'menu_tools', [
         kxItem('Paramètres du projet', () => showProjectSettingsDialog(context, st, _msg), icon: Icons.tune),
         kxItem('Réglages du débit et tarifs', _cutSettings, icon: Icons.straighten),
-        kxItem('Débit manuel', () => openManualCut(context, st), icon: Icons.edit_note),
+        kxItem('Débit manuel', () => openManualCut(context, st, project: () => st.cutPlan), icon: Icons.edit_note),
         kxItem('Contrôles', _issues, icon: Icons.rule),
         const Divider(height: 1),
         kxItem('Stock et chutes', () => openStock(context, st), icon: Icons.inventory_outlined, key: 'menu_stock'),
@@ -1159,13 +1159,13 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
                   st.select(null); // rouvre le panneau des finitions
                   setState(() => _styleSection = s);
                 },
-                onExportCsv: _exportCsv,
+                onExportList: _exportList,
                 onExportExcel: _exportExcel,
                 onExportPdf: _exportPdf,
                 onCutPdf: _cutPdf,
                 onGenerateCodes: _generateCodes,
                 onSct: _sct,
-                onManualCut: () => openManualCut(context, st),
+                onManualCut: () => openManualCut(context, st, project: () => st.cutPlan),
                 onStock: () => openStock(context, st),
                 onCutDone: _cutDone,
                 onCutSettings: _cutSettings,

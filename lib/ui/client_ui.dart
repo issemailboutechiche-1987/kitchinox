@@ -6,6 +6,7 @@ import '../engine/engine.dart';
 import 'app_settings.dart';
 import 'app_state.dart';
 import 'i18n.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 
 /// Fiche client : nom du client ou société, ICE. Imprimée sur les plans d'exécution et de découpe.
@@ -118,7 +119,7 @@ Future<void> showAppSettings(BuildContext context, void Function(String) onMessa
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(tr('Langue'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
-              SegmentedButton<AppLang>(
+              KxChoices<AppLang>(
                 segments: [for (final l in AppLang.values) ButtonSegment(value: l, label: Text(tr(l.localizedName)))],
                 selected: {lang},
                 onSelectionChanged: (v) => setD(() => lang = v.first),
@@ -126,7 +127,7 @@ Future<void> showAppSettings(BuildContext context, void Function(String) onMessa
               const SizedBox(height: Tokens.s3),
               Text(tr('Langue des documents (PDF)'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
-              SegmentedButton<String>(
+              KxChoices<String>(
                 key: const ValueKey('doc_lang'),
                 segments: [
                   ButtonSegment(value: '', label: Text(tr("Comme l'interface"))),
@@ -140,7 +141,7 @@ Future<void> showAppSettings(BuildContext context, void Function(String) onMessa
               const SizedBox(height: Tokens.s4),
               Text(tr('Unité des cotes'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
-              SegmentedButton<LenUnit>(
+              KxChoices<LenUnit>(
                 segments: [
                   ButtonSegment(value: LenUnit.mm, label: Text(tr('mm'))),
                   ButtonSegment(value: LenUnit.cm, label: Text(tr('cm'))),

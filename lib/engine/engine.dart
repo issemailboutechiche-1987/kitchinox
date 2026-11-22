@@ -21,6 +21,7 @@ export 'end_panels.dart';
 export 'fixes.dart';
 export 'layout_engine.dart';
 export 'manual_cut.dart';
+export 'xlsx.dart';
 export 'market.dart';
 export 'materials.dart';
 export 'media_progetti.dart';

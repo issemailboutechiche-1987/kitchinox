@@ -201,7 +201,7 @@ List<SupplyLine> mediaProgettiLines(LayoutEngine e, MediaProgetti t, ProjectSpec
       add('Façades', '$label $h x $w mm · ${handle ? 'poignée intégrée' : 'sans poignée'}', n.toDouble(), t.door(h, w, handle: handle));
     }
   }
-  if (e.project.style.endPanels) {
+  {
     for (final j in endPanels(e)) {
       add('Façades', 'Joue ${j.height.round()} x ${j.depth.round()} mm', 1, t.door(j.height.round(), j.depth.round(), handle: false));
     }

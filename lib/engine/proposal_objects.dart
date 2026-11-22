@@ -10,6 +10,7 @@ import 'project.dart';
 import 'room_objects.dart';
 
 enum Spot { wall, side, opposite, center, onSlot, underSlot }
+// les machines de la buanderie font partie de leur meuble (dessinées dans la niche)
 
 class ObjSpec {
   final String ref; // 'fixture:id' ou id du catalogue libre
@@ -49,29 +50,17 @@ const templateObjects = <String, List<ObjSpec>>{
   'chefchaouen': [ObjSpec('kenney_benchCushionLow', spot: Spot.opposite, w: 1200, h: 400, d: 380), ObjSpec('kenney_rugRound', spot: Spot.center, w: 1600, h: 10, d: 1600)],
   'kenitra': [ObjSpec('ph_potted_plant_02', spot: Spot.side, corner: true, w: 701, h: 841, d: 657)],
   'medina': [ObjSpec('kenney_bedSingle', spot: Spot.opposite, corner: true, w: 940, h: 500, d: 2040, clear: 500), ObjSpec('kenney_desk', spot: Spot.side, w: 1200, h: 750, d: 600, clear: 600)],
-  // buanderie : lave-linge, sèche-linge, chauffe-eau, lavabo/bac, paniers
+  // buanderie : chauffe-eau au mur, panier, plante (les machines sont dans leurs meubles)
   'buand_duo': [
-    ObjSpec('${_f}chauffe_eau', spot: Spot.side),
-    ObjSpec('kenney_washer', spot: Spot.opposite, w: 600, h: 850, d: 600),
-    ObjSpec('kenney_dryer', spot: Spot.opposite, w: 600, h: 850, d: 600),
+    ObjSpec('${_f}chauffe_eau'),
     ObjSpec('kenney_laundryHamper', spot: Spot.side, corner: true, w: 400, h: 600, d: 400),
   ],
-  'buand_tour': [
-    ObjSpec('${_f}chauffe_eau', spot: Spot.side),
-    ObjSpec('${_f}lavabo', spot: Spot.side),
-    ObjSpec('kenney_washerDryerStacked', spot: Spot.opposite, w: 600, h: 1700, d: 600),
-  ],
+  'buand_tour': [ObjSpec('${_f}chauffe_eau')],
   'buand_expert': [
-    ObjSpec('${_f}chauffe_eau', spot: Spot.side, corner: true),
-    ObjSpec('${_f}lavabo', spot: Spot.side),
-    ObjSpec('kenney_washer', spot: Spot.opposite, w: 600, h: 850, d: 600),
-    ObjSpec('kenney_dryer', spot: Spot.opposite, w: 600, h: 850, d: 600),
+    ObjSpec('${_f}chauffe_eau', corner: true),
     ObjSpec('ph_potted_plant_01', spot: Spot.side, corner: true, w: 450, h: 650, d: 450),
   ],
-  'buand_compact': [
-    ObjSpec('${_f}chauffe_eau', spot: Spot.side),
-    ObjSpec('kenney_washerDryerStacked', spot: Spot.side, w: 600, h: 1700, d: 600),
-  ],
+  'buand_compact': [ObjSpec('${_f}chauffe_eau')],
 };
 
 /// Objets du salon pour toutes les compositions TV : téléviseur sur le meuble, canapé face à l'écran, table basse, tapis, plante.
@@ -132,7 +121,8 @@ int placeTemplateObjects(LayoutEngine e, String templateId, String wallId, Map<i
     final sizes = fx != null ? fx.sizes : [(sp.w ?? 600, sp.d ?? 600)];
     final h = fx?.h ?? sp.h ?? 600;
     final z0 = (fx?.z ?? 0).toDouble();
-    final clear = (fx?.clearance ?? sp.clear).toDouble();
+    // appareil accroché au-dessus des meubles : pas de dégagement au sol à réserver
+    final clear = z0 >= 1000 ? 0.0 : (fx?.clearance ?? sp.clear).toDouble();
     RoomObject? done;
 
     // sur ou sous un module de la composition
@@ -177,7 +167,7 @@ int placeTemplateObjects(LayoutEngine e, String templateId, String wallId, Map<i
       final order = switch (sp.spot) {
         Spot.side => [...sides, ?opp, wallId],
         Spot.opposite => [?opp, ...sides, wallId],
-        _ => [wallId, ...sides, ?opp],
+        _ => [wallId, ...sides, if (z0 < 1000) ?opp],
       }.where(enabled.contains);
       search:
       for (final (ow, od) in sizes) {

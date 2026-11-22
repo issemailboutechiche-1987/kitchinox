@@ -368,8 +368,9 @@ class TechDrawer {
       c.drawRect(rr, Paint()..color = _light);
       c.drawRect(rr, _line(0.6));
     }
-    for (final (a, b) in e.runs(wallId, (m) => e.kitchen && m.kind.isLow)) {
-      final rr = r(a, std.baseTop.toDouble(), b, std.worktopTop.toDouble());
+    for (final (a, b) in e.runs(wallId, (m) => e.hasWorktop && m.kind.isLow)) {
+      final wz = e.worktopZ(wallId, a, b);
+      final rr = r(a, wz, b, wz + std.worktopThickness);
       c.drawRect(rr, Paint()..color = _light);
       c.drawRect(rr, _line(1.0));
     }

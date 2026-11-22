@@ -13,6 +13,7 @@ import 'busy.dart';
 import 'cut_pdf.dart';
 import 'logo.dart';
 import 'manual_cut_page.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 import 'web_io.dart';
 import 'i18n.dart';
@@ -88,14 +89,9 @@ class _FurniturePageState extends State<FurniturePage> {
   }
 
   void _toManual() {
-    final (parts, _) = furnitureCutList(proj);
-    final job = ManualCut(order: proj.name, material: furnitureCarcass, sheetLength: _cs.sheetLength, sheetWidth: _cs.sheetWidth, kerf: _cs.kerf, trim: _cs.trim, method: _cs.method);
-    for (final x in parts.where((x) => x.material != furnitureBack)) {
-      job.parts.add(ManualPart(length: x.length, width: x.width, qty: x.qty, rotate: x.canRotate, edgeLong: x.edgeLong, edgeShort: x.edgeShort, desc: '${x.name} · ${x.cabinet}'));
-    }
-    widget.state.project.manual = job;
-    widget.state.refresh();
-    openManualCut(context, widget.state);
+    final plan = furniturePlan(proj, _cs);
+    if (plan.parts.isEmpty) return;
+    openManualCut(context, widget.state, project: () => plan, name: proj.name);
   }
 
   @override
@@ -108,11 +104,8 @@ class _FurniturePageState extends State<FurniturePage> {
       appBar: AppBar(
         leading: IconButton(tooltip: tr('Accueil'), icon: const Icon(Icons.home_outlined), onPressed: () => Navigator.of(context).maybePop()),
         titleSpacing: 0,
-        title: Row(children: [
-          const SizedBox(width: 64, height: 46, child: LogoMark()),
-          const SizedBox(width: Tokens.s3),
-          Text(FurnitureUniverse.names[widget.universe] ?? widget.universe, style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-        ]),
+        title: Text(tr(FurnitureUniverse.names[widget.universe] ?? widget.universe), style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+        flexibleSpace: const SafeArea(child: Center(child: SizedBox(width: 64, height: 46, child: LogoMark()))),
         actions: [
           OutlinedButton.icon(onPressed: proj.items.isEmpty ? null : _toManual, icon: const Icon(Icons.edit_note), label: Text(tr('Débit manuel'))),
           const SizedBox(width: Tokens.s2),
@@ -230,7 +223,7 @@ class _FurniturePageState extends State<FurniturePage> {
         num('Largeur du mur', proj.wallWidth, (v) => proj.wallWidth = v),
         num('Hauteur sous plafond', proj.wallHeight, (v) => proj.wallHeight = v),
         if (widget.universe == 'dressing')
-          SegmentedButton<String>(
+          KxChoices<String>(
             showSelectedIcon: false,
             segments: [
               ButtonSegment(value: 'battantes', label: Text(tr('Portes battantes'))),

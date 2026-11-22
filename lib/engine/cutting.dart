@@ -163,16 +163,9 @@ class CutSettings {
     return (sheetLength, sheetWidth);
   }
 
-  /// Nom de débit des façades : celui du panneau, distingué de celui des caissons quand les deux portent
-  /// le même nom mais n'ont pas le même format ou la même épaisseur (sinon c'est la même feuille).
-  String get frontKey {
-    if (frontMaterial != carcassMaterial) return frontMaterial;
-    final sameSheet = (frontSheetLength ?? sheetLength) == sheetLength && (frontSheetWidth ?? sheetWidth) == sheetWidth;
-    return sameSheet && doorThickness == carcassThickness ? frontMaterial : '$frontMaterial (façades)';
-  }
-
-  /// Caissons et façades sont débités dans les mêmes feuilles.
-  bool get samePanel => frontKey == carcassMaterial;
+  /// Nom de débit des façades : celui du panneau, distingué de celui des caissons quand les deux portent le même nom.
+  /// Caissons, façades et fonds sont toujours débités dans leurs propres feuilles (3 panneaux, 3 fichiers).
+  String get frontKey => frontMaterial != carcassMaterial ? frontMaterial : '$frontMaterial (façades)';
 
   /// Type de panneau d'une matière débitée. Les noms du projet d'abord, puis les noms connus ;
   /// « MDF 16 mm » (tiroirs) n'est pas un fond de 6 mm.
@@ -598,9 +591,9 @@ List<CutPart> cutList(LayoutEngine e, CutSettings cs, Map<String, int> reperes) 
     }
   }
   // joues de finition automatiques : panneau de façade, chant sur la face avant et les bouts visibles
-  if (e.project.style.endPanels) {
+  {
     for (final j in endPanels(e)) {
-      final finishId = e.project.style.endPanelFinish ?? (j.high ? (e.project.style.frontUpper ?? e.project.style.front) : (e.project.style.frontLower ?? e.project.style.front));
+      final finishId = j.finishId(e.project.style);
       final mat = frontDecorOf?.call(finishId) ?? cs.frontKey;
       final grain = frontGrainLocked?.call(finishId) ?? false;
       final p = CutPart(

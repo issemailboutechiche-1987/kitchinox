@@ -8,12 +8,14 @@ import 'package:flutter/services.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
+import 'excel_export.dart';
 import 'sct_export.dart';
 import 'session.dart';
 import 'stock_page.dart';
 import 'busy.dart';
 import 'cut_pdf.dart';
 import 'tech_drawings.dart';
+import 'kx_choices.dart';
 import 'kx_top_bar.dart';
 import 'theme.dart';
 import 'web_io.dart';
@@ -46,7 +48,7 @@ class CutModePicker extends StatelessWidget {
                 child: Column(children: [
                   SizedBox(height: 46, width: 84, child: CustomPaint(painter: _ModeIcon(m, scheme.onSurfaceVariant))),
                   const SizedBox(height: 4),
-                  Text(label, style: Theme.of(context).textTheme.labelMedium),
+                  Text(tr(label), textAlign: TextAlign.center, style: Theme.of(context).textTheme.labelMedium),
                 ]),
               ),
             ),
@@ -108,22 +110,30 @@ class _ModeIcon extends CustomPainter {
 
 /// Ouvre l'écran de débit manuel.
 /// [offerOpen] : au démarrage, propose d'ouvrir un fichier SketchCut ou kitchinox déjà enregistré.
-Future<void> openManualCut(BuildContext context, AppState state, {bool offerOpen = false}) {
+/// [project] : débit du projet en cours ; ses panneaux (caissons, façades, fonds), ceux de l'export .sct / Excel, sont chargés.
+Future<void> openManualCut(BuildContext context, AppState state, {bool offerOpen = false, CutPlan Function()? project, String? name}) {
   Session.route = 'debit';
+  List<ManualCut> panels() => project == null ? const [] : manualPanels(project(), name: name ?? state.project.name);
+  if (project != null) state.project.manual = withProjectPanels(state.project.manual, panels());
   return Navigator.of(context).push(MaterialPageRoute(
     fullscreenDialog: true,
     builder: (_) => LeaveGuard(
       id: 'debit',
       current: () => jsonEncode(state.project.manual.toJson()),
       revert: (saved) => state.project.manual = saved == null || saved.isEmpty ? ManualCut() : ManualCut.fromJson(jsonDecode(saved) as Map<String, dynamic>),
-      child: ManualCutPage(state: state, offerOpen: offerOpen),
+      child: ManualCutPage(state: state, offerOpen: offerOpen, panels: project == null ? null : panels),
     ),
   ));
 }
 
-/// Lit un fichier de débit : projet Kitchinox (.kin / .json) ou SketchCut (.sct).
+/// Lit un fichier de débit : projet Kitchinox (.kin), SketchCut (.sct) ou Excel (.xlsx).
 /// Importe l'ensemble des panneaux du projet dans l'optimiseur de débit. Null si non reconnu.
 (ManualCut, String)? manualCutFromFile(String name, List<int> bytes, AppState state) {
+  if (RegExp(r'\.(json|csv|txt)$', caseSensitive: false).hasMatch(name)) return null;
+  if (name.toLowerCase().endsWith('.xlsx')) {
+    final job = manualCutFromXlsx(bytes, order: name.replaceAll(RegExp(r'\.xlsx$', caseSensitive: false), ''));
+    return job == null ? null : (job, trp('{0} référence(s) lues dans {1}', [job.parts.length, name]));
+  }
   String text;
   try {
     text = KinFormat.decode(Uint8List.fromList(bytes));
@@ -137,7 +147,7 @@ Future<void> openManualCut(BuildContext context, AppState state, {bool offerOpen
   final lower = name.toLowerCase();
   if (lower.endsWith('.sct') || text.startsWith('<V')) {
     final job = ManualCut.fromSct(text);
-    return (job, '${job.parts.length} référence(s) lues dans $name');
+    return (job, trp('{0} référence(s) lues dans {1}', [job.parts.length, name]));
   }
   try {
     final p = Project.fromJson((jsonDecode(text) as Map).cast<String, dynamic>());
@@ -145,23 +155,8 @@ Future<void> openManualCut(BuildContext context, AppState state, {bool offerOpen
     final e = LayoutEngine(state.catalog, p);
     final parts = cutList(e, p.cut, repereNumbers(e));
     if (parts.isEmpty) return null;
-    final byMat = <String, int>{};
-    for (final x in parts) {
-      byMat[x.material] = (byMat[x.material] ?? 0) + x.area * x.qty;
-    }
-    final mat = (byMat.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
-    final job = ManualCut(order: p.name, material: mat, sheetLength: p.cut.sheetLength, sheetWidth: p.cut.sheetWidth, kerf: p.cut.kerf, trim: p.cut.trim, method: p.cut.method);
-    for (final x in parts) {
-      job.parts.add(ManualPart(
-        length: x.length,
-        width: x.width,
-        qty: x.qty,
-        rotate: x.canRotate,
-        edgeLong: x.edgeLong,
-        edgeShort: x.edgeShort,
-        desc: '${x.name} · ${x.cabinet} (${x.material})',
-      ));
-    }
+    // un panneau par type : caissons, façades, fonds
+    final job = withProjectPanels(ManualCut(), manualPanels(nest(parts, p.cut), name: p.name));
     return (job, 'Projet « ${p.name} » : ${parts.length} panneau(x) importé(s) pour le débit');
   } catch (_) {
     return null;
@@ -171,7 +166,8 @@ Future<void> openManualCut(BuildContext context, AppState state, {bool offerOpen
 class ManualCutPage extends StatefulWidget {
   final AppState state;
   final bool offerOpen;
-  const ManualCutPage({super.key, required this.state, this.offerOpen = false});
+  final List<ManualCut> Function()? panels; // panneaux du projet en cours
+  const ManualCutPage({super.key, required this.state, this.offerOpen = false, this.panels});
   @override
   State<ManualCutPage> createState() => _ManualCutPageState();
 }
@@ -187,7 +183,69 @@ class _ManualCutPageState extends State<ManualCutPage> {
   void initState() {
     super.initState();
     if (job.parts.isEmpty) job.parts.add(ManualPart());
+    if (job.hasParts) WidgetsBinding.instance.addPostFrameCallback((_) => mounted ? _show(job) : null);
     if (widget.offerOpen) WidgetsBinding.instance.addPostFrameCallback((_) => _offer());
+  }
+
+  /// Affiche un panneau (caissons, façades, fonds…) et son débit.
+  void _show(ManualCut next) {
+    final cur = job;
+    if (next.parts.isEmpty) next.parts.add(ManualPart());
+    setState(() {
+      widget.state.project.manual = switchPanel(cur, next);
+      _gen++;
+      _plan = next.hasParts ? _nest(next) : null;
+    });
+    widget.state.refresh();
+  }
+
+  /// Reprend les pièces du projet tel qu'il est maintenant (les modifications faites ici sont perdues).
+  void _reload() {
+    final fresh = widget.panels?.call() ?? const <ManualCut>[];
+    if (fresh.isEmpty) return;
+    widget.state.project.manual = withProjectPanels(job, fresh, reload: true);
+    _show(job);
+  }
+
+  Widget _panelBar(TextTheme t) {
+    final all = [job, ...job.others];
+    if (all.every((j) => j.panel.isEmpty)) return const SizedBox.shrink();
+    int rank(ManualCut j) => j.panel.isEmpty ? 9 : PanelKind.values.indexWhere((k) => k.name == j.kind);
+    all.sort((a, b) => rank(a) != rank(b) ? rank(a).compareTo(rank(b)) : a.panel.compareTo(b.panel));
+    final several = <String, int>{};
+    for (final j in all) {
+      several[j.kind] = (several[j.kind] ?? 0) + 1;
+    }
+    String title(ManualCut j) {
+      if (j.panel.isEmpty) return tr('Saisie libre');
+      final k = PanelKind.values.where((k) => k.name == j.kind).firstOrNull ?? PanelKind.carcass;
+      final n = j.parts.fold<int>(0, (s, p) => s + (p.length > 0 && p.width > 0 ? p.qty : 0));
+      return '${panelTitle(k)}${several[j.kind]! > 1 ? ' · ${tr(j.material)}' : ''} ($n)';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Tokens.s4),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(tr('Panneaux du projet'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: Tokens.s2),
+        KxChoices<int>(
+          key: const ValueKey('manual_panels'),
+          segments: [
+            for (var i = 0; i < all.length; i++) ButtonSegment(value: i, label: Text(title(all[i]))),
+            if (all.every((j) => j.panel.isNotEmpty)) ButtonSegment(value: -1, label: Text(tr('Saisie libre'))),
+          ],
+          selected: {all.indexWhere((j) => identical(j, job))},
+          onSelectionChanged: (v) => _show(v.first < 0 ? ManualCut() : all[v.first]),
+        ),
+        if (widget.panels != null && all.any((j) => j.edited)) ...[
+          const SizedBox(height: Tokens.s1),
+          Row(children: [
+            Expanded(child: Text(tr('Liste modifiée ici : elle ne suit plus le projet.'), style: t.bodySmall)),
+            TextButton.icon(key: const ValueKey('manual_reload'), onPressed: _reload, icon: const Icon(Icons.refresh, size: 18), label: Text(tr('Reprendre le projet'))),
+          ]),
+        ],
+      ]),
+    );
   }
 
   Future<void> _offer() async {
@@ -195,10 +253,10 @@ class _ManualCutPageState extends State<ManualCutPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(tr('Débitage')),
-        content: Text(tr('Saisir les pièces à la main, ou importer un fichier projet Kitchinox (.kin) ou SketchCut (.sct) ?')),
+        content: Text(tr('Saisir les pièces à la main, ou ouvrir un projet kitchinox (.kin), un fichier SketchCut (.sct) ou Excel ?')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Saisie manuelle'))),
-          FilledButton.icon(onPressed: () => Navigator.pop(ctx, true), icon: const Icon(Icons.file_open_outlined), label: Text(tr('Ouvrir un fichier (.kin / .sct)'))),
+          FilledButton.icon(onPressed: () => Navigator.pop(ctx, true), icon: const Icon(Icons.file_open_outlined), label: Text(tr('Ouvrir un fichier'))),
         ],
       ),
     );
@@ -206,7 +264,7 @@ class _ManualCutPageState extends State<ManualCutPage> {
   }
 
   Future<void> _open() async {
-    final f = await pickFile(accept: '.kin,.sct');
+    final f = await pickFile(accept: '.kin,.sct,.xlsx');
     if (f == null || !mounted) return;
     final r = manualCutFromFile(f.name, f.bytes, widget.state);
     if (r == null) {
@@ -289,13 +347,20 @@ class _ManualCutPageState extends State<ManualCutPage> {
     downloadBytes('${job.order}.sct', toSct(plan, job.material, order: job.order, thickness: '${job.thickness}').codeUnits);
   }
 
+  void _excel() {
+    final plan = _plan ?? _nest(job);
+    if (plan.parts.isEmpty) return;
+    downloadBytes('${job.order}.xlsx', buildExcelExport(plan, project: widget.state.project, order: job.order, material: job.material),
+        mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  }
+
   Widget _num(String label, int value, ValueChanged<int> on, {double width = 110}) => SizedBox(
         width: width,
         child: TextFormField(
           initialValue: '$value',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: InputDecoration(labelText: label, isDense: true, border: const OutlineInputBorder()),
+          decoration: InputDecoration(labelText: tr(label), isDense: true, border: const OutlineInputBorder()),
           onChanged: (v) {
             on(int.tryParse(v) ?? 0);
             _changed(recalc: true);
@@ -355,6 +420,7 @@ class _ManualCutPageState extends State<ManualCutPage> {
     final totalParts = job.parts.fold<int>(0, (s, p) => s + (p.length > 0 && p.width > 0 ? p.qty : 0));
 
     final settings = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _panelBar(t),
       Text(tr('Feuille'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
       const SizedBox(height: Tokens.s2),
       Wrap(spacing: Tokens.s2, runSpacing: Tokens.s3, children: [
@@ -632,10 +698,11 @@ class _ManualCutPageState extends State<ManualCutPage> {
               onHome: () => Navigator.of(context).maybePop(),
               menus: [
                 KxMenu('Fichier', 'menu_file', [
-                  kxItem('Ouvrir .sct / kitchinox', _open, icon: Icons.file_open_outlined, key: 'menu_open'),
+                  kxItem('Ouvrir… (.kin, .sct, Excel)', _open, icon: Icons.file_open_outlined, key: 'menu_open'),
                   const Divider(height: 1),
                   kxItem('Plan de coupe (PDF)', _busy ? null : _pdf, icon: Icons.picture_as_pdf_outlined, key: 'menu_pdf'),
                   kxItem('Fichier .sct', _sct, icon: Icons.content_cut, key: 'menu_sct'),
+                  kxItem('Fichier Excel (.xlsx)', _excel, icon: Icons.table_view_outlined, key: 'menu_excel'),
                 ]),
                 KxMenu('Outils', 'menu_tools', [
                   kxItem('Recalculer', _calc, icon: Icons.calculate_outlined, key: 'menu_calc'),
@@ -645,8 +712,9 @@ class _ManualCutPageState extends State<ManualCutPage> {
                 ]),
               ],
               trailing: [
-                IconButton(tooltip: tr('Ouvrir .sct / kitchinox'), onPressed: _open, icon: const Icon(Icons.file_open_outlined)),
+                IconButton(tooltip: tr('Ouvrir… (.kin, .sct, Excel)'), onPressed: _open, icon: const Icon(Icons.file_open_outlined)),
                 IconButton(tooltip: tr('Fichier .sct'), onPressed: _sct, icon: const Icon(Icons.content_cut)),
+                IconButton(tooltip: tr('Fichier Excel (.xlsx)'), onPressed: _excel, icon: const Icon(Icons.table_view_outlined)),
                 IconButton(tooltip: tr('Plan de coupe (PDF)'), onPressed: _busy ? null : _pdf, icon: const Icon(Icons.picture_as_pdf_outlined)),
                 const SizedBox(width: Tokens.s2),
                 FilledButton.icon(onPressed: _calc, icon: const Icon(Icons.calculate_outlined), label: Text(tr('Recalculer'))),

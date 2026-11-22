@@ -1,5 +1,7 @@
 // Barre du haut commune à tous les modes (cuisine, dressing, salle de bain, atelier Art…) :
 // accueil, logo, menus Fichier / Édition / Affichage…, puis annuler, rétablir, enregistrer.
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'i18n.dart';
@@ -39,52 +41,94 @@ class KxTopBar extends StatelessWidget {
       height: height,
       color: scheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: Tokens.s2),
-      child: Row(children: [
-        if (onHome != null) IconButton(tooltip: tr('Accueil'), icon: const Icon(Icons.home_outlined), onPressed: onHome),
-        InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onHome,
-          child: Tooltip(message: tr('kitchinox'), child: const SizedBox(width: 60, height: 44, child: LogoMark())),
-        ),
-        const SizedBox(width: Tokens.s2),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: MenuBar(
-              style: const MenuStyle(
-                elevation: WidgetStatePropertyAll(0),
-                backgroundColor: WidgetStatePropertyAll(Colors.transparent),
-                padding: WidgetStatePropertyAll(EdgeInsets.zero),
-              ),
-              children: [
-                for (final m in menus)
-                  SubmenuButton(
-                    key: ValueKey(m.key),
-                    style: ButtonStyle(
-                      minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
-                      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: Tokens.s3)),
-                      shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+      child: CustomMultiChildLayout(
+        delegate: _BarLayout(Directionality.of(context)),
+        children: [
+          LayoutId(
+            id: 'left',
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              if (onHome != null) IconButton(tooltip: tr('Accueil'), icon: const Icon(Icons.home_outlined), onPressed: onHome),
+              Flexible(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: MenuBar(
+                    style: const MenuStyle(
+                      elevation: WidgetStatePropertyAll(0),
+                      backgroundColor: WidgetStatePropertyAll(Colors.transparent),
+                      padding: WidgetStatePropertyAll(EdgeInsets.zero),
                     ),
-                    menuStyle: MenuStyle(
-                      backgroundColor: WidgetStatePropertyAll(scheme.surface),
-                      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-                      shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: scheme.outlineVariant))),
-                      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: Tokens.s2)),
-                    ),
-                    menuChildren: m.items,
-                    child: Text(tr(m.label), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    children: [
+                      for (final m in menus)
+                        SubmenuButton(
+                          key: ValueKey(m.key),
+                          style: ButtonStyle(
+                            minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
+                            padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 10)),
+                            shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                          ),
+                          menuStyle: MenuStyle(
+                            backgroundColor: WidgetStatePropertyAll(scheme.surface),
+                            surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+                            shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: scheme.outlineVariant))),
+                            padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: Tokens.s2)),
+                          ),
+                          menuChildren: m.items,
+                          child: Text(tr(m.label), style: const TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                    ],
                   ),
-              ],
+                ),
+              ),
+            ]),
+          ),
+          LayoutId(
+            id: 'logo',
+            child: InkWell(
+              key: const ValueKey('kx_logo'),
+              borderRadius: BorderRadius.circular(8),
+              onTap: onHome,
+              child: Tooltip(message: tr('kitchinox'), child: const SizedBox(width: 60, height: 44, child: LogoMark())),
             ),
           ),
-        ),
-        if (history) IconButton(tooltip: tr('Annuler (Ctrl+Z)'), onPressed: onUndo, icon: const Icon(Icons.undo)),
-        if (history) IconButton(tooltip: tr('Rétablir (Ctrl+Y)'), onPressed: onRedo, icon: const Icon(Icons.redo)),
-        if (onSave != null) IconButton(tooltip: tr('Enregistrer le projet'), onPressed: onSave, icon: const Icon(Icons.save_outlined)),
-        ...trailing,
-      ]),
+          LayoutId(
+            id: 'right',
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              reverse: true,
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (history) IconButton(tooltip: tr('Annuler (Ctrl+Z)'), onPressed: onUndo, icon: const Icon(Icons.undo)),
+                if (history) IconButton(tooltip: tr('Rétablir (Ctrl+Y)'), onPressed: onRedo, icon: const Icon(Icons.redo)),
+                if (onSave != null) IconButton(tooltip: tr('Enregistrer le projet'), onPressed: onSave, icon: const Icon(Icons.save_outlined)),
+                ...trailing,
+              ]),
+            ),
+          ),
+        ],
+      ),
     );
   }
+}
+
+/// Menus à gauche, actions à droite, logo au milieu de l'écran (poussé seulement si les menus prennent sa place).
+class _BarLayout extends MultiChildLayoutDelegate {
+  final TextDirection dir;
+  _BarLayout(this.dir);
+
+  @override
+  void performLayout(Size size) {
+    const gap = 8.0;
+    final logo = layoutChild('logo', BoxConstraints.loose(size));
+    final right = layoutChild('right', BoxConstraints(maxWidth: math.max(0, size.width * 0.45), maxHeight: size.height));
+    final left = layoutChild('left', BoxConstraints(maxWidth: math.max(0, size.width - right.width - logo.width - 2 * gap), maxHeight: size.height));
+    final lo = left.width + gap, hi = math.max(lo, size.width - right.width - logo.width - gap);
+    void put(String id, double x, Size s) => positionChild(id, Offset(dir == TextDirection.rtl ? size.width - x - s.width : x, (size.height - s.height) / 2));
+    put('left', 0, left);
+    put('right', size.width - right.width, right);
+    put('logo', ((size.width - logo.width) / 2).clamp(lo, hi), logo);
+  }
+
+  @override
+  bool shouldRelayout(_BarLayout o) => o.dir != dir;
 }
 
 /// Étape numérotée d'un parcours (cuisine, dressing, atelier…).

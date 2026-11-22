@@ -27,18 +27,11 @@ class Bom {
   final int cabinetCount;
   const Bom(this.lines, this.worktopLength, this.plinthLength, this.cabinetCount);
 
-  String toCsv() {
-    String cell(Object v) {
-      final s = '$v';
-      return s.contains(';') || s.contains('"') ? '"${s.replaceAll('"', '""')}"' : s;
-    }
-
-    final rows = [
-      ['section', 'reference', 'designation', 'dimensions_mm', 'details', 'quantite', 'unite'],
-      for (final l in lines) [l.section, l.ref, l.name, l.dims, l.details, l.qty, l.unit],
-    ];
-    return '﻿${rows.map((r) => r.map(cell).join(';')).join('\r\n')}\r\n';
-  }
+  /// Tableau de la liste (en-tête puis une ligne par élément), pour Excel.
+  List<List<Object?>> toRows() => [
+        ['section', 'reference', 'designation', 'dimensions_mm', 'details', 'quantite', 'unite'],
+        for (final l in lines) [l.section, l.ref, l.name, l.dims, l.details, l.qty, l.unit],
+      ];
 }
 
 const _optionLabels = {
@@ -109,11 +102,11 @@ Bom buildBom(LayoutEngine e) {
   final worktopParts = <String>[];
   for (final w in p.room.walls.where((w) => w.enabled)) {
     final prev = p.room.prevOf(w.id);
-    final prevLow = p.room.isWallEnabled(prev) ? e.runs(prev, (m) => e.kitchen && m.kind.isLow) : const <(double, double)>[];
+    final prevLow = p.room.isWallEnabled(prev) ? e.runs(prev, (m) => e.hasWorktop && m.kind.isLow) : const <(double, double)>[];
     final prevLen = p.room.wall(prev).length;
     final prevReachesCorner = prevLow.any((r) => r.$2 >= prevLen - 0.5);
 
-    for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
+    for (final (a, b) in e.runs(w.id, (m) => e.hasWorktop && m.kind.isLow)) {
       var len = b - a;
       if (a < 0.5 && prevReachesCorner) len -= worktopDepth; // le plan du mur précédent couvre l'angle
       if (len > 0) {
@@ -131,14 +124,14 @@ Bom buildBom(LayoutEngine e) {
   }
   final isl = p.room.island;
   if (isl != null) {
-    for (final (a, b) in e.runs('I', (m) => e.kitchen && m.kind.isLow)) {
+    for (final (a, b) in e.runs('I', (m) => e.hasWorktop && m.kind.isLow)) {
       worktop += b - a;
       worktopParts.add('îlot ${(b - a).round()} x ${(Island.depth + isl.overhang).round()}');
     }
     for (final (a, b) in e.runs('I', (m) => m.floorSupport)) {
       plinth += (b - a) + 2 * Island.depth; // façade + deux côtés
     }
-    final islLen = e.runs('I', (m) => e.kitchen && m.kind.isLow).fold<double>(0, (s, r) => s + r.$2 - r.$1);
+    final islLen = e.runs('I', (m) => e.hasWorktop && m.kind.isLow).fold<double>(0, (s, r) => s + r.$2 - r.$1);
     if (islLen > 0) {
       lines.add(BomLine('Îlot', 'island_back_panel', 'Habillage arrière d\'îlot', '${islLen.round()} x ${std.baseTop}', '', 1));
       lines.add(BomLine('Îlot', 'cover_panel_side', 'Joue de finition d\'îlot', '${Island.depth.round()} x ${std.baseTop}', 'deux côtés', 2));
@@ -153,17 +146,17 @@ Bom buildBom(LayoutEngine e) {
   }
 
   // ---- joues de finition : posées automatiquement aux extrémités visibles (sinon : à prévoir)
-  final joues = endPanels(e);
-  if (joues.isNotEmpty) {
+  final joues = endPanels(e, auto: true);
+  for (final posed in p.style.endPanels ? [true] : [true, false]) {
     final byDims = <String, int>{};
-    for (final j in joues) {
+    for (final j in joues.where((j) => p.style.endPanels || (j.item != null) == posed)) {
       final k = '${j.height.round()} x ${j.depth.round()}|${j.high ? 'haut' : 'bas / colonne'}';
       byDims[k] = (byDims[k] ?? 0) + 1;
     }
     for (final MapEntry(:key, :value) in byDims.entries) {
       final [dims, kind] = key.split('|');
-      lines.add(BomLine(p.style.endPanels ? 'Finitions' : 'À prévoir', 'cover_panel_side', 'Joue de finition $kind', '$dims x 18',
-          p.style.endPanels ? 'extrémité de linéaire visible, finition des façades' : 'extrémités de linéaire visibles', value));
+      lines.add(BomLine(posed ? 'Finitions' : 'À prévoir', 'cover_panel_side', 'Joue de finition $kind', '$dims x 18',
+          posed ? 'extrémité de linéaire visible, finition des façades' : 'extrémités de linéaire visibles', value));
     }
   }
 

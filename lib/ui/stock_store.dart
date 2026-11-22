@@ -54,6 +54,32 @@ class StockStore extends ChangeNotifier {
   }
 
   /// Fichier d'échange (autre tablette, PC, copie de sécurité).
+  static const _cols = ['Référence', 'Panneau', 'Épaisseur', 'Longueur', 'Largeur', 'Quantité', 'Chute', 'Emplacement', 'Origine', 'Réservé pour', 'Date'];
+
+  /// Stock en classeur Excel (une ligne par chute ou par lot de feuilles).
+  Uint8List exportXlsx() => xlsxTable('Stock', [
+        _cols,
+        for (final p in stock.pieces) [p.id, p.material, p.thickness, p.length, p.width, p.qty, p.offcut ? 'oui' : 'non', p.place, p.origin, p.reserved, p.date],
+      ], widths: const [12, 28, 10, 10, 10, 10, 8, 18, 22, 22, 12]);
+
+  /// Remplace les feuilles et les chutes par celles du classeur ; faux si ce n'est pas un stock kitchinox.
+  bool importXlsx(List<int> bytes) {
+    final rows = readXlsx(bytes)?.firstOrNull?.$2;
+    if (rows == null || rows.isEmpty || rows.first.length < 6 || rows.first[0] != _cols[0] || rows.first[1] != _cols[1]) return false;
+    final pieces = <Map<String, dynamic>>[];
+    for (final r in rows.skip(1)) {
+      String at(int i) => i < r.length ? r[i].trim() : '';
+      int? n(int i) => double.tryParse(at(i).replaceAll(',', '.'))?.round();
+      if (at(1).isEmpty) continue;
+      if (n(2) == null || n(3) == null || n(4) == null) return false;
+      pieces.add({
+        'id': at(0).isEmpty ? 'X-${pieces.length + 1}' : at(0), 'm': at(1), 't': n(2), 'l': n(3), 'w': n(4), 'q': n(5) ?? 1,
+        if (at(6).toLowerCase() == 'non') 'sheet': true, 'place': at(7), 'from': at(8), 'for': at(9), 'date': at(10),
+      });
+    }
+    return import(jsonEncode({...stock.toJson(), 'pieces': pieces}));
+  }
+
   String export() => const JsonEncoder.withIndent(' ').convert(stock.toJson());
 
   /// Remplace le stock par celui du fichier ; faux si ce n'est pas un fichier de stock.

@@ -5,11 +5,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 
-import '../engine/cutting.dart';
 import '../engine/engine.dart';
-import 'app_state.dart';
 import 'cut_pdf.dart';
-import 'tech_drawings.dart';
 
 String _xmlEscape(String s) => s
     .replaceAll('&', '&amp;')
@@ -50,18 +47,17 @@ void _addXml(Archive archive, String name, String xml) {
 }
 
 /// Construit un classeur Excel .xlsx strictement identique au format SketchCut PRO (3 feuilles).
-Uint8List buildExcelExport(AppState state) {
-  final p = state.project;
-  final e = state.engine;
-  final cs = p.cut;
-  final reps = repereNumbers(e);
-  final parts = cutList(e, cs, reps);
-  final plan = nestCached(parts, cs);
+/// [material] : un seul panneau (caissons, façades ou fonds), à son format ; nul : tout le plan.
+Uint8List buildExcelExport(CutPlan plan, {required Project project, String? order, String? material}) {
+  final state = _Source(project, order ?? project.name);
+  final cs = plan.settings;
+  final parts = [for (final p in plan.parts) if (material == null || p.material == material) p];
+  final sheets = [for (final s in plan.sheets) if (material == null || s.material == material) s];
   final sst = _SharedStrings();
 
   final sheet1 = _buildPartsSheet(state, parts, sst);
-  final sheet2 = _buildRemainsSheet(state, plan, sst);
-  final sheet3 = _buildInformationSheet(state, parts, plan, sst);
+  final sheet2 = _buildRemainsSheet(sheets, sst);
+  final sheet3 = _buildInformationSheet(state, parts, plan, sheets, material ?? cs.carcassMaterial, sst);
   final sharedStringsXml = sst.toXml();
 
   final archive = Archive();
@@ -125,7 +121,7 @@ Uint8List buildExcelExport(AppState state) {
 }
 
 /// Feuille 1 : 'Parts'
-String _buildPartsSheet(AppState state, List<CutPart> parts, _SharedStrings sst) {
+String _buildPartsSheet(_Source state, List<CutPart> parts, _SharedStrings sst) {
   final sb = StringBuffer();
   final lastRow = parts.length + 4;
   sb.write('<?xml version="1.0" encoding="utf-8"?>');
@@ -269,11 +265,11 @@ String _buildPartsSheet(AppState state, List<CutPart> parts, _SharedStrings sst)
 }
 
 /// Feuille 2 : 'Remains'
-String _buildRemainsSheet(AppState state, CutPlan plan, _SharedStrings sst) {
+String _buildRemainsSheet(List<CutSheet> sheets, _SharedStrings sst) {
   final sb = StringBuffer();
   // Collecter les chutes notables (>= 200 mm)
   final remains = <(int, int, int)>[];
-  for (final s in plan.sheets) {
+  for (final s in sheets) {
     for (final r in s.remnants) {
       if (r.$3 >= 200 && r.$4 >= 200) {
         remains.add((r.$3.round(), r.$4.round(), 1));
@@ -329,23 +325,24 @@ String _buildRemainsSheet(AppState state, CutPlan plan, _SharedStrings sst) {
 }
 
 /// Feuille 3 : 'Information '
-String _buildInformationSheet(AppState state, List<CutPart> parts, CutPlan plan, _SharedStrings sst) {
+String _buildInformationSheet(_Source state, List<CutPart> parts, CutPlan plan, List<CutSheet> sheets, String material, _SharedStrings sst) {
   final sb = StringBuffer();
   final p = state.project;
-  final cs = p.cut;
+  final cs = plan.settings;
+  final (mL, mW) = cs.sheetDimensionsFor(material);
   final sp = p.specs;
   final now = DateTime.now();
   final dateStr = '${now.month}/${now.day}/${now.year}';
 
   final fSheet = cs.sheetDimensionsFor(cs.frontKey), bSheet = cs.sheetDimensionsFor(cs.backMaterial);
-  final sheetArea = cs.sheetLength * cs.sheetWidth / 1e6;
-  final numSheets = plan.newSheets().length;
-  final allSheetsArea = plan.sheets.fold<double>(0, (a, s) => a + s.length * s.width) / 1e6; // chaque panneau a son format
+  final sheetArea = mL * mW / 1e6;
+  final numSheets = sheets.where((s) => !s.fromStock).length;
+  final allSheetsArea = sheets.fold<double>(0, (a, s) => a + s.length * s.width) / 1e6; // chaque panneau a son format
   final partsCount = parts.fold<int>(0, (a, x) => a + x.qty);
   final partsArea = parts.fold<double>(0, (a, x) => a + x.area * x.qty) / 1e6;
-  final remnArea = plan.sheets.expand((s) => s.remnants).fold<double>(0, (a, r) => a + r.$3 * r.$4) / 1e6;
+  final remnArea = sheets.expand((s) => s.remnants).fold<double>(0, (a, r) => a + r.$3 * r.$4) / 1e6;
   final wasteArea = math.max(0.0, allSheetsArea - partsArea - remnArea);
-  final cutLen = plan.cutLengthOf(cs.carcassMaterial);
+  final cutLen = plan.cutLengthOf(material);
   final groovesLen = parts.fold<double>(0, (a, x) => a + x.grooveLength * x.qty) / 1000;
 
   final edge2 = parts.where((x) => isFrontPart(x) ? (sp.frontEdge >= 1.5) : (sp.carcassEdge >= 1.5))
@@ -371,7 +368,7 @@ String _buildInformationSheet(AppState state, List<CutPart> parts, CutPlan plan,
   // Row 2 : Order
   sb.write('<row r="2">');
   sb.write('<c r="B2" s="30" t="s"><v>${sst.add("Order:")}</v></c>');
-  sb.write('<c r="C2" s="29" t="s"><v>${sst.add(p.name)}</v></c>');
+  sb.write('<c r="C2" s="29" t="s"><v>${sst.add(state.order)}</v></c>');
   sb.write('<c r="D2" s="1"/><c r="E2" s="1"/>');
   sb.write('</row>');
 
@@ -390,15 +387,15 @@ String _buildInformationSheet(AppState state, List<CutPart> parts, CutPlan plan,
   // Row 7 : Material & Thickness
   sb.write('<row r="7">');
   sb.write('<c r="B7" s="31" t="s"><v>${sst.add("Material:")}</v></c>');
-  sb.write('<c r="C7" s="7" t="s"><v>${sst.add(cs.carcassMaterial)}</v></c>');
+  sb.write('<c r="C7" s="7" t="s"><v>${sst.add(material)}</v></c>');
   sb.write('<c r="D7" s="31" t="s"><v>${sst.add("Thickness:")}</v></c>');
-  sb.write('<c r="E7" s="7" t="s"><v>${sst.add("${cs.carcassThickness}")}</v></c>');
+  sb.write('<c r="E7" s="7" t="s"><v>${sst.add("${cs.thicknessFor(material)}")}</v></c>');
   sb.write('</row>');
 
   // Row 8 : Sheet size & Square of sheet
   sb.write('<row r="8">');
   sb.write('<c r="B8" s="31" t="s"><v>${sst.add("Sheet Size")}</v></c>');
-  sb.write('<c r="C8" s="7" t="s"><v>${sst.add("${cs.sheetLength} X ${cs.sheetWidth}")}</v></c>');
+  sb.write('<c r="C8" s="7" t="s"><v>${sst.add("$mL X $mW")}</v></c>');
   sb.write('<c r="D8" s="31" t="s"><v>${sst.add("Square of sheet:")}</v></c>');
   sb.write('<c r="E8" s="7" t="s"><v>${sst.add("${sheetArea.toStringAsFixed(2)} sq.m.")}</v></c>');
   sb.write('</row>');
@@ -568,3 +565,9 @@ const _sketchCutStylesXml = '<?xml version="1.0" encoding="utf-8"?>'
     '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
     '<dxfs count="0"/>'
     '</styleSheet>';
+
+class _Source {
+  final Project project;
+  final String order;
+  const _Source(this.project, this.order);
+}

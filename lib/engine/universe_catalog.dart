@@ -19,6 +19,7 @@ String universeShelf(FurnitureModel m) {
 /// Composition de façade (du haut vers le bas) tirée de la composition du module.
 List<Map<String, dynamic>> universeFrontLayout(FurnitureSetup s) {
   final rows = <Map<String, dynamic>>[];
+  if (s.rows.isNotEmpty) return s.rows;
   if (s.panel) return [{'k': 'panel', 'h': 0}];
   for (var i = 0; i < s.flaps; i++) {
     rows.add({'k': 'flap', 'h': 0});
@@ -51,9 +52,10 @@ Map<String, dynamic> universeCatalogJson(FurnitureUniverse u) {
       'depth': m.depths.first,
       'front_layout': universeFrontLayout(m.setup),
       if (m.setup.wallHung) 'mount_z': m.setup.z,
+      if (m.setup.floor) 'mount_z': 0,
       if (m.setup.doors > 0) 'opening_options': const ['hinged_left', 'hinged_right'],
       'description': m.category.isEmpty ? null : m.category,
-      'snapping': {'requires_wall': true, 'floor_support': shelf != 'wall'},
+      'snapping': {'requires_wall': true, 'floor_support': shelf != 'wall' && !m.setup.floor},
     });
   }
   const names = {

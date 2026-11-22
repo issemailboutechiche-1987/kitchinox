@@ -87,7 +87,7 @@ void main() {
     expect(door.material, 'MDF plaqué chêne naturel');
     expect(door.canRotate, isFalse);
     e.project.style.front = 'blanc_mat';
-    expect(part(cutList(e, e.project.cut, {}), 'Porte')!.material, 'MDF');
+    expect(part(cutList(e, e.project.cut, {}), 'Porte')!.material, 'MDF (façades)');
     frontDecorOf = null;
     frontGrainLocked = null;
   });

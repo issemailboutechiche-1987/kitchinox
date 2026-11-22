@@ -1,19 +1,27 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kitchen_planner/engine/xlsx.dart';
 import 'package:kitchen_planner/engine/art.dart';
 import 'package:kitchen_planner/engine/art_cut_import.dart';
 import 'package:kitchen_planner/engine/art_fittings.dart';
 import 'package:kitchen_planner/engine/art_machining.dart';
 
 void main() {
-  test('fichier de débit : CSV avec en-tête, séparateurs variés, quantités ; JSON', () {
-    final csv = parseCutFile('nom;longueur;largeur;qte;ep\nCôté;720;560;2;18\nDessus, 800, 560, 1\n# commentaire\n600\t300');
-    expect(csv.map((p) => (p.name, p.length, p.width, p.qty)).toList(), [('Côté', 720.0, 560.0, 2), ('Dessus', 800.0, 560.0, 1), ('Pièce 3', 600.0, 300.0, 1)]);
-    final js = parseCutFile('{"parts":[{"l":700,"w":400,"q":3,"d":"Étagère"}]}');
-    expect((js.single.name, js.single.qty), ('Étagère', 3));
-    expect(parseCutFile('rien à lire'), isEmpty);
+  test('fichier de débit : Excel avec ou sans en-tête', () {
+    final job = manualCutFromXlsx(xlsxTable('Débit', [
+      ['nom', 'longueur', 'largeur', 'qte', 'ep'],
+      ['Côté', 720, 560, 2, 18],
+      ['Dessus', 800, 560, 1],
+    ]))!;
+    expect(job.parts.map((p) => (p.desc, p.length, p.width, p.qty)), [('Côté', 720, 560, 2), ('Dessus', 800, 560, 1)]);
+    final bare = manualCutFromXlsx(xlsxTable('x', [
+      ['Étagère', 600, 300, 4]
+    ]))!;
+    expect(bare.parts.single.qty, 4);
+    expect(manualCutFromXlsx([1, 2, 3]), isNull);
+    final csv = [for (final p in job.parts) CutFilePart(p.desc, p.length.toDouble(), p.width.toDouble(), qty: p.qty)];
     var n = 0;
     final placed = layoutCutParts(csv, newId: () => 'p${n++}');
-    expect(placed, hasLength(4));
+    expect(placed, hasLength(3));
     expect(placed.every((p) => p.h == 18), isTrue, reason: 'à plat');
     // pas de chevauchement entre pièces posées
     for (var i = 0; i < placed.length; i++) {

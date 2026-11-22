@@ -124,7 +124,7 @@ class _ItemFrontSection extends StatelessWidget {
         runSpacing: Tokens.s2,
         children: [
           ChoiceChip(
-            label: Text(trp('Comme la cuisine ({0})', [tr(inherited.name)])),
+            label: Text(trp(state.engine.kitchen ? 'Comme la cuisine ({0})' : 'Comme le projet ({0})', [tr(inherited.name)])),
             selected: item.front == null,
             onSelected: (_) => state.setItemFront(item.uid, null),
           ),
@@ -599,7 +599,7 @@ class _PointForm extends StatelessWidget {
       ]),
       if (x.kind == NetKind.socket || x.kind == NetKind.socketDouble || x.kind == NetKind.socketTriple || x.kind == NetKind.socketQuad)
         _Section('Nombre de prises', [
-          SegmentedButton<int>(
+          KxChoices<int>(
             showSelectedIcon: false,
             segments: [
               ButtonSegment(value: 1, label: Text(tr('1 simple'))),
@@ -625,7 +625,7 @@ class _PointForm extends StatelessWidget {
         ]),
       if (x.kind == NetKind.switch_ || x.kind == NetKind.switchDouble || x.kind == NetKind.switchTriple)
         _Section('Nombre de touches', [
-          SegmentedButton<int>(
+          KxChoices<int>(
             showSelectedIcon: false,
             segments: [
               ButtonSegment(value: 1, label: Text(tr('1 simple'))),

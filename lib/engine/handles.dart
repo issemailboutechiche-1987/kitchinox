@@ -86,7 +86,11 @@ class HandleCatalog {
 
   /// Sans poignée (profil Gola), toujours proposé en plus du catalogue.
   static const gola = HandleModel(
-      id: 'gola', name: 'Sans poignée (profil Gola)', familyId: 'gola', familyName: 'Sans poignée', render: HandleRender.gola);
+      id: 'gola', name: 'Sans poignée (profil Gola)', familyId: 'gola', familyName: 'Sans poignée', render: HandleRender.gola, finishes: golaFinishes);
+
+  /// Couleurs du profil Gola (la dernière suit la façade).
+  static const golaFinishes = ['Aluminium', 'Inox brossé', 'Noir mat', 'Anthracite', 'Blanc', 'Champagne', 'Or brossé', 'Bronze', golaLikeFront];
+  static const golaLikeFront = 'Comme les façades';
 
   HandleModel? byId(String? id) => id == gola.id ? gola : items.where((h) => h.id == id).firstOrNull;
 

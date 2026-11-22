@@ -218,8 +218,21 @@ Color handleFinishColor(String? finish) {
   final h = cat?.byId(s.handleId);
   final size = (s.handleSize ?? h?.defaultSize ?? 160).toDouble();
   final finish = s.handleFinish ?? ((h?.finishes.isEmpty ?? true) ? null : h!.finishes.first);
+  if (s.handle == 'gola') return (s.handle, size, golaColor(s, frontFinish(s, s.frontLower ?? s.front).color));
   return (s.handle, size, handleFinishColor(finish));
 }
+
+/// Couleur du profil Gola ([front] : couleur de la façade, quand il lui est assorti).
+Color golaColor(KitchenStyle s, Color front) => switch (s.handleFinish) {
+      null || 'Aluminium' => const Color(0xFFB9BDC2),
+      'Champagne' => const Color(0xFFD9C8A5),
+      'Inox brossé' => const Color(0xFF9FA4A9),
+      HandleCatalog.golaLikeFront => shade(front, -0.04),
+      final f => handleFinishColor(f),
+    };
+
+/// Profil métallique (pas laqué) : il brille en 3D.
+bool golaMetal(KitchenStyle s) => !const {'Noir mat', 'Anthracite', 'Blanc', HandleCatalog.golaLikeFront}.contains(s.handleFinish);
 
 /// Couleur de trait lisible sur une teinte donnée.
 Color lineOn(Color c) {

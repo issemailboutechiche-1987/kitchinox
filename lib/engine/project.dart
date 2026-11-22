@@ -375,6 +375,8 @@ class PlacedCabinet {
   String? front; // finition propre à ce caisson (null = style de la cuisine)
   List<FrontRow>? layout; // composition de façade personnalisée (null = celle du modèle)
   bool noBack; // caisson personnalisé : sans fond arrière
+  // joues (costados) de ce caisson : null automatique, 'oui' ajoutée, 'pris' ajoutée sur la largeur du caisson, 'non' sans
+  String? cheekL, cheekR;
 
   PlacedCabinet({
     required this.uid,
@@ -393,7 +395,16 @@ class PlacedCabinet {
     this.front,
     this.layout,
     this.noBack = false,
+    this.cheekL,
+    this.cheekR,
   });
+
+  String? cheek(bool left) => left ? cheekL : cheekR;
+  bool hasCheek(bool left) => cheek(left) == 'oui' || cheek(left) == 'pris';
+
+  /// Largeur prise sur le caisson par ses joues (mm).
+  int get cheekTaken => (cheekL == 'pris' ? 18 : 0) + (cheekR == 'pris' ? 18 : 0);
+
 
   double get right => s + width;
   double get top => z + height;
@@ -417,6 +428,8 @@ class PlacedCabinet {
         if (front != null) 'front': front,
         if (layout != null) 'layout': [for (final r in layout!) r.toJson()],
         if (noBack) 'no_back': true,
+        if (cheekL != null) 'cheek_l': cheekL,
+        if (cheekR != null) 'cheek_r': cheekR,
       };
 
   factory PlacedCabinet.fromJson(Map<String, dynamic> j) => PlacedCabinet(
@@ -432,6 +445,8 @@ class PlacedCabinet {
         opening: j['opening'] as String?,
         variant: j['variant'] as String?,
         internal: j['internal'] as String?,
+        cheekL: j['cheek_l'] as String?,
+        cheekR: j['cheek_r'] as String?,
         appliances: (j['appliances'] as List?)?.cast<String>(),
         front: j['front'] as String?,
         layout: j['layout'] == null ? null : parseRows(j['layout']),

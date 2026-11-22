@@ -27,7 +27,7 @@ class StepToolbar extends StatelessWidget {
   final void Function(String) onMessage;
   final StyleSection styleSection;
   final ValueChanged<StyleSection> onStyleSection;
-  final VoidCallback onExportCsv, onExportPdf, onCutPdf, onSct, onCutSettings, onSave, onIssues;
+  final VoidCallback onExportList, onExportPdf, onCutPdf, onSct, onCutSettings, onSave, onIssues;
   final VoidCallback? onManualCut, onStock, onCutDone;
   final VoidCallback? onExportExcel;
   final VoidCallback? onGenerateCodes;
@@ -38,7 +38,7 @@ class StepToolbar extends StatelessWidget {
     required this.onMessage,
     required this.styleSection,
     required this.onStyleSection,
-    required this.onExportCsv,
+    required this.onExportList,
     required this.onExportPdf,
     required this.onCutPdf,
     this.onGenerateCodes,
@@ -187,7 +187,7 @@ class StepToolbar extends StatelessWidget {
         tiles.addAll([
           for (final (s, icon, label) in [
             (StyleSection.fronts, Icons.door_front_door_outlined, 'Façades'),
-            if (state.engine.kitchen) (StyleSection.worktop, Icons.countertops_outlined, 'Plan de travail'),
+            if (state.engine.hasWorktop) (StyleSection.worktop, Icons.countertops_outlined, 'Plan de travail'),
             (StyleSection.handles, Icons.drag_handle, 'Poignées'),
             (StyleSection.carcass, Icons.inventory_2_outlined, 'Caissons'),
             (StyleSection.room, Icons.wallpaper_outlined, 'Sol et murs'),
@@ -206,7 +206,7 @@ class StepToolbar extends StatelessWidget {
           if (onStock != null) ToolTile(icon: Icons.inventory_outlined, label: tr('Stock et chutes'), onTap: onStock!),
           if (onCutDone != null) ToolTile(icon: Icons.task_alt, label: tr('Valider la découpe'), onTap: onCutDone!),
           if (onExportExcel != null) ToolTile(icon: Icons.table_chart_outlined, label: tr('Exporter vers Excel (.xlsx)'), onTap: onExportExcel!),
-          ToolTile(icon: Icons.table_view_outlined, label: tr('Exporter la liste (CSV)'), onTap: onExportCsv),
+          ToolTile(icon: Icons.table_view_outlined, label: tr('Exporter la liste (Excel)'), onTap: onExportList),
           ToolTile(
               icon: Icons.verified_outlined,
               label: tr('Rapport diagnostic (PDF)'),
@@ -232,7 +232,7 @@ class StepToolbar extends StatelessWidget {
             ...trailing,
           ],
           const SizedBox(width: Tokens.s4),
-          Text(tr(state.step.hint), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+          Text(tr(state.step == PlanStep.style && !state.engine.hasWorktop ? 'Façades, poignées, caissons' : state.step.hint), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
         ]),
       ),
     );

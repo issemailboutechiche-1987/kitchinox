@@ -6,6 +6,7 @@ import 'i18n_hook.dart';
 import 'dart:math' as math;
 
 import 'catalog.dart';
+import 'end_panels.dart';
 import 'openings_catalog.dart';
 import 'project.dart';
 import 'standards.dart';
@@ -112,6 +113,141 @@ class LayoutEngine {
     return [main];
   }
 
+  /// Caisson qui peut recevoir des joues (costados).
+  bool canHaveCheeks(CabinetModel m) => !(m.kind.isFiller || m.kind == CabinetKind.coverPanel || m.kind == CabinetKind.islandPanel || m.isFreeHood || m.isHoodUnit);
+
+  /// Volume de la joue d'un caisson, à gauche ou à droite (un meuble d'angle finit à droite sur le mur suivant).
+  TaggedBox cheekBox(PlacedCabinet c, bool left) {
+    final m = modelOf(c);
+    final z0 = m.kind.isHigh ? c.z : 0.0; // une joue de bas ou de colonne descend jusqu'au sol (elle cache la plinthe)
+    if (!left && (m.shape == CabinetShape.lShape || m.shape == CabinetShape.diagonal)) {
+      final n = room.wall(room.nextOf(c.wallId));
+      return TaggedBox(n.strip((c.widthRight ?? c.width).toDouble(), cheekT, c.depth.toDouble(), z0, c.top - z0), n.id, c.uid);
+    }
+    return TaggedBox(room.wall(c.wallId).strip(left ? c.s - cheekT : c.right, cheekT, c.depth.toDouble(), z0, c.top - z0), c.wallId, c.uid);
+  }
+
+  /// Volumes d'un caisson avec ses joues ajoutées.
+  List<TaggedBox> solidOf(PlacedCabinet c) => [
+        ...boxesOf(c),
+        for (final left in [true, false])
+          if (c.hasCheek(left)) cheekBox(c, left),
+      ];
+
+  /// Ce côté du caisson se voit : ni mur, ni voisin aussi haut et aussi profond.
+  bool sideVisible(PlacedCabinet c, bool left) {
+    final m = modelOf(c);
+    if (!canHaveCheeks(m)) return false;
+    if (!left && (m.shape == CabinetShape.lShape || m.shape == CabinetShape.diagonal)) {
+      final n = room.nextOf(c.wallId);
+      final edge = (c.widthRight ?? c.width).toDouble();
+      return !project.items.any((o) => o != c && o.wallId == n && (o.s - edge).abs() < 15 && o.top >= c.top - 50 && o.z <= c.z + 50 && o.depth >= c.depth - 50);
+    }
+    final w = room.wall(c.wallId);
+    if (left ? c.s < 15 : c.right > w.length - 15) return w.id == 'I';
+    return !project.items.any((o) {
+      if (o == c || modelOf(o).isFreeHood || o.z > c.z + 50 || o.top < c.top - 50 || o.depth < c.depth - 50) return false;
+      for (final tb in solidOf(o)) {
+        if (tb.wallId != c.wallId) continue;
+        final (s0, s1, _, _) = w.boxToWall(tb.box);
+        if ((left ? s1 - c.s : s0 - c.right).abs() < 15) return true;
+      }
+      return false;
+    });
+  }
+
+  /// Côtés visibles qui n'ont pas encore de joue ajoutée (et qui ne sont pas réglés sur « sans »).
+  List<(PlacedCabinet, bool)> cheekCandidates() {
+    final auto = project.style.endPanels ? endPanels(this) : const <EndPanel>[];
+    return [
+      for (final c in project.items)
+        for (final left in [true, false])
+          if (c.cheek(left) == null && sideVisible(c, left))
+            if (!auto.any((j) => j.wallId == c.wallId && j.depth >= c.depth - 1 && j.z1 >= c.top - 1 && (j.s - (left ? c.s - cheekT : c.right)).abs() < 1)) (c, left),
+    ];
+  }
+
+  /// Règle la joue d'un côté : null automatique, true avec, false sans.
+  /// Avec : les voisins se décalent de 18 mm ; s'il n'y a pas la place, la joue est prise sur la largeur du caisson.
+  /// Renvoie ce qui a été fait (ou pourquoi c'est impossible, sans rien changer).
+  (bool, String?) setCheek(String uid, bool left, bool? on) {
+    final c = _get(uid);
+    final m = modelOf(c);
+    void put(String? v) => left ? c.cheekL = v : c.cheekR = v;
+    if (on != true) {
+      if (c.cheek(left) == 'pris') {
+        c.width += cheekT.round();
+        if (left) c.s -= cheekT;
+      }
+      put(on == false ? 'non' : null);
+      return (true, null);
+    }
+    if (c.hasCheek(left)) return (true, null);
+    if (!canHaveCheeks(m)) return (false, L('pas de joue sur cet élément'));
+    final before = c.cheek(left);
+    final saved = [for (final o in project.items) (o, o.s, o.width)];
+    put('oui');
+    if (_makeRoom(c, left)) {
+      final moved = saved.where((x) => x.$1.s != x.$2 || x.$1.width != x.$3).length;
+      return (true, moved == 0 ? null : L('Joue ajoutée : {0} voisin(s) décalé(s) de 18 mm', [moved]));
+    }
+    for (final (o, s, w) in saved) {
+      o.s = s;
+      o.width = w;
+    }
+    // prise sur la largeur du caisson, sauf s'il porte un appareil à encastrer
+    final fixed = m.kind.isCorner || m.requiresAppliance != null || isCooking(m) || m.id.contains('oven') || m.id.contains('fridge') || m.id.contains('dishwasher');
+    if (!fixed && c.width >= 250) {
+      c.width -= cheekT.round();
+      if (left) c.s += cheekT;
+      put('pris');
+      if (!_clashes(c)) return (true, L('Pas de place à côté : la joue est prise sur le caisson ({0} mm)', [c.width]));
+      c.width += cheekT.round();
+      if (left) c.s -= cheekT;
+    }
+    put(before);
+    return (false, L('Pas la place pour la joue : il faut 18 mm libres de ce côté'));
+  }
+
+  /// Décale les voisins pour loger la joue de [c] ; un fileur rétrécit et absorbe le décalage.
+  bool _makeRoom(PlacedCabinet c, bool left) {
+    final cb = cheekBox(c, left);
+    final w = room.wall(cb.wallId);
+    final (c0, c1, _, _) = w.boxToWall(cb.box);
+    if (c0 < -0.5 || c1 > w.length + 0.5) return false;
+    final dir = cb.wallId == c.wallId ? (left ? -1 : 1) : 1;
+    final blockers = [cb];
+    final order = [
+      for (final o in project.items)
+        if (o.uid != c.uid && o.wallId == cb.wallId) o
+    ]..sort((a, b) => dir > 0 ? a.s.compareTo(b.s) : b.right.compareTo(a.right));
+    for (final o in order) {
+      var need = 0.0;
+      for (final mine in solidOf(o)) {
+        for (final b in blockers) {
+          if (!mine.box.intersects(b.box)) continue;
+          final (o0, o1, _, _) = w.boxToWall(mine.box);
+          final (b0, b1, _, _) = w.boxToWall(b.box);
+          final d = dir > 0 ? b1 - o0 : o1 - b0;
+          if (d > need) need = d;
+        }
+      }
+      if (need <= 0.5) continue;
+      final m = modelOf(o);
+      if (m.kind.isCorner || need > 400) return false;
+      if (m.kind.isFiller && m.widths.allows(o.width - need.ceil())) {
+        o.width -= need.ceil();
+        if (dir > 0) o.s += need.ceil();
+      } else {
+        o.s += dir * need;
+      }
+      blockers.addAll(solidOf(o));
+    }
+    return !project.items.any((o) => (o.uid == c.uid || o.wallId == cb.wallId) && _clashes(o));
+  }
+
+  static const cheekT = EndPanel.thickness;
+
   /// Contour en vue de dessus.
   PlanShape planShape(PlacedCabinet c) {
     final m = modelOf(c);
@@ -187,6 +323,35 @@ class LayoutEngine {
 
   /// Projet de cuisine (plan de travail, triangle d'activité, réseaux) ou autre univers.
   bool get kitchen => project.universe == 'cuisine';
+
+  /// Les meubles bas reçoivent un plan de travail (cuisine, buanderie).
+  bool get hasWorktop => kitchen || project.universe == 'buanderie';
+
+  /// Dessous du plan de travail sur un linéaire : hauteur normalisée en cuisine, dessus des meubles ailleurs.
+  double worktopZ(String wallId, double a, double b) {
+    if (kitchen) return std.baseTop.toDouble();
+    var z = 0.0;
+    for (final c in project.items) {
+      if (c.wallId == wallId && modelOf(c).kind.isLow && c.s < b - 1 && a < c.right - 1) z = math.max(z, c.top);
+    }
+    return z == 0 ? std.baseTop.toDouble() : z;
+  }
+
+  /// Machines à laver logées dans un meuble de buanderie (et colonnes machine de salle de bain) : place de chacune.
+  List<({double s, double z, double w, double h, double d, String ref})> machinesIn(PlacedCabinet c) {
+    final id = c.modelId;
+    if (id == 'laundry_washer_dryer_side_by_side') {
+      final free = c.width - 36.0, w = math.min(600.0, free / 2), h = math.min(c.height - 40.0, 830.0);
+      return [
+        (s: c.s + 18 + free / 4, z: c.z + 18, w: w, h: h, d: math.min(560.0, c.depth - 30.0), ref: 'kenney_washer'),
+        (s: c.s + 18 + free * 3 / 4, z: c.z + 18, w: w, h: h, d: math.min(560.0, c.depth - 30.0), ref: 'kenney_dryer'),
+      ];
+    }
+    if (id == 'laundry_washer_dryer_column') {
+      return [(s: c.s + c.width / 2, z: c.z + 18, w: math.min(600.0, c.width - 40.0), h: 1700, d: math.min(600.0, c.depth - 30.0), ref: 'kenney_washerDryerStacked')];
+    }
+    return const [];
+  }
 
   double defaultZ(CabinetModel m) {
     if (m.mountZ != null) return m.mountZ!.toDouble();
@@ -305,10 +470,10 @@ class LayoutEngine {
   int _family(CabinetModel m) => m.kind == CabinetKind.tall ? 2 : (m.kind.isHigh ? 1 : 0);
 
   bool _clashes(PlacedCabinet c) {
-    final mine = boxesOf(c);
+    final mine = solidOf(c);
     for (final o in project.items) {
       if (o.uid == c.uid) continue;
-      for (final b in boxesOf(o)) {
+      for (final b in solidOf(o)) {
         if (mine.any((x) => x.box.intersects(b.box))) return true;
       }
     }
@@ -316,7 +481,7 @@ class LayoutEngine {
       if (mine.any((x) => x.box.intersects(ob.box))) return true;
     }
     final w = room.wall(c.wallId);
-    return c.s < -0.5 || c.right > w.length + 0.5;
+    return c.s - (c.hasCheek(true) ? cheekT : 0) < -0.5 || c.right + (c.hasCheek(false) && !modelOf(c).kind.isCorner ? cheekT : 0) > w.length + 0.5;
   }
 
   /// Duplique un caisson (mêmes réglages) : posé juste à droite, sinon à gauche, sinon à la
@@ -452,7 +617,7 @@ class LayoutEngine {
     final w = room.wall(wallId);
     final out = <(double, double)>[];
     for (final c in project.items) {
-      for (final tb in boxesOf(c)) {
+      for (final tb in solidOf(c)) {
         final b = tb.box;
         if (b.z1 <= z0 + 1 || b.z0 >= z1 - 1) continue;
         final (s0, s1, t0, _) = w.boxToWall(b);
@@ -872,6 +1037,14 @@ class LayoutEngine {
         final (s0, s1, _, _) = w.boxToWall(tb.box);
         iv.add((math.max(0, s0), math.min(w.length, s1)));
       }
+      // le plan de travail, les plinthes… passent sur les joues ajoutées
+      for (final left in [true, false]) {
+        if (!c.hasCheek(left)) continue;
+        final tb = cheekBox(c, left);
+        if (tb.wallId != wallId) continue;
+        final (s0, s1, _, _) = w.boxToWall(tb.box);
+        iv.add((math.max(0, s0), math.min(w.length, s1)));
+      }
     }
     iv.sort((a, b) => a.$1.compareTo(b.$1));
     final merged = <(double, double)>[];
@@ -892,7 +1065,7 @@ class LayoutEngine {
         ? (std.plinthHeight.toDouble(), std.baseTop.toDouble(), 600.0)
         : (std.wallBottomDefault.toDouble(), std.wallBottomDefault + 800.0, 370.0);
     final occ = <(double, double)>[];
-    for (final tbs in [...project.items.map(boxesOf), openingBoxes()]) {
+    for (final tbs in [...project.items.map(solidOf), openingBoxes()]) {
       for (final tb in tbs) {
         final b = tb.box;
         if (!(b.z0 < z1 - 0.5 && z0 < b.z1 - 0.5)) continue;
@@ -1270,7 +1443,7 @@ class LayoutEngine {
     final res = <(double, double)>[];
     final boxes = [
       for (final o in project.items)
-        if (o.uid != c.uid) ...boxesOf(o),
+        if (o.uid != c.uid) ...solidOf(o),
       ...openingBoxes(),
     ];
     {
@@ -1300,8 +1473,14 @@ class LayoutEngine {
     final w = room.wall(c.wallId);
     final len = w.length;
     final width = c.width.toDouble();
-    if (width > len + 0.5) return null;
-    final occ = occupied(c);
+    // joues ajoutées : leur place compte avec celle du caisson
+    final padL = c.hasCheek(true) ? cheekT : 0.0, padR = c.hasCheek(false) && !m.kind.isCorner ? cheekT : 0.0;
+    if (width + padL + padR > len + 0.5) return null;
+    final occ = [
+      if (padL > 0) (-1.0, padL),
+      for (final (a, b) in occupied(c)) (a - padR, b + padL),
+      if (padR > 0) (len - padR, len + 1),
+    ];
 
     // angles en L / pan coupé : toujours collés au coin (extrémité droite du mur)
     if (m.shape == CabinetShape.lShape || m.shape == CabinetShape.diagonal) {
@@ -1385,7 +1564,7 @@ class LayoutEngine {
             : (std.wallBottomMin.toDouble(), room.height);
         final depth = band == Band.low ? 600.0 : 370.0;
         final iv = <(double, double)>[];
-        for (final tbs in [...project.items.map(boxesOf), openingBoxes()]) {
+        for (final tbs in [...project.items.map(solidOf), openingBoxes()]) {
           for (final tb in tbs) {
             final b = tb.box;
             if (!(b.z0 < z1 && z0 < b.z1)) continue;
@@ -1433,7 +1612,7 @@ class LayoutEngine {
       if (!w.enabled) {
         issues.add(Issue(Severity.error, 'wall_disabled', L('{0} est sur un mur désactivé', [L(m.name)]), [c.uid]));
       }
-      if (!m.widths.allows(c.width)) {
+      if (!m.widths.allows(c.width + c.cheekTaken)) {
         issues.add(Issue(Severity.error, 'width', L('{0} : largeur {1} hors catalogue ({2})', [L(m.name), c.width, m.widths]), [c.uid]));
       }
       if (!m.heights.allows(c.height)) {

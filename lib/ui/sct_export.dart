@@ -4,7 +4,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import '../engine/cutting.dart';
+import '../engine/engine.dart';
+import 'excel_export.dart';
 import 'i18n.dart';
 import 'theme.dart';
 import 'web_io.dart';
@@ -14,10 +15,12 @@ class SctFile {
   final String material;
   final PanelKind kind;
   final String title; // type de panneau affiché
-  final String fileName, content;
+  final String fileName;
+  final List<int> bytes;
+  String get content => utf8.decode(bytes, allowMalformed: true);
   final (int, int) sheet;
   final int thickness, parts, sheets;
-  const SctFile(this.material, this.kind, this.title, this.fileName, this.content, this.sheet, this.thickness, this.parts, this.sheets);
+  const SctFile(this.material, this.kind, this.title, this.fileName, this.bytes, this.sheet, this.thickness, this.parts, this.sheets);
 }
 
 String _safe(String s) {
@@ -30,21 +33,50 @@ String _safe(String s) {
   return b.toString().replaceAll(RegExp(r'[^A-Za-z0-9؀-ۿ]+'), '_').replaceAll(RegExp(r'^_+|_+$'), '');
 }
 
+/// Nom affiché d'un type de panneau.
+String panelTitle(PanelKind kind) => switch (kind) {
+      PanelKind.carcass => tr('Caissons (corps de meuble)'),
+      PanelKind.front => tr('Façades (portes et tiroirs)'),
+      PanelKind.back => tr('Fonds (dos)'),
+      PanelKind.drawer => tr('Tiroirs (fond et dos)'),
+    };
+
+String _panelKey(PanelKind kind) => switch (kind) {
+      PanelKind.carcass => 'Caissons',
+      PanelKind.front => 'Facades',
+      PanelKind.back => 'Fonds',
+      PanelKind.drawer => 'Tiroirs',
+    };
+
+/// Classeurs Excel : un par panneau, dans le même ordre que les .sct.
+List<SctFile> excelFiles(CutPlan plan, {required String name, required Project project}) {
+  final cs = plan.settings;
+  final out = <SctFile>[];
+  for (final mat in plan.materials) {
+    final kind = cs.panelKind(mat), t = cs.thicknessFor(mat), sheet = cs.sheetDimensionsFor(mat), key = _panelKey(kind);
+    out.add(SctFile(
+      mat,
+      kind,
+      panelTitle(kind),
+      '${_safe(name)}_${key}_${_safe(mat)}_${sheet.$1}x${sheet.$2}_${t}mm.xlsx',
+      buildExcelExport(plan, project: project, order: '${name}_$key', material: mat),
+      sheet,
+      t,
+      plan.parts.where((p) => p.material == mat).fold<int>(0, (a, p) => a + p.qty),
+      plan.newSheets(mat).length,
+    ));
+  }
+  return out..stableSort((a, b) => a.kind.index.compareTo(b.kind.index));
+}
+
 /// Fichiers à exporter pour [plan], dans l'ordre caissons, façades, fonds, tiroirs.
 List<SctFile> sctFiles(CutPlan plan, {required String name}) {
   final cs = plan.settings;
   final out = <SctFile>[];
   for (final mat in plan.materials) {
     final kind = cs.panelKind(mat);
-    final both = mat == cs.carcassMaterial && cs.samePanel;
-    final (title, key) = both
-        ? (tr('Caissons et façades (même panneau)'), 'Caissons_Facades')
-        : switch (kind) {
-            PanelKind.carcass => (tr('Caissons (corps de meuble)'), 'Caissons'),
-            PanelKind.front => (tr('Façades (portes et tiroirs)'), 'Facades'),
-            PanelKind.back => (tr('Fonds (dos)'), 'Fonds'),
-            PanelKind.drawer => (tr('Tiroirs (fond et dos)'), 'Tiroirs'),
-          };
+    final title = panelTitle(kind);
+    final key = _panelKey(kind);
     final sheet = cs.sheetDimensionsFor(mat);
     final t = cs.thicknessFor(mat);
     int count(List<CutPart> l) => l.fold<int>(0, (a, p) => a + p.qty);
@@ -54,7 +86,7 @@ List<SctFile> sctFiles(CutPlan plan, {required String name}) {
         kind,
         trp('Chute {0}', [s.stockId]),
         '${_safe(name)}_Chute_${_safe(s.stockId!)}_${s.length}x${s.width}_${t}mm.sct',
-        toSct(plan, mat, order: '${name}_${s.stockId}', thickness: '$t', offcut: s),
+        utf8.encode(toSct(plan, mat, order: '${name}_${s.stockId}', thickness: '$t', offcut: s)),
         (s.length, s.width),
         t,
         count(sctParts(plan, mat, offcut: s)),
@@ -67,7 +99,7 @@ List<SctFile> sctFiles(CutPlan plan, {required String name}) {
       kind,
       title,
       '${_safe(name)}_${key}_${_safe(mat)}_${sheet.$1}x${sheet.$2}_${t}mm.sct',
-      toSct(plan, mat, order: '${name}_$key', thickness: '$t'),
+      utf8.encode(toSct(plan, mat, order: '${name}_$key', thickness: '$t')),
       sheet,
       t,
       count(sctParts(plan, mat)),
@@ -79,8 +111,11 @@ List<SctFile> sctFiles(CutPlan plan, {required String name}) {
 
 /// Choix des panneaux puis écriture des fichiers (dossier Kitchinox/export sur iPad, téléchargements sur le web).
 /// Renvoie le message à afficher, ou null si l'utilisateur annule.
-Future<String?> exportSctFiles(BuildContext context, CutPlan plan, {required String name}) async {
-  final files = sctFiles(plan, name: name);
+Future<String?> exportSctFiles(BuildContext context, CutPlan plan, {required String name}) =>
+    exportPanelFiles(context, sctFiles(plan, name: name), title: 'Export SketchCut PRO (.sct)');
+
+/// Le choix des panneaux, commun aux fichiers .sct et Excel.
+Future<String?> exportPanelFiles(BuildContext context, List<SctFile> files, {required String title}) async {
   if (files.isEmpty) return tr('Aucune pièce à débiter');
   final chosen = {...files};
   final ok = await showDialog<bool>(
@@ -93,7 +128,7 @@ Future<String?> exportSctFiles(BuildContext context, CutPlan plan, {required Str
           title: Row(children: [
             Icon(Icons.content_cut, color: scheme.primary),
             const SizedBox(width: Tokens.s2),
-            Expanded(child: Text(tr('Export SketchCut PRO (.sct)'))),
+            Expanded(child: Text(tr(title))),
           ]),
           content: SizedBox(
             width: 520,
@@ -130,7 +165,7 @@ Future<String?> exportSctFiles(BuildContext context, CutPlan plan, {required Str
               key: const ValueKey('sct_export'),
               icon: const Icon(Icons.download, size: 18),
               onPressed: chosen.isEmpty ? null : () => Navigator.pop(ctx, true),
-              label: Text(trp('Exporter {0} fichier(s) .sct', [chosen.length])),
+              label: Text(trp('Exporter {0} fichier(s)', [chosen.length])),
             ),
           ],
         );
@@ -140,7 +175,7 @@ Future<String?> exportSctFiles(BuildContext context, CutPlan plan, {required Str
   if (ok != true) return null;
   String? path;
   for (final f in files.where(chosen.contains)) {
-    path = await saveToKitchinox(f.fileName, utf8.encode(f.content));
+    path = await saveToKitchinox(f.fileName, f.bytes);
   }
-  return path == null ? trp('{0} fichier(s) .sct à ouvrir dans SketchCut PRO', [chosen.length]) : trp('{0} fichier(s) .sct enregistré(s) dans Kitchinox/export', [chosen.length]);
+  return path == null ? trp('{0} fichier(s) exporté(s)', [chosen.length]) : trp('{0} fichier(s) enregistré(s) dans Kitchinox/export', [chosen.length]);
 }

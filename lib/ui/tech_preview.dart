@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../engine/engine.dart';
 import 'app_state.dart';
 import 'tech_drawings.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 
 class TechPreview extends StatefulWidget {
@@ -37,7 +38,7 @@ class _TechPreviewState extends State<TechPreview> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: SegmentedButton<String>(
+          child: KxChoices<String>(
             showSelectedIcon: false,
             segments: [for (final (id, label) in sheets) ButtonSegment(value: id, label: Text(label))],
             selected: {sheet},

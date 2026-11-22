@@ -307,6 +307,10 @@ class Scene3dPainter {
         );
       }
     }
+    for (final j in endPanels(e)) {
+      final f = frontFinish(style, j.finishId(style));
+      solids.add(_Solid(room.wall(j.wallId).strip(j.s, EndPanel.thickness, j.depth, j.z0, j.height), f.color, finish: f, uid: j.item?.uid));
+    }
     // Collecter les réservations / trous dans le plan de travail (évier, plaque de cuisson)
     final cutoutsByWall = <String, List<({double s0, double s1, double t0, double t1})>>{};
     const wd = worktopDepth * 1.0;
@@ -333,11 +337,12 @@ class Scene3dPainter {
 
     for (final w in room.walls.where((w) => w.enabled)) {
       final cuts = (cutoutsByWall[w.id] ?? [])..sort((a, b) => a.s0.compareTo(b.s0));
-      for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
+      for (final (a, b) in e.runs(w.id, (m) => e.hasWorktop && m.kind.isLow)) {
+        final wz = e.worktopZ(w.id, a, b);
         final inRun = cuts.where((x) => x.s0 < b - 20 && x.s1 > a + 20).toList();
         if (inRun.isEmpty) {
           solids.add(
-            _Solid(w.strip(a, b - a, worktopDepth.toDouble(), std.baseTop.toDouble(), std.worktopThickness.toDouble()), top.color, finish: top),
+            _Solid(w.strip(a, b - a, worktopDepth.toDouble(), wz, std.worktopThickness.toDouble()), top.color, finish: top),
           );
         } else {
           var curS = a;
@@ -345,18 +350,18 @@ class Scene3dPainter {
             final cs0 = math.max(a, cut.s0);
             final cs1 = math.min(b, cut.s1);
             if (cs0 > curS + 5) {
-              solids.add(_Solid(w.stripRange(curS, cs0 - curS, 0, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble()), top.color, finish: top));
+              solids.add(_Solid(w.stripRange(curS, cs0 - curS, 0, wd, wz, std.worktopThickness.toDouble()), top.color, finish: top));
             }
             if (cut.t0 > 5) {
-              solids.add(_Solid(w.stripRange(cs0, cs1 - cs0, 0, cut.t0, std.baseTop.toDouble(), std.worktopThickness.toDouble()), top.color, finish: top));
+              solids.add(_Solid(w.stripRange(cs0, cs1 - cs0, 0, cut.t0, wz, std.worktopThickness.toDouble()), top.color, finish: top));
             }
             if (wd - cut.t1 > 5) {
-              solids.add(_Solid(w.stripRange(cs0, cs1 - cs0, cut.t1, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble()), top.color, finish: top));
+              solids.add(_Solid(w.stripRange(cs0, cs1 - cs0, cut.t1, wd, wz, std.worktopThickness.toDouble()), top.color, finish: top));
             }
             curS = cs1;
           }
           if (b > curS + 5) {
-            solids.add(_Solid(w.stripRange(curS, b - curS, 0, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble()), top.color, finish: top));
+            solids.add(_Solid(w.stripRange(curS, b - curS, 0, wd, wz, std.worktopThickness.toDouble()), top.color, finish: top));
           }
         }
       }
@@ -373,7 +378,7 @@ class Scene3dPainter {
         return Box3(math.min(ax, bx), math.min(ay, by), z0, math.max(ax, bx), math.max(ay, by), z1);
       }
 
-      for (final (a, b) in e.runs('I', (m) => e.kitchen && m.kind.isLow)) {
+      for (final (a, b) in e.runs('I', (m) => e.hasWorktop && m.kind.isLow)) {
         // plan de travail : 20 mm devant, débord repas à l'arrière
         solids.add(_Solid(box(a, b, -isl.overhang, Island.depth + 20, std.baseTop.toDouble(), std.worktopTop.toDouble()), top.color, finish: top));
         // habillage arrière sous le débord
@@ -388,7 +393,7 @@ class Scene3dPainter {
     for (final c in p.items) {
       final m = e.modelOf(c);
       final w = room.wall(c.wallId);
-      final topZ = std.worktopTop.toDouble();
+      final topZ = e.kitchen ? std.worktopTop.toDouble() : e.worktopZ(c.wallId, c.s, c.right) + std.worktopThickness;
       // plaque centrée dans la profondeur du plan ; évier vers l'avant, robinet derrière la cuve
       Box3 at(double s0, double width, double t0, double t1, double z, double h) {
         final (ax, ay) = w.toPlan(s0, t0);
@@ -936,7 +941,7 @@ class Scene3dPainter {
       );
       _paintInterior(canvas, r, openCells, total, carcassColor, m, c);
       // profil Gola : il reste sur le caisson, visible porte ouverte
-      if (p.style.handle == 'gola') paintGolaProfile(canvas, r, m, cells: frontCells(m, c, realistic: true));
+      if (p.style.handle == 'gola') paintGolaProfile(canvas, r, m, cells: frontCells(m, c, realistic: true), color: golaColor(p.style, frontOfItem(p.style, c, m).color));
       canvas.restore();
       return;
     }

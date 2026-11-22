@@ -30,6 +30,7 @@ import 'kx_top_bar.dart';
 import 'sct_export.dart';
 import 'stock_page.dart';
 import 'session.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 import 'web_io.dart';
 import 'i18n.dart';
@@ -292,16 +293,23 @@ class _ArtPageState extends State<ArtPage> {
     if (b != null) _addBox(b);
   }
 
-  Future<void> _importJson() async {
-    final f = await pickFile(accept: '.json');
+  /// Ajoute à cette création les meubles d'un autre projet kitchinox (.kin).
+  Future<void> _importKin() async {
+    final f = await pickFile(accept: '.kin');
     if (f == null) return;
     try {
-      final j = jsonDecode(utf8.decode(f.bytes)) as Map<String, dynamic>;
-      final b = j['model'] == 'universal_parametric_box' || j.containsKey('structure_envelope') ? ArtBox.fromUniversal(j) : ArtBox.fromJson(j);
-      _addBox(b);
-      _msg(trp('Caisson importé : {0} colonne(s), {1} zone(s)', [b.columns, b.zones.length]));
+      final a = (jsonDecode(KinFormat.decode(f.bytes)) as Map<String, dynamic>)['art'];
+      final boxes = a is Map ? ArtProject.fromJson(a.cast<String, dynamic>()).boxes : const <ArtBox>[];
+      if (boxes.isEmpty) {
+        _msg(tr('Ce projet ne contient pas de meuble.'));
+        return;
+      }
+      for (final b in boxes) {
+        _addBox(b);
+      }
+      _msg(trp('{0} meuble(s) importé(s)', [boxes.length]));
     } catch (_) {
-      _msg(tr('Fichier JSON illisible'));
+      _msg(trp('Fichier illisible : {0}', [f.name]));
     }
   }
 
@@ -2500,7 +2508,7 @@ class _ArtPageState extends State<ArtPage> {
           const SizedBox(height: 4),
           Text(tr('Coupe de l’angle'), style: t.bodySmall),
           const SizedBox(height: 4),
-          SegmentedButton<String>(
+          KxChoices<String>(
             key: const ValueKey('joint_cut'),
             showSelectedIcon: false,
             style: const ButtonStyle(visualDensity: VisualDensity.compact),
@@ -2633,17 +2641,9 @@ class _ArtPageState extends State<ArtPage> {
   }
 
   void _toManual() {
-    final cs = widget.state.project.cut;
-    final parts = art.cutParts();
-    if (parts.isEmpty) return;
-    final mats = {for (final p in parts) p.material}.toList();
-    final mat = mats.firstWhere((m) => m.contains('caisson'), orElse: () => mats.first);
-    final job = ManualCut(order: art.name, material: mat, sheetLength: cs.sheetLength, sheetWidth: cs.sheetWidth, kerf: cs.kerf, trim: cs.trim, method: cs.method);
-    for (final x in parts.where((x) => x.material == mat)) {
-      job.parts.add(ManualPart(length: x.length, width: x.width, qty: x.qty, rotate: x.canRotate, edgeLong: x.edgeLong, edgeShort: x.edgeShort, desc: '${x.name} · ${x.cabinet}'));
-    }
-    widget.state.project.manual = job;
-    openManualCut(context, widget.state);
+    final plan = art.plan(widget.state.project.cut);
+    if (plan.parts.isEmpty) return;
+    openManualCut(context, widget.state, project: () => plan, name: art.name);
   }
 
   // ---------------------------------------------------------------- écran
@@ -2723,11 +2723,11 @@ class _ArtPageState extends State<ArtPage> {
       menus: [
           menu('Fichier', 'menu_file', [
             item('Nouvelle création', _newCreation, icon: Icons.add_box_outlined, key: 'menu_new'),
-            item('Ouvrir… (.kin, .sct)', _openFile, icon: Icons.folder_open_outlined, key: 'menu_open'),
+            item('Ouvrir… (.kin, .sct, Excel)', _openFile, icon: Icons.folder_open_outlined, key: 'menu_open'),
             item('Enregistrer', _saveKin, icon: Icons.save_outlined, keys: const SingleActivator(LogicalKeyboardKey.keyS, control: true), key: 'menu_save'),
             const Divider(height: 1),
-            item('Importer un débit (CSV, JSON)…', _importCutFile, icon: Icons.upload_file_outlined),
-            item('Importer un caisson (JSON)…', _importJson, icon: Icons.file_open_outlined),
+            item('Importer un débit (.sct, Excel)…', _importCutFile, icon: Icons.upload_file_outlined),
+            item('Importer un meuble (.kin)…', _importKin, icon: Icons.file_open_outlined),
             item('Enregistrer dans la bibliothèque', _saveToLibrary, icon: Icons.bookmark_add_outlined),
             const Divider(height: 1),
             item('Plan de fabrication (PDF)', _blueprint, icon: Icons.picture_as_pdf_outlined),
@@ -3850,7 +3850,7 @@ class _ArtPageState extends State<ArtPage> {
                         onDeleteSelected: selectedPanel != null ? _deleteSelected : null,
                         extra: activeTool == CadTool.link
                             ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [
-                                SegmentedButton<String>(
+                                KxChoices<String>(
                                   key: const ValueKey('link_kind'),
                                   showSelectedIcon: false,
                                   style: const ButtonStyle(visualDensity: VisualDensity.compact),
@@ -3862,7 +3862,7 @@ class _ArtPageState extends State<ArtPage> {
                                   selected: {linkKind},
                                   onSelectionChanged: (v) => setState(() => linkKind = v.first),
                                 ),
-                                SegmentedButton<String>(
+                                KxChoices<String>(
                                   key: const ValueKey('link_align'),
                                   showSelectedIcon: false,
                                   style: const ButtonStyle(visualDensity: VisualDensity.compact),
@@ -3901,7 +3901,7 @@ class _ArtPageState extends State<ArtPage> {
                                   icon: const Icon(Icons.content_cut, size: 16),
                                   label: Text(tr('Couper')),
                                 ),
-                                SegmentedButton<String>(
+                                KxChoices<String>(
                                   key: const ValueKey('cut_mode'),
                                   showSelectedIcon: false,
                                   style: const ButtonStyle(visualDensity: VisualDensity.compact),
@@ -3921,7 +3921,7 @@ class _ArtPageState extends State<ArtPage> {
                                     _circleAt = null;
                                   }),
                                 ),
-                                if (cutMode != 'circle') SegmentedButton<bool>(
+                                if (cutMode != 'circle') KxChoices<bool>(
                                 key: const ValueKey('cut_axis'),
                                 showSelectedIcon: false,
                                 style: const ButtonStyle(visualDensity: VisualDensity.compact),
@@ -3935,7 +3935,7 @@ class _ArtPageState extends State<ArtPage> {
                                   _cutAt = null;
                                 }),
                               ),
-                                SegmentedButton<bool>(
+                                KxChoices<bool>(
                                   key: const ValueKey('cut_rel'),
                                   showSelectedIcon: false,
                                   style: const ButtonStyle(visualDensity: VisualDensity.compact),
@@ -4074,19 +4074,10 @@ class _ArtPageState extends State<ArtPage> {
 
   /// Ouvrir : un projet kitchinox (.kin, sa création Art) ou un débit SketchCut (.sct, pièces posées à plat).
   Future<void> _openFile() async {
-    final f = await pickFile(accept: '.kin,.sct');
+    final f = await pickFile(accept: '.kin,.sct,.xlsx');
     if (f == null) return;
-    if (f.name.toLowerCase().endsWith('.sct')) {
-      final r = manualCutFromFile(f.name, f.bytes, widget.state);
-      if (r == null) {
-        _msg(trp('Fichier non reconnu : {0}', [f.name]));
-        return;
-      }
-      _placeCutParts([
-        for (final p in r.$1.parts)
-          if (p.length > 0 && p.width > 0)
-            CutFilePart(p.desc.isEmpty ? L('Pièce') : p.desc, p.length.toDouble(), p.width.toDouble(), qty: p.qty, thickness: r.$1.thickness.toDouble()),
-      ]);
+    if (RegExp(r'\.(sct|xlsx)$', caseSensitive: false).hasMatch(f.name)) {
+      _placeFile(f);
       return;
     }
     try {
@@ -4158,14 +4149,26 @@ class _ArtPageState extends State<ArtPage> {
 
   /// Importer un fichier de débit : les pièces se posent à plat, prêtes à lier.
   Future<void> _importCutFile() async {
-    final f = await pickFile(accept: '.csv,.txt,.json');
-    if (f == null) return;
-    _placeCutParts(parseCutFile(utf8.decode(f.bytes, allowMalformed: true)));
+    final f = await pickFile(accept: '.sct,.xlsx');
+    if (f != null) _placeFile(f);
+  }
+
+  void _placeFile(PickedFile f) {
+    final r = manualCutFromFile(f.name, f.bytes, widget.state);
+    if (r == null) {
+      _msg(trp('Fichier non reconnu : {0}', [f.name]));
+      return;
+    }
+    _placeCutParts([
+      for (final p in r.$1.parts)
+        if (p.length > 0 && p.width > 0)
+          CutFilePart(p.desc.isEmpty ? L('Pièce') : p.desc, p.length.toDouble(), p.width.toDouble(), qty: p.qty, thickness: r.$1.thickness.toDouble()),
+    ]);
   }
 
   void _placeCutParts(List<CutFilePart> parts) {
     if (parts.isEmpty) {
-      _msg(tr('Fichier de débit illisible : une ligne par pièce « nom ; longueur ; largeur ; quantité ; épaisseur ».'));
+      _msg(tr('Fichier de débit illisible : une ligne par pièce (nom, longueur, largeur, quantité, épaisseur).'));
       return;
     }
     final x0 = art.free.isEmpty ? 0.0 : art.free.map((p) => p.right).reduce(math.max) + 200;
@@ -4519,7 +4522,7 @@ class _ArtPageState extends State<ArtPage> {
         _num('Façade', b.tFront, (v) => b.tFront = v, min: 10, max: 40),
       ]),
       _section(t, 'Dessus', 'Traverses pour un bas de cuisine (sous plan de travail), panneau plein pour un haut ou un dressing.'),
-      SegmentedButton<TopType>(
+      KxChoices<TopType>(
         showSelectedIcon: false,
         segments: [for (final x in TopType.values) ButtonSegment(value: x, label: Text(tr(x.label)))],
         selected: {b.top},
@@ -4609,7 +4612,7 @@ class _ArtPageState extends State<ArtPage> {
             _num('Hauteur', s.y, (v) => s.y = v, min: 40, max: innerH - b.t - 40, width: 110),
             const SizedBox(width: 8),
             Expanded(
-              child: SegmentedButton<bool>(
+              child: KxChoices<bool>(
                 showSelectedIcon: false,
                 style: ButtonStyle(visualDensity: VisualDensity.compact),
                 segments: [ButtonSegment(value: true, label: Text(tr('Fixe'))), ButtonSegment(value: false, label: Text(tr('Mobile')))],
@@ -4695,7 +4698,7 @@ class _ArtPageState extends State<ArtPage> {
       ]),
       if (type == CoverType.door) ...[
         _section(t, 'Ouverture'),
-        SegmentedButton<String>(
+        KxChoices<String>(
           showSelectedIcon: false,
           segments: [
             ButtonSegment(value: 'left', label: Text(tr('Gauche'))),
@@ -4718,7 +4721,7 @@ class _ArtPageState extends State<ArtPage> {
           Expanded(child: Text(trp('façades de {0} mm', [((fh - b.gap * (cv.count - 1)) / cv.count).round()]), style: t.bodySmall)),
         ]),
         _section(t, 'Caisson de tiroir'),
-        SegmentedButton<DrawerBox>(
+        KxChoices<DrawerBox>(
           showSelectedIcon: false,
           segments: [ButtonSegment(value: DrawerBox.metal, label: Text(tr('Double paroi métal'))), ButtonSegment(value: DrawerBox.wood, label: Text(tr('Bois')))],
           selected: {b.drawerBox},

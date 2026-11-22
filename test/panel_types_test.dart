@@ -1,5 +1,6 @@
 // Trois panneaux (caissons, façades, fonds) : format, épaisseur et prix propres à chacun, pris en compte dans le
 // débit, le devis et les fichiers SketchCut (un par type de panneau) ; réglés dans les paramètres du projet.
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:kitchen_planner/engine/engine.dart';
 import 'package:kitchen_planner/ui/app_state.dart';
 import 'package:kitchen_planner/ui/kx_top_bar.dart';
 import 'package:kitchen_planner/ui/project_settings_dialog.dart';
+import 'package:kitchen_planner/ui/manual_cut_page.dart';
 import 'package:kitchen_planner/ui/sct_export.dart';
 import 'package:kitchen_planner/main.dart';
 
@@ -73,9 +75,9 @@ void main() {
     expect(l.unitPrice.min, closeTo(ref.price * 2440 * 1220 / (ref.length * ref.width), 1));
   });
 
-  test('même nom, format différent : caissons et façades dans des feuilles séparées', () {
+  test('même nom : caissons et façades dans des feuilles séparées, au format de chacun', () {
     final st = kitchen();
-    expect(st.cutPlan.materials, isNot(contains('MDF (façades)')));
+    expect(st.cutPlan.materials, containsAll(['MDF', 'MDF (façades)', 'HDF 6 mm']));
     st.edit(() => st.project.cut
       ..frontSheetLength = 2800
       ..frontSheetWidth = 1220);
@@ -95,10 +97,59 @@ void main() {
     final back = files.firstWhere((f) => f.kind == PanelKind.back);
     expect((back.sheet, back.thickness), ((2440, 1220), 6));
     expect({for (final f in files) f.fileName}, hasLength(files.length));
-    // même panneau partout : un seul fichier caissons + façades
+    // même panneau partout : toujours 3 fichiers
     final same = sctFiles(kitchen().cutPlan, name: 'x');
-    expect(same.where((f) => f.fileName.contains('Caissons_Facades')), hasLength(1));
-    expect(same.where((f) => f.kind == PanelKind.front), isEmpty);
+    expect(same.map((f) => f.kind), [PanelKind.carcass, PanelKind.front, PanelKind.back]);
+  });
+
+  test('Excel : un classeur par panneau, relu à l’identique ; liste et refus du JSON / CSV', () {
+    final st = kitchen();
+    final sct = sctFiles(st.cutPlan, name: 'x'), xl = excelFiles(st.cutPlan, name: 'x', project: st.project);
+    expect(xl.map((f) => (f.material, f.parts)), sct.map((f) => (f.material, f.parts)));
+    for (var i = 0; i < xl.length; i++) {
+      final a = manualCutFromXlsx(xl[i].bytes)!, b = ManualCut.fromSct(sct[i].content);
+      expect((a.material, a.thickness, a.sheetLength, a.sheetWidth), (b.material, b.thickness, b.sheetLength, b.sheetWidth));
+      expect([for (final p in a.parts) (p.length, p.width, p.qty, p.edgeLong, p.edgeShort, p.grooveLong, p.rotate)], [for (final p in b.parts) (p.length, p.width, p.qty, p.edgeLong, p.edgeShort, p.grooveLong, p.rotate)]);
+    }
+    final list = readXlsx(xlsxTable('Liste', st.bom.toRows()))!.single.$2;
+    expect(list.length, st.bom.toRows().length);
+    for (final ext in ['json', 'csv', 'txt']) {
+      expect(manualCutFromFile('x.$ext', utf8.encode('{}'), st), isNull);
+    }
+  });
+
+  test('gamme luxe : caissons en latté, façades en MDF', () {
+    final st = kitchen();
+    st.setGamme('luxe');
+    expect((st.project.cut.carcassMaterial, st.project.cut.frontMaterial), ('Latté (Blockboard)', 'MDF'));
+    expect(sctFiles(st.cutPlan, name: 'x').first.material, 'Latté (Blockboard)');
+    st.setGamme('standard');
+    expect(st.project.cut.carcassMaterial, 'MDF');
+  });
+
+  test('débit manuel : les mêmes panneaux que l’export, gardés s’ils sont modifiés', () {
+    final st = kitchen();
+    final files = sctFiles(st.cutPlan, name: 'x');
+    var job = withProjectPanels(ManualCut(), manualPanels(st.cutPlan, name: 'x'));
+    expect([job, ...job.others].map((j) => j.panel), files.map((f) => f.material));
+    for (final f in files) {
+      final j = [job, ...job.others].firstWhere((j) => j.panel == f.material);
+      expect(j.cutParts.fold<int>(0, (a, p) => a + p.qty), f.parts);
+      expect((j.sheetLength, j.sheetWidth, j.thickness), (f.sheet.$1, f.sheet.$2, f.thickness));
+      expect(j.plan().partCount, f.parts);
+      // relu depuis le fichier .sct : mêmes pièces, mêmes rainures
+      final sct = ManualCut.fromSct(f.content);
+      expect([for (final p in sct.parts) (p.length, p.width, p.qty, p.grooveLong)], [for (final p in j.parts) (p.length, p.width, p.qty, p.grooveLong)]);
+    }
+    final fronts = job.others.firstWhere((j) => j.kind == 'front');
+    job = switchPanel(job, fronts);
+    job.parts.first.qty += 3;
+    expect(job.edited, isTrue);
+    job = ManualCut.fromJson(job.toJson());
+    expect(job.others, hasLength(files.length - 1));
+    final again = withProjectPanels(job, manualPanels(st.cutPlan, name: 'x'));
+    expect(again.edited, isTrue, reason: 'la liste retouchée est gardée');
+    expect(withProjectPanels(again, manualPanels(st.cutPlan, name: 'x'), reload: true).edited, isFalse);
   });
 
   testWidgets('paramètres du projet : ouvrir puis enregistrer ne change ni matière ni débit ; prix saisis', (t) async {

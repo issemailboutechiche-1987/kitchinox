@@ -49,11 +49,11 @@ void main() {
     e.add('base_standard_single_door', 'A', s: 0, width: 600);
     e.add('base_drawers_multi', 'A', s: 600, width: 600);
     final st = AppState(cat);
-    final r = manualCutFromFile('essai.cuisine.json', utf8.encode(jsonEncode(e.project.toJson())), st);
+    final r = manualCutFromFile('essai.kin', utf8.encode(jsonEncode(e.project.toJson())), st);
     expect(r, isNotNull);
     expect(r!.$1.parts, isNotEmpty);
     expect(r.$1.order, 'Essai');
-    expect(manualCutFromFile('x.json', utf8.encode('pas un projet'), st), isNull);
+    expect(manualCutFromFile('x.kin', utf8.encode('pas un projet'), st), isNull);
   });
 
   testWidgets('accueil : logo puis les univers ; Cuisine ouvre le planificateur', (t) async {

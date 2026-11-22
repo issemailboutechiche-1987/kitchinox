@@ -140,7 +140,6 @@ SupplierQuote supplierQuote(LayoutEngine e, SupplierTariff t, {bool gloss = fals
     add('Tiroirs', 'Fond et arrière de tiroir ${(c.width / 10).round()} cm', drawers.toDouble(), t.drawerKit, discount: t.drawerDiscountPct);
   }
   for (final j in endPanels(e)) {
-    if (!e.project.style.endPanels) break;
     add('Façades', 'Joue ${(j.height / 10).round()}x${(j.depth / 10).round()} $fam', 1, t.front(j.height * j.depth / 1e6, gloss: gloss));
   }
   final lines = [

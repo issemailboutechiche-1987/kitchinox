@@ -187,7 +187,7 @@ void paintFront(
   if (handle == 'gola' && golaProfile && !m.kind.isFiller && m.isCarcass) {
     if (realistic) {
       final gh = math.max(2.0, 24 * u);
-      final golaPaint = Paint()..color = const Color(0xFF222426);
+      final golaPaint = Paint()..color = Color.lerp(handleColor, Colors.black, 0.25)!;
       final golaHi = Paint()..color = Colors.white30;
       if (m.kind == CabinetKind.tall) {
         // Colonne haute : gorge horizontale au niveau du plan de travail (séparation des portes)
@@ -302,7 +302,7 @@ void paintFront(
           // Gorge intermédiaire Gola (profil C) entre tiroirs
           final gh = math.max(2.0, 14 * u);
           final gola = Rect.fromLTWH(d.left, y - gh / 2, d.width, gh);
-          canvas.drawRect(gola, Paint()..color = const Color(0xFF222426));
+          canvas.drawRect(gola, Paint()..color = Color.lerp(handleColor, Colors.black, 0.25)!);
           canvas.drawRect(Rect.fromLTWH(gola.left, gola.bottom - 1, gola.width, 1), Paint()..color = Colors.white24);
         }
         y += h;
@@ -532,6 +532,13 @@ void paintFront(
           panel(cellRect);
         case CellKind.niche:
           openNiche(realistic ? d.inflate(inset) : cellRect, wine: m.id == 'base_wine_rack');
+          if (m.id.startsWith('laundry_washer_dryer') && realistic) {
+            final duo = m.id.endsWith('side_by_side');
+            final n = cellRect.deflate(20 * u);
+            for (var k = 0; k < 2; k++) {
+              washer(duo ? Rect.fromLTWH(n.left + n.width / 2 * k, n.top, n.width / 2, n.height) : Rect.fromLTWH(n.left, n.top + n.height / 2 * k, n.width, n.height / 2));
+            }
+          }
         case CellKind.appliance:
           appliance(cellRect, c.h);
       }
@@ -785,10 +792,10 @@ class _ThumbPainter extends CustomPainter {
 /// Profil Gola (gorge en aluminium) fixé sur le caisson : en haut d'un meuble bas, en bas d'un meuble haut,
 /// à 1300 mm du bas sur une colonne, et entre les tiroirs. Dessiné à part quand les façades sont ouvertes :
 /// il ne bouge pas avec les portes (seule une poignée intégrée suit la porte).
-void paintGolaProfile(Canvas canvas, Rect r, CabinetModel m, {List<FrontCell>? cells, double u = 1}) {
+void paintGolaProfile(Canvas canvas, Rect r, CabinetModel m, {List<FrontCell>? cells, double u = 1, Color color = const Color(0xFF222426)}) {
   if (m.kind.isFiller || !m.isCarcass) return;
   final gh = math.max(2.0, 24 * u);
-  final golaPaint = Paint()..color = const Color(0xFF222426);
+  final golaPaint = Paint()..color = color;
   final golaHi = Paint()..color = Colors.white30;
   if (m.kind == CabinetKind.tall) {
     final gy = r.bottom - 1300 * u;

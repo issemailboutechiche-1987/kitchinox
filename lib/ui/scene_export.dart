@@ -157,7 +157,9 @@ class SceneExporter {
       final frMat = await _mat(fr, rough: 0.5, vertical: true);
       final boxes = e.boxesOf(c);
       final corner = m.kind.isCorner && m.isCarcass;
-      final opens = openableCells(m, c).isNotEmpty || corner;
+      final cellsAll = corner ? const <FrontCell>[] : cellsOf(rowsOf(m, c) ?? seedRows(m, c), c.height);
+      final niches = m.isCarcass && cellsAll.any((x) => x.kind == CellKind.niche) && m.id != 'base_wine_rack';
+      final opens = openableCells(m, c).isNotEmpty || corner || niches;
       for (var bi = 0; bi < boxes.length; bi++) {
         final b = boxes[bi].box;
         if (opens && (bi == 0 || corner)) {
@@ -184,7 +186,8 @@ class SceneExporter {
           // profil Gola (sans poignée) : gorge en aluminium fixée dans le caisson, sous le plan de travail
           // (et entre deux tiroirs) ; les façades s'arrêtent dessous, en dégageant la prise de main
           if (style.handle == 'gola' && !m.kind.isFiller && !m.isHoodUnit) {
-            final golaMat = _plain(const Color(0xFFB9BDC2), rough: 0.35, metal: 0.6);
+            final gc = golaColor(style, fr.color);
+            final golaMat = _plain(gc, rough: 0.4, metal: golaMetal(style) ? 0.6 : 0.05);
             // gorge de 26 mm de profondeur et 33 mm de haut : fond, lèvre basse, rebord haut
             void channel(double zTop) {
               solids.add({..._box(at(s0, s1, tf - 26, tf - 23, zTop - 33, zTop)), 'mat': golaMat, 'uid': c.uid});
@@ -209,15 +212,11 @@ class SceneExporter {
 
           // Finition de façade pour les côtés / joues visibles (choix personnalisé ou accordé aux bas/hauts)
           final epf = style.endPanelFinish;
-          final sideFinish = epf != null
-              ? frontFinish(style, epf)
-              : (m.kind.isHigh
-                  ? frontFinish(style, style.frontUpper ?? style.front)
-                  : frontFinish(style, style.frontLower ?? style.front));
+          final sideFinish = epf != null ? frontFinish(style, epf) : frontFinish(style, style.frontOf(c, high: m.kind.isHigh));
           final sideMat = await _mat(sideFinish, rough: 0.5, vertical: true);
 
-          final leftSideMat = (leftExposed && (c.s > 10 || style.endPanels)) ? sideMat : carcassMat;
-          final rightSideMat = (rightExposed && (c.s + c.width < w.length - 10 || style.endPanels)) ? sideMat : carcassMat;
+          final leftSideMat = (leftExposed && c.cheekL != 'non' && (c.s > 10 || style.endPanels)) ? sideMat : carcassMat;
+          final rightSideMat = (rightExposed && c.cheekR != 'non' && (c.s + c.width < w.length - 10 || style.endPanels)) ? sideMat : carcassMat;
 
           for (final (bx, mat) in [
             (at(s0, s0 + 18, t0, tf, b.z0, b.z1), leftSideMat), // côté gauche
@@ -230,7 +229,32 @@ class SceneExporter {
           }
           // étagères réelles dans les cases à porte sans appareil
           final apps = appliancesOf(m, c);
-          if (apps.isEmpty && !e.isWashing(m)) {
+          if (niches) {
+            final total = cellsAll.last.y + cellsAll.last.h;
+            final kz = (b.z1 - b.z0) / (total <= 0 ? 1 : total);
+            final machines = e.machinesIn(c).isNotEmpty;
+            final inMat = _plain(const Color(0xFFB9BDC2), rough: 0.35, metal: 0.6);
+            void shelf(double z) => solids.add({..._box(at(s0 + 18, s1 - 18, t0 + 18, tf - 10, z - 9, z + 9)), 'mat': carcassMat, 'uid': c.uid});
+            void rod(double z) => solids.add({..._box(at(s0 + 18, s1 - 18, (t0 + tf) / 2 - 12, (t0 + tf) / 2 + 12, z - 12, z + 12)), 'mat': inMat, 'uid': c.uid});
+            for (var i = 0; i < cellsAll.length; i++) {
+              final cell = cellsAll[i];
+              final zt = b.z1 - cell.y * kz, zb = zt - cell.h * kz;
+              if (i > 0) shelf(zt); // séparation entre deux cases
+              if (cell.kind != CellKind.niche || machines) continue;
+              final hang = m.id.contains('hanging');
+              if (hang && zt - zb > 700) {
+                shelf(zt - 320);
+                rod(zt - 390);
+                if (m.id.contains('double') && zt - zb > 1600) rod(zb + (zt - zb - 320) / 2 - 20);
+                continue;
+              }
+              final n = ((zt - zb) / 380).floor();
+              for (var k = 1; k < n; k++) {
+                shelf(zb + (zt - zb) * k / n);
+              }
+            }
+          }
+          if (!niches && apps.isEmpty && !e.isWashing(m)) {
             final inner = b.z1 - b.z0 - 36;
             final n = m.kind == CabinetKind.tall ? 4 : (inner > 600 ? 2 : (inner > 330 ? 1 : 0));
             final drawers = openableCells(m, c).where((x) => x.kind == CellKind.drawer).fold<double>(0, (a, x) => a + x.h);
@@ -294,10 +318,11 @@ class SceneExporter {
         final (s0, s1, _, t1) = w.boxToWall(b);
         final width = s1 - s0, height = b.z1 - b.z0;
         final parts = <Map<String, dynamic>>[];
-        if (bi == 0 && cells.isNotEmpty) {
+        if (bi == 0 && (cells.isNotEmpty || niches)) {
           final total = all.isEmpty ? height : all.last.y + all.last.h;
           final kz = height / (total <= 0 ? 1 : total);
           for (final cell in all) {
+            if (niches && cell.kind == CellKind.niche) continue; // niche ouverte : rien devant
             final zTop = b.z1 - cell.y * kz, h = cell.h * kz;
             final moving = cells.any((x) => x.y == cell.y && x.kind == cell.kind);
             final kind = !moving
@@ -384,6 +409,7 @@ class SceneExporter {
         } else {
           parts.add({'kind': 'static', 's0': s0, 's1': s1, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('box$bi', width, height, frontCells(m, c, realistic: true))});
         }
+        if (parts.isEmpty && niches) continue;
         fronts.add({'uid': c.uid, ..._frame(w), 't': t1, 'depth': c.depth, 'parts': parts, if (m.id.contains('mirror')) 'mirror': true});
       }
     }
@@ -445,31 +471,32 @@ class SceneExporter {
     final plinthMat = _plain(shade(lowFront.color, -0.12), rough: 0.6);
     for (final w in room.walls.where((w) => w.enabled)) {
       final cuts = (cutoutsByWall[w.id] ?? [])..sort((a, b) => a.s0.compareTo(b.s0));
-      for (final (a, b) in e.runs(w.id, (m) => e.kitchen && m.kind.isLow)) {
+      for (final (a, b) in e.runs(w.id, (m) => e.hasWorktop && m.kind.isLow)) {
+        final wz = e.worktopZ(w.id, a, b);
         final inRun = cuts.where((x) => x.s0 < b - 20 && x.s1 > a + 20).toList();
         if (inRun.isEmpty) {
-          solids.add({..._box(w.strip(a, b - a, worktopDepth.toDouble(), std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
+          solids.add({..._box(w.strip(a, b - a, worktopDepth.toDouble(), wz, std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
         } else {
           var curS = a;
           for (final cut in inRun) {
             final cs0 = math.max(a, cut.s0);
             final cs1 = math.min(b, cut.s1);
             if (cs0 > curS + 0.5) {
-              solids.add({..._box(w.stripRange(curS, cs0 - curS, 0, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
+              solids.add({..._box(w.stripRange(curS, cs0 - curS, 0, wd, wz, std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
             }
             // Bande arrière de plan (crédence / dosseret de robinetterie)
             if (cut.t0 > 0.5) {
-              solids.add({..._box(w.stripRange(cs0, cs1 - cs0, 0, cut.t0, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
+              solids.add({..._box(w.stripRange(cs0, cs1 - cs0, 0, cut.t0, wz, std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
             }
             // Bande avant de plan (nez de marche / chant avant)
             if (wd - cut.t1 > 0.5) {
-              solids.add({..._box(w.stripRange(cs0, cs1 - cs0, cut.t1, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
+              solids.add({..._box(w.stripRange(cs0, cs1 - cs0, cut.t1, wd, wz, std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
             }
             // Entre cut.t0 et cut.t1 : le trou d'encastrement reste ouvert et creux !
             curS = cs1;
           }
           if (b > curS + 0.5) {
-            solids.add({..._box(w.stripRange(curS, b - curS, 0, wd, std.baseTop.toDouble(), std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
+            solids.add({..._box(w.stripRange(curS, b - curS, 0, wd, wz, std.worktopThickness.toDouble())), 'mat': topMat, 'top': true});
           }
         }
       }
@@ -487,7 +514,7 @@ class SceneExporter {
         return Box3(math.min(ax, bx), math.min(ay, by), z0, math.max(ax, bx), math.max(ay, by), z1);
       }
 
-      for (final (a, b) in e.runs('I', (m) => e.kitchen && m.kind.isLow)) {
+      for (final (a, b) in e.runs('I', (m) => e.hasWorktop && m.kind.isLow)) {
         solids.add({..._box(box(a, b, -isl.overhang, Island.depth + 20, std.baseTop.toDouble(), std.worktopTop.toDouble())), 'mat': topMat, 'top': true});
         solids.add({..._box(box(a, b, -18, 0, 0, std.baseTop.toDouble())), 'mat': await _mat(lowFront, vertical: true)});
       }
@@ -501,7 +528,7 @@ class SceneExporter {
     for (final c in p.items) {
       final m = e.modelOf(c);
       final w = room.wall(c.wallId);
-      final topZ = std.worktopTop.toDouble();
+      final topZ = e.kitchen ? std.worktopTop.toDouble() : e.worktopZ(c.wallId, c.s, c.right) + std.worktopThickness;
       final isCookBase = (c == designatedHob) || m.id == 'base_cooktop_oven' || m.id == 'base_oven_built_in' || (e.isCooking(m) && m.kind.isLow) || m.id.contains('cooktop') || (c.appliances?.any((a) => a.contains('cooktop')) ?? false);
       final isSinkBase = (c == designatedSink) || m.id == 'base_sink' || e.isWashing(m) || m.id.contains('sink') || m.id.contains('evier') || (c.appliances?.any((a) => a.contains('sink')) ?? false);
       final isHoodUnit = m.id == 'wall_integrated_hood' || m.id.contains('hood') || m.id.contains('hotte');
@@ -609,12 +636,11 @@ class SceneExporter {
     }
 
     // joues de finition automatiques
-    if (style.endPanels) {
+    {
       for (final j in endPanels(e)) {
         final w = room.wall(j.wallId);
-        final finishId = style.endPanelFinish ?? (j.high ? (style.frontUpper ?? style.front) : (style.frontLower ?? style.front));
-        final f = frontFinish(style, finishId);
-        solids.add({..._box(w.strip(j.s, EndPanel.thickness, j.depth, j.z0, j.height)), 'mat': await _mat(f, rough: 0.5, vertical: true)});
+        final f = frontFinish(style, j.finishId(style));
+        solids.add({..._box(w.strip(j.s, EndPanel.thickness, j.depth, j.z0, j.height)), 'mat': await _mat(f, rough: 0.5, vertical: true), if (j.item != null) 'uid': j.item!.uid});
       }
     }
 
@@ -663,7 +689,20 @@ class SceneExporter {
             'yaw': ob.isFixture ? 0 : st.objectCatalog.where((c) => c.id == ob.ref).firstOrNull?.yaw ?? 0,
             'x': ob.x, 'y': ob.y, 'z': ob.z, 'rot': ob.rot, 'w': ob.w, 'h': ob.h, 'd': ob.d,
             if (ob.ref.startsWith('lib:')) 'panels': ArtLibrary.instance.panelsFor(ob, artColor),
-          }
+          },
+        // machines logées dans leur meuble (le toucher choisit le meuble)
+        for (final c in p.items)
+          for (final (i, mc) in e.machinesIn(c).indexed)
+            () {
+              final w = room.wall(c.wallId);
+              final (x, y) = w.toPlan(mc.s, c.depth - mc.d / 2 - 10);
+              final model = st.objectCatalog.where((o) => o.id == mc.ref).firstOrNull;
+              return {
+                'uid': 'machine-${c.uid}-$i', 'pick': c.uid, 'kind': 'model', 'type': mc.ref,
+                'file': model?.file, 'yaw': model?.yaw ?? 0,
+                'x': x, 'y': y, 'z': mc.z, 'rot': w.rot, 'w': mc.w, 'h': mc.h, 'd': mc.d,
+              };
+            }(),
       ],
       // vasques en céramique posées sur les meubles vasque (le toucher choisit le meuble)
       'basins': [

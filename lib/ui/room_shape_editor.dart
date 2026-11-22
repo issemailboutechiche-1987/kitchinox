@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 import 'i18n.dart';
 import 'app_settings.dart';
@@ -325,7 +326,7 @@ class _RoomShapeEditorState extends State<RoomShapeEditor> {
                     : tr('Effacez et tracez la pièce coin par coin, en traits droits ou en arcs.'),
                 style: t.bodySmall),
             SizedBox(height: 8),
-            SegmentedButton<String>(
+            KxChoices<String>(
               showSelectedIcon: false,
               segments: [
                 ButtonSegment(value: 'line', icon: Icon(Icons.horizontal_rule), label: Text(tr('Trait'))),
@@ -447,7 +448,7 @@ class _RoomShapeEditorState extends State<RoomShapeEditor> {
       const SizedBox(height: Tokens.s4),
       Text(trp('Mur {0}', [Room.outlineId(i)]), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
       SizedBox(height: 8),
-      SegmentedButton<bool>(
+      KxChoices<bool>(
         showSelectedIcon: false,
         segments: [ButtonSegment(value: false, label: Text(tr('Trait'))), ButtonSegment(value: true, label: Text(tr('Arc')))],
         selected: {a.bulge.abs() >= 0.5},

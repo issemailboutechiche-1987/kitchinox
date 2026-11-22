@@ -12,6 +12,7 @@ import 'i18n.dart';
 import 'quote_pdf.dart';
 import 'brands_ui.dart';
 import 'finishes.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 import 'web_io.dart';
 
@@ -112,7 +113,7 @@ class _QuoteView extends StatelessWidget {
                       const SizedBox(height: Tokens.s1),
                       Align(
                         alignment: AlignmentDirectional.centerStart,
-                        child: SegmentedButton<String>(
+                        child: KxChoices<String>(
                           key: const ValueKey('quote_gamme'),
                           showSelectedIcon: false,
                           segments: [
@@ -428,7 +429,7 @@ class _Section extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(Tokens.s3, Tokens.s3, Tokens.s3, Tokens.s1),
             child: Wrap(spacing: Tokens.s3, runSpacing: Tokens.s2, crossAxisAlignment: WrapCrossAlignment.center, children: [
               if (ranged)
-                SegmentedButton<int>(
+                KxChoices<int>(
                   key: ValueKey('quote_level_$section'),
                   showSelectedIcon: false,
                   style: const ButtonStyle(visualDensity: VisualDensity.compact),

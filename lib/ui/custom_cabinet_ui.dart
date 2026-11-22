@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'app_state.dart';
 import 'i18n.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 
 Future<void> showCustomCabinetDialog(BuildContext context, AppState st, void Function(String) onMessage) async {
@@ -39,7 +40,7 @@ Future<void> showCustomCabinetDialog(BuildContext context, AppState st, void Fun
           content: SizedBox(
             width: 460,
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              SegmentedButton<String>(
+              KxChoices<String>(
                 key: const ValueKey('custom_type'),
                 showSelectedIcon: false,
                 segments: [
