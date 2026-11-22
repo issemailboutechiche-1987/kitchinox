@@ -699,23 +699,31 @@ class StylePanel extends StatelessWidget {
               SegmentedButton<String>(
                 showSelectedIcon: false,
                 segments: [
+                  ButtonSegment(value: 'auto', label: Text(tr('Automatique'))),
                   ButtonSegment(value: 'lower', label: Text(tr('Comme les bas / colonnes'))),
                   ButtonSegment(value: 'upper', label: Text(tr('Comme les hauts'))),
                   ButtonSegment(value: 'custom', label: Text(tr('Personnalisée'))),
                 ],
                 selected: {
-                  st.endPanelFinish == null || st.endPanelFinish == (st.frontLower ?? st.front)
-                      ? 'lower'
-                      : (st.endPanelFinish == (st.frontUpper ?? st.front) ? 'upper' : 'custom')
+                  st.endPanelFinish == null
+                      ? 'auto'
+                      : st.endPanelFinish == (st.frontLower ?? st.front)
+                          ? 'lower'
+                          : (st.endPanelFinish == (st.frontUpper ?? st.front) ? 'upper' : 'custom')
                 },
                 onSelectionChanged: (v) {
                   final sel = v.first;
-                  if (sel == 'lower') {
+                  if (sel == 'auto') {
+                    state.setFinishOptions(clearEndPanelFinish: true);
+                  } else if (sel == 'lower') {
                     state.setFinishOptions(endPanelFinish: st.frontLower ?? st.front);
                   } else if (sel == 'upper') {
                     state.setFinishOptions(endPanelFinish: st.frontUpper ?? st.front);
                   } else {
-                    state.setFinishOptions(endPanelFinish: st.front);
+                    // une finition différente des deux autres, à changer ensuite dans la palette
+                    final taken = {st.frontLower ?? st.front, st.frontUpper ?? st.front};
+                    final other = frontFinishes(st).where((f) => !taken.contains(f.id)).firstOrNull;
+                    if (other != null) state.setFinishOptions(endPanelFinish: other.id);
                   }
                 },
               ),
@@ -1638,7 +1646,7 @@ class SummaryPanel extends StatelessWidget {
                     children: [
                       stat('${plan.partCount}', 'pièces à débiter'),
                       const SizedBox(width: Tokens.s2),
-                      stat('${plan.sheets.length}', 'panneaux ${p.cut.sheetLength}×${p.cut.sheetWidth}'),
+                      stat('${plan.sheets.length}', 'panneaux ${{for (final s in plan.sheets) '${s.length.round()}×${s.width.round()}'}.join(' · ')}'),
                       const SizedBox(width: Tokens.s2),
                       stat('${pct.toStringAsFixed(0)} %', 'utilisation'),
                     ],

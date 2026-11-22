@@ -25,8 +25,9 @@ import 'favorites.dart';
 import 'busy.dart';
 import 'cut_pdf.dart';
 import 'finishes.dart';
-import 'logo.dart';
 import 'manual_cut_page.dart';
+import 'kx_top_bar.dart';
+import 'sct_export.dart';
 import 'session.dart';
 import 'theme.dart';
 import 'web_io.dart';
@@ -2631,18 +2632,9 @@ class _ArtPageState extends State<ArtPage> {
     _msg(tr('Plan de fabrication téléchargé (PDF)'));
   }
 
-  /// Épaisseur d'une matière de débit : « Latté … 18 · 2440×1220 » → 18 ; « MDF 18 (caisson) » → 18.
-  static String _thicknessOf(String m) {
-    final dot = RegExp(r'(\d+(?:[.,]\d+)?)\s*·').firstMatch(m);
-    if (dot != null) return dot.group(1)!;
-    return RegExp(r'\d+').firstMatch(m)?.group(0) ?? '18';
-  }
-
-  void _sct() {
-    final plan = art.plan(widget.state.project.cut);
-    for (final m in plan.materials) {
-      downloadBytes('${art.name}_${m.split(' ').take(2).join('_')}.sct', toSct(plan, m, order: art.name, thickness: _thicknessOf(m)).codeUnits);
-    }
+  Future<void> _sct() async {
+    final msg = await exportSctFiles(context, art.plan(widget.state.project.cut), name: art.name);
+    if (msg != null) _msg(msg);
   }
 
   void _toManual() {
@@ -2679,6 +2671,7 @@ class _ArtPageState extends State<ArtPage> {
           body: SafeArea(
             child: Column(children: [
               _menuBar(scheme),
+              Divider(height: 1, color: scheme.outlineVariant),
               _topBar(t, scheme),
               Divider(height: 1, color: scheme.outlineVariant),
               Expanded(
@@ -2734,13 +2727,7 @@ class _ArtPageState extends State<ArtPage> {
 
   /// Barre de menus à la manière de SketchUp : Fichier, Édition, Affichage, Dessin, Outils, Fenêtre, Aide.
   Widget _menuBar(ColorScheme scheme) {
-    MenuItemButton item(String label, VoidCallback? on, {IconData? icon, MenuSerializableShortcut? keys, String? key, bool checked = false}) => MenuItemButton(
-          key: key == null ? null : ValueKey(key),
-          onPressed: on,
-          shortcut: keys,
-          leadingIcon: checked ? const Icon(Icons.check, size: 18) : (icon == null ? const SizedBox(width: 18) : Icon(icon, size: 18)),
-          child: Text(tr(label)),
-        );
+    const item = kxItem;
     MenuItemButton tool(CadTool t, {IconData? icon, MenuSerializableShortcut? keys}) =>
         item(t.label, () => _selectTool(t), icon: icon, keys: keys, checked: activeTool == t, key: 'menu_tool_${t.name}');
     void view(String v) => setState(() {
@@ -2752,14 +2739,13 @@ class _ArtPageState extends State<ArtPage> {
           sideOpen = true;
           if (id == 'usinage') isMachiningMode = true;
         });
-    SubmenuButton menu(String label, String key, List<Widget> children) =>
-        SubmenuButton(key: ValueKey(key), menuChildren: children, child: Text(tr(label), style: const TextStyle(fontWeight: FontWeight.w600)));
-    return Container(
-      color: scheme.surface,
-      alignment: Alignment.centerLeft,
-      child: MenuBar(
-        style: const MenuStyle(elevation: WidgetStatePropertyAll(0), padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 4))),
-        children: [
+    KxMenu menu(String label, String key, List<Widget> children) => KxMenu(label, key, children);
+    return KxTopBar(
+      onHome: () => Navigator.of(context).maybePop(),
+      onUndo: _undo.isEmpty ? null : _undoOnce,
+      onRedo: _redo.isEmpty ? null : _redoOnce,
+      onSave: _saveKin,
+      menus: [
           menu('Fichier', 'menu_file', [
             item('Nouveau…', _newScene, icon: Icons.add_box_outlined, key: 'menu_new'),
             item('Ouvrir… (.kin, .sct)', _openFile, icon: Icons.folder_open_outlined, key: 'menu_open'),
@@ -2864,8 +2850,7 @@ class _ArtPageState extends State<ArtPage> {
                   ),
                 ), icon: Icons.help_outline),
           ]),
-        ],
-      ),
+      ],
     );
   }
 
@@ -2882,7 +2867,6 @@ class _ArtPageState extends State<ArtPage> {
       color: scheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: Tokens.s2, vertical: 4),
       child: Row(children: [
-        IconButton(tooltip: tr('Accueil'), icon: const Icon(Icons.home_outlined), onPressed: () => Navigator.of(context).maybePop()),
         IconButton(
           key: const ValueKey('side_toggle'),
           tooltip: tr('Panneau latéral'),
@@ -2891,7 +2875,6 @@ class _ArtPageState extends State<ArtPage> {
           selectedIcon: const Icon(Icons.view_sidebar),
           onPressed: () => setState(() => sideOpen = !sideOpen),
         ),
-        const SizedBox(width: 48, height: 40, child: LogoMark()),
         const SizedBox(width: 8),
         Text(tr('Atelier'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(width: 6),
@@ -2913,11 +2896,6 @@ class _ArtPageState extends State<ArtPage> {
               _msg(tr('Caisson dupliqué avec succès'));
             },
           ),
-        IconButton(
-          tooltip: tr('Enregistrer (.kin)'),
-          icon: const Icon(Icons.save_outlined),
-          onPressed: _saveKin,
-        ),
         IconButton(
           key: const ValueKey('blueprint'),
           tooltip: tr('Plan de fabrication (PDF)'),
@@ -2950,8 +2928,6 @@ class _ArtPageState extends State<ArtPage> {
               const SizedBox(width: 6),
               FilterChip(label: Text(tr('Composants')), selected: byComp, onSelected: (v) => setState(() => byComp = v)),
               IconButton(tooltip: tr('Tout voir'), onPressed: _fit, icon: const Icon(Icons.fit_screen_outlined)),
-              IconButton(tooltip: tr('Annuler'), onPressed: _undo.isEmpty ? null : _undoOnce, icon: const Icon(Icons.undo)),
-              IconButton(tooltip: tr('Rétablir'), onPressed: _redo.isEmpty ? null : _redoOnce, icon: const Icon(Icons.redo)),
             ]),
           ),
         ),
@@ -5253,6 +5229,23 @@ class _ScenePainter extends CustomPainter {
     }
 
     // ---------------------------------------------------------------- CAO & Menuiserie (Chants, Rainures, Esquisses)
+    // Trait tracé seulement là où aucun panneau ne le cache (3 mm de marge : le panneau qui le porte, ses voisins à fleur).
+    void seen(V3 a, V3 b, Paint paint) {
+      const steps = 12;
+      for (var i = 0; i < steps; i++) {
+        final s0 = a + (b - a) * (i / steps), s1 = a + (b - a) * ((i + 1) / steps);
+        final mid = (s0 + s1) * 0.5, px = p(mid);
+        final f = pickFace(cam, panels, px);
+        var hidden = false;
+        if (f != null) {
+          final (o, d) = cam.ray(px);
+          final dn = d[f.axis];
+          hidden = dn.abs() > 1e-9 && (f.plane - o[f.axis]) / dn < (mid - o).dot(d) - 3;
+        }
+        if (!hidden) c.drawLine(p(s0), p(s1), paint);
+      }
+    }
+
     // 1. Chants sur les arêtes des panneaux
     for (final pn in panels) {
       if (pn.edgeLong > 0 || pn.edgeShort > 0) {
@@ -5264,14 +5257,11 @@ class _ScenePainter extends CustomPainter {
           ..strokeWidth = math.max(3.0, pn.edgeThickness * 2.2)
           ..strokeCap = StrokeCap.round
           ..color = col;
-        final c1 = p(V3(pn.x, pn.y, pn.z));
-        final c2 = p(V3(pn.right, pn.y, pn.z));
-        final c3 = p(V3(pn.right, pn.top, pn.z));
-        final c4 = p(V3(pn.x, pn.top, pn.z));
-        if (pn.edgeLong >= 1) c.drawLine(c1, c2, chantPaint);
-        if (pn.edgeLong >= 2) c.drawLine(c4, c3, chantPaint);
-        if (pn.edgeShort >= 1) c.drawLine(c1, c4, chantPaint);
-        if (pn.edgeShort >= 2) c.drawLine(c2, c3, chantPaint);
+        final c1 = V3(pn.x, pn.y, pn.z), c2 = V3(pn.right, pn.y, pn.z), c3 = V3(pn.right, pn.top, pn.z), c4 = V3(pn.x, pn.top, pn.z);
+        if (pn.edgeLong >= 1) seen(c1, c2, chantPaint);
+        if (pn.edgeLong >= 2) seen(c4, c3, chantPaint);
+        if (pn.edgeShort >= 1) seen(c1, c4, chantPaint);
+        if (pn.edgeShort >= 2) seen(c2, c3, chantPaint);
       }
 
       // 2. Rainures (Grooves)
@@ -5280,9 +5270,7 @@ class _ScenePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.4
           ..color = const Color(0xFF334155);
-        final g1 = p(V3(pn.x + pn.grooveOffset, pn.y + pn.grooveOffset, pn.z));
-        final g2 = p(V3(pn.right - pn.grooveOffset, pn.y + pn.grooveOffset, pn.z));
-        c.drawLine(g1, g2, groovePaint);
+        seen(V3(pn.x + pn.grooveOffset, pn.y + pn.grooveOffset, pn.z), V3(pn.right - pn.grooveOffset, pn.y + pn.grooveOffset, pn.z), groovePaint);
       }
     }
 
@@ -5295,19 +5283,10 @@ class _ScenePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..color = _orange;
     const edges = [(0, 1), (2, 3), (4, 5), (6, 7), (0, 2), (1, 3), (4, 6), (5, 7), (0, 4), (1, 5), (2, 6), (3, 7)];
-    const steps = 8;
     for (final sp in panels.where((q) => chosen.contains(q.id))) {
-      final k = [for (final x in [sp.x, sp.right]) for (final y in [sp.y, sp.top]) for (final z in [sp.z, sp.back]) p(V3(x, y, z))];
-      final center = p(V3(sp.x + sp.w / 2, sp.y + sp.h / 2, sp.z + sp.d / 2));
+      final k = [for (final x in [sp.x, sp.right]) for (final y in [sp.y, sp.top]) for (final z in [sp.z, sp.back]) V3(x, y, z)];
       for (final (a, b) in edges) {
-        for (var i = 0; i < steps; i++) {
-          final s0 = Offset.lerp(k[a], k[b], i / steps)!, s1 = Offset.lerp(k[a], k[b], (i + 1) / steps)!;
-          final mid = Offset.lerp(s0, s1, 0.5)!;
-          final towards = center - mid;
-          final probe = towards.distance < 1 ? mid : mid + towards / towards.distance * 2.5;
-          final f = pickFace(cam, panels, probe);
-          if (f == null || identical(f.panel, sp) || f.panel.id == sp.id) c.drawLine(s0, s1, sel);
-        }
+        seen(k[a], k[b], sel);
       }
     }
 
@@ -5393,20 +5372,17 @@ class _ScenePainter extends CustomPainter {
           continue;
         }
         if (el.kind != MachiningKind.edge && el.kind != MachiningKind.groove) continue;
-        final mid = el.position + el.normal * (el.length / 2);
-        final f = pickFace(cam, panels, p(mid));
-        if (f == null || (f.panel.id != el.panelId && f.panel.id != el.partnerPanelId)) continue; // caché derrière un autre panneau
         if (el.kind == MachiningKind.edge) {
-          c.drawLine(p(el.position), p(el.end), Paint()
+          seen(el.position, el.end, Paint()
             ..strokeWidth = el.diameter >= 2 ? 3.2 : 2.2
             ..strokeCap = StrokeCap.round
             ..color = el.diameter >= 2 ? const Color(0xFFF26522) : const Color(0xFFF59E0B));
         } else {
-          c.drawLine(p(el.position), p(el.end), Paint()
+          seen(el.position, el.end, Paint()
             ..strokeWidth = 3.4
             ..strokeCap = StrokeCap.butt
             ..color = const Color(0xFF334155));
-          c.drawLine(p(el.position), p(el.end), Paint()
+          seen(el.position, el.end, Paint()
             ..strokeWidth = 1.2
             ..color = const Color(0xFFCBD5E1));
         }

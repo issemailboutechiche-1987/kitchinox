@@ -12,6 +12,13 @@ import 'engine/furniture_accessories.dart';
 import 'engine/saved_projects.dart';
 import 'ui/app_state.dart';
 import 'ui/nest_service.dart';
+import 'ui/custom_cabinet_ui.dart';
+import 'ui/furniture_accessories_ui.dart';
+import 'ui/kx_top_bar.dart';
+import 'ui/openings_ui.dart';
+import 'ui/project_settings_dialog.dart';
+import 'ui/saved_projects_dialog.dart';
+import 'ui/sct_export.dart';
 import 'ui/session.dart';
 import 'ui/busy.dart';
 import 'ui/canvas_view.dart';
@@ -319,32 +326,6 @@ class PlannerScreen extends StatefulWidget {
   State<PlannerScreen> createState() => _PlannerScreenState();
 }
 
-class _SctChoice {
-  final String material;
-  final String categoryKey;
-  final String categoryTitle;
-  final IconData icon;
-  final int sheetL;
-  final int sheetW;
-  final int thickness;
-  final int partCount;
-  final int sheetCount;
-  bool selected;
-
-  _SctChoice({
-    required this.material,
-    required this.categoryKey,
-    required this.categoryTitle,
-    required this.icon,
-    required this.sheetL,
-    required this.sheetW,
-    required this.thickness,
-    required this.partCount,
-    required this.sheetCount,
-    this.selected = true,
-  });
-}
-
 class _PlannerScreenState extends State<PlannerScreen> {
   final _scaffold = GlobalKey<ScaffoldState>();
   final _canvasFocus = FocusNode(debugLabel: 'canvas');
@@ -631,181 +612,22 @@ class _PlannerScreenState extends State<PlannerScreen> {
       _msg(tr('Aucune pièce à débiter'));
       return;
     }
-    final cs = st.project.cut;
-
-    bool isFrontMat(String m) =>
-        m == cs.frontMaterial ||
-        m.contains('Façade') ||
-        m.contains('Porte') ||
-        m.contains('High Gloss') ||
-        m.contains('Acrylique') ||
-        m.contains('PET') ||
-        m.contains('Laqué');
-
-    bool isBackMat(String m) =>
-        m == cs.backMaterial ||
-        m.contains('HDF') ||
-        m.contains('Fond') ||
-        m.contains('fond') ||
-        m.contains('6 mm') ||
-        m.contains('3 mm');
-
-    final choices = <_SctChoice>[];
-    for (final mat in plan.materials) {
-      final isF = isFrontMat(mat);
-      final isB = isBackMat(mat);
-      final key = isF ? 'Facades' : (isB ? 'Fonds' : 'Caissons');
-      final title = isF
-          ? tr('Façades (Portes & tiroirs)')
-          : (isB ? tr('Fonds / Dos (Derrière rainuré)') : tr('Caissons (Corps de meuble)'));
-      final icon = isF
-          ? Icons.door_front_door_outlined
-          : (isB ? Icons.flip_to_back : Icons.kitchen);
-      final t = isF ? cs.doorThickness : (isB ? cs.backThickness : cs.carcassThickness);
-      final (sL, sW) = cs.sheetDimensionsFor(mat);
-      final parts = plan.parts.where((p) => p.material == mat).toList();
-      final partQty = parts.fold<int>(0, (sum, p) => sum + p.qty);
-      final sheetQty = plan.sheets.where((s) => s.material == mat).length;
-
-      choices.add(_SctChoice(
-        material: mat,
-        categoryKey: key,
-        categoryTitle: title,
-        icon: icon,
-        sheetL: sL,
-        sheetW: sW,
-        thickness: t,
-        partCount: partQty,
-        sheetCount: sheetQty,
-        selected: true,
-      ));
-    }
-
     if (!mounted) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setD) {
-          final t = Theme.of(ctx).textTheme;
-          final scheme = Theme.of(ctx).colorScheme;
-          final selectedCount = choices.where((c) => c.selected).length;
-
-          return AlertDialog(
-            title: Row(
-              children: [
-                const Icon(Icons.content_cut, color: Color(0xFFF26522)),
-                const SizedBox(width: Tokens.s2),
-                Text(tr('Export SketchCut PRO (.sct)')),
-              ],
-            ),
-            content: SizedBox(
-              width: 520,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    tr('Sélectionnez les catégories de panneaux à exporter :'),
-                    style: t.bodyMedium,
-                  ),
-                  const SizedBox(height: Tokens.s2),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => setD(() {
-                          for (final c in choices) {
-                            c.selected = true;
-                          }
-                        }),
-                        child: Text(tr('Tout cocher')),
-                      ),
-                      TextButton(
-                        onPressed: () => setD(() {
-                          for (final c in choices) {
-                            c.selected = false;
-                          }
-                        }),
-                        child: Text(tr('Tout décocher')),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 1),
-                  const SizedBox(height: Tokens.s1),
-                  for (final c in choices)
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      decoration: BoxDecoration(
-                        color: c.selected
-                            ? const Color(0xFFF26522).withValues(alpha: 0.08)
-                            : scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: c.selected ? const Color(0xFFF26522) : scheme.outlineVariant,
-                          width: c.selected ? 1.5 : 1.0,
-                        ),
-                      ),
-                      child: CheckboxListTile(
-                        value: c.selected,
-                        onChanged: (v) => setD(() => c.selected = v ?? false),
-                        secondary: Icon(c.icon, color: const Color(0xFFF26522)),
-                        title: Text(c.categoryTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        subtitle: Text(
-                          '${c.material} · ${c.sheetL} × ${c.sheetW} × ${c.thickness} mm\n${c.partCount} pièces · ${c.sheetCount} feuille(s)',
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                        isThreeLine: true,
-                        activeColor: const Color(0xFFF26522),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(tr('Annuler')),
-              ),
-              FilledButton.icon(
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF26522)),
-                icon: const Icon(Icons.download, size: 18),
-                onPressed: selectedCount == 0 ? null : () => Navigator.pop(ctx, true),
-                label: Text(
-                  selectedCount <= 1
-                      ? tr('Exporter 1 fichier .sct')
-                      : trp('Exporter {0} fichiers .sct', [selectedCount]),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    var exported = 0;
-    for (final c in choices.where((x) => x.selected)) {
-      final file = toSct(plan, c.material, order: '${st.project.name}_${c.categoryKey}', thickness: '${c.thickness}');
-      final safe = c.material.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_');
-      final filename = '${st.project.name}_${c.categoryKey}_${safe}_${c.sheetL}x${c.sheetW}_${c.thickness}mm.sct';
-      downloadBytes(filename, utf8.encode(file), mime: 'text/plain');
-      exported++;
-    }
-    _msg(exported == 1
-        ? tr('1 fichier .sct exporté pour SketchCut PRO')
-        : trp('{0} fichiers .sct exportés pour SketchCut PRO', [exported]));
+    final msg = await exportSctFiles(context, plan, name: st.project.name);
+    if (msg != null) _msg(msg);
   }
 
   Future<void> _cutSettings() async {
     final cs = st.project.cut;
-    final (fL, fW) = cs.sheetDimensionsFor(cs.frontMaterial);
+    final (fL, fW) = cs.sheetDimensionsFor(cs.frontKey);
+    final (bL, bW) = cs.sheetDimensionsFor(cs.backMaterial);
     final fields = <String, TextEditingController>{
       'Longueur feuille caissons (mm)': TextEditingController(text: '${cs.sheetLength}'),
       'Largeur feuille caissons (mm)': TextEditingController(text: '${cs.sheetWidth}'),
       'Longueur feuille façades (mm)': TextEditingController(text: '$fL'),
       'Largeur feuille façades (mm)': TextEditingController(text: '$fW'),
+      'Longueur feuille fonds (mm)': TextEditingController(text: '$bL'),
+      'Largeur feuille fonds (mm)': TextEditingController(text: '$bW'),
       'Trait de scie (mm)': TextEditingController(text: '${cs.kerf}'),
       'Recoupe des bords (mm)': TextEditingController(text: '${cs.trim}'),
       'Épaisseur caisson (mm)': TextEditingController(text: '${cs.carcassThickness}'),
@@ -823,6 +645,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
     final sp = st.project.specs;
     final prices = <String, TextEditingController>{
       'Prix d\'une feuille (MAD)': TextEditingController(text: sp.sheetPrice?.round().toString() ?? ''),
+      'Prix d\'une feuille de façades (MAD)': TextEditingController(text: sp.frontSheetPrice?.round().toString() ?? ''),
+      'Prix d\'une feuille de fonds (MAD)': TextEditingController(text: sp.backSheetPrice?.round().toString() ?? ''),
       'Chant posé, min (MAD/m)': TextEditingController(text: sp.edgePriceMin?.toString() ?? ''),
       'Chant posé, max (MAD/m)': TextEditingController(text: sp.edgePriceMax?.toString() ?? ''),
       'Découpe par feuille (MAD)': TextEditingController(text: sp.cuttingPerSheet.toString()),
@@ -844,9 +668,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
                 padding: const EdgeInsets.only(bottom: Tokens.s3),
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  initialValue: carcassMaterialChoices.contains(carcassMat) ? carcassMat : carcassMaterialChoices.first,
+                  initialValue: carcassMat,
                   decoration: InputDecoration(labelText: tr('Matériau des caissons'), border: const OutlineInputBorder(), isDense: true),
-                  items: [for (final m in carcassMaterialChoices) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
+                  items: [for (final m in {carcassMat, ...carcassMaterialChoices}) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
                   onChanged: (v) {
                     if (v == null) return;
                     carcassMat = v;
@@ -881,9 +705,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
                 padding: const EdgeInsets.only(bottom: Tokens.s3),
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  initialValue: frontMaterialChoices.contains(frontMat) ? frontMat : frontMaterialChoices.first,
+                  initialValue: frontMat,
                   decoration: InputDecoration(labelText: tr('Matériau des façades'), border: const OutlineInputBorder(), isDense: true),
-                  items: [for (final m in frontMaterialChoices) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
+                  items: [for (final m in {frontMat, ...frontMaterialChoices}) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
                   onChanged: (v) {
                     if (v == null) return;
                     frontMat = v;
@@ -921,7 +745,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                     controller: e.value,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(labelText: e.key, border: const OutlineInputBorder(), isDense: true),
+                    decoration: InputDecoration(labelText: tr(e.key), border: const OutlineInputBorder(), isDense: true),
                   ),
                 ),
               if (st.db != null) ...[
@@ -976,7 +800,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                     child: TextField(
                       controller: e.value,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(labelText: e.key, border: OutlineInputBorder(), isDense: true, helperText: e.key.startsWith('Prix') ? tr('vide = fourchette du catalogue') : null),
+                      decoration: InputDecoration(labelText: tr(e.key), border: OutlineInputBorder(), isDense: true, helperText: e.key.startsWith('Prix') ? tr('vide = fourchette du catalogue') : null),
                     ),
                   ),
                 DropdownButtonFormField<String>(
@@ -1082,7 +906,9 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         ..golaMid = int.tryParse(fields['Retrait Gola, façades suivantes (mm)']!.text) ?? cs.golaMid
         ..backThickness = v('Épaisseur du fond arrière (mm)', cs.backThickness)
         ..grooveDepth = int.tryParse(fields['Profondeur de rainure du fond (mm)']!.text) ?? cs.grooveDepth
-        ..backMaterial = 'HDF ${v('Épaisseur du fond arrière (mm)', cs.backThickness)} mm'
+        ..backMaterial = backMaterialName(cs.backMaterial, cs.backThickness)
+        ..backSheetLength = v('Longueur feuille fonds (mm)', bL)
+        ..backSheetWidth = v('Largeur feuille fonds (mm)', bW)
         ..backPanel = backPanel
         ..includeRails = rails
         ..includeShelves = shelves
@@ -1096,6 +922,8 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         ..carcassPanel = panel
         ..frontPanel = panel
         ..sheetPrice = pv('Prix d\'une feuille (MAD)')
+        ..frontSheetPrice = pv('Prix d\'une feuille de façades (MAD)')
+        ..backSheetPrice = pv('Prix d\'une feuille de fonds (MAD)')
         ..edgePriceMin = pv('Chant posé, min (MAD/m)')
         ..edgePriceMax = pv('Chant posé, max (MAD/m)')
         ..cuttingPerSheet = pv('Découpe par feuille (MAD)') ?? 0
@@ -1106,6 +934,79 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
   }
 
   void _issues() => _scaffold.currentState?.openEndDrawer();
+
+  /// Barre de menus, la même dans la cuisine, les autres univers et l'atelier Art.
+  List<KxMenu> _menus() {
+    final layout = st.step == PlanStep.layout;
+    final has = st.selectedItem != null;
+    return [
+      KxMenu('Fichier', 'menu_file', [
+        kxItem('Nouveau projet', _newProjectWithClient, icon: Icons.add_box_outlined),
+        kxItem('Ouvrir… (.kin, .sct)', _open, icon: Icons.folder_open_outlined, key: 'menu_open'),
+        kxItem('Projets enregistrés', () => showSavedProjectsDialog(context, st), icon: Icons.folder_special_outlined),
+        const Divider(height: 1),
+        kxItem('Enregistrer', _save, icon: Icons.save_outlined, key: 'menu_save'),
+        kxItem('Enregistrer sous (.kin)', _saveAs, icon: Icons.save_as_outlined),
+        kxItem('Exporter le projet (.kin)', _download, icon: Icons.download_outlined),
+        const Divider(height: 1),
+        kxItem("Plan d'exécution (PDF)", _exportPdf, icon: Icons.picture_as_pdf_outlined),
+        kxItem('Plan de découpe (PDF)', _cutPdf, icon: Icons.grid_on),
+        kxItem('Fichiers SketchCut (.sct)', _sct, icon: Icons.content_cut, key: 'menu_sct'),
+        kxItem('Exporter vers Excel (.xlsx)', _exportExcel, icon: Icons.table_chart_outlined),
+        kxItem('Exporter la liste (CSV)', _exportCsv, icon: Icons.table_view_outlined),
+        const Divider(height: 1),
+        kxItem('Quitter', () => Navigator.of(context).maybePop(), icon: Icons.logout),
+      ]),
+      KxMenu('Édition', 'menu_edit', [
+        kxItem('Annuler l’action', st.canUndo ? st.undo : null, icon: Icons.undo, keys: const SingleActivator(LogicalKeyboardKey.keyZ, control: true)),
+        kxItem('Rétablir l’action', st.canRedo ? st.redo : null, icon: Icons.redo, keys: const SingleActivator(LogicalKeyboardKey.keyY, control: true)),
+        const Divider(height: 1),
+        kxItem('Dupliquer', has ? () => _msg(st.duplicateSelected() ?? tr('Élément dupliqué')) : null, icon: Icons.copy_all_outlined),
+        kxItem('Supprimer', has || st.selectedOpeningObj != null || st.selectedPointObj != null || st.selectedObjectObj != null ? st.deleteSelected : null, icon: Icons.delete_outline),
+        kxItem('Tout désélectionner', () {
+          st.select(null);
+          st.selectOpening(null);
+          st.selectPoint(null);
+          st.selectObject(null);
+        }, icon: Icons.deselect),
+        const Divider(height: 1),
+        kxItem('Verrouiller les déplacements', () {
+          st.lockMoves = !st.lockMoves;
+          st.refresh();
+        }, icon: Icons.lock_open_outlined, checked: st.lockMoves),
+      ]),
+      KxMenu('Affichage', 'menu_view', [
+        kxItem('Vue du dessus', () => st.setView(ViewMode.plan), icon: Icons.grid_view, checked: st.view == ViewMode.plan),
+        kxItem('Vue de face', () => st.setView(ViewMode.front), icon: Icons.crop_portrait, checked: st.view == ViewMode.front),
+        kxItem('3D', () => st.setView(ViewMode.view3d), icon: Icons.view_in_ar_outlined, checked: st.view == ViewMode.view3d),
+        const Divider(height: 1),
+        kxItem('Tout afficher', st.resetZoom, icon: Icons.fit_screen_outlined),
+        const Divider(height: 1),
+        for (final l in AppLang.values)
+          kxItem(l.label, () {
+            AppSettings.instance.update((s) => s.lang = l);
+            st.refresh();
+          }, icon: Icons.translate, checked: AppSettings.instance.lang == l),
+      ]),
+      KxMenu('Insertion', 'menu_insert', [
+        kxItem('Ajouter des meubles', layout ? () => st.openBrowse(const CatalogBrowse(Shelf.base)) : null, icon: Icons.add_box_outlined),
+        if (st.catalog.tryGet('custom_base') != null)
+          kxItem('Caisson personnalisé', layout ? () => showCustomCabinetDialog(context, st, _msg) : null, icon: Icons.dashboard_customize_outlined),
+        kxItem('Accessoires', layout ? () => showFurnitureAccessoriesDialog(context, st) : null, icon: Icons.inventory_2_outlined),
+        kxItem('Objets', st.step == PlanStep.summary ? null : () => st.openObjects(true), icon: Icons.chair_outlined),
+        kxItem('Portes et fenêtres', st.step == PlanStep.summary ? null : () => showOpeningPicker(context, st, _msg), icon: Icons.sensor_door_outlined),
+      ]),
+      KxMenu('Outils', 'menu_tools', [
+        kxItem('Paramètres du projet', () => showProjectSettingsDialog(context, st, _msg), icon: Icons.tune),
+        kxItem('Réglages du débit et tarifs', _cutSettings, icon: Icons.straighten),
+        kxItem('Débit manuel', () => openManualCut(context, st), icon: Icons.edit_note),
+        kxItem('Contrôles', _issues, icon: Icons.rule),
+      ]),
+      KxMenu('Fenêtre', 'menu_window', [
+        for (final s in PlanStep.values) kxItem(s.label, () => st.goTo(s), checked: st.step == s),
+      ]),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1221,6 +1122,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
                 onDownload: _download,
                 onClient: () => showClientDialog(context, st, _msg),
                 onIssues: _issues,
+                menus: _menus(),
                 themeMode: widget.themeMode,
                 onThemeMode: widget.onThemeMode,
               ),

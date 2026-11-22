@@ -100,7 +100,7 @@ Future<Uint8List> buildExecutionPdf(LayoutEngine e,
   };
   final coverW = format.width - 2 * margin - 330 - gap;
   Uint8List? view3d;
-  final web3dData = getWeb3dSnapshotPng();
+  final web3dData = await getWeb3dSnapshotPng();
   if (web3dData != null && web3dData.startsWith('data:image/png;base64,')) {
     try {
       final b64 = web3dData.substring('data:image/png;base64,'.length);

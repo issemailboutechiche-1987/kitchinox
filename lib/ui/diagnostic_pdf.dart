@@ -79,7 +79,8 @@ Future<Uint8List> buildDiagnosticPdf(AppState state) async {
   final plan = state.cutPlan;
   final nSheets = plan.sheets.length;
   final nParts = plan.parts.fold<int>(0, (a, x) => a + x.qty);
-  final sheetArea = (p.cut.sheetLength * p.cut.sheetWidth / 1e6) * nSheets;
+  final sheetArea = plan.sheets.fold<double>(0, (a, s) => a + s.length * s.width) / 1e6; // chaque panneau a son format
+  final formats = {for (final s in plan.sheets) '${s.length.round()}x${s.width.round()}'}.join(' / ');
   final usedArea = plan.sheets.fold<double>(0, (a, s) => a + s.placements.fold<double>(0, (b, pl) => b + pl.dx * pl.dy)) / 1e6;
   final yieldPct = sheetArea > 0 ? (usedArea / sheetArea * 100) : 0.0;
   final roomArea = p.room.area;
@@ -308,7 +309,7 @@ Future<Uint8List> buildDiagnosticPdf(AppState state) async {
               pw.Column(children: [
                 tx('Panneaux bruts', fs: 8, color: _grey),
                 tx('$nSheets', fs: 14, bold: true, color: _accent),
-                tx('${p.cut.sheetLength}x${p.cut.sheetWidth} mm', fs: 7, color: _grey),
+                tx('$formats mm', fs: 7, color: _grey),
               ]),
               pw.Column(children: [
                 tx('Pièces usinées', fs: 8, color: _grey),

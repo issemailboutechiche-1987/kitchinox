@@ -2164,7 +2164,7 @@ window.kitchen3d = {
   ready: true,
   /** Capture un instantané PNG haute résolution de la vue 3D perspective réelle. */
   capturePng() {
-    if (!renderer || !scene || !camera) return null;
+    if (!renderer || !scene || !camera || !host || !host.isConnected) return null; // vue fermée : pas d'image périmée
     renderer.render(scene, camera);
     return renderer.domElement.toDataURL('image/png');
   },

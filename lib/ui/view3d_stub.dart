@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'app_state.dart';
 
 bool get webgl3dAvailable => false;
-String? getWeb3dSnapshotPng() => null;
+Future<String?> getWeb3dSnapshotPng() async => null;
 
 class Kitchen3dView extends StatelessWidget {
   final AppState state;

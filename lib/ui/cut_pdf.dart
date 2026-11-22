@@ -289,7 +289,7 @@ Future<Uint8List> buildCutPdf(LayoutEngine e, CutPlan plan,
   const margin = 26.0;
   final doc = pw.Document(theme: await pdfTheme(), title: _t(trp('Plan de découpe - {0}', [trName(p.name)])), author: 'kitchinox');
   final figFont = PdfFont.helvetica(doc.document), figBold = PdfFont.helveticaBold(doc.document);
-  int thick(String mat) => mat == cs.backMaterial ? cs.backThickness : mat == cs.drawerMaterial ? 16 : mat == cs.carcassMaterial ? cs.carcassThickness : cs.doorThickness;
+  int thick(String mat) => cs.thicknessFor(mat);
   final method = switch (cs.method) { 2 => 'par largeur', 3 => 'optimale', _ => 'par longueur' };
 
   pw.Widget header(String material, int page) => pw.Column(children: [

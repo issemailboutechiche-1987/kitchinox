@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
+import 'sct_export.dart';
 import 'busy.dart';
 import 'cut_pdf.dart';
 import 'logo.dart';
@@ -81,11 +82,9 @@ class _FurniturePageState extends State<FurniturePage> {
     downloadBytes('${proj.name}_plan_de_decoupe.pdf', bytes, mime: 'application/pdf');
   }
 
-  void _sct() {
-    final plan = furniturePlan(proj, _cs);
-    for (final mat in plan.materials) {
-      downloadBytes('${proj.name}_${mat.split(' ').take(2).join('_')}.sct', toSct(plan, mat, order: proj.name, thickness: mat.contains('6') ? '6' : '18').codeUnits);
-    }
+  Future<void> _sct() async {
+    final msg = await exportSctFiles(context, furniturePlan(proj, _cs), name: proj.name);
+    if (msg != null && mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   void _toManual() {

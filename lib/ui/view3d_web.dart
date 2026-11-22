@@ -27,7 +27,7 @@ extension type _K3d._(JSObject _) implements JSObject {
 }
 
 /// Capture un instantané de la vue 3D WebGL réelle (Data URL base64 PNG).
-String? getWeb3dSnapshotPng() {
+Future<String?> getWeb3dSnapshotPng() async {
   try {
     return _k3d?.capturePng();
   } catch (_) {

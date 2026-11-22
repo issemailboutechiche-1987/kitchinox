@@ -48,6 +48,12 @@ const backMaterialChoices = [
   'MDF 6 mm',
 ];
 
+/// Nom du fond mis à l'épaisseur [t] : « HDF 6 mm » à 8 mm devient « HDF 8 mm ».
+String backMaterialName(String name, int t) {
+  final m = RegExp(r'\d+(?=\s*mm)').firstMatch(name);
+  return m == null ? name : name.replaceRange(m.start, m.end, '$t');
+}
+
 const woodSheetPresets = <String, List<SheetPreset>>{
   'Latté (Blockboard)': [
     SheetPreset('2100 × 2020 mm (Latté meuble atelier)', 2100, 2020),
@@ -81,6 +87,9 @@ const woodSheetPresets = <String, List<SheetPreset>>{
     SheetPreset('2070 × 2800 mm', 2070, 2800),
   ],
 };
+
+/// Types de panneaux du projet : chacun a sa matière, son format de feuille, son épaisseur et son prix.
+enum PanelKind { carcass, front, back, drawer }
 
 class CutSettings {
   int sheetLength;
@@ -116,26 +125,55 @@ class CutSettings {
     // matière qui porte son format (« … · 2440×1220 ») : celui du tarif
     final f = RegExp(r'(\d{3,4})\s*[x×]\s*(\d{3,4})\s*\)?$').firstMatch(material);
     if (f != null) return (int.parse(f.group(1)!), int.parse(f.group(2)!));
-    final isFront = material == frontMaterial ||
-        material.contains('Façade') ||
-        material.contains('Porte') ||
-        material.contains('High Gloss') ||
-        material.contains('Acrylique') ||
-        material.contains('PET') ||
-        material.contains('Laqué');
-    if (isFront && frontSheetLength != null && frontSheetWidth != null) {
-      return (frontSheetLength!, frontSheetWidth!);
-    }
-    final isBack = material == backMaterial ||
-        material.contains('HDF') ||
-        material.contains('Fond') ||
-        material.contains('fond') ||
-        material.contains('MDF 6 mm') ||
-        material.contains('MDF 3 mm');
-    if (isBack && backSheetLength != null && backSheetWidth != null) {
-      return (backSheetLength!, backSheetWidth!);
+    switch (panelKind(material)) {
+      case PanelKind.front when frontSheetLength != null && frontSheetWidth != null:
+        return (frontSheetLength!, frontSheetWidth!);
+      case PanelKind.back when backSheetLength != null && backSheetWidth != null:
+        return (backSheetLength!, backSheetWidth!);
+      default:
     }
     return (sheetLength, sheetWidth);
+  }
+
+  /// Nom de débit des façades : celui du panneau, distingué de celui des caissons quand les deux portent
+  /// le même nom mais n'ont pas le même format ou la même épaisseur (sinon c'est la même feuille).
+  String get frontKey {
+    if (frontMaterial != carcassMaterial) return frontMaterial;
+    final sameSheet = (frontSheetLength ?? sheetLength) == sheetLength && (frontSheetWidth ?? sheetWidth) == sheetWidth;
+    return sameSheet && doorThickness == carcassThickness ? frontMaterial : '$frontMaterial (façades)';
+  }
+
+  /// Caissons et façades sont débités dans les mêmes feuilles.
+  bool get samePanel => frontKey == carcassMaterial;
+
+  /// Type de panneau d'une matière débitée. Les noms du projet d'abord, puis les noms connus ;
+  /// « MDF 16 mm » (tiroirs) n'est pas un fond de 6 mm.
+  PanelKind panelKind(String material) {
+    if (material == carcassMaterial) return PanelKind.carcass;
+    if (material == frontKey || material == frontMaterial) return PanelKind.front;
+    if (material == backMaterial) return PanelKind.back;
+    if (material == drawerMaterial) return PanelKind.drawer;
+    final m = material.toLowerCase();
+    if (m.contains('(caisson')) return PanelKind.carcass;
+    if (m.contains('hdf') || RegExp(r'\bfonds?\b').hasMatch(m) || RegExp(r'(?<!\d)[3-8] mm').hasMatch(m)) return PanelKind.back;
+    if (RegExp(r'façade|porte|high gloss|acrylique|\bpet\b|laqué|plaqué|décor').hasMatch(m)) return PanelKind.front;
+    return PanelKind.carcass;
+  }
+
+  /// Épaisseur (mm) d'une matière débitée : celle de son type, ou celle écrite dans son nom (« MDF 22 (caisson) »).
+  int thicknessFor(String material) {
+    if (material == carcassMaterial) return carcassThickness;
+    if (material == frontKey || material == frontMaterial) return doorThickness;
+    if (material == backMaterial) return backThickness;
+    if (material == drawerMaterial) return 16;
+    final n = RegExp(r'(?<!\d)(\d{1,2})(?:\s*mm)?\s*(?:\(|·|$)').firstMatch(material);
+    if (n != null) return int.parse(n.group(1)!);
+    return switch (panelKind(material)) {
+      PanelKind.front => doorThickness,
+      PanelKind.back => backThickness,
+      PanelKind.drawer => 16,
+      PanelKind.carcass => carcassThickness,
+    };
   }
 
   CutSettings({
@@ -292,7 +330,7 @@ List<CutPart> cutList(LayoutEngine e, CutSettings cs, Map<String, int> reperes) 
     // el : chants le long du côté a ; es : chants le long du côté b
     final finishId = e.project.style.frontOf(c, high: m.kind.isHigh);
     final grain = frontGrainLocked?.call(finishId) ?? false;
-    final frMat = frontDecorOf?.call(finishId) ?? cs.frontMaterial;
+    final frMat = frontDecorOf?.call(finishId) ?? cs.frontKey;
     final car = cs.carcassMaterial;
     final carcassGrain = carcassGrainLocked?.call(e.project.style.carcass) ?? false;
     // ga : rainure du fond le long du côté a (côtés, dessus / dessous quand le fond est rainuré)
@@ -525,7 +563,7 @@ List<CutPart> cutList(LayoutEngine e, CutSettings cs, Map<String, int> reperes) 
   if (e.project.style.endPanels) {
     for (final j in endPanels(e)) {
       final finishId = e.project.style.endPanelFinish ?? (j.high ? (e.project.style.frontUpper ?? e.project.style.front) : (e.project.style.frontLower ?? e.project.style.front));
-      final mat = frontDecorOf?.call(finishId) ?? cs.frontMaterial;
+      final mat = frontDecorOf?.call(finishId) ?? cs.frontKey;
       final grain = frontGrainLocked?.call(finishId) ?? false;
       final p = CutPart(
         mat,
@@ -685,7 +723,8 @@ CutPlan? nestPeek(String key) => _nestMemo[key];
 /// Mémorise un débit (les 12 derniers : pages cuisine, meuble d'art, mobilier, PDF).
 void nestRemember(String key, CutPlan plan) {
   _nestMemo.remove(key);
-  _nestMemo[key] = plan;
+  // copie des réglages : le projet peut les changer ensuite, le plan mémorisé garde ceux de son calcul
+  _nestMemo[key] = CutPlan(CutSettings.fromJson(plan.settings.toJson()), plan.parts, plan.sheets, plan.notPlaced);
   while (_nestMemo.length > 12) {
     _nestMemo.remove(_nestMemo.keys.first);
   }

@@ -27,6 +27,13 @@ class SceneImage {
   const SceneImage(this.key, this.width, this.height, this.rgba);
 }
 
+/// Gorge Gola entre deux façades empilées : deux tiroirs d'un bas, ou deux façades ouvrantes d'une colonne.
+bool golaBetween(CabinetModel m, FrontCell above, FrontCell below) {
+  bool front(FrontCell c) => c.kind == CellKind.door || c.kind == CellKind.door2 || c.kind == CellKind.drawer;
+  if (m.kind == CabinetKind.tall) return front(above) && front(below);
+  return m.kind.isLow && above.kind == CellKind.drawer && below.kind == CellKind.drawer;
+}
+
 class SceneExporter {
   final Map<String, SceneImage> _images = {}; // déjà rendues
   final Set<String> _sent = {}; // déjà envoyées au navigateur
@@ -228,7 +235,7 @@ class SceneExporter {
 
           // profil Gola (sans poignée) : gorge en aluminium fixée dans le caisson, sous le plan de travail
           // (et entre deux tiroirs) ; les façades s'arrêtent dessous, en dégageant la prise de main
-          if (style.handle == 'gola' && m.kind.isLow && !m.kind.isFiller) {
+          if (style.handle == 'gola' && !m.kind.isFiller && !m.isHoodUnit) {
             final golaMat = _plain(const Color(0xFFB9BDC2), rough: 0.35, metal: 0.6);
             // gorge de 26 mm de profondeur et 33 mm de haut : fond, lèvre basse, rebord haut
             void channel(double zTop) {
@@ -236,21 +243,22 @@ class SceneExporter {
               solids.add({..._box(at(s0, s1, tf - 26, tf, zTop - 33, zTop - 30)), 'mat': golaMat, 'uid': c.uid});
               solids.add({..._box(at(s0, s1, tf - 26, tf, zTop - 3, zTop)), 'mat': golaMat, 'uid': c.uid});
             }
-            channel(b.z1);
+            if (m.kind.isLow) channel(b.z1);
+            if (m.kind.isHigh) channel(b.z0 + 33); // meuble haut : gorge en bas
             final rows = cellsOf(rowsOf(m, c) ?? seedRows(m, c), c.height);
             final total = rows.isEmpty ? (b.z1 - b.z0) : rows.last.y + rows.last.h;
             final kz = (b.z1 - b.z0) / (total <= 0 ? 1 : total);
             for (var i = 1; i < rows.length; i++) {
-              if (rows[i].kind == CellKind.drawer && rows[i - 1].kind == CellKind.drawer) channel(b.z1 - rows[i].y * kz);
+              if (golaBetween(m, rows[i - 1], rows[i])) channel(b.z1 - rows[i].y * kz); // entre tiroirs, entre portes de colonne
             }
           }
           // Détection des côtés gauche et droit exposés (ex: côté visible d'une colonne à côté d'un plan de travail)
-          final leftNeighbor = p.items.where((o) => o != c && o.wallId == c.wallId && (o.s + o.width - c.s).abs() < 15).firstOrNull;
-          final rightNeighbor = p.items.where((o) => o != c && o.wallId == c.wallId && (c.s + c.width - o.s).abs() < 15).firstOrNull;
-          
-          final leftExposed = leftNeighbor == null || leftNeighbor.height < c.height - 50 || leftNeighbor.depth < c.depth - 50;
-          final rightExposed = rightNeighbor == null || rightNeighbor.height < c.height - 50 || rightNeighbor.depth < c.depth - 50;
-          
+          // (un voisin ne cache le côté que s'il monte et descend autant : un haut ne cache pas le côté d'un bas)
+          bool hides(PlacedCabinet o) => o.z <= c.z + 50 && o.top >= c.top - 50 && o.depth >= c.depth - 50;
+          final beside = p.items.where((o) => o != c && o.wallId == c.wallId && !e.modelOf(o).isFreeHood);
+          final leftExposed = !beside.any((o) => (o.s + o.width - c.s).abs() < 15 && hides(o));
+          final rightExposed = !beside.any((o) => (c.s + c.width - o.s).abs() < 15 && hides(o));
+
           // Finition de façade pour les côtés / joues visibles (choix personnalisé ou accordé aux bas/hauts)
           final epf = style.endPanelFinish;
           final sideFinish = epf != null
@@ -362,7 +370,7 @@ class SceneExporter {
                   ];
             final gola = style.handle == 'gola' && m.isCarcass && !m.kind.isFiller;
             var fz0 = zTop - h, fz1 = zTop;
-            if (gola && m.kind.isLow && (cell.y < 0.5 || (cell.kind == CellKind.drawer && all.indexOf(cell) > 0 && all[all.indexOf(cell) - 1].kind == CellKind.drawer))) {
+            if (gola && ((m.kind.isLow && cell.y < 0.5) || (all.indexOf(cell) > 0 && golaBetween(m, all[all.indexOf(cell) - 1], cell)))) {
               fz1 -= 30; // sous le profil : on passe les doigts dans la gorge
             } else if (gola && m.kind.isHigh && cell.y + cell.h >= total - 0.5) {
               fz0 += 30; // meuble haut : gorge en bas
@@ -635,7 +643,8 @@ class SceneExporter {
           'w': c.width.toDouble(), 'd': c.depth.toDouble(), 'h': (room.height - c.z).toDouble(),
         });
       } else if (isHoodUnit) {
-        solids.add({..._box(w.strip(c.s + 40, c.width - 80.0, 480, c.z - 70, 70)), 'mat': steel});
+        // visière à fleur, sous le caisson (elle ne dépasse plus des façades voisines)
+        solids.add({..._box(w.strip(c.s + 15, c.width - 30.0, math.min(350.0, c.depth.toDouble()), c.z - 35, 35)), 'mat': steel});
         final (hx, hy) = w.toPlan(c.s + c.width / 2, c.depth / 2);
         kitchenFixtures.add({
           'uid': 'hood:${c.uid}',

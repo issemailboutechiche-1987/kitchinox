@@ -19,7 +19,18 @@ import 'web_io_native.dart' show nativeIoEnabled;
 
 /// Vraie 3D (three.js) disponible : sur appareil seulement.
 bool get webgl3dAvailable => nativeIoEnabled;
-String? getWeb3dSnapshotPng() => null;
+WebViewController? _live; // vue 3D affichée
+
+/// Image de la vue 3D affichée (Data URL PNG), ou null si elle n'est pas ouverte.
+Future<String?> getWeb3dSnapshotPng() async {
+  try {
+    final r = await _live?.runJavaScriptReturningResult('window.kitchen3d.capturePng() || ""').timeout(const Duration(seconds: 5));
+    final s = r == null ? '' : '$r'.replaceAll('"', ''); // Android renvoie la chaîne entre guillemets
+    return s.isEmpty ? null : s;
+  } catch (_) {
+    return null;
+  }
+}
 
 class Kitchen3dView extends StatefulWidget {
   final AppState state;
@@ -47,6 +58,7 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
 
   @override
   void dispose() {
+    if (identical(_live, _c)) _live = null;
     st.removeListener(_schedule);
     TextureBank.instance.removeListener(_schedule);
     for (final files in _pending.values) {
@@ -73,6 +85,7 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
       })
       ..addJavaScriptChannel('Bridge', onMessageReceived: (m) => _onMessage(m.message));
     if (mounted) setState(() => _c = c);
+    _live = c;
     await c.loadRequest(Uri.parse('$base/index.html'));
     if (mounted && _ready) _schedule();
   }

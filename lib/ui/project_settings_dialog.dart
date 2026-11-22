@@ -42,6 +42,12 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
   final backSheetWCtrl = TextEditingController(text: '${cs.backSheetWidth ?? bW}');
   final backThickCtrl = TextEditingController(text: '${cs.backThickness}');
 
+  // Prix d'une feuille, par type de panneau (vide : tarif des caissons / prix public)
+  final sp = state.project.specs;
+  final sheetPriceCtrl = TextEditingController(text: sp.sheetPrice?.round().toString() ?? '');
+  final frontPriceCtrl = TextEditingController(text: sp.frontSheetPrice?.round().toString() ?? '');
+  final backPriceCtrl = TextEditingController(text: sp.backSheetPrice?.round().toString() ?? '');
+
   // Paramètres généraux
   final kerfCtrl = TextEditingController(text: '${cs.kerf}');
   final trimCtrl = TextEditingController(text: '${cs.trim}');
@@ -199,9 +205,9 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                                   children: [
                                     DropdownButtonFormField<String>(
                                       isExpanded: true,
-                                      initialValue: carcassMaterialChoices.contains(carcassMat) ? carcassMat : carcassMaterialChoices.first,
+                                      initialValue: carcassMat, // matière du projet, même hors de la liste type
                                       decoration: InputDecoration(labelText: tr('Matériau des caissons'), border: const OutlineInputBorder(), isDense: true),
-                                      items: [for (final m in carcassMaterialChoices) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
+                                      items: [for (final m in {carcassMat, ...carcassMaterialChoices}) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
                                       onChanged: (v) {
                                         if (v == null) return;
                                         setD(() {
@@ -266,6 +272,15 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                                             decoration: InputDecoration(labelText: tr('Épaisseur (mm)'), border: const OutlineInputBorder(), isDense: true),
                                           ),
                                         ),
+                                        const SizedBox(width: Tokens.s2),
+                                        Expanded(
+                                          child: TextField(
+                                            key: const ValueKey('price_sheetPriceCtrl'),
+                                            controller: sheetPriceCtrl,
+                                            keyboardType: TextInputType.number,
+                                            decoration: InputDecoration(labelText: tr('Prix feuille (MAD)'), border: const OutlineInputBorder(), isDense: true),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ],
@@ -282,9 +297,9 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                                   children: [
                                     DropdownButtonFormField<String>(
                                       isExpanded: true,
-                                      initialValue: frontMaterialChoices.contains(frontMat) ? frontMat : frontMaterialChoices.first,
+                                      initialValue: frontMat, // matière du projet, même hors de la liste type
                                       decoration: InputDecoration(labelText: tr('Matériau des façades'), border: const OutlineInputBorder(), isDense: true),
-                                      items: [for (final m in frontMaterialChoices) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
+                                      items: [for (final m in {frontMat, ...frontMaterialChoices}) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
                                       onChanged: (v) {
                                         if (v == null) return;
                                         setD(() {
@@ -351,6 +366,15 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                                             decoration: InputDecoration(labelText: tr('Épaisseur (mm)'), border: const OutlineInputBorder(), isDense: true),
                                           ),
                                         ),
+                                        const SizedBox(width: Tokens.s2),
+                                        Expanded(
+                                          child: TextField(
+                                            key: const ValueKey('price_frontPriceCtrl'),
+                                            controller: frontPriceCtrl,
+                                            keyboardType: TextInputType.number,
+                                            decoration: InputDecoration(labelText: tr('Prix feuille (MAD)'), hintText: tr('Vide : prix des caissons'), border: const OutlineInputBorder(), isDense: true),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ],
@@ -367,9 +391,9 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                                   children: [
                                     DropdownButtonFormField<String>(
                                       isExpanded: true,
-                                      initialValue: backMaterialChoices.contains(backMat) ? backMat : backMaterialChoices.first,
+                                      initialValue: backMat, // matière du projet, même hors de la liste type
                                       decoration: InputDecoration(labelText: tr('Matériau des fonds'), border: const OutlineInputBorder(), isDense: true),
-                                      items: [for (final m in backMaterialChoices) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
+                                      items: [for (final m in {backMat, ...backMaterialChoices}) DropdownMenuItem(value: m, child: Text(tr(m), overflow: TextOverflow.ellipsis))],
                                       onChanged: (v) {
                                         if (v == null) return;
                                         setD(() {
@@ -429,6 +453,15 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                                             controller: backThickCtrl,
                                             keyboardType: TextInputType.number,
                                             decoration: InputDecoration(labelText: tr('Épaisseur (mm)'), border: const OutlineInputBorder(), isDense: true),
+                                          ),
+                                        ),
+                                        const SizedBox(width: Tokens.s2),
+                                        Expanded(
+                                          child: TextField(
+                                            key: const ValueKey('price_backPriceCtrl'),
+                                            controller: backPriceCtrl,
+                                            keyboardType: TextInputType.number,
+                                            decoration: InputDecoration(labelText: tr('Prix feuille (MAD)'), hintText: tr('Vide : prix public'), border: const OutlineInputBorder(), isDense: true),
                                           ),
                                         ),
                                       ],
@@ -587,6 +620,12 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
             ),
             FilledButton(
               onPressed: () {
+                // une cote vide ou impossible garde l'ancienne valeur
+                int mm(TextEditingController t, int old, int min) {
+                  final x = int.tryParse(t.text.trim());
+                  return x == null || x < min ? old : x;
+                }
+
                 state.edit(() {
                   // Sauvegarde Client
                   c.name = nameCtrl.text.trim();
@@ -595,21 +634,33 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
 
                   // Sauvegarde Débit - Caissons
                   cs.carcassMaterial = carcassMat;
-                  cs.sheetLength = int.tryParse(sheetLCtrl.text) ?? cs.sheetLength;
-                  cs.sheetWidth = int.tryParse(sheetWCtrl.text) ?? cs.sheetWidth;
-                  cs.carcassThickness = int.tryParse(carcassThickCtrl.text) ?? cs.carcassThickness;
+                  cs.sheetLength = mm(sheetLCtrl, cs.sheetLength, 300);
+                  cs.sheetWidth = mm(sheetWCtrl, cs.sheetWidth, 300);
+                  cs.carcassThickness = mm(carcassThickCtrl, cs.carcassThickness, 2);
 
                   // Sauvegarde Débit - Façades
                   cs.frontMaterial = frontMat;
-                  cs.frontSheetLength = int.tryParse(frontSheetLCtrl.text) ?? cs.frontSheetLength;
-                  cs.frontSheetWidth = int.tryParse(frontSheetWCtrl.text) ?? cs.frontSheetWidth;
-                  cs.doorThickness = int.tryParse(doorThickCtrl.text) ?? cs.doorThickness;
+                  cs.frontSheetLength = mm(frontSheetLCtrl, cs.frontSheetLength ?? cs.sheetLength, 300);
+                  cs.frontSheetWidth = mm(frontSheetWCtrl, cs.frontSheetWidth ?? cs.sheetWidth, 300);
+                  cs.doorThickness = mm(doorThickCtrl, cs.doorThickness, 2);
 
                   // Sauvegarde Débit - Fonds
-                  cs.backMaterial = backMat;
-                  cs.backSheetLength = int.tryParse(backSheetLCtrl.text) ?? cs.backSheetLength;
-                  cs.backSheetWidth = int.tryParse(backSheetWCtrl.text) ?? cs.backSheetWidth;
-                  cs.backThickness = int.tryParse(backThickCtrl.text) ?? cs.backThickness;
+                  cs.backSheetLength = mm(backSheetLCtrl, cs.backSheetLength ?? cs.sheetLength, 300);
+                  cs.backSheetWidth = mm(backSheetWCtrl, cs.backSheetWidth ?? cs.sheetWidth, 300);
+                  cs.backThickness = mm(backThickCtrl, cs.backThickness, 2);
+
+                  cs.backMaterial = backMaterialName(backMat, cs.backThickness); // le nom suit l'épaisseur saisie
+
+                  // Prix par type de panneau
+                  double? price(TextEditingController t) {
+                    final x = double.tryParse(t.text.trim().replaceAll(',', '.'));
+                    return x == null || x <= 0 ? null : x;
+                  }
+
+                  sp
+                    ..sheetPrice = price(sheetPriceCtrl)
+                    ..frontSheetPrice = price(frontPriceCtrl)
+                    ..backSheetPrice = price(backPriceCtrl);
 
                   // Sauvegarde Débit - Général
                   cs.kerf = int.tryParse(kerfCtrl.text) ?? cs.kerf;

@@ -91,6 +91,19 @@ void main() {
           if (sld['uid'] == drawers.uid && ((sld['mat'] as Map)['metal'] as num? ?? 0) > 0.5) sld
       ];
       expect(dMetal.length, greaterThan(3));
+      // meuble haut : gorge en bas, façade relevée de 30 ; colonne à deux portes : gorge entre les portes
+      for (final (id, s0) in [('wall_standard_single_door', 1800.0), ('tall_pantry', 2600.0)]) {
+        final c = st.engine.add(id, 'A', s: s0);
+        final sc = await SceneExporter().build(st);
+        final n = (sc['solids'] as List).where((x) => x['uid'] == c.uid && ((x['mat'] as Map)['metal'] as num? ?? 0) > 0.5).length;
+        final pieces = [for (final f in sc['fronts'] as List) if (f['uid'] == c.uid) ...(f['parts'] as List)];
+        if (id.startsWith('wall')) {
+          expect(n, 3, reason: id);
+          expect((pieces.first['z0'] as num).toDouble(), closeTo(c.z + 30, 0.01));
+        } else {
+          expect(n % 3, 0, reason: id);
+        }
+      }
     });
   });
 

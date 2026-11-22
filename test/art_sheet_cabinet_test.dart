@@ -43,7 +43,7 @@ void main() {
     expect((door.w, door.h, door.d), (597, 717, 18));
     await expectLater(find.byType(ArtPage), matchesGoldenFile('goldens/art_caisson_feuille_usine.png'));
     // Annuler revient aux pièces à plat avec les liaisons notées
-    await t.tap(find.byTooltip('Annuler').first);
+    await t.tap(find.byTooltip('Annuler (Ctrl+Z)').first);
     await t.pumpAndSettle();
     expect(art.edgeLinks, hasLength(5));
     await t.pump(const Duration(seconds: 6));

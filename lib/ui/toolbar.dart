@@ -8,8 +8,6 @@ import 'app_state.dart';
 import 'client_ui.dart';
 import 'brands_ui.dart';
 import 'quote_ui.dart';
-import 'custom_cabinet_ui.dart';
-import 'furniture_accessories_ui.dart';
 import 'web_io.dart';
 import 'busy.dart';
 import 'net_symbols.dart';
@@ -121,18 +119,6 @@ class StepToolbar extends StatelessWidget {
             label: tr('Ajouter des meubles'),
             active: state.megaMenu || state.browse != null,
             onTap: () => state.openBrowse(state.browse == null ? const CatalogBrowse(Shelf.base) : null),
-          ),
-          ToolTile(
-            key: const ValueKey('tile_custom_cabinet'),
-            icon: Icons.dashboard_customize_outlined,
-            label: tr('Caisson personnalisé'),
-            onTap: () => showCustomCabinetDialog(context, state, onMessage),
-          ),
-          ToolTile(
-            key: const ValueKey('tile_accessories'),
-            icon: Icons.inventory_2_outlined,
-            label: tr('Accessoires'),
-            onTap: () => showFurnitureAccessoriesDialog(context, state),
           ),
           ToolTile(
             icon: Icons.chair_outlined,

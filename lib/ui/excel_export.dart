@@ -337,9 +337,10 @@ String _buildInformationSheet(AppState state, List<CutPart> parts, CutPlan plan,
   final now = DateTime.now();
   final dateStr = '${now.month}/${now.day}/${now.year}';
 
+  final fSheet = cs.sheetDimensionsFor(cs.frontKey), bSheet = cs.sheetDimensionsFor(cs.backMaterial);
   final sheetArea = cs.sheetLength * cs.sheetWidth / 1e6;
   final numSheets = plan.sheets.length;
-  final allSheetsArea = sheetArea * numSheets;
+  final allSheetsArea = plan.sheets.fold<double>(0, (a, s) => a + s.length * s.width) / 1e6; // chaque panneau a son format
   final partsCount = parts.fold<int>(0, (a, x) => a + x.qty);
   final partsArea = parts.fold<double>(0, (a, x) => a + x.area * x.qty) / 1e6;
   final remnArea = plan.sheets.expand((s) => s.remnants).fold<double>(0, (a, r) => a + r.$3 * r.$4) / 1e6;
@@ -461,7 +462,8 @@ String _buildInformationSheet(AppState state, List<CutPart> parts, CutPlan plan,
   final infoText = 'Kitchinox - Atelier de menuiserie\nProjet : ${p.name}\n$clientInfo'
       'Trait de scie : ${cs.kerf} mm · Recoupe bords : ${cs.trim} mm\n'
       'Caissons : ${cs.carcassMaterial} (${cs.sheetLength}×${cs.sheetWidth}×${cs.carcassThickness} mm)\n'
-      'Façades : ${cs.frontMaterial} (${cs.doorThickness} mm)\n';
+      'Façades : ${cs.frontMaterial} (${fSheet.$1}×${fSheet.$2}×${cs.doorThickness} mm)\n'
+      'Fonds : ${cs.backMaterial} (${bSheet.$1}×${bSheet.$2}×${cs.backThickness} mm)\n';
 
   sb.write('<row r="22"><c r="B22" s="33" t="s"><v>${sst.add(infoText)}</v></c><c r="C22" s="15"/><c r="D22" s="15"/><c r="E22" s="36"/></row>');
   for (var r = 23; r <= 29; r++) {

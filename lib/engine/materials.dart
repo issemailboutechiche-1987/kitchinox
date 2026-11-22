@@ -339,7 +339,8 @@ class ProjectSpecs {
   double carcassEdge; // chant visible des caissons (mm)
   double frontEdge; // chant des façades (mm)
   // tarifs réels de l'atelier (MAD) ; null = fourchette du catalogue
-  double? sheetPrice; // prix d'une feuille
+  double? sheetPrice; // prix d'une feuille (caissons)
+  double? frontSheetPrice, backSheetPrice; // prix d'une feuille de façades, de fonds (null : caissons / prix public)
   double? edgePriceMin, edgePriceMax; // chant au mètre, pose comprise
   double cuttingPerSheet; // découpe (service) par feuille
   String hobEnergy; // 'gas' | 'electric' : alimentation de la plaque
@@ -356,6 +357,8 @@ class ProjectSpecs {
     this.carcassEdge = 1.0,
     this.frontEdge = 2.0,
     this.sheetPrice = 850,
+    this.frontSheetPrice,
+    this.backSheetPrice,
     this.edgePriceMin = 9,
     this.edgePriceMax = 10,
     this.cuttingPerSheet = 53,
@@ -374,6 +377,8 @@ class ProjectSpecs {
         'carcass_edge': carcassEdge,
         'front_edge': frontEdge,
         'sheet_price': sheetPrice,
+        if (frontSheetPrice != null) 'front_sheet_price': frontSheetPrice,
+        if (backSheetPrice != null) 'back_sheet_price': backSheetPrice,
         'edge_price_min': edgePriceMin,
         'edge_price_max': edgePriceMax,
         'cutting_per_sheet': cuttingPerSheet,
@@ -394,6 +399,8 @@ class ProjectSpecs {
       carcassEdge: (j['carcass_edge'] as num?)?.toDouble() ?? d.carcassEdge,
       frontEdge: (j['front_edge'] as num?)?.toDouble() ?? d.frontEdge,
       sheetPrice: j.containsKey('sheet_price') ? (j['sheet_price'] as num?)?.toDouble() : d.sheetPrice,
+      frontSheetPrice: (j['front_sheet_price'] as num?)?.toDouble(),
+      backSheetPrice: (j['back_sheet_price'] as num?)?.toDouble(),
       edgePriceMin: j.containsKey('edge_price_min') ? (j['edge_price_min'] as num?)?.toDouble() : d.edgePriceMin,
       edgePriceMax: j.containsKey('edge_price_max') ? (j['edge_price_max'] as num?)?.toDouble() : d.edgePriceMax,
       cuttingPerSheet: (j['cutting_per_sheet'] as num?)?.toDouble() ?? d.cuttingPerSheet,
@@ -610,25 +617,35 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
   // panneaux : une ligne par matériau débité
   for (final mat in plan.materials) {
     final n = plan.sheets.where((s) => s.material == mat).length;
-    final main = mat == cs.carcassMaterial || mat == cs.frontMaterial;
+    final kind = cs.panelKind(mat);
+    final main = mat == cs.carcassMaterial || mat == cs.frontKey;
     final decor = mat.startsWith('MDF plaqué') || mat.startsWith('Panneau décor');
     final pt = decor
         ? db.panel('mdf_plaque_essence_fine')
         : main
-            ? db.panel(mat == cs.frontMaterial && cs.frontMaterial != cs.carcassMaterial ? specs.frontPanel : specs.carcassPanel)
+            ? db.panel(mat == cs.frontKey && cs.frontMaterial != cs.carcassMaterial ? specs.frontPanel : specs.carcassPanel)
             : null;
     final (sL, sW) = cs.sheetDimensionsFor(mat);
-    final isBack = mat == cs.backMaterial || mat.contains('HDF') || mat.contains('Fond') || mat.contains('fond');
-    final isFront = mat == cs.frontMaterial || mat.contains('Façade') || mat.contains('Porte') || mat.contains('High Gloss');
-    final atelier = main && specs.sheetPrice != null;
-    // fond arrière : prix public du panneau mince blanc le plus proche en épaisseur
-    final back = isBack && pt == null ? PublicPrices.back(cs.backThickness) : null;
-    final price = atelier
-        ? PriceRange(specs.sheetPrice!, specs.sheetPrice!)
+    // prix d'une feuille fixé par l'atelier, propre à chaque type de panneau (caissons, façades, fonds)
+    final own = switch (kind) {
+      PanelKind.front => specs.frontSheetPrice ?? (main ? specs.sheetPrice : null),
+      PanelKind.back => specs.backSheetPrice,
+      _ => main ? specs.sheetPrice : null,
+    };
+    final atelier = own != null;
+    // fond arrière : prix public du panneau mince blanc le plus proche en épaisseur, au prorata du format réglé
+    final back = !atelier && kind == PanelKind.back && pt == null ? PublicPrices.back(cs.backThickness) : null;
+    final backPrice = back == null
+        ? 0.0
+        : cs.backSheetLength == null || cs.backSheetWidth == null
+            ? back.price.toDouble()
+            : (back.price * sL * sW / (back.length * back.width)).roundToDouble();
+    final price = own != null
+        ? PriceRange(own, own)
         : back != null
-            ? PriceRange(back.price, back.price)
+            ? PriceRange(backPrice, backPrice)
             : pt?.sheetPrice(sL, sW) ?? PriceRange.zero;
-    final thick = isBack ? cs.backThickness : (isFront ? cs.doorThickness : (mat == cs.drawerMaterial ? 16 : cs.carcassThickness));
+    final thick = cs.thicknessFor(mat);
     final how = atelier
         ? ' · tarif atelier'
         : back != null

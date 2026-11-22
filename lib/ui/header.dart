@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
+import 'kx_top_bar.dart';
 import 'logo.dart';
 import 'theme.dart';
 import 'i18n.dart';
@@ -21,6 +22,7 @@ class StepHeader extends StatelessWidget {
   final VoidCallback? onQuit;
   final VoidCallback? onDownload; // fichier du projet (.kin)
   final VoidCallback? onClient; // fiche client
+  final List<KxMenu>? menus; // barre de menus (Fichier, Édition…), la même que dans l'atelier
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeMode;
   const StepHeader({
@@ -33,6 +35,7 @@ class StepHeader extends StatelessWidget {
     this.onQuit,
     this.onDownload,
     this.onClient,
+    this.menus,
     required this.onIssues,
     required this.themeMode,
     required this.onThemeMode,
@@ -49,6 +52,85 @@ class StepHeader extends StatelessWidget {
     final warnings = issues.where((i) => i.severity == Severity.warning).length;
     final bom = state.bom;
     final last = state.step == PlanStep.values.last;
+
+    final m = menus;
+    if (m != null && !phone) {
+      // deux rangées, comme dans tous les modes : menus et actions, puis les étapes du projet
+      return Column(mainAxisSize: MainAxisSize.min, children: [
+        KxTopBar(
+          onHome: Navigator.of(context).canPop() ? () => Navigator.of(context).maybePop() : null,
+          menus: m,
+          onUndo: state.canUndo ? state.undo : null,
+          onRedo: state.canRedo ? state.redo : null,
+          onSave: onSave,
+          trailing: [
+            IconButton(tooltip: tr('Paramètres du projet'), onPressed: () => showProjectSettingsDialog(context, state, (m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)))), icon: const Icon(Icons.tune)),
+            IconButton(
+          tooltip: tr(themeMode == ThemeMode.dark ? 'Thème clair' : 'Thème sombre'),
+          icon: Icon(themeMode == ThemeMode.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+          onPressed: () => onThemeMode(themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark),
+        ),
+          ],
+        ),
+        Divider(height: 1, color: scheme.outlineVariant),
+        Container(
+          height: 52,
+          color: scheme.surface,
+          padding: const EdgeInsets.symmetric(horizontal: Tokens.s3),
+          child: Row(children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [for (final s in PlanStep.values) _StepTab(state: state, step: s, compact: MediaQuery.sizeOf(context).width < 900, height: 52)]),
+              ),
+            ),
+        // résumé du projet
+        if (wide)
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onIssues,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Tokens.s2, vertical: Tokens.s1),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(trName(state.project.name), style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(trp('{0} caissons', [bom.cabinetCount]), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(width: Tokens.s2),
+                  _IssueChip(errors: errors, warnings: warnings),
+                ]),
+              ]),
+            ),
+          )
+        else
+          IconButton(
+            tooltip: tr('Contrôles'),
+            onPressed: onIssues,
+            icon: Badge(
+              isLabelVisible: errors + warnings > 0,
+              label: Text('${errors + warnings}'),
+              backgroundColor: errors > 0 ? scheme.error : scheme.tertiary,
+              child: const Icon(Icons.rule),
+            ),
+          ),
+            const SizedBox(width: Tokens.s3),
+        FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(0, 44), padding: const EdgeInsets.symmetric(horizontal: 20)),
+          onPressed: last
+              ? onSave
+              : () {
+                  final m = state.next();
+                  if (m != null) {
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating, width: 560));
+                  }
+                },
+          child: Text(last ? tr('Enregistrer') : tr('Suivant')),
+        ),
+          ]),
+        ),
+      ]);
+    }
 
     return Container(
       height: 60,
@@ -239,7 +321,8 @@ class _StepTab extends StatelessWidget {
   final AppState state;
   final PlanStep step;
   final bool compact;
-  const _StepTab({required this.state, required this.step, required this.compact});
+  final double height;
+  const _StepTab({required this.state, required this.step, required this.compact, this.height = 60});
 
   @override
   Widget build(BuildContext context) {
@@ -254,7 +337,7 @@ class _StepTab extends StatelessWidget {
       child: InkWell(
         onTap: () => state.goTo(step),
         child: Container(
-          height: 60,
+          height: height,
           padding: const EdgeInsets.symmetric(horizontal: Tokens.s3),
           decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: active ? scheme.primary : Colors.transparent, width: 3)),
