@@ -1063,6 +1063,7 @@ class AppState extends ChangeNotifier {
     return err;
   }
 
+
   /// Pose une porte ou une fenêtre sur un espace libre du mur affiché (sinon d'un autre mur), jamais sur un
   /// caisson, un objet ou une autre ouverture. Renvoie le message d'erreur éventuel.
   String? addOpening(String type, {String? wall, String? model}) {
