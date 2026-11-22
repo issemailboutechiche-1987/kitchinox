@@ -47,6 +47,11 @@ void main() {
     final lux = quoteLines(e, db, e.project.specs, plan, bom, t);
     expect(lux.any((l) => l.section == 'Panneaux' || l.section == 'Chants'), isFalse);
     expect(lux.where((l) => l.section == 'Caissons').length, 2);
+    // prix du tarif TTC : comptés hors taxes, la TVA du devis n'est ajoutée qu'une fois
+    final q = supplierQuote(e, t);
+    final ht = lux.where((l) => const {'Caissons', 'Façades', 'Tiroirs'}.contains(l.section)).fold<double>(0, (a, l) => a + l.total.min);
+    expect(ht, closeTo(q.net / 1.2, 0.2));
+    expect(buildQuote(q.linesHt, QuoteSettings()).total, closeTo(q.net, 0.3));
     expect(ProjectSpecs.fromJson(e.project.specs.toJson()).gamme, 'luxe');
   });
 }

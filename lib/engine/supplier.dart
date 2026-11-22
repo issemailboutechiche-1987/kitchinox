@@ -69,6 +69,15 @@ class SupplierQuote {
   final double net; // TTC après remise
   const SupplierQuote(this.lines, this.gross, this.net);
   double get netHt => net / 1.2;
+
+  /// Les mêmes lignes hors taxes : le devis ajoute lui-même la TVA.
+  List<SupplyLine> get linesHt => [
+        for (final l in lines)
+          () {
+            final ht = (l.unitPrice.min / 1.2 * 100).roundToDouble() / 100;
+            return SupplyLine(l.section, l.name, 'prix fournisseur HT remisé', l.qty, l.unit, PriceRange(ht, ht));
+          }(),
+      ];
 }
 
 /// Caissons, façades, joues et kits tiroirs de la cuisine au tarif du fournisseur.
@@ -152,7 +161,7 @@ List<SupplyLine> quoteLines(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, 
   final base = estimate(e, db, specs, plan, bom);
   if (specs.gamme != 'luxe' || t == null) return base;
   return [
-    ...supplierQuote(e, t, gloss: gloss).lines,
+    ...supplierQuote(e, t, gloss: gloss).linesHt,
     ...base.where((l) => l.section != 'Panneaux' && l.section != 'Chants'),
   ];
 }

@@ -235,7 +235,7 @@ List<SupplyLine> mediaProgettiQuote(LayoutEngine e, MaterialsDb db, ProjectSpecs
   return [
     ...mediaProgettiLines(e, t, specs),
     // fonds et arrières de tiroir : pas au tarif Media Progetti
-    if (other != null) ...supplierQuote(e, other).lines.where((l) => l.section == 'Tiroirs'),
+    if (other != null) ...supplierQuote(e, other).linesHt.where((l) => l.section == 'Tiroirs'),
     ...estimate(e, db, specs, plan, bom)
         .where((l) => l.section != 'Panneaux' && l.section != 'Chants' && !(l.section == 'Quincaillerie' && noHandles.contains(l.name))),
   ];
