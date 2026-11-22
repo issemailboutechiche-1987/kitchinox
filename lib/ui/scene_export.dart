@@ -214,8 +214,9 @@ class SceneExporter {
           final sideFinish = epf != null ? frontFinish(style, epf) : frontFinish(style, style.frontOf(c, high: m.kind.isHigh));
           final sideMat = await _mat(sideFinish, rough: 0.5, vertical: true);
 
-          final leftSideMat = (leftExposed && c.cheekL != 'non' && (c.s > 10 || style.endPanels)) ? sideMat : carcassMat;
-          final rightSideMat = (rightExposed && c.cheekR != 'non' && (c.s + c.width < w.length - 10 || style.endPanels)) ? sideMat : carcassMat;
+          // bras d'un meuble d'angle : le côté dans le coin est un dos, jamais une joue
+          final leftSideMat = !(corner && bi == 1) && (leftExposed && c.cheekL != 'non' && (c.s > 10 || style.endPanels)) ? sideMat : carcassMat;
+          final rightSideMat = !(corner && bi == 0 && m.shape != CabinetShape.blind) && (rightExposed && c.cheekR != 'non' && (c.s + c.width < w.length - 10 || style.endPanels)) ? sideMat : carcassMat;
 
           for (final (bx, mat) in [
             (at(s0, s0 + 18, t0, tf, b.z0, b.z1), leftSideMat), // côté gauche
@@ -276,6 +277,7 @@ class SceneExporter {
       final all = cellsOf(rowsOf(m, c) ?? seedRows(m, c), c.height);
       final apps = appliancesOf(m, c);
       final hs = handleSetOf(style, st.db?.handles, m, front: fr.color);
+      final chant = fr.color.toARGB32() & 0xFFFFFF;
       var grips = <Map<String, dynamic>>[]; // poignées en relief de la dernière façade demandée
       Future<String> frontImg(String what, double wMm, double hMm, List<FrontCell>? cs, {String? opening, bool? handleTop}) async {
         final key = 'front|${m.id}|$what|${wMm.round()}x${hMm.round()}|${fr.id}|${hs.door.key}|${hs.drawer.key}|${style.frontProfile}|'
@@ -366,7 +368,9 @@ class SceneExporter {
               final isLower = m.kind == CabinetKind.tall ? (cell.y + cell.h / 2 > height * 0.45) : !m.kind.isHigh;
               parts.add({
                 'kind': kind,
+                'ec': chant,
                 'hinge': hinge,
+                if (fr.gloss) 'gloss': true,
                 's0': ls,
                 's1': ls + lw,
                 'z0': fz0,
@@ -391,6 +395,7 @@ class SceneExporter {
             if (bb - a < 60) return;
             parts.add({
               'kind': 'door',
+              'ec': chant,
               'hinge': hinge,
               's0': a,
               's1': bb,
@@ -410,7 +415,7 @@ class SceneExporter {
             final (da, db) = blindAtEnd ? (s0, s0 + dw) : (s1 - dw, s1);
             await addDoor(da, db, blindAtEnd ? 'left' : 'right');
             final (pa, pb) = blindAtEnd ? (db, s1) : (s0, da);
-            parts.add({'kind': 'static', 's0': pa, 's1': pb, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('blind$bi-${(pb - pa).round()}', pb - pa, height, const []), if (grips.isNotEmpty) 'grips': grips});
+            parts.add({'kind': 'static', 'ec': chant, 's0': pa, 's1': pb, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('blind$bi-${(pb - pa).round()}', pb - pa, height, const []), if (grips.isNotEmpty) 'grips': grips});
           } else if (bi == 0) {
             // bras le long du mur : de l'extrémité jusqu'au retour
             await addDoor(s0, math.min(s1, room.wall(c.wallId).length - c.depth), 'left');
@@ -418,7 +423,7 @@ class SceneExporter {
             await addDoor(math.max(s0, c.depth.toDouble()), s1, 'right');
           }
         } else {
-          parts.add({'kind': 'static', 's0': s0, 's1': s1, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('box$bi', width, height, frontCells(m, c, realistic: true)), if (grips.isNotEmpty) 'grips': grips});
+          parts.add({'kind': 'static', 'ec': chant, 's0': s0, 's1': s1, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('box$bi', width, height, frontCells(m, c, realistic: true)), if (grips.isNotEmpty) 'grips': grips});
         }
         if (parts.isEmpty && niches) continue;
         fronts.add({'uid': c.uid, ..._frame(w), 't': t1, 'depth': c.depth, 'parts': parts, if (m.id.contains('mirror')) 'mirror': true});
@@ -707,6 +712,7 @@ class SceneExporter {
       if (room.outline != null) 'floorPoly': [for (final (x, y) in room.floorPolygon) [x, y]],
       'lights': lights,
       'studio': st.studio,
+      'studioDir': _studioDir(e),
       'walls': st.studio.isEmpty ? walls : const [],
       // sol : béton ciré et carrelages plus satinés que le parquet
       'floor': await _mat(floorFinish(style), rough: (floorFinish(style).tex ?? '').startsWith('parquet') ? 0.6 : 0.35),
@@ -808,6 +814,31 @@ class SceneExporter {
       'editable': !st.lockMoves && (st.step == PlanStep.layout || st.step == PlanStep.style), // verrou : la 3D navigue seulement
     };
   }
+}
+
+/// Direction (en plan) d'où l'on voit les façades : moyenne des murs meublés, tournée de 26° s'il n'y en a qu'un.
+List<double> _studioDir(LayoutEngine e) {
+  var x = 0.0, y = 0.0;
+  final walls = <String>{};
+  for (final c in e.project.items) {
+    if (c.wallId == 'I' || !e.room.order.contains(c.wallId)) continue;
+    final w = e.room.wall(c.wallId);
+    x += w.nx * c.width;
+    y += w.ny * c.width;
+    walls.add(c.wallId);
+  }
+  if (walls.isEmpty && e.room.island != null) {
+    final w = e.room.wall('I');
+    x = w.nx;
+    y = w.ny;
+  }
+  final len = math.sqrt(x * x + y * y);
+  if (len < 1e-6) return const [0.44, 0.9];
+  x /= len;
+  y /= len;
+  if (walls.length > 1 && (x.abs() > 0.3 && y.abs() > 0.3)) return [x, y];
+  const a = 26 * math.pi / 180;
+  return [x * math.cos(a) - y * math.sin(a), x * math.sin(a) + y * math.cos(a)];
 }
 
 /// Point de réseau absent de la vue 3D : attente noyée dans le bâti-support d'un WC suspendu,

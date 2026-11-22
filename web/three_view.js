@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
 import { RoomEnvironment } from './vendor/environments/RoomEnvironment.js';
 import { mergeGeometries } from './vendor/utils/BufferGeometryUtils.js';
+import { hdStart, hdState, hdStop, hdRunning } from './hd_render.js';
 
 const S = 0.001; // mm → m
 const P = (x, y, z) => new THREE.Vector3(x * S, z * S, y * S);
@@ -18,6 +19,7 @@ const groups = new Map(); // clé de groupe → { sig, obj }
 const doors = []; // { uid, pivot, kind, max }
 const progress = new Map(); // uid → ouverture animée 0..1
 let selBox = null;
+let hemiLight, ambLight, fillLight, sideLight, rimLight;
 let lastYaw = null, lastZoom = null, lastView = 0, baseDist = 6, lastStudio = '';
 let camAnim = null; // déplacement de caméra en cours { p0, t0, p1, t1, k }
 let handlers = null;
@@ -96,7 +98,10 @@ function faceMat(m, w, h, vertical) {
 
 function imageMat(key, opts = {}) {
   const src = images.get(key);
-  const m = new THREE.MeshStandardMaterial({ roughness: opts.rough ?? 0.5, metalness: 0 });
+  // laqué brillant : vernis qui reflète la pièce
+  const m = opts.gloss
+    ? new THREE.MeshPhysicalMaterial({ roughness: 0.16, metalness: 0, clearcoat: 0.9, clearcoatRoughness: 0.06 })
+    : new THREE.MeshStandardMaterial({ roughness: opts.rough ?? 0.5, metalness: 0 });
   if (src) m.map = src;
   return m;
 }
@@ -364,14 +369,15 @@ function buildGrips(list, w, h, uid) {
 function buildPart(f, uid, part, depth, carcassColor) {
   const out = new THREE.Group();
   const w = part.s1 - part.s0, h = part.z1 - part.z0;
-  const front = f.mirror ? mirrorMat : imageMat(part.img, { rough: 0.45 });
-  const edge = new THREE.MeshStandardMaterial({ color: 0xdedbd4, roughness: 0.6 });
+  const front = f.mirror ? mirrorMat : imageMat(part.img, { rough: 0.45, gloss: part.gloss });
+  const edge = new THREE.MeshStandardMaterial({ color: part.ec ?? 0xdedbd4, roughness: 0.6 }); // chant de la façade
   const back = new THREE.MeshStandardMaterial({ color: carcassColor, roughness: 0.7 });
   let panel;
   if (part.glass && !f.mirror) {
     panel = glassPanel(w, h, part.glass, front, edge, uid, part.muntins);
   } else {
-    const geo = new THREE.BoxGeometry(w * S, h * S, 0.018);
+    // jeu réel entre deux façades : 1,5 mm de chaque côté
+    const geo = new THREE.BoxGeometry(Math.max(0.01, w * S - 0.003), Math.max(0.01, h * S - 0.003), 0.018);
     panel = new THREE.Mesh(geo, [edge, edge, edge, edge, front, back]);
     panel.castShadow = panel.receiveShadow = true;
   }
@@ -2161,9 +2167,27 @@ function applyScene(d) {
       for (const [key, v] of groups) if (key.startsWith('item:')) bb.expandByObject(v.obj);
       if (!bb.isEmpty()) {
         const c = bb.getCenter(new THREE.Vector3()), size = bb.getSize(new THREE.Vector3());
-        const rad = size.length() / 2, dist2 = (rad / Math.sin((camera.fov * Math.PI) / 360)) * Math.max(1, 1.15 / (camera.aspect || 1)) * 0.95;
-        const dir = new THREE.Vector3(0.42, 0.24, 1).normalize();
-        camera.position.copy(c).addScaledVector(dir, dist2);
+        // téléobjectif, à hauteur d'œil, de trois quarts : les verticales restent droites ;
+        // on se place du côté ouvert (l'autre mur meublé reste visible)
+        camera.fov = 30;
+        camera.updateProjectionMatrix();
+        const half = Math.tan((camera.fov * Math.PI) / 360), asp = camera.aspect || 1.6;
+        const dist2 = Math.max(size.y / (2 * half), (size.x + size.z * 0.45) / (2 * half * asp)) * 1.16 + size.z * 0.5;
+        // devant les façades : la moyenne des murs meublés donne la direction (de trois quarts sur un seul mur)
+        const [vx, vy] = d.studioDir || [0, 1];
+        const el = (11 * Math.PI) / 180;
+        camera.position.set(c.x + vx * Math.cos(el) * dist2, c.y + Math.sin(el) * dist2, c.z + vy * Math.cos(el) * dist2);
+        // tout le meuble dans le cadre, au plus près
+        for (let pass = 0; pass < 4; pass++) {
+          camera.lookAt(c);
+          camera.updateMatrixWorld();
+          let most = 0;
+          for (let k = 0; k < 8; k++) {
+            const v = new THREE.Vector3(k & 1 ? bb.max.x : bb.min.x, k & 2 ? bb.max.y : bb.min.y, k & 4 ? bb.max.z : bb.min.z).project(camera);
+            most = Math.max(most, Math.abs(v.x), Math.abs(v.y));
+          }
+          camera.position.sub(c).multiplyScalar(most / 0.9).add(c);
+        }
         controls.target.copy(c);
         controls.update();
         camAnim = null;
@@ -2172,7 +2196,19 @@ function applyScene(d) {
   }
   const leaving = lastStudio && !d.studio;
   lastStudio = d.studio || '';
+  // éclairage : trois sources en présentation, la pièce sinon
+  hemiLight.intensity = d.studio ? 0.85 : 1.15;
+  ambLight.intensity = d.studio ? 0.35 : 0.45;
+  fillLight.intensity = d.studio ? 0 : 0.75;
+  sideLight.intensity = d.studio ? 0.55 : 0;
+  rimLight.intensity = d.studio ? 0.4 : 0;
+  sideLight.position.set(target.x + 4, 2.6, target.z + 4);
+  sideLight.target.position.copy(target);
+  rimLight.position.set(target.x, 4, target.z - 5);
+  rimLight.target.position.copy(target);
   if (leaving) {
+    camera.fov = 38;
+    camera.updateProjectionMatrix();
     const dist = baseDist * Math.max(1, 1.4 / (camera.aspect || 1));
     camera.position.set(target.x - Math.sin(d.yaw) * dist, target.y + dist * 0.72, target.z + Math.cos(d.yaw) * dist);
     controls.target.copy(target);
@@ -2182,7 +2218,12 @@ function applyScene(d) {
     lastView = d.cam || 0;
   }
   // lumière principale cadrée sur la pièce (positionnée en hauteur et orientée pour des ombres douces et réalistes)
-  sun.position.set(target.x + 0.5, 6.0, target.z + 4.2);
+  // elle vient de devant les façades : on voit leur matière, les ombres partent vers les murs
+  {
+    const [lx, ly] = d.studioDir || [0.12, 1];
+    const c = Math.cos(-0.45), q = Math.sin(-0.45);
+    sun.position.set(target.x + (lx * c - ly * q) * 4.3, 6.0, target.z + (lx * q + ly * c) * 4.3);
+  }
   sun.target.position.copy(target);
   const half = Math.max(r.w, r.d) * S;
   Object.assign(sun.shadow.camera, { left: -half, right: half, top: half, bottom: -half, near: 0.5, far: 20 });
@@ -2194,6 +2235,7 @@ function applyScene(d) {
 
 function animate() {
   raf = requestAnimationFrame(animate);
+  if (hdRunning()) return; // le rendu HD a la main
   try {
     const now = performance.now();
     const dt = Math.min(0.1, (now - lastT) / 1000);
@@ -2425,8 +2467,9 @@ function init(el) {
   controls.addEventListener('end', gestureEnd);
   controls.addEventListener('change', () => invalidate());
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xd0c4b4, 1.15));
-  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+  hemiLight = new THREE.HemisphereLight(0xffffff, 0xd0c4b4, 1.15);
+  ambLight = new THREE.AmbientLight(0xffffff, 0.45);
+  scene.add(hemiLight, ambLight);
   sun = new THREE.DirectionalLight(0xfff6ea, 2.2);
   sun.castShadow = true;
   sun.shadow.mapSize.set(4096, 4096);
@@ -2438,6 +2481,11 @@ function init(el) {
   const fill = new THREE.PointLight(0xfff2dd, 0.75, 9);
   fill.position.set(1.5, 2.2, 1.2);
   scene.add(fill);
+  fillLight = fill;
+  // présentation : une lumière d'appoint froide de côté et un liseré par l'arrière (éteints dans la pièce)
+  sideLight = new THREE.DirectionalLight(0xf2f6ff, 0);
+  rimLight = new THREE.DirectionalLight(0xffffff, 0);
+  scene.add(sideLight, sideLight.target, rimLight, rimLight.target);
 
   const el2 = renderer.domElement;
   el2.addEventListener('pointerdown', onDown);
@@ -2465,6 +2513,24 @@ window.kitchen3d = {
     if (!renderer || !scene || !camera || !host || !host.isConnected) return null; // vue fermée : pas d'image périmée
     renderer.render(scene, camera);
     return renderer.domElement.toDataURL('image/png');
+  },
+  /** Rendu HD : démarre (w × h pixels, n passes), avancement et image (JSON), arrêt. */
+  hdStart(w, h, n) {
+    if (!renderer || !scene || !host || !host.isConnected) return false;
+    const box = selBox;
+    if (box) box.visible = false;
+    hdStart({ renderer, scene, camera, sun, hemi: hemiLight, ambient: ambLight, fill: fillLight, done: () => {
+      if (box) box.visible = true;
+      resize();
+      invalidate(true);
+    } }, w, h, n);
+    return true;
+  },
+  hdState() {
+    return hdState();
+  },
+  hdStop() {
+    hdStop();
   },
   /** Monte la vue dans [el] (élément HTML fourni par Flutter). */
   mount(el) {

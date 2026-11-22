@@ -24,6 +24,9 @@ extension type _K3d._(JSObject _) implements JSObject {
   external void setScene(String json);
   external bool supported();
   external String? capturePng();
+  external bool hdStart(int w, int h, int n);
+  external String hdState();
+  external void hdStop();
 }
 
 /// Capture un instantané de la vue 3D WebGL réelle (Data URL base64 PNG).
@@ -34,6 +37,11 @@ Future<String?> getWeb3dSnapshotPng() async {
     return null;
   }
 }
+
+/// Rendu HD de la vue affichée : démarre, avancement (JSON), arrêt.
+Future<bool> startHdRender(int w, int h, int n) async => _k3d?.hdStart(w, h, n) ?? false;
+Future<String?> hdRenderState() async => _k3d?.hdState();
+Future<void> stopHdRender() async => _k3d?.hdStop();
 
 bool? _supported;
 

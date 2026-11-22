@@ -1,0 +1,12 @@
+{
+"Rendu HD": ["HD render", "عرض عالي الدقة"],
+"Rendu HD…": ["HD render…", "عرض عالي الدقة…"],
+"Rapide": ["Fast", "سريع"],
+"Belle": ["Fine", "جميلة"],
+"Très fine": ["Very fine", "دقيقة جدًا"],
+"La vue 3D affichée, avec une vraie lumière : ombres douces, coins sombres naturels, contours nets.": ["The displayed 3D view with real light: soft shadows, natural dark corners, crisp edges.", "العرض الحالي بإضاءة حقيقية: ظلال ناعمة وزوايا طبيعية وحواف واضحة."],
+"Enregistrer l’image": ["Save the image", "حفظ الصورة"],
+"Lancer le rendu": ["Start the render", "بدء العرض"],
+"Fiche 3 vues": ["3-view sheet", "ورقة 3 مناظر"],
+"{0} %": ["{0}%", "{0}٪"]
+}

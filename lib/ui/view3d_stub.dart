@@ -5,6 +5,9 @@ import 'app_state.dart';
 
 bool get webgl3dAvailable => false;
 Future<String?> getWeb3dSnapshotPng() async => null;
+Future<bool> startHdRender(int w, int h, int n) async => false;
+Future<String?> hdRenderState() async => null;
+Future<void> stopHdRender() async {}
 
 class Kitchen3dView extends StatelessWidget {
   final AppState state;

@@ -16,6 +16,7 @@ import 'ui/custom_cabinet_ui.dart';
 import 'ui/furniture_accessories_ui.dart';
 import 'ui/kx_top_bar.dart';
 import 'ui/openings_ui.dart';
+import 'ui/hd_render.dart';
 import 'ui/presentation_bar.dart';
 import 'ui/project_settings_dialog.dart';
 import 'ui/saved_projects_dialog.dart';
@@ -1009,6 +1010,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         const Divider(height: 1),
         for (final m in studioModes.entries)
           kxItem('Présentation : ${m.value.toLowerCase()}', () => st.setStudio(m.key), icon: Icons.photo_camera_outlined, checked: st.studio == m.key, key: 'menu_studio_${m.key}'),
+        kxItem('Rendu HD…', () => showHdRender(context, st, _msg), icon: Icons.auto_awesome_outlined, key: 'menu_hd'),
         if (st.studio.isNotEmpty) kxItem('Revenir à la pièce', () => st.setStudio(''), icon: Icons.meeting_room_outlined),
         const Divider(height: 1),
         for (final l in AppLang.values)

@@ -3233,6 +3233,16 @@ const Map<String, String> enDict = {
   "Bas en noyer cannelé, hauts lisses sable, îlot cascade en marbre.": "Fluted walnut base units, plain sand wall units, marble waterfall island.",
   "Cuisine claire et îlot ocre : une seule touche de terre au centre.": "Light kitchen with an ochre island: a single earthy touch in the middle.",
   "Prune profond en bas, chêne en haut, marbre veiné : chaleureuse et affirmée.": "Deep plum below, oak above, veined marble: warm and assertive.",
+  "Rendu HD": "HD render",
+  "Rendu HD…": "HD render…",
+  "Rapide": "Fast",
+  "Belle": "Fine",
+  "Très fine": "Very fine",
+  "La vue 3D affichée, avec une vraie lumière : ombres douces, coins sombres naturels, contours nets.": "The displayed 3D view with real light: soft shadows, natural dark corners, crisp edges.",
+  "Enregistrer l’image": "Save the image",
+  "Lancer le rendu": "Start the render",
+  "Fiche 3 vues": "3-view sheet",
+  "{0} %": "{0}%",
 };
 
 const Map<String, String> arDict = {
@@ -6468,4 +6478,14 @@ const Map<String, String> arDict = {
   "Bas en noyer cannelé, hauts lisses sable, îlot cascade en marbre.": "سفلية جوز مخددة وعلوية رملية وجزيرة رخام.",
   "Cuisine claire et îlot ocre : une seule touche de terre au centre.": "مطبخ فاتح مع جزيرة مغرة في الوسط.",
   "Prune profond en bas, chêne en haut, marbre veiné : chaleureuse et affirmée.": "برقوقي في الأسفل وبلوط في الأعلى ورخام معرق.",
+  "Rendu HD": "عرض عالي الدقة",
+  "Rendu HD…": "عرض عالي الدقة…",
+  "Rapide": "سريع",
+  "Belle": "جميلة",
+  "Très fine": "دقيقة جدًا",
+  "La vue 3D affichée, avec une vraie lumière : ombres douces, coins sombres naturels, contours nets.": "العرض الحالي بإضاءة حقيقية: ظلال ناعمة وزوايا طبيعية وحواف واضحة.",
+  "Enregistrer l’image": "حفظ الصورة",
+  "Lancer le rendu": "بدء العرض",
+  "Fiche 3 vues": "ورقة 3 مناظر",
+  "{0} %": "{0}٪",
 };

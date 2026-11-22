@@ -1,11 +1,13 @@
 // Présentation : les meubles sur fond blanc, complets, avec leurs appareils ou seuls ; images à enregistrer.
 // Décor du rendu : choix des objets, montrés ou cachés.
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
+import 'hd_render.dart';
 import 'i18n.dart';
 import 'kx_choices.dart';
 import 'theme.dart';
@@ -33,19 +35,24 @@ class PresentationBar extends StatefulWidget {
 class _PresentationBarState extends State<PresentationBar> {
   bool busy = false;
 
-  Future<void> _all() async {
+  /// Les trois niveaux, l'un après l'autre : images séparées, ou réunies sur une fiche.
+  Future<void> _all({required bool sheet}) async {
     final st = widget.state;
     final was = st.studio;
     setState(() => busy = true);
-    var n = 0;
+    final shots = <Uint8List>[];
     for (final m in studioModes.keys) {
       st.setStudio(m);
       await Future<void>.delayed(const Duration(milliseconds: 1400)); // la scène se reconstruit
-      if (await _save('${st.project.name}_${m == 'decor' ? 'complet' : m == 'bare' ? 'meubles' : 'appareils'}.png')) n++;
+      final png = pngOf(await getWeb3dSnapshotPng());
+      if (png == null) break;
+      shots.add(png);
+      if (!sheet) await saveToKitchinox('${st.project.name}_${m == 'decor' ? 'complet' : m == 'bare' ? 'meubles' : 'appareils'}.png', png);
     }
+    if (sheet && shots.length == 3) await saveToKitchinox('${st.project.name}_fiche.png', await composeSheet(shots, title: st.project.name));
     st.setStudio(was);
     if (mounted) setState(() => busy = false);
-    widget.onMessage(n == 0 ? tr('Image impossible : ouvrez la vue 3D.') : trp('{0} image(s) enregistrée(s)', [n]));
+    widget.onMessage(shots.length < 3 ? tr('Image impossible : ouvrez la vue 3D.') : trp('{0} image(s) enregistrée(s)', [sheet ? 1 : 3]));
   }
 
   @override
@@ -79,10 +86,17 @@ class _PresentationBarState extends State<PresentationBar> {
                   },
           ),
           TextButton.icon(
-            key: const ValueKey('studio_all'),
-            onPressed: busy ? null : _all,
-            icon: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.download, size: 18),
-            label: Text(tr('Les 3 images')),
+            key: const ValueKey('studio_sheet'),
+            onPressed: busy ? null : () => _all(sheet: true),
+            icon: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.photo_library_outlined, size: 18),
+            label: Text(tr('Fiche 3 vues')),
+          ),
+          TextButton(key: const ValueKey('studio_all'), onPressed: busy ? null : () => _all(sheet: false), child: Text(tr('Les 3 images'))),
+          FilledButton.icon(
+            key: const ValueKey('studio_hd'),
+            onPressed: busy ? null : () => showHdRender(context, st, widget.onMessage),
+            icon: const Icon(Icons.auto_awesome, size: 18),
+            label: Text(tr('Rendu HD')),
           ),
           IconButton(key: const ValueKey('studio_close'), tooltip: tr('Revenir à la pièce'), icon: const Icon(Icons.close), onPressed: busy ? null : () => st.setStudio('')),
         ]),

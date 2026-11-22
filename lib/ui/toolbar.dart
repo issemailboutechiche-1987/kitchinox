@@ -17,6 +17,7 @@ import 'scene3d.dart';
 import 'diagnostic_pdf.dart';
 import 'header.dart';
 import 'kitchen_heights_dialog.dart';
+import 'hd_render.dart';
 import 'kx_choices.dart';
 import 'theme.dart';
 import 'i18n.dart';
@@ -700,6 +701,7 @@ class ViewSwitcher extends StatelessWidget {
               onPressed: state.toggleDecor,
               icon: const Icon(Icons.local_florist_outlined),
             ),
+            IconButton(key: const ValueKey('view_hd'), tooltip: tr('Rendu HD'), onPressed: () => showHdRender(context, state, (m) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(m)))), icon: const Icon(Icons.auto_awesome_outlined)),
             IconButton(key: const ValueKey('view_studio'), tooltip: tr('Présentation sur fond blanc'), onPressed: () => state.setStudio('decor'), icon: const Icon(Icons.photo_camera_outlined)),
             IconButton(tooltip: tr('Tourner à gauche'), onPressed: () => state.rotate3d(-0.35), icon: const Icon(Icons.rotate_left)),
             IconButton(tooltip: tr('Tourner à droite'), onPressed: () => state.rotate3d(0.35), icon: const Icon(Icons.rotate_right)),

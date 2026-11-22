@@ -21,6 +21,22 @@ import 'web_io_native.dart' show nativeIoEnabled;
 bool get webgl3dAvailable => nativeIoEnabled;
 WebViewController? _live; // vue 3D affichée
 
+/// Rendu HD de la vue affichée : démarre, avancement (JSON), arrêt.
+Future<bool> startHdRender(int w, int h, int n) async {
+  if (_live == null) return false;
+  await _live!.runJavaScript('window.kitchen3d.hdStart($w, $h, $n)');
+  return true;
+}
+
+Future<String?> hdRenderState() async {
+  final r = await _live?.runJavaScriptReturningResult('window.kitchen3d.hdState()');
+  if (r == null) return null;
+  final s = '$r';
+  return s.startsWith('"') ? jsonDecode(s) as String : s; // Android renvoie la chaîne entre guillemets
+}
+
+Future<void> stopHdRender() async => _live?.runJavaScript('window.kitchen3d.hdStop()');
+
 /// Image de la vue 3D affichée (Data URL PNG), ou null si elle n'est pas ouverte.
 Future<String?> getWeb3dSnapshotPng() async {
   try {

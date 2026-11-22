@@ -47,7 +47,9 @@ bool applyIslandPreset(LayoutEngine e, String id) {
   // pas de débord : l'îlot garde sa place, la profondeur change d'abord
   final want = switch (id) { 'repas' || 'bistrot' => 350.0, 'tiroirs' => 0.0, _ => isl.overhang.clamp(0.0, 300.0) };
   if (isl.y0 + Island.depth + want <= p.room.depth - 800 || want <= isl.overhang) isl.overhang = want;
-  isl.flip = id == 'tiroirs';
+  // vers la salle : le dos au mur le plus meublé (fond ou avant)
+  double load(String w) => p.items.where((c) => c.wallId == w).fold<double>(0, (a, c) => a + c.width);
+  isl.flip = id == 'tiroirs' && load('A') >= load('D');
   st.islandWaterfall = id == 'cascade';
   st.islandBack = id == 'bistrot' ? 'cadre' : (id == 'cascade' ? 'cannele' : 'lisse');
   p.items.removeWhere((c) => c.wallId == 'I');
