@@ -38,6 +38,8 @@ Directory? _kitchinoxDir;
 Directory? _projectsDir;
 Directory? _exportDir;
 Directory? _importDir;
+Directory? _pdfDir;
+Directory? _scenesDir;
 
 /// Dossier racine Kitchinox sur l'appareil
 Directory? get kitchinoxDir => _kitchinoxDir;
@@ -57,10 +59,13 @@ Future<void> initPlatformIo() async {
     _projectsDir = Directory('${_kitchinoxDir!.path}/projets');
     _exportDir = Directory('${_kitchinoxDir!.path}/export');
     _importDir = Directory('${_kitchinoxDir!.path}/import');
+    _pdfDir = Directory('${_kitchinoxDir!.path}/pdf');
+    _scenesDir = Directory('${_kitchinoxDir!.path}/scenes');
 
-    await _projectsDir!.create(recursive: true);
-    await _exportDir!.create(recursive: true);
-    await _importDir!.create(recursive: true);
+    // dossiers créés à la première ouverture de l'app : projets, import, export, pdf, scenes
+    for (final d in [_projectsDir!, _exportDir!, _importDir!, _pdfDir!, _scenesDir!]) {
+      await d.create(recursive: true);
+    }
   } catch (e) {
     debugPrint('Erreur création dossiers Kitchinox: $e');
   }
@@ -179,9 +184,7 @@ Future<void> _share(String name, List<int> bytes, String mime) async {
     // Sauvegarder automatiquement une copie dans le dossier Kitchinox approprié
     if (_kitchinoxDir != null) {
       try {
-        final targetDir = safe.endsWith('.kin')
-            ? _projectsDir
-            : (safe.endsWith('.pdf') || safe.endsWith('.csv') || safe.endsWith('.sct') ? _exportDir : _kitchinoxDir);
+        final targetDir = _folderFor(safe);
         if (targetDir != null) {
           final localCopy = File('${targetDir.path}/$safe');
           await localCopy.writeAsBytes(bytes, flush: true);
@@ -204,6 +207,28 @@ Future<void> _share(String name, List<int> bytes, String mime) async {
   } catch (e) {
     debugPrint('partage : $e');
   }
+}
+
+/// Dossier Kitchinox d'un fichier selon son extension : .kin → projets, .pdf → pdf, scènes 3D → scenes,
+/// le reste (CSV, Excel, .sct) → export.
+Directory? _folderFor(String name) {
+  final n = name.toLowerCase();
+  if (n.endsWith('.kin')) return _projectsDir;
+  if (n.endsWith('.pdf')) return _pdfDir;
+  if (n.endsWith('.glb') || n.endsWith('.gltf') || n.endsWith('.obj') || n.endsWith('.dae') || n.endsWith('.skp')) return _scenesDir;
+  return _exportDir ?? _kitchinoxDir;
+}
+
+/// Enregistre le fichier dans son dossier Kitchinox, sans rien demander (bouton Enregistrer).
+/// Renvoie le chemin écrit, ou null si l'appareil n'a pas de dossier Kitchinox.
+Future<String?> saveToKitchinox(String name, List<int> bytes) async {
+  if (!nativeIoEnabled) return null;
+  final safe = name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+  final dir = _folderFor(safe);
+  if (dir == null) return null;
+  final f = File('${dir.path}/$safe');
+  await f.writeAsBytes(bytes, flush: true);
+  return 'Kitchinox/${dir.path.split('/').last}/$safe';
 }
 
 void saveImportedAsset(String name, Uint8List bytes) {

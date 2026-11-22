@@ -26,7 +26,7 @@ List<EndPanel> endPanels(LayoutEngine e) {
   bool panelLike(CabinetModel m) => m.kind.isFiller || m.kind == CabinetKind.coverPanel || m.kind == CabinetKind.islandPanel;
   for (final w in p.room.walls.where((w) => w.enabled)) {
     for (final high in [false, true]) {
-      bool test(CabinetModel m) => !panelLike(m) && (high ? m.kind.isHigh : (m.kind.isLow || m.kind == CabinetKind.tall));
+      bool test(CabinetModel m) => !panelLike(m) && !m.isFreeHood && (high ? m.kind.isHigh : (m.kind.isLow || m.kind == CabinetKind.tall));
       // boîtes de ce mur dans cette bande, en coordonnées murales
       final mine = <(double, double, double, double, double)>[]; // s0, s1, t1, z0, z1
       for (final c in p.items) {

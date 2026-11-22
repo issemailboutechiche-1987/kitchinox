@@ -162,7 +162,7 @@ class _SavedProjectsDialogState extends State<SavedProjectsDialog> {
   }
 
   Future<void> _importKin() async {
-    final f = await pickFile(accept: '.kin,.json');
+    final f = await pickFile(accept: '.kin');
     if (f == null || !mounted) return;
     final meta = await SavedProjectsManager.importProjectBytes(f.name, f.bytes);
     if (meta != null) {

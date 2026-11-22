@@ -1,0 +1,18 @@
+{
+"Caisson 1 porte": ["1-door cabinet", "خزانة بباب واحد"],
+"Caisson 1 porte depuis cette feuille": ["1-door cabinet from this sheet", "خزانة بباب واحد من هذا اللوح"],
+"Dimensions du caisson": ["Cabinet dimensions", "أبعاد الخزانة"],
+"En applique": ["Overlay", "متراكب"],
+"Façade en applique : la pièce se pose devant le chant (porte qui couvre le caisson)": ["Overlay front: the part sits in front of the edge (door covering the cabinet)", "واجهة متراكبة: توضع القطعة أمام الحافة (باب يغطي الخزانة)"],
+"Feuille coupée : 6 pièces et {0} liaisons notées. Vérifiez l’aperçu 3D, puis « Usiner ».": ["Sheet cut: 6 parts and {0} links noted. Check the 3D preview, then \"Machine\".", "تم قطع اللوح: 6 قطع و{0} وصلات مسجلة. تحقق من المعاينة ثلاثية الأبعاد ثم «تشغيل»."],
+"Feuille trop petite pour un caisson {0} × {1} × {2} mm.": ["Sheet too small for a {0} × {1} × {2} mm cabinet.", "اللوح صغير جدًا لخزانة {0} × {1} × {2} مم."],
+"Posez d’abord une feuille (Nouveau → Feuille).": ["Lay a sheet first (New → Sheet).", "ضع لوحًا أولًا (جديد ← لوح)."],
+"La feuille est coupée à la guillotine (2 côtés, dessous, dessus, fond, porte) et les 5 liaisons sont notées : vérifiez l’aperçu 3D puis « Usiner ».": ["The sheet is guillotine-cut (2 sides, bottom, top, back, door) and the 5 links are noted: check the 3D preview, then \"Machine\".", "يُقطع اللوح بالمقصلة (جانبان، قاع، سقف، ظهر، باب) وتُسجَّل الوصلات الخمس: تحقق من المعاينة ثم «تشغيل»."],
+"Côté gauche": ["Left side", "الجانب الأيسر"],
+"Côté droit": ["Right side", "الجانب الأيمن"],
+"Dessous": ["Bottom", "القاع"],
+"Dessus": ["Top", "السقف"],
+"Fond": ["Back", "الظهر"],
+"Porte": ["Door", "باب"],
+"Chute": ["Offcut", "بقايا"]
+}

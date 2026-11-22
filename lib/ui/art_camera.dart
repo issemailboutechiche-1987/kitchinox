@@ -150,7 +150,9 @@ class ArtCamera extends ChangeNotifier {
     }
     target = (lo + hi) * 0.5;
     final r = (hi - lo).length / 2;
-    dist = math.max(800, r / math.sin(fov / 2) * 1.15);
+    // vue étroite (écran partagé, tablette debout) : c'est la largeur qui limite
+    final aspect = size.width > 0 && size.height > 0 ? math.min(1.0, size.width / size.height) : 1.0;
+    dist = math.max(800, r / math.sin(fov / 2) * 1.15 / aspect);
     notifyListeners();
   }
 

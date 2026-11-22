@@ -153,24 +153,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(horizontal: Tokens.s5, vertical: Tokens.s3),
                       child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 980),
-                          child: Wrap(alignment: WrapAlignment.center, spacing: Tokens.s4, runSpacing: Tokens.s4, children: [
-                            for (final (icon, title, sub, on) in tiles) _Tile(icon: icon, title: title, subtitle: sub, onTap: on),
-                          ]),
-                        ),
+                        child: Column(children: [
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 980),
+                            child: Wrap(alignment: WrapAlignment.center, spacing: Tokens.s4, runSpacing: Tokens.s4, children: [
+                              for (final (icon, title, sub, on) in tiles) _Tile(icon: icon, title: title, subtitle: sub, onTap: on),
+                            ]),
+                          ),
+                          // signature sous les cartes (elle ne les chevauche plus)
+                          const SizedBox(height: Tokens.s5),
+                          Text(tr('kitchinox · conception et fabrication de meubles'), textAlign: TextAlign.center, style: t.bodySmall),
+                        ]),
                       ),
                     ),
-                  ),
-                ),
-              if (show > 0)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: Tokens.s3,
-                  child: Opacity(
-                    opacity: show,
-                    child: Text(tr('kitchinox · conception et fabrication de meubles'), textAlign: TextAlign.center, style: t.bodySmall),
                   ),
                 ),
             ]);
@@ -222,7 +217,7 @@ class _Tile extends StatelessWidget {
               Expanded(
                 child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    Flexible(child: Text(title, style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: soon ? scheme.outline : null))),
+                    Flexible(child: Text(tr(title), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: soon ? scheme.outline : null))),
                     if (soon) ...[
                       const SizedBox(width: Tokens.s2),
                       Container(
@@ -233,7 +228,7 @@ class _Tile extends StatelessWidget {
                     ],
                   ]),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: t.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(tr(subtitle), style: t.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
                 ]),
               ),
             ]),

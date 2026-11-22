@@ -1,4 +1,4 @@
-// Compositions nommées du dressing, de la salle de bain et du meuble TV, recalculées selon la pièce et les finitions.
+﻿// Compositions nommées du dressing, de la salle de bain et du meuble TV, recalculées selon la pièce et les finitions.
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -14,7 +14,11 @@ void main() {
   for (final id in ['dressing', 'bain', 'tv']) {
     test('$id : tous les modèles nommés tiennent dans une pièce de 4 m, sans chevauchement', () {
       final e = room(id);
-      final props = proposeUniverse(e, withStyle: false);
+      final all = proposeUniverse(e, withStyle: false);
+      final props = [for (final x in all) if (!x.$1.startsWith('Dressing en ')) x];
+      for (final x in all) {
+        expect(LayoutEngine(e.catalog, x.$2.project).validate().where((i) => i.code == 'overlap' || i.code == 'out_of_wall'), isEmpty, reason: x.$2.name);
+      }
       expect(props.length, universeTemplates[id]!.length, reason: [for (final (_, p) in props) p.name].join(', '));
       for (final (family, pr) in props) {
         expect(family, isNotEmpty);

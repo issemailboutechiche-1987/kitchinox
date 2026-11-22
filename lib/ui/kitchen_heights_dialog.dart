@@ -124,7 +124,7 @@ Future<void> showKitchenHeightsDialog(
               Text(tr(title), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
               if (subtitle != null) ...[
                 const SizedBox(height: 2),
-                Text(subtitle, style: t.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
+                Text(tr(subtitle), style: t.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
               ],
               const SizedBox(height: 6),
               Wrap(spacing: 8, runSpacing: 6, children: [

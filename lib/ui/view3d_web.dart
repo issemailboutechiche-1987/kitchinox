@@ -23,6 +23,16 @@ extension type _K3d._(JSObject _) implements JSObject {
   external void addImage(String key, int w, int h, JSUint8Array rgba);
   external void setScene(String json);
   external bool supported();
+  external String? capturePng();
+}
+
+/// Capture un instantané de la vue 3D WebGL réelle (Data URL base64 PNG).
+String? getWeb3dSnapshotPng() {
+  try {
+    return _k3d?.capturePng();
+  } catch (_) {
+    return null;
+  }
 }
 
 bool? _supported;

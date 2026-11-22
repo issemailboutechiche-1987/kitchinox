@@ -374,6 +374,7 @@ class PlacedCabinet {
   List<String>? appliances; // électroménager choisi (null = celui prévu par défaut)
   String? front; // finition propre à ce caisson (null = style de la cuisine)
   List<FrontRow>? layout; // composition de façade personnalisée (null = celle du modèle)
+  bool noBack; // caisson personnalisé : sans fond arrière
 
   PlacedCabinet({
     required this.uid,
@@ -391,6 +392,7 @@ class PlacedCabinet {
     this.appliances,
     this.front,
     this.layout,
+    this.noBack = false,
   });
 
   double get right => s + width;
@@ -414,6 +416,7 @@ class PlacedCabinet {
         if (appliances != null) 'appliances': appliances,
         if (front != null) 'front': front,
         if (layout != null) 'layout': [for (final r in layout!) r.toJson()],
+        if (noBack) 'no_back': true,
       };
 
   factory PlacedCabinet.fromJson(Map<String, dynamic> j) => PlacedCabinet(
@@ -432,6 +435,7 @@ class PlacedCabinet {
         appliances: (j['appliances'] as List?)?.cast<String>(),
         front: j['front'] as String?,
         layout: j['layout'] == null ? null : parseRows(j['layout']),
+        noBack: j['no_back'] == true,
       );
 }
 
@@ -500,6 +504,7 @@ class KitchenStyle {
   String wall; // murs
   String? splash; // crédence entre le plan de travail et les hauts (null = comme les murs)
   bool endPanels; // joues de finition posées automatiquement aux extrémités visibles
+  String? endPanelFinish; // finition personnalisée des joues / côtés visibles (si null : suit les façades)
   String lighting; // 'aucun' | 'led_hauts' | 'led_hauts_plinthes'
   String? sink; // modèle d'évier (null : évier 1 bac avec égouttoir)
   String? faucet; // modèle de mitigeur (null : mitigeur standard)
@@ -529,6 +534,7 @@ class KitchenStyle {
     this.wall = 'blanc_casse',
     this.splash,
     this.endPanels = true,
+    this.endPanelFinish,
     this.lighting = 'aucun',
     this.sink,
     this.faucet,
@@ -562,6 +568,7 @@ class KitchenStyle {
         'wall': wall,
         if (splash != null) 'splash': splash,
         if (!endPanels) 'end_panels': false,
+        if (endPanelFinish != null) 'end_panel_finish': endPanelFinish,
         if (lighting != 'aucun') 'lighting': lighting,
         if (sink != null) 'sink': sink,
         if (faucet != null) 'faucet': faucet,
@@ -592,6 +599,7 @@ class KitchenStyle {
         wall: j['wall'] as String? ?? 'blanc_casse',
         splash: j['splash'] as String?,
         endPanels: j['end_panels'] as bool? ?? true,
+        endPanelFinish: j['end_panel_finish'] as String?,
         lighting: j['lighting'] as String? ?? 'aucun',
         sink: j['sink'] as String?,
         faucet: j['faucet'] as String?,
@@ -698,6 +706,7 @@ class Project {
   ArtProject art = ArtProject(); // mode Art : création libre
   ProjectSpecs specs;
   final List<PlacedCabinet> items;
+  final Map<String, int> accessories = {}; // accessoires de meubles choisis (id → quantité)
   final List<Opening> openings;
   final List<RoomObject> objects = []; // sanitaires et objets de décoration posés librement
   final List<NetPoint> points; // réseaux : électricité, eau, évacuations, gaz, hotte
@@ -777,6 +786,7 @@ class Project {
         if (networks) 'networks': true,
         if (!client.isEmpty || client.numbers.isNotEmpty) 'client': client.toJson(),
         if (!quote.isDefault) 'quote': quote.toJson(),
+        if (accessories.isNotEmpty) 'accessories': accessories,
         if (manual.parts.isNotEmpty) 'manual_cut': manual.toJson(),
         if (!art.isEmpty) 'art': art.toJson(),
         if (furniture.values.any((f) => f.items.isNotEmpty)) 'furniture': {for (final e in furniture.entries) e.key: e.value.toJson()},
@@ -800,6 +810,7 @@ class Project {
         ..objects.addAll([for (final o in (j['objects'] as List? ?? const [])) RoomObject.fromJson((o as Map).cast<String, dynamic>())])
         ..client = ClientInfo.fromJson((j['client'] as Map?)?.cast<String, dynamic>() ?? const {})
         ..quote = QuoteSettings.fromJson((j['quote'] as Map?)?.cast<String, dynamic>() ?? const {})
+        ..accessories.addAll({for (final e in ((j['accessories'] as Map?) ?? const {}).entries) '${e.key}': (e.value as num).toInt()})
         ..art = ArtProject.fromJson((j['art'] as Map?)?.cast<String, dynamic>() ?? const {})
         ..manual = ManualCut.fromJson((j['manual_cut'] as Map?)?.cast<String, dynamic>() ?? const {})
         ..furniture.addAll({

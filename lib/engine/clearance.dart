@@ -224,7 +224,7 @@ List<Issue> designChecks(LayoutEngine e) {
       final why = layoutProblem(m.kind, rows, c.height);
       if (why != null) out.add(Issue(Severity.error, 'layout_invalid', '${n(c)} : $why', [c.uid]));
     }
-    if (m.kind.isHigh && m.id != 'wall_integrated_hood' && (c.appliances?.isNotEmpty ?? m.appliances.isNotEmpty)) {
+    if (m.kind.isHigh && !m.isHoodUnit && !m.isFreeHood && (c.appliances?.isNotEmpty ?? m.appliances.isNotEmpty)) {
       out.add(Issue(Severity.error, 'wall_appliance', L('{0} : un élément haut ne reçoit pas d\'appareil', [n(c)]), [c.uid]));
     }
   }
@@ -235,7 +235,7 @@ List<Issue> designChecks(LayoutEngine e) {
       final mb = e.modelOf(b);
       final gap = math.max(b.s - a.right, a.s - b.right);
       // évier et plaque : au moins 300 mm de plan entre les deux (éclaboussures, casseroles)
-      if (e.isWashing(ma) && e.isCooking(mb) && mb.kind.isLow && gap < 300 && a.uid.compareTo(b.uid) != 0) {
+      if (e.washes(a) && e.hasHob(b) && gap < 300 && a.uid.compareTo(b.uid) != 0) {
         out.add(Issue(Severity.warning, 'sink_hob_close',
             L('Évier et plaque à {0} mm : laisser au moins 300 mm de plan de travail entre les deux', [math.max(0, gap).round()]), [a.uid, b.uid]));
       }
@@ -245,8 +245,8 @@ List<Issue> designChecks(LayoutEngine e) {
       }
     }
     // hotte centrée sur la plaque
-    if (ma.id == 'wall_integrated_hood') {
-      for (final hob in items.where((h) => h.wallId == a.wallId && e.isCooking(e.modelOf(h)) && e.modelOf(h).kind.isLow)) {
+    if (ma.isHoodUnit || ma.isFreeHood) {
+      for (final hob in items.where((h) => h.wallId == a.wallId && e.cooks(h) && e.modelOf(h).kind.isLow)) {
         if (hob.s < a.right && a.s < hob.right) {
           final off = ((a.s + a.width / 2) - (hob.s + hob.width / 2)).abs();
           if (off > 50) out.add(Issue(Severity.warning, 'hood_offset', L('Hotte décentrée de {0} mm par rapport à la plaque', [off.round()]), [a.uid, hob.uid]));

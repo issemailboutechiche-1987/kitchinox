@@ -171,7 +171,7 @@ List<LayoutProposal> proposeLayouts(LayoutEngine base, {int max = 6, String? fil
       score += 8;
     }
     final sinkUnderWindow = p.items.any((c) =>
-        e.isWashing(e.modelOf(c)) && p.openings.any((o) => !o.isDoor && o.wallId == c.wallId && o.s < c.right && c.s < o.right));
+        e.washes(c) && p.openings.any((o) => !o.isDoor && o.wallId == c.wallId && o.s < c.right && c.s < o.right));
     if (sinkUnderWindow) {
       strengths.add('Évier sous la fenêtre');
       score += 6;

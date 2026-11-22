@@ -112,20 +112,13 @@ class StepToolbar extends StatelessWidget {
         ]);
       case PlanStep.layout:
         tiles.addAll([
-          if (state.engine.kitchen)
-            ToolTile(icon: Icons.height, label: tr('Hauteurs & Crédence'), onTap: () => showKitchenHeightsDialog(context, state, onMessage)),
-          if (state.engine.kitchen)
-            ToolTile(icon: Icons.dashboard_customize_outlined, label: tr('Disposition des meubles'), onTap: () => showShapeDialog(context, state)),
+          // ajouter : un seul panneau à gauche (vignettes, tailles, recherche, caisson personnalisé, accessoires)
           ToolTile(
-            icon: Icons.kitchen_outlined,
-            label: tr('Éléments de rangement'),
+            key: const ValueKey('tile_add'),
+            icon: Icons.add_box_outlined,
+            label: tr('Ajouter des meubles'),
             active: state.megaMenu || state.browse != null,
-            onTap: () => state.toggleMegaMenu(),
-          ),
-          ToolTile(
-            icon: Icons.search,
-            label: tr('Rechercher'),
-            onTap: () => state.openBrowse(const CatalogBrowse(Shelf.base)),
+            onTap: () => state.openBrowse(state.browse == null ? const CatalogBrowse(Shelf.base) : null),
           ),
           ToolTile(
             icon: Icons.chair_outlined,
@@ -146,8 +139,12 @@ class StepToolbar extends StatelessWidget {
               onTap: () {
                 if (state.project.room.island == null) {
                   final area = state.project.room.area;
-                  if (area < 8.5) {
-                    onMessage(trp('Attention : pièce compacte ({0} m²). Un îlot nécessite idéalement 9 m² ou plus.', [area.toStringAsFixed(1)]));
+                  // repères : 12 m² pour une péninsule ou une cuisine ouverte, 15 m² pour un îlot central en cuisine fermée ;
+                  // passages de 90 cm minimum, 100 à 110 cm conseillés, 120 cm si deux personnes cuisinent
+                  if (area < 12) {
+                    onMessage(trp('Attention : pièce compacte ({0} m²). Un îlot demande environ 12 m² (cuisine ouverte ou péninsule) et 15 m² en cuisine fermée ; une péninsule conviendra mieux.', [area.toStringAsFixed(1)]));
+                  } else if (area < 15) {
+                    onMessage(trp('Pièce de {0} m² : îlot possible en cuisine ouverte ; en cuisine fermée, comptez 15 m². Gardez 90 à 110 cm de passage tout autour.', [area.toStringAsFixed(1)]));
                   }
                   final res = state.addIsland();
                   if (res == null) {
@@ -160,9 +157,8 @@ class StepToolbar extends StatelessWidget {
                 }
               },
             ),
-          _networksMenu(context),
           ToolTile(
-            icon: Icons.add_box_outlined,
+            icon: Icons.space_bar,
             label: tr('Combler les vides'),
             onTap: () {
               final gaps = state.engine.gaps().where((g) => g.fillable).toList();
@@ -178,6 +174,12 @@ class StepToolbar extends StatelessWidget {
               onMessage(err ?? trp('{0} fileur(s) ajouté(s)', [gaps.length]));
             },
           ),
+          // réglages de la cuisine, en fin de barre
+          _networksMenu(context),
+          if (state.engine.kitchen)
+            ToolTile(icon: Icons.height, label: tr('Hauteurs & Crédence'), onTap: () => showKitchenHeightsDialog(context, state, onMessage)),
+          if (state.engine.kitchen)
+            ToolTile(icon: Icons.dashboard_customize_outlined, label: tr('Disposition des meubles'), onTap: () => showShapeDialog(context, state)),
         ]);
       case PlanStep.style:
         tiles.addAll([
@@ -188,7 +190,7 @@ class StepToolbar extends StatelessWidget {
             (StyleSection.carcass, Icons.inventory_2_outlined, 'Caissons'),
             (StyleSection.room, Icons.wallpaper_outlined, 'Sol et murs'),
           ])
-            ToolTile(icon: icon, label: label, active: styleSection == s, onTap: () => onStyleSection(s)),
+            ToolTile(icon: icon, label: tr(label), active: styleSection == s, onTap: () => onStyleSection(s)),
         ]);
       case PlanStep.summary:
         tiles.addAll([
@@ -382,6 +384,10 @@ Future<void> showIslandDialog(BuildContext context, AppState state, void Functio
             ),
           Text(tr('Caissons bas uniquement, façades tournées vers le mur du fond. Passages de 1000 mm minimum autour.'),
               style: Theme.of(ctx).textTheme.bodySmall),
+          const SizedBox(height: Tokens.s2),
+          Text(
+              tr('Repères : longueur 90 cm (compact), 120 à 150 cm (standard), 180 cm et plus (grand) ; largeur 60, 80 à 90 ou 100 à 120 cm. Plan à 85–95 cm, bar à 100–105 cm. Passages 90 cm mini, 100 à 110 cm conseillés, 120 cm à deux cuisiniers.'),
+              style: Theme.of(ctx).textTheme.bodySmall),
           const SizedBox(height: Tokens.s3),
           // passages actuels autour de l'îlot
           Wrap(spacing: 6, runSpacing: 6, children: [
@@ -565,7 +571,7 @@ class ViewSwitcher extends StatelessWidget {
     Widget seg(ViewMode v, IconData icon, String label) {
       final on = state.view == v;
       return Tooltip(
-        message: label,
+        message: tr(label),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: () => state.setView(v),
@@ -578,7 +584,7 @@ class ViewSwitcher extends StatelessWidget {
               Icon(icon, size: 20, color: on ? scheme.primary : scheme.onSurfaceVariant),
               if (!narrow) ...[
                 const SizedBox(width: 6),
-                Text(label,
+                Text(tr(label),
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: on ? scheme.primary : scheme.onSurface, fontWeight: on ? FontWeight.w800 : FontWeight.w600)),
               ],
@@ -588,7 +594,8 @@ class ViewSwitcher extends StatelessWidget {
       );
     }
 
-    final walls = [...state.project.room.walls, if (state.project.room.island != null) state.project.room.wall('I')];
+    // murs dans l'ordre alphabétique (A, B, C, D…), l'îlot en dernier
+    final walls = [...[...state.project.room.walls]..sort((a, b) => a.id.compareTo(b.id)), if (state.project.room.island != null) state.project.room.wall('I')];
     return Material(
       color: scheme.surface,
       elevation: 0,
@@ -668,6 +675,17 @@ class ZoomControls extends StatelessWidget {
       color: scheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: scheme.outlineVariant)),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
+        IconButton(
+          key: const ValueKey('lock_moves'),
+          isSelected: state.lockMoves,
+          tooltip: state.lockMoves ? tr('Verrou actif : rien ne bouge, on navigue (toucher pour déverrouiller)') : tr('Verrouiller : naviguer sans déplacer les meubles'),
+          icon: const Icon(Icons.lock_open_outlined),
+          selectedIcon: Icon(Icons.lock, color: Theme.of(context).colorScheme.primary),
+          onPressed: () {
+            state.lockMoves = !state.lockMoves;
+            state.refresh();
+          },
+        ),
         IconButton(tooltip: tr('Zoom avant'), onPressed: () => state.setZoom(state.zoom * 1.25), icon: const Icon(Icons.add)),
         IconButton(tooltip: tr('Zoom arrière'), onPressed: () => state.setZoom(state.zoom / 1.25), icon: const Icon(Icons.remove)),
         IconButton(tooltip: tr('Tout afficher'), onPressed: state.resetZoom, icon: const Icon(Icons.fit_screen_outlined)),

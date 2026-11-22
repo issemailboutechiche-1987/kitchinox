@@ -19,6 +19,7 @@ import 'web_io_native.dart' show nativeIoEnabled;
 
 /// Vraie 3D (three.js) disponible : sur appareil seulement.
 bool get webgl3dAvailable => nativeIoEnabled;
+String? getWeb3dSnapshotPng() => null;
 
 class Kitchen3dView extends StatefulWidget {
   final AppState state;

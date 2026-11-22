@@ -73,6 +73,7 @@ void main() {
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     final st = _state();
+    st.project.universe = 'bain'; // les sanitaires ne sont proposés que dans la salle de bain
     await t.pumpWidget(KitchenApp(state: st, googleFonts: false));
     await t.pumpAndSettle();
     st.goTo(PlanStep.layout);

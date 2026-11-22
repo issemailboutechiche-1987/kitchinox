@@ -89,7 +89,7 @@ void main() {
       ..faucet = 'faucet_mixer_pullout'
       ..sinkMount = 'undermount');
     final lines = st.bom.lines.where((l) => l.section == 'Équipements cuisine').toList();
-    expect(lines.map((l) => l.name), containsAll(['Évier 2 Bacs', 'Mitigeur avec Douchette Extractible']));
+    expect(lines.map((l) => l.name), containsAll(['Évier 2 Bacs Double Cuve 86cm', 'Mitigeur avec Douchette Extractible']));
     expect(lines.first.details, contains('sous plan'));
     expect(KitchenFixtures.brands, contains('Legrand'));
     for (final k in [NetKind.switchDouble, NetKind.usb, NetKind.rj45, NetKind.tvSat]) {

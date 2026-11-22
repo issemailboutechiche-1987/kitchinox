@@ -1315,6 +1315,78 @@ function buildFixture(o, sceneData) {
       }
       break;
     }
+    case 'kitchen_hood_free': {
+      // Hotte murale posée librement : hotte (pyramide, inclinée verre noir ou box) + cheminée jusqu'au plafond.
+      // Repère : x centré sur la largeur, y = 0 au bas de la hotte, z = 0 contre le mur, z = d devant.
+      const steel = new THREE.MeshStandardMaterial({ color: 0xc8ccd0, metalness: 0.88, roughness: 0.26 });
+      const glass = new THREE.MeshStandardMaterial({ color: 0x0d0f12, metalness: 0.35, roughness: 0.08 });
+      const dark = new THREE.MeshStandardMaterial({ color: 0x24272c, metalness: 0.6, roughness: 0.4 });
+      const led = new THREE.MeshStandardMaterial({ color: 0xfff6e0, emissive: 0xffe8b4, emissiveIntensity: 2.2 });
+      const style = o.hoodStyle || 'pyramid';
+      const chimW = Math.min(300, w * 0.45), chimD = Math.min(260, d * 0.6);
+      let canopyTop = 0;
+      if (style === 'inclined') {
+        // caisson contre le mur + vitre noire inclinée vers l'avant
+        const bodyH = 420, bodyD = Math.min(220, d * 0.55);
+        const body = mesh(new THREE.BoxGeometry(w, bodyH, bodyD), dark);
+        body.position.set(0, bodyH / 2, bodyD / 2);
+        m.add(body);
+        const len = Math.hypot(bodyH, d - bodyD);
+        const panel = mesh(new THREE.BoxGeometry(w, len, 14), glass);
+        const ang = Math.atan2(d - bodyD, bodyH);
+        panel.position.set(0, bodyH / 2, bodyD + (d - bodyD) / 2);
+        panel.rotation.x = ang;
+        m.add(panel);
+        const strip = mesh(new THREE.BoxGeometry(w * 0.6, 6, 6), led);
+        strip.position.set(0, 4, d - 20);
+        m.add(strip);
+        canopyTop = bodyH;
+      } else if (style === 'box') {
+        // box rectangulaire en inox
+        const boxH = 90;
+        const box = mesh(new THREE.BoxGeometry(w, boxH, d), steel);
+        box.position.set(0, boxH / 2, d / 2);
+        m.add(box);
+        const bar = mesh(new THREE.BoxGeometry(w * 0.4, 8, 6), dark);
+        bar.position.set(0, boxH / 2, d + 3);
+        m.add(bar);
+        canopyTop = boxH;
+      } else {
+        // pyramide : bandeau bas + tronc de pyramide jusqu'à la cheminée
+        const bandH = 60;
+        const band = mesh(new THREE.BoxGeometry(w, bandH, d), steel);
+        band.position.set(0, bandH / 2, d / 2);
+        m.add(band);
+        const pyrH = Math.min(320, h * 0.35);
+        // tronc de pyramide : bas w × d, haut chimW × chimD (contre le mur)
+        const frustum = new THREE.BufferGeometry();
+        const b0 = [-w / 2, 0, 0], b1 = [w / 2, 0, 0], b2 = [w / 2, 0, d], b3 = [-w / 2, 0, d];
+        const t0 = [-chimW / 2, pyrH, 0], t1 = [chimW / 2, pyrH, 0], t2 = [chimW / 2, pyrH, chimD], t3 = [-chimW / 2, pyrH, chimD];
+        const quads = [[b3, b2, t2, t3], [b2, b1, t1, t2], [b0, b3, t3, t0], [t3, t2, t1, t0]];
+        const pos = [];
+        for (const [a, b, c, e] of quads) pos.push(...a, ...b, ...c, ...a, ...c, ...e);
+        frustum.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        frustum.computeVertexNormals();
+        const pyrMat = steel.clone();
+        pyrMat.side = THREE.DoubleSide;
+        const pyr = new THREE.Mesh(frustum, pyrMat);
+        pyr.position.set(0, bandH, 0);
+        m.add(pyr);
+        canopyTop = bandH + pyrH;
+      }
+      // cheminée jusqu'au plafond, contre le mur
+      const chimH = Math.max(0, h - canopyTop);
+      if (chimH > 1) {
+        const chim = mesh(new THREE.BoxGeometry(chimW, chimH, chimD), style === 'inclined' ? dark : steel);
+        chim.position.set(0, canopyTop + chimH / 2, chimD / 2);
+        m.add(chim);
+      }
+      // filtres sous la hotte
+      const flt = mesh(new THREE.BoxGeometry(w * 0.8, 4, d * 0.6), dark);
+      flt.position.set(0, 1, d / 2);
+      m.add(flt);
+      break;
+    }
       default:
         lbox(g, ceramic, -hw, hw, 0, h, 0, d);
     }
@@ -1350,6 +1422,18 @@ function buildObject(o, d) {
   root.add(inner);
   if (o.kind === 'fixture') {
     inner.add(buildFixture(o, d));
+  } else if (o.panels && o.panels.length) {
+    // meuble de la bibliothèque de l'atelier : un pavé par panneau, à sa couleur
+    const mats = new Map();
+    for (const q of o.panels) {
+      let m = mats.get(q.color);
+      if (!m) {
+        m = new THREE.MeshStandardMaterial({ color: q.color, roughness: 0.62 });
+        mats.set(q.color, m);
+      }
+      const mesh = lbox(inner, m, q.x0, q.x1, q.y0, q.y1, q.z0, q.z1);
+      mesh.castShadow = mesh.receiveShadow = true;
+    }
   } else if (o.file) {
     // en attendant le modèle : un volume discret aux cotes
     const ph = lbox(inner, new THREE.MeshStandardMaterial({ color: 0xe8e2da, transparent: true, opacity: 0.35 }), -o.w / 2, o.w / 2, 0, o.h, 0, o.d);
@@ -2078,6 +2162,12 @@ function resize() {
 
 window.kitchen3d = {
   ready: true,
+  /** Capture un instantané PNG haute résolution de la vue 3D perspective réelle. */
+  capturePng() {
+    if (!renderer || !scene || !camera) return null;
+    renderer.render(scene, camera);
+    return renderer.domElement.toDataURL('image/png');
+  },
   /** Monte la vue dans [el] (élément HTML fourni par Flutter). */
   mount(el) {
     if (host === el) return;

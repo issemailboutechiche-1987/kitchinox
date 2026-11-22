@@ -167,7 +167,7 @@ class LayoutEngine {
     var top = 0.0;
     for (final c in project.items.where((c) => c.wallId == wallId)) {
       final m = modelOf(c);
-      if (m.kind.isHigh && !m.kind.isFiller && m.id != 'wall_integrated_hood') top = math.max(top, c.top);
+      if (m.kind.isHigh && !m.kind.isFiller && !m.isHoodUnit && !m.isFreeHood) top = math.max(top, c.top);
     }
     return top > 0 ? top : std.wallBottomDefault + 800.0;
   }
@@ -193,6 +193,7 @@ class LayoutEngine {
     switch (m.kind) {
       case CabinetKind.base:
       case CabinetKind.cornerBase:
+      case CabinetKind.cornerTall:
       case CabinetKind.fillerBase:
       case CabinetKind.tall:
         return std.plinthHeight.toDouble();
@@ -224,10 +225,17 @@ class LayoutEngine {
     final w = room.wall(wallId);
     if (!w.enabled) throw PlacementException(L('{0} désactivé', [Room.wallNames[wallId]]));
     // caisson de hotte posé sans hauteur imposée : aligné sur les autres hauts
-    if (m.id == 'wall_integrated_hood' && z == null && height == null && wallId != 'I') {
+    if (m.isHoodUnit && z == null && height == null && wallId != 'I') {
       final (hz, hh) = hoodPlacement(m, wallId);
       z = hz;
       height = hh;
+    }
+    // hotte posée librement : 650 mm au-dessus du plan de travail, cheminée jusqu'au plafond
+    if (m.isFreeHood && z == null && wallId != 'I') {
+      z = (std.worktopTop + 650).toDouble();
+      final room0 = room.height - z; // place jusqu'au plafond : la plus grande hauteur qui tient
+      final fit = m.heights.isRange ? [room0.round().clamp(m.heights.min!, m.heights.max!)] : m.heights.values.where((v) => v <= room0).toList();
+      height ??= fit.isEmpty ? m.heights.values.reduce(math.min) : fit.reduce(math.max);
     }
     final c = PlacedCabinet(
       uid: project.newUid(),
@@ -368,7 +376,7 @@ class LayoutEngine {
   List<CabinetModel> replacementsFor(PlacedCabinet c) {
     final m = modelOf(c);
     int fam(CabinetModel x) => x.kind.isCorner
-        ? (x.kind == CabinetKind.cornerBase ? 3 : 4)
+        ? (x.kind == CabinetKind.cornerBase ? 3 : x.kind == CabinetKind.cornerTall ? 6 : 4)
         : x.kind.isFiller || x.kind == CabinetKind.coverPanel || x.kind == CabinetKind.islandPanel
             ? 5
             : x.kind.isLow
@@ -1127,7 +1135,7 @@ class LayoutEngine {
 
   int _placeHoods(String wallId) {
     var count = 0;
-    for (final hob in [...project.items.where((c) => c.wallId == wallId && isCooking(modelOf(c)))]) {
+    for (final hob in [...project.items.where((c) => c.wallId == wallId && cooks(c))]) {
       final has = project.items.any((c) => _isHood(modelOf(c)) && c.wallId == wallId && _overlapS(c, hob));
       if (has) continue;
       try {
@@ -1513,7 +1521,7 @@ class LayoutEngine {
   static const cornerFillerMin = 50;
 
   bool _isHob(CabinetModel m) => m.id == 'base_cooktop_oven';
-  bool _isHood(CabinetModel m) => m.id == 'wall_integrated_hood';
+  bool _isHood(CabinetModel m) => m.isHoodUnit || m.isFreeHood;
 
   /// Écart horizontal entre deux caissons du même mur (négatif = recouvrement).
   double _gapBetween(PlacedCabinet a, PlacedCabinet b) => math.max(b.s - a.right, a.s - b.right);
@@ -1531,6 +1539,16 @@ class LayoutEngine {
   bool isCooking(CabinetModel m) => m.id.startsWith('base_cooktop') || m.id.contains('cooktop') || m.id.contains('oven') || m.zone == 'cook';
   bool isCooling(CabinetModel m) => m.id.contains('fridge') || m.id.contains('refrigerateur') || m.zone == 'cool';
 
+  /// Meuble posé : évier, cuisson ou froid d'après son modèle OU l'électroménager ajouté en option
+  /// (un caisson simple avec une plaque, un four ou un évier compte comme zone de cuisson ou de lavage).
+  bool washes(PlacedCabinet c) => isWashing(modelOf(c)) || (c.appliances?.any((a) => a.contains('sink')) ?? false);
+  bool cooks(PlacedCabinet c) =>
+      isCooking(modelOf(c)) || (c.appliances?.any((a) => a.contains('cooktop') || a.contains('hob') || a.contains('oven')) ?? false);
+  bool cools(PlacedCabinet c) => isCooling(modelOf(c)) || (c.appliances?.any((a) => a.contains('fridge')) ?? false);
+  /// Plaque de cuisson sur un meuble bas (modèle ou option).
+  bool hasHob(PlacedCabinet c) =>
+      modelOf(c).kind.isLow && (isCooking(modelOf(c)) && !modelOf(c).id.contains('oven_') || (c.appliances?.any((a) => a.contains('cooktop') || a.contains('hob')) ?? false) || modelOf(c).id.contains('cooktop'));
+
   /// Point de travail d'un élément : milieu de sa façade, au sol (vue de dessus).
   (double, double) workPoint(PlacedCabinet c) {
     final w = room.wall(c.wallId);
@@ -1539,14 +1557,14 @@ class LayoutEngine {
 
   /// Les trois zones trouvées (null si absente) : lavage, cuisson, froid.
   (PlacedCabinet?, PlacedCabinet?, PlacedCabinet?) workZones() {
-    PlacedCabinet? find(bool Function(CabinetModel) f) {
+    PlacedCabinet? find(bool Function(PlacedCabinet) f) {
       for (final c in project.items) {
-        if (f(modelOf(c))) return c;
+        if (f(c)) return c;
       }
       return null;
     }
 
-    return (find(isWashing), find(isCooking), find(isCooling));
+    return (find(washes), find(cooks), find(cools));
   }
 
   /// Côtés du triangle (mm) : évier-plaque, plaque-froid, froid-évier ; null s'il manque une zone.

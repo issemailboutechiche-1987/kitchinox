@@ -96,7 +96,7 @@ List<DoorAccess> doorAccess(LayoutEngine e, {double cell = 50}) {
 
   // zone de travail : devant l'évier, sinon le point le plus dégagé de la pièce
   int target;
-  final sink = p.items.where((c) => e.isWashing(e.modelOf(c))).firstOrNull;
+  final sink = p.items.where((c) => e.washes(c)).firstOrNull;
   if (sink != null && sink.wallId != 'I') {
     final w = r.wall(sink.wallId);
     final (tx, ty) = w.toPlan(sink.s + sink.width / 2, sink.depth + 500.0);
@@ -194,7 +194,7 @@ bool clearDoorAccess(LayoutEngine e, {double min = accessMin - 25.0}) {
     for (final c in p.items) {
       final m = e.modelOf(c);
       if (!(m.kind.isLow || m.kind == CabinetKind.tall)) continue;
-      if (e.isWashing(m) || e.isCooking(m) || e.isCooling(m)) continue;
+      if (e.washes(c) || e.cooks(c) || e.cools(c)) continue;
       final d = e.boxesOf(c).map((tb) => near(tb.box)).reduce(math.min);
       if (d < best) {
         best = d;
@@ -204,7 +204,7 @@ bool clearDoorAccess(LayoutEngine e, {double min = accessMin - 25.0}) {
     if (victim == null) return false;
     final v = victim;
     p.items.removeWhere((c) =>
-        identical(c, v) || (c.wallId == v.wallId && e.modelOf(c).kind.isHigh && c.s < v.right - 1 && v.s < c.right - 1 && !e.isCooking(e.modelOf(c))));
+        identical(c, v) || (c.wallId == v.wallId && e.modelOf(c).kind.isHigh && c.s < v.right - 1 && v.s < c.right - 1 && !e.cooks(c)));
   }
   return doorAccess(e).every((a) => a.width >= min);
 }

@@ -80,6 +80,7 @@ Bom buildBom(LayoutEngine e) {
     CabinetKind.tall,
     CabinetKind.wall,
     CabinetKind.cornerWall,
+    CabinetKind.cornerTall,
     CabinetKind.fillerBase,
     CabinetKind.fillerWall,
     CabinetKind.coverPanel,
@@ -170,7 +171,7 @@ Bom buildBom(LayoutEngine e) {
   if (p.style.lighting != 'aucun') {
     var under = 0.0, plinthLed = 0.0;
     for (final w in p.room.walls.where((w) => w.enabled)) {
-      for (final (a, b) in e.runs(w.id, (m) => m.kind.isHigh && m.id != 'wall_integrated_hood')) {
+      for (final (a, b) in e.runs(w.id, (m) => m.kind.isHigh && !m.isHoodUnit && !m.isFreeHood)) {
         under += b - a;
       }
       for (final (a, b) in e.runs(w.id, (m) => m.floorSupport)) {

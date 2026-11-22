@@ -117,7 +117,7 @@ class _ProjectStartDialogState extends State<ProjectStartDialog> {
   }
 
   Future<void> _pickKinFile() async {
-    final f = await pickFile(accept: '.kin,.json');
+    final f = await pickFile(accept: '.kin');
     if (f == null || !mounted) return;
     try {
       final jsonStr = KinFormat.decode(f.bytes);
@@ -216,7 +216,8 @@ class _ProjectStartDialogState extends State<ProjectStartDialog> {
               const SizedBox(height: Tokens.s4),
 
               // Contenu principal
-              Expanded(
+              // la fenêtre prend la hauteur de son contenu (plus de grand vide sous les choix)
+              Flexible(
                 child: SingleChildScrollView(
                   child: _showNewForm ? _buildNewForm(scheme, t) : _buildChoiceList(scheme, t),
                 ),
@@ -225,14 +226,16 @@ class _ProjectStartDialogState extends State<ProjectStartDialog> {
               // Actions inférieures
               if (_showNewForm) ...[
                 const SizedBox(height: Tokens.s3),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                // les deux boutons passent l'un sous l'autre si la place manque (textes longs, arabe)
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: Tokens.s2,
+                  runSpacing: Tokens.s2,
                   children: [
                     TextButton(
                       onPressed: () => setState(() => _showNewForm = false),
                       child: Text(tr('Retour aux options')),
                     ),
-                    const SizedBox(width: Tokens.s2),
                     FilledButton.icon(
                       onPressed: _submitNewProject,
                       icon: const Icon(Icons.arrow_forward),

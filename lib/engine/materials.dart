@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'bom.dart';
+import 'furniture_accessories.dart';
 import 'public_prices.dart';
 import 'brands_sizes.dart';
 import 'assembly.dart';
@@ -449,7 +450,7 @@ List<Issue> applianceChecks(LayoutEngine e, MaterialsDb db) {
     // hotte au moins aussi large que la plaque
     if (m.id == 'base_cooktop_oven') {
       final hob = appliancesOf(m, c).map((id) => db.appliances[id]).whereType<Appliance>().where((a) => a.category == 'cooktops').firstOrNull;
-      final hood = e.project.items.where((h) => e.modelOf(h).id == 'wall_integrated_hood' && h.wallId == c.wallId && h.s < c.right && c.s < h.right).firstOrNull;
+      final hood = e.project.items.where((h) => (e.modelOf(h).isHoodUnit || e.modelOf(h).isFreeHood) && h.wallId == c.wallId && h.s < c.right && c.s < h.right).firstOrNull;
       if (hob != null && hood != null && hob.width != null && hood.width + 5 < hob.width!) {
         out.add(Issue(Severity.warning, 'hood_narrow', L('Hotte de {0} mm plus étroite que la plaque ({1} mm)', [hood.width, hob.width]), [hood.uid, c.uid]));
       }
@@ -616,15 +617,18 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
         : main
             ? db.panel(mat == cs.frontMaterial && cs.frontMaterial != cs.carcassMaterial ? specs.frontPanel : specs.carcassPanel)
             : null;
+    final (sL, sW) = cs.sheetDimensionsFor(mat);
+    final isBack = mat == cs.backMaterial || mat.contains('HDF') || mat.contains('Fond') || mat.contains('fond');
+    final isFront = mat == cs.frontMaterial || mat.contains('Façade') || mat.contains('Porte') || mat.contains('High Gloss');
     final atelier = main && specs.sheetPrice != null;
     // fond arrière : prix public du panneau mince blanc le plus proche en épaisseur
-    final back = mat == cs.backMaterial && pt == null ? PublicPrices.back(cs.backThickness) : null;
+    final back = isBack && pt == null ? PublicPrices.back(cs.backThickness) : null;
     final price = atelier
         ? PriceRange(specs.sheetPrice!, specs.sheetPrice!)
         : back != null
             ? PriceRange(back.price, back.price)
-            : pt?.sheetPrice(cs.sheetLength, cs.sheetWidth) ?? PriceRange.zero;
-    final thick = mat == cs.backMaterial ? cs.backThickness : mat == cs.drawerMaterial ? 16 : cs.carcassThickness;
+            : pt?.sheetPrice(sL, sW) ?? PriceRange.zero;
+    final thick = isBack ? cs.backThickness : (isFront ? cs.doorThickness : (mat == cs.drawerMaterial ? 16 : cs.carcassThickness));
     final how = atelier
         ? ' · tarif atelier'
         : back != null
@@ -633,7 +637,7 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
                 ? ' · prix à demander'
                 : '';
     out.add(SupplyLine('Panneaux', decor ? '$mat (${pt?.name ?? 'décor'})' : (main ? pt?.name ?? mat : mat),
-        '${cs.sheetLength} x ${cs.sheetWidth} x $thick mm$how', n.toDouble(), 'feuille', price));
+        '$sL x $sW x $thick mm$how', n.toDouble(), 'feuille', price));
     if (specs.cuttingPerSheet > 0) {
       out.add(SupplyLine('Panneaux', 'Découpe à la scie à panneaux', 'service par feuille', n.toDouble(), 'feuille',
           PriceRange(specs.cuttingPerSheet, specs.cuttingPerSheet)));
@@ -690,6 +694,7 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
   }
   out.addAll(applianceList(e, db, specs));
   out.addAll(fixtureSupplyLines(e));
+  out.addAll(furnitureAccessoryLines(e.project.accessories));
   return out;
 }
 

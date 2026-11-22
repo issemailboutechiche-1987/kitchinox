@@ -94,3 +94,9 @@ const bool nativeIoEnabled = false;
 void Function(Object error)? onStoreFailure;
 
 void saveImportedAsset(String name, Uint8List bytes) {}
+
+/// Navigateur : pas de dossier Kitchinox, le fichier est téléchargé.
+Future<String?> saveToKitchinox(String name, List<int> bytes) async {
+  downloadBytes(name, bytes);
+  return null;
+}

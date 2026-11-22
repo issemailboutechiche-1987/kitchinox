@@ -460,7 +460,13 @@ class Scene3dPainter {
         solids.add(_Solid(at(mid - 14, 28, t0 - 55, t0 + (fc.spring ? 180 : 150), topZ + fh - 40, 26), fColor, decor: 'steel'));
         if (fc.pullout || fc.spring) solids.add(_Solid(at(mid - 20, 40, t0 + 100, t0 + 155, topZ + fh - 130, 90), fColor, decor: 'steel'));
       } else if (isHood) {
-        solids.add(_Solid(w.strip(c.s + 40, c.width - 80.0, 480, c.z - 70, 70), const Color(0xFFA9AFB5), decor: 'steel'));
+        if (m.isFreeHood) {
+          solids.add(_Solid(w.strip(c.s + 30, c.width - 60.0, 480, c.z, room.height - c.z), const Color(0xFFA9AFB5), decor: 'steel'));
+        } else {
+          // Hotte intégrée dans meuble haut : visière affleurante alignée sous le caisson (non saillante)
+          final hd = math.min(350.0, c.depth.toDouble());
+          solids.add(_Solid(w.strip(c.s + 15, c.width - 30.0, hd, c.z - 35, 35), const Color(0xFFA9AFB5), decor: 'steel'));
+        }
       }
     }
 
@@ -629,6 +635,7 @@ class Scene3dPainter {
                 cells: [FrontCell(cell.kind, 0, lv, cell.hinge, -1)],
                 realistic: true,
                 pxPerMm: 1,
+                golaProfile: false, // le profil Gola est fixé au caisson, il ne suit pas la porte
                 carcass: carcass,
                 gloss: fr.gloss,
               );
@@ -929,6 +936,8 @@ class Scene3dPainter {
         gloss: fr.gloss,
       );
       _paintInterior(canvas, r, openCells, total, carcassColor, m, c);
+      // profil Gola : il reste sur le caisson, visible porte ouverte
+      if (p.style.handle == 'gola') paintGolaProfile(canvas, r, m, cells: frontCells(m, c, realistic: true));
       canvas.restore();
       return;
     }
@@ -989,7 +998,7 @@ void paintCabinetInterior(
   final dishwasher = m.id == 'base_integrated_dishwasher_door' || apps.any((a) => a.startsWith('dishwasher'));
   final sink = e.isWashing(m);
   final fridge = e.isCooling(m) || apps.any((a) => a.startsWith('fridge'));
-  final hood = m.id == 'wall_integrated_hood';
+  final hood = m.isHoodUnit;
   final steelGrad = Paint();
   for (final c in cells.where((c) => Scene3dPainter._moves(c.kind))) {
     final r = Rect.fromLTWH(face.left, face.top + c.y * k, face.width, c.h * k);

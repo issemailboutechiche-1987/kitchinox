@@ -250,8 +250,8 @@ List<Issue> sizeChecks(LayoutEngine e) {
     // évier et plaque trop proches (éclaboussures) : distance entre leurs bords sur le même mur
     final minSinkHob = SizeCatalog.rule('cuisine', ['safety_landing_zones', 'min_distance_sink_to_cooktop']);
     if (minSinkHob != null) {
-      for (final s in p.items.where((c) => e.isWashing(e.modelOf(c)))) {
-        for (final h in p.items.where((c) => c.wallId == s.wallId && e.isCooking(e.modelOf(c)) && e.modelOf(c).kind.isLow)) {
+      for (final s in p.items.where((c) => e.washes(c))) {
+        for (final h in p.items.where((c) => c.wallId == s.wallId && e.cooks(c) && e.modelOf(c).kind.isLow)) {
           final gap = h.s >= s.right ? h.s - s.right : s.s - h.right;
           if (gap >= 0 && gap < minSinkHob) {
             out.add(Issue(Severity.warning, 'sink_hob_close',

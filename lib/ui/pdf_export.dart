@@ -3,8 +3,7 @@
 // par mur, puis nomenclature par mur et contrôles d'implantation. Chaque planche a sa légende des
 // repères et un cartouche.
 
-import 'i18n.dart';
-import 'pdf_fonts.dart';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart' show Size, Color, Canvas;
@@ -13,9 +12,14 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../engine/engine.dart';
 import 'finishes.dart';
+import 'i18n.dart';
 import 'logo.dart';
 import 'net_symbols.dart';
+import 'pdf_fonts.dart';
 import 'tech_drawings.dart';
+import 'view3d_stub.dart'
+    if (dart.library.js_interop) 'view3d_web.dart'
+    if (dart.library.io) 'view3d_native.dart';
 
 const _orange = PdfColor.fromInt(0xFFB45309); // avertissements (ambre, distinct de la marque)
 const _brand = PdfColor.fromInt(0xFFF26522);
@@ -95,7 +99,15 @@ Future<Uint8List> buildExecutionPdf(LayoutEngine e,
     for (final w in netWalls) w: await draw('Réseaux, ${w == 'I' ? 'îlot' : 'mur $w'}', px, (c, s) => drawer.paintNetworks(c, s, w)),
   };
   final coverW = format.width - 2 * margin - 330 - gap;
-  final view3d = await draw('Vue 3D de couverture', Size(coverW * pixelRatio, bodyH * pixelRatio), (c, s) => drawer.paint3d(c, s, -0.6));
+  Uint8List? view3d;
+  final web3dData = getWeb3dSnapshotPng();
+  if (web3dData != null && web3dData.startsWith('data:image/png;base64,')) {
+    try {
+      final b64 = web3dData.substring('data:image/png;base64,'.length);
+      view3d = base64Decode(b64);
+    } catch (_) {}
+  }
+  view3d ??= await draw('Vue 3D de couverture', Size(coverW * pixelRatio, bodyH * pixelRatio), (c, s) => drawer.paint3d(c, s, -0.6));
   final planThumb = await draw('Miniature du plan', Size(330 * pixelRatio, 250 * pixelRatio), drawer.paintPlan);
   await step(0.86, tr('Mise en pages')); 
 

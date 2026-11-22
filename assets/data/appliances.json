@@ -89,12 +89,21 @@
           ]
         },
         {
+          "id": "hood_wall_inclined",
+          "name": "Hotte Murale Inclinée Verre Noir (Aspiration Périmétrale)",
+          "available_widths_mm": [600, 900],
+          "requires_wall_space_clear": true,
+          "market_segments_morocco": [
+            { "tier": "Toutes gammes", "brands": ["Elica", "Teka", "Bosch", "Samsung", "Candy"], "price_mad": { "min": 1900, "max": 8500 } }
+          ]
+        },
+        {
           "id": "hood_wall_decorative",
           "name": "Hotte Décorative Murale (Inclinée Verre ou Pyramide Inox)",
           "available_widths_mm": [600, 900],
           "requires_wall_space_clear": true,
           "market_segments_morocco": [
-            { "tier": "Toutes gammes", "brands": ["Teka", "Whirlpool", "Bosch", "Samsung", "Franke", "Candy"], "price_mad": { "min": 1400, "max": 7500 } }
+            { "tier": "Toutes gammes", "brands": ["Teka", "Whirlpool", "Bosch", "Samsung", "Franke", "Candy", "Elica", "Faber"], "price_mad": { "min": 1400, "max": 7500 } }
           ]
         }
       ]

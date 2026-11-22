@@ -65,6 +65,35 @@ void main() {
     });
   });
 
+  testWidgets('profil Gola : gorge en aluminium dans le caisson, façades arrêtées dessous, rien sur les portes', (t) async {
+    final st = AppState(cat, project: Project(room: Room(width: 4000, depth: 3000, height: 2600)));
+    st.project.style.handle = 'gola';
+    final door = st.engine.add('base_standard_single_door', 'A', s: 0);
+    final drawers = st.engine.add('base_drawers_multi', 'A', s: 600);
+    st.openAll(true);
+    await t.runAsync(() async {
+      await TextureBank.instance.init();
+      final scene = await SceneExporter().build(st);
+      final top = st.engine.boxesOf(door).first.box.z1;
+      final parts = [for (final f in scene['fronts'] as List) if (f['uid'] == door.uid) ...(f['parts'] as List)];
+      expect(parts, isNotEmpty);
+      expect((parts.first['z1'] as num).toDouble(), closeTo(top - 30, 0.01), reason: 'la porte s’arrête sous la gorge');
+      // gorge : pièces métal du caisson, dans les 33 mm sous le haut du caisson
+      final metal = [
+        for (final sld in scene['solids'] as List)
+          if (sld['uid'] == door.uid && ((sld['mat'] as Map)['metal'] as num? ?? 0) > 0.5) sld
+      ];
+      expect(metal, hasLength(3), reason: 'fond, lèvre basse, rebord haut');
+      expect(metal.every((b) => (b['z0'] as num) >= top - 33.01 && (b['z1'] as num) <= top + 0.01), isTrue);
+      // caisson à tiroirs : une gorge de plus entre deux tiroirs
+      final dMetal = [
+        for (final sld in scene['solids'] as List)
+          if (sld['uid'] == drawers.uid && ((sld['mat'] as Map)['metal'] as num? ?? 0) > 0.5) sld
+      ];
+      expect(dMetal.length, greaterThan(3));
+    });
+  });
+
   testWidgets('export de la scène 3D : salle de bain proposée (sanitaires)', (t) async {
     final u = FurnitureUniverse.parse('bain', File('assets/data/furniture/bain.json').readAsStringSync());
     final p = Project(universe: 'bain', room: Room(width: 3600, depth: 3000, height: 2600));

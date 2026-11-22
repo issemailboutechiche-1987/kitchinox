@@ -30,7 +30,7 @@ enum ViewMode { plan, front, view3d }
 enum Shelf {
   base('Éléments bas', ['base_cabinets', 'corner_base_cabinets']),
   wall('Éléments hauts', ['wall_cabinets', 'corner_wall_cabinets']),
-  tall('Colonnes', ['tall_cabinets']),
+  tall('Colonnes', ['tall_cabinets', 'corner_tall_cabinets']),
   finish('Fileurs et finitions', ['finishing_and_accessories']);
 
   final String label;
@@ -99,6 +99,22 @@ class AppState extends ChangeNotifier {
   CatalogBrowse? browse;
   String search = '';
   bool megaMenu = false;
+  /// Panneau d'ajout épinglé : il reste ouvert même quand on touche un meuble (la fiche s'ouvre à droite).
+  bool browsePinned = false;
+  /// Verrou : glisser ne déplace plus rien (meubles, murs, objets), il sert seulement à naviguer.
+  bool lockMoves = false;
+  /// Panneau d'ajout : seulement les favoris (étoile).
+  bool favoritesOnly = false;
+  /// Meuble choisi dans le panneau d'ajout, en attente de pose : on touche le mur pour le poser (en série).
+  String? armedModel;
+  int? armedWidth; // largeur choisie (null : celle du modèle)
+
+  /// Arme un meuble pour la pose au toucher (null : arrête la pose).
+  void arm(String? modelId, {int? width}) {
+    armedModel = modelId;
+    armedWidth = modelId == null ? null : width;
+    notifyListeners();
+  }
 
   // ---- guides d'alignement affichés pendant un glissement
   /// Guides : sur un mur (position s, vue de face et plan) ou dans la pièce (droite x = … ou y = …).
@@ -280,10 +296,28 @@ class AppState extends ChangeNotifier {
           if (s.categoryIds.contains(c.id)) c,
       ];
 
+  /// Texte comparable : minuscules, sans accents (« évier » = « evier »).
+  static String fold(String s) {
+    const from = 'àâäáãåçéèêëíìîïñóòôöõúùûüýÿœæ';
+    const to = 'aaaaaaceeeeiiiinooooouuuuyyoa';
+    final b = StringBuffer();
+    for (final ch in s.toLowerCase().split('')) {
+      final i = from.indexOf(ch);
+      b.write(i < 0 ? ch : to[i]);
+    }
+    return b.toString();
+  }
+
   List<CabinetModel> browseModels() {
-    final q = search.trim().toLowerCase();
+    final q = fold(search.trim());
     if (q.isNotEmpty) {
-      return catalog.models.where((m) => m.name.toLowerCase().contains(q) || m.categoryName.toLowerCase().contains(q)).toList();
+      // recherche dans la langue affichée ET en français (noms du catalogue), sans accents, par mots
+      final words = q.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+      bool hit(CabinetModel m) {
+        final hay = fold('${m.name} ${tr(m.name)} ${m.categoryName} ${tr(m.categoryName)} ${m.id.replaceAll('_', ' ')}');
+        return words.every(hay.contains);
+      }
+      return catalog.models.where(hit).toList();
     }
     final b = browse;
     if (b == null) return const [];
@@ -762,6 +796,9 @@ class AppState extends ChangeNotifier {
   void goTo(PlanStep s) {
     step = s;
     megaMenu = false;
+    armedModel = null;
+    armedWidth = null;
+    selectedPoint = null; // le panneau d'un point de réseau ne suit pas d'une étape à l'autre
     if (s != PlanStep.layout) browse = null;
     if (s == PlanStep.style || s == PlanStep.summary) {
       view = ViewMode.view3d;
@@ -809,7 +846,7 @@ class AppState extends ChangeNotifier {
     if (uid != null) {
       selectedOpening = null;
       selectedPoint = null;
-      browse = null;
+      if (!browsePinned) browse = null;
       megaMenu = false;
     }
     final it = selectedItem;
@@ -937,6 +974,10 @@ class AppState extends ChangeNotifier {
     browse = b;
     megaMenu = false;
     if (b != null) objectsPanel = false;
+    if (b == null) {
+      armedModel = null;
+      armedWidth = null;
+    }
     search = '';
     notifyListeners();
   }
@@ -982,9 +1023,38 @@ class AppState extends ChangeNotifier {
 
   // ---- actions
 
-  String? addModel(String modelId, {String? wall, double? s, double? z}) {
+  String? addModel(String modelId, {String? wall, double? s, double? z, int? width}) {
     PlacedCabinet? added;
-    final err = edit(() => added = engine.add(modelId, wall ?? wallId, s: s, z: z));
+    final err = edit(() => added = engine.add(modelId, wall ?? wallId, s: s, z: z, width: width));
+    if (added != null) {
+      selected = added!.uid;
+      selectedOpening = null;
+      notifyListeners();
+    }
+    return err;
+  }
+
+  /// Quantité d'un accessoire de meuble ajouté à l'estimation (0 = retiré).
+  void setAccessory(String id, int qty) => edit(() {
+        if (qty <= 0) {
+          project.accessories.remove(id);
+        } else {
+          project.accessories[id] = qty;
+        }
+      });
+
+  /// Caisson personnalisé : bas, haut ou colonne, dimensions libres, sans fond ou sans porte (niche).
+  String? addCustomCabinet({required String type, required int width, required int height, required int depth, bool noBack = false, bool noDoor = false}) {
+    final id = switch (type) { 'wall' => 'custom_wall', 'tall' => 'custom_tall', _ => 'custom_base' };
+    PlacedCabinet? added;
+    final err = edit(() {
+      final c = engine.add(id, wallId, width: width, height: height);
+      c
+        ..depth = depth
+        ..noBack = noBack;
+      if (noDoor) c.layout = [FrontRow(CellKind.niche)];
+      added = c;
+    });
     if (added != null) {
       selected = added!.uid;
       selectedOpening = null;
@@ -1305,9 +1375,10 @@ class AppState extends ChangeNotifier {
   void setTallXxl(bool v) => edit(() => project.style.tallXxl = v);
 
   /// Sol, murs et crédence ([clearSplash] : crédence comme les murs).
-  void setFinishOptions({bool? endPanels, String? lighting}) => edit(() {
+  void setFinishOptions({bool? endPanels, String? endPanelFinish, bool clearEndPanelFinish = false, String? lighting}) => edit(() {
         final st = project.style;
         if (endPanels != null) st.endPanels = endPanels;
+        if (endPanelFinish != null || clearEndPanelFinish) st.endPanelFinish = endPanelFinish;
         if (lighting != null) st.lighting = lighting;
       });
 

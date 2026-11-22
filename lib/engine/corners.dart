@@ -26,6 +26,11 @@ const cornerSizes = <String, List<CornerSize>>{
     CornerSize(1100, 650, carcass: 1050, filler: 50),
     CornerSize(1250, 650, carcass: 1200, filler: 50),
   ],
+  'corner_tall_l_shaped': [CornerSize(900, 900), CornerSize(1000, 1000)],
+  'corner_tall_blind': [
+    CornerSize(1050, 650, carcass: 1000, filler: 50),
+    CornerSize(1250, 650, carcass: 1200, filler: 50),
+  ],
   'corner_wall_l_shaped': [CornerSize(600, 600), CornerSize(680, 680)],
   'corner_wall_diagonal': [CornerSize(600, 600), CornerSize(680, 680)],
   'corner_wall_blind': [
@@ -49,7 +54,7 @@ typedef CornerPart = (String, String, int, int, int, int, int);
 
 /// Liste de débit d'un meuble d'angle. [T] épaisseur caisson, [td] épaisseur porte, [gap] jeu vertical des portes.
 List<CornerPart> cornerCutList(CabinetModel m, PlacedCabinet c, {required int T, required int td, required int gap, required bool gola}) {
-  final low = m.kind == CabinetKind.cornerBase;
+  final low = m.kind == CabinetKind.cornerBase || m.kind == CabinetKind.cornerTall;
   final H = c.height;
   final D = c.depth - td - CornerRules.doorBumper; // profondeur du caisson nu : 580 en bas, 350 en haut
   final hd = gola ? H - CornerRules.golaDeduction : H - gap; // hauteur des portes
@@ -105,7 +110,7 @@ List<CornerPart> cornerCutList(CabinetModel m, PlacedCabinet c, {required int T,
 /// Largeur de la partie accessible (porte) d'un angle borgne, depuis le côté ouvert.
 double blindDoorWidth(CabinetModel m, PlacedCabinet c, {int td = 18}) {
   final std = (cornerSizes[m.id] ?? const []).where((s) => s.carcass == c.width).firstOrNull;
-  final low = m.kind == CabinetKind.cornerBase;
+  final low = m.kind == CabinetKind.cornerBase || m.kind == CabinetKind.cornerTall;
   final filler = std?.filler ?? (low ? 50 : 30);
   final D = c.depth - td - CornerRules.doorBumper;
   final blind = (D + td) - filler + filler;

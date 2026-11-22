@@ -106,7 +106,7 @@ List<CellKind> allowedCellKinds(CabinetKind kind) => kind.isHigh
 /// et 380 en colonne (micro-ondes), niche 150, panneau 50.
 int minCellHeight(CabinetKind kind, CellKind k) => switch (k) {
       CellKind.door || CellKind.door2 || CellKind.glass || CellKind.flap => 250,
-      CellKind.drawer => 100,
+      CellKind.drawer => 90, // tiroirs bas sous un four (2 × 95 mm dans un bas de 750)
       CellKind.appliance => kind.isLow ? 560 : 380,
       CellKind.niche => 150,
       CellKind.panel => 50,

@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'engine/engine.dart';
+import 'engine/art_recipes.dart';
+import 'engine/furniture_accessories.dart';
 import 'engine/saved_projects.dart';
 import 'ui/app_state.dart';
 import 'ui/nest_service.dart';
@@ -29,6 +31,7 @@ import 'ui/toolbar.dart';
 import 'ui/web_io.dart';
 import 'ui/i18n.dart';
 import 'ui/app_settings.dart';
+import 'ui/art_library.dart';
 import 'ui/client_ui.dart';
 import 'ui/excel_export.dart';
 import 'ui/project_start_dialog.dart';
@@ -83,10 +86,16 @@ Future<void> main() async {
   final state = AppState(catalog,
       project: restored, db: db, supplier: SupplierTariff.parse(await rootBundle.loadString('assets/data/supplier_prices.json')));
   state.objectCatalog = CatalogObject.parse(await rootBundle.loadString('assets/data/objects.json'));
+  // meubles de la bibliothèque de l'atelier : posables comme objets dans tous les modes
+  ArtLibrary.instance
+    ..load()
+    ..attach(state.objectCatalog);
   OpeningModel.parse(await rootBundle.loadString('assets/data/openings.json')); // portes et fenêtres
   KitchenFixtures.parse(await rootBundle.loadString('assets/data/accessories.json')); // éviers, mitigeurs, appareillage
   BrandCatalog.parse(await rootBundle.loadString('assets/data/brands.json')); // marques et prix (Maroc)
   SizeCatalog.parse(await rootBundle.loadString('assets/data/sizes.json')); // dimensions types et normes
+  FurnitureAccessories.parse(await rootBundle.loadString('assets/data/furniture_accessories.json')); // accessoires de meubles
+  ArtRecipes.parse(await rootBundle.loadString('assets/data/art_recipes.json')); // recettes du mode Art
   PublicPrices.parse(await rootBundle.loadString('assets/data/public_prices.json')); // prix publics des panneaux
   state.addListener(() => Session.autosave('cuisine', () => projectWorkJson(state.project.toJson())));
   final bank = TextureBank.instance;
@@ -161,6 +170,7 @@ class _KitchenAppState extends State<KitchenApp> {
         s.engine = LayoutEngine(s.catalog, fresh);
         s.step = PlanStep.space;
         s.refresh();
+        Session.resetEmpty('cuisine', projectWorkJson(fresh.toJson()));
         Session.route = 'cuisine';
         Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded('cuisine', s)));
       },
@@ -222,6 +232,7 @@ class _KitchenAppState extends State<KitchenApp> {
         s.engine = LayoutEngine(s.catalog, fresh);
         s.step = PlanStep.space;
         s.refresh();
+        Session.resetEmpty(id, projectWorkJson(fresh.toJson()));
         Session.route = id;
         Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => _guarded(id, s)));
       },
@@ -308,6 +319,32 @@ class PlannerScreen extends StatefulWidget {
   State<PlannerScreen> createState() => _PlannerScreenState();
 }
 
+class _SctChoice {
+  final String material;
+  final String categoryKey;
+  final String categoryTitle;
+  final IconData icon;
+  final int sheetL;
+  final int sheetW;
+  final int thickness;
+  final int partCount;
+  final int sheetCount;
+  bool selected;
+
+  _SctChoice({
+    required this.material,
+    required this.categoryKey,
+    required this.categoryTitle,
+    required this.icon,
+    required this.sheetL,
+    required this.sheetW,
+    required this.thickness,
+    required this.partCount,
+    required this.sheetCount,
+    this.selected = true,
+  });
+}
+
 class _PlannerScreenState extends State<PlannerScreen> {
   final _scaffold = GlobalKey<ScaffoldState>();
   final _canvasFocus = FocusNode(debugLabel: 'canvas');
@@ -319,7 +356,15 @@ class _PlannerScreenState extends State<PlannerScreen> {
     if (m.isEmpty) return;
     final sm = ScaffoldMessenger.of(context);
     sm.hideCurrentSnackBar();
-    sm.showSnackBar(SnackBar(content: Text(m), duration: const Duration(seconds: 2), behavior: SnackBarBehavior.floating, width: 420));
+    // au-dessus de la barre des vues (plan, face, 3D), centré : il ne la cache plus
+    final w = MediaQuery.sizeOf(context).width;
+    final side = ((w - 420) / 2).clamp(12.0, double.infinity);
+    sm.showSnackBar(SnackBar(
+      content: Text(m),
+      duration: const Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.fromLTRB(side, 0, side, 84),
+    ));
   }
 
   void _nudge(double ds, double dz) {
@@ -338,6 +383,10 @@ class _PlannerScreenState extends State<PlannerScreen> {
         },
         const SingleActivator(LogicalKeyboardKey.backspace): st.deleteSelected,
         const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (st.armedModel != null) {
+            st.arm(null); // Échap arrête d'abord la pose en série
+            return;
+          }
           st.select(null);
           st.selectOpening(null);
           st.selectPoint(null);
@@ -373,9 +422,20 @@ class _PlannerScreenState extends State<PlannerScreen> {
     st.select(items[(i + dir + items.length) % items.length].uid);
   }
 
+  /// Ouvrir : un projet kitchinox (.kin) ou un débit SketchCut (.sct, ouvert dans le Débitage).
   Future<void> _open() async {
-    final f = await pickFile(accept: '.kin,.json');
+    final f = await pickFile(accept: '.kin,.sct');
     if (f == null) return;
+    if (f.name.toLowerCase().endsWith('.sct')) {
+      final r = manualCutFromFile(f.name, f.bytes, st);
+      if (r == null || !mounted) {
+        _msg(trp('Fichier non reconnu : {0}', [f.name]));
+        return;
+      }
+      st.project.manual = r.$1;
+      await openManualCut(context, st);
+      return;
+    }
     try {
       final jsonStr = KinFormat.decode(f.bytes);
       st.importJson(jsonStr);
@@ -440,13 +500,14 @@ class _PlannerScreenState extends State<PlannerScreen> {
     }
   }
 
-  /// Enregistre le travail dans l'app et sauvegarde le fichier crypté .kin
-  void _save() {
+  /// Enregistre le travail dans l'app et le fichier crypté .kin, sous le nom donné à la création du projet,
+  /// dans Kitchinox/projets (iPad : sans menu Partager ; navigateur : téléchargement).
+  Future<void> _save() async {
     Session.commit(st.project.universe, projectWorkJson(st.project.toJson()));
     SavedProjectsManager.saveProject(st.project, universe: st.project.universe);
     final kinBytes = KinFormat.encode(st.exportJson(), projectName: st.project.name);
-    downloadBytes('${st.project.name}.kin', kinBytes, mime: 'application/octet-stream');
-    _msg(tr('Projet enregistré et horodaté (.kin)'));
+    final path = await saveToKitchinox('${st.project.name}.kin', kinBytes);
+    _msg(path == null ? tr('Projet enregistré et horodaté (.kin)') : trp('Projet enregistré : {0}', [path]));
   }
 
   void _download() {
@@ -571,13 +632,170 @@ class _PlannerScreenState extends State<PlannerScreen> {
       return;
     }
     final cs = st.project.cut;
+
+    bool isFrontMat(String m) =>
+        m == cs.frontMaterial ||
+        m.contains('Façade') ||
+        m.contains('Porte') ||
+        m.contains('High Gloss') ||
+        m.contains('Acrylique') ||
+        m.contains('PET') ||
+        m.contains('Laqué');
+
+    bool isBackMat(String m) =>
+        m == cs.backMaterial ||
+        m.contains('HDF') ||
+        m.contains('Fond') ||
+        m.contains('fond') ||
+        m.contains('6 mm') ||
+        m.contains('3 mm');
+
+    final choices = <_SctChoice>[];
     for (final mat in plan.materials) {
-      final t = mat == cs.frontMaterial ? cs.doorThickness : cs.carcassThickness;
-      final file = toSct(plan, mat, order: st.project.name, thickness: '$t');
-      final safe = mat.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_');
-      downloadBytes('${st.project.name}_$safe.sct', utf8.encode(file), mime: 'text/plain');
+      final isF = isFrontMat(mat);
+      final isB = isBackMat(mat);
+      final key = isF ? 'Facades' : (isB ? 'Fonds' : 'Caissons');
+      final title = isF
+          ? tr('Façades (Portes & tiroirs)')
+          : (isB ? tr('Fonds / Dos (Derrière rainuré)') : tr('Caissons (Corps de meuble)'));
+      final icon = isF
+          ? Icons.door_front_door_outlined
+          : (isB ? Icons.flip_to_back : Icons.kitchen);
+      final t = isF ? cs.doorThickness : (isB ? cs.backThickness : cs.carcassThickness);
+      final (sL, sW) = cs.sheetDimensionsFor(mat);
+      final parts = plan.parts.where((p) => p.material == mat).toList();
+      final partQty = parts.fold<int>(0, (sum, p) => sum + p.qty);
+      final sheetQty = plan.sheets.where((s) => s.material == mat).length;
+
+      choices.add(_SctChoice(
+        material: mat,
+        categoryKey: key,
+        categoryTitle: title,
+        icon: icon,
+        sheetL: sL,
+        sheetW: sW,
+        thickness: t,
+        partCount: partQty,
+        sheetCount: sheetQty,
+        selected: true,
+      ));
     }
-    _msg(trp('{0} fichier(s) .sct à ouvrir dans SketchCut PRO', [plan.materials.length]));
+
+    if (!mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          final t = Theme.of(ctx).textTheme;
+          final scheme = Theme.of(ctx).colorScheme;
+          final selectedCount = choices.where((c) => c.selected).length;
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.content_cut, color: Color(0xFFF26522)),
+                const SizedBox(width: Tokens.s2),
+                Text(tr('Export SketchCut PRO (.sct)')),
+              ],
+            ),
+            content: SizedBox(
+              width: 520,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    tr('Sélectionnez les catégories de panneaux à exporter :'),
+                    style: t.bodyMedium,
+                  ),
+                  const SizedBox(height: Tokens.s2),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => setD(() {
+                          for (final c in choices) {
+                            c.selected = true;
+                          }
+                        }),
+                        child: Text(tr('Tout cocher')),
+                      ),
+                      TextButton(
+                        onPressed: () => setD(() {
+                          for (final c in choices) {
+                            c.selected = false;
+                          }
+                        }),
+                        child: Text(tr('Tout décocher')),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 1),
+                  const SizedBox(height: Tokens.s1),
+                  for (final c in choices)
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      decoration: BoxDecoration(
+                        color: c.selected
+                            ? const Color(0xFFF26522).withValues(alpha: 0.08)
+                            : scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: c.selected ? const Color(0xFFF26522) : scheme.outlineVariant,
+                          width: c.selected ? 1.5 : 1.0,
+                        ),
+                      ),
+                      child: CheckboxListTile(
+                        value: c.selected,
+                        onChanged: (v) => setD(() => c.selected = v ?? false),
+                        secondary: Icon(c.icon, color: const Color(0xFFF26522)),
+                        title: Text(c.categoryTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        subtitle: Text(
+                          '${c.material} · ${c.sheetL} × ${c.sheetW} × ${c.thickness} mm\n${c.partCount} pièces · ${c.sheetCount} feuille(s)',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        isThreeLine: true,
+                        activeColor: const Color(0xFFF26522),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(tr('Annuler')),
+              ),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF26522)),
+                icon: const Icon(Icons.download, size: 18),
+                onPressed: selectedCount == 0 ? null : () => Navigator.pop(ctx, true),
+                label: Text(
+                  selectedCount <= 1
+                      ? tr('Exporter 1 fichier .sct')
+                      : trp('Exporter {0} fichiers .sct', [selectedCount]),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    var exported = 0;
+    for (final c in choices.where((x) => x.selected)) {
+      final file = toSct(plan, c.material, order: '${st.project.name}_${c.categoryKey}', thickness: '${c.thickness}');
+      final safe = c.material.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_');
+      final filename = '${st.project.name}_${c.categoryKey}_${safe}_${c.sheetL}x${c.sheetW}_${c.thickness}mm.sct';
+      downloadBytes(filename, utf8.encode(file), mime: 'text/plain');
+      exported++;
+    }
+    _msg(exported == 1
+        ? tr('1 fichier .sct exporté pour SketchCut PRO')
+        : trp('{0} fichiers .sct exportés pour SketchCut PRO', [exported]));
   }
 
   Future<void> _cutSettings() async {
@@ -925,7 +1143,8 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         );
 
         // tablette et écran moyen : la fiche de l'élément prend sa place à droite au lieu de cacher le plan
-        final inspectorOpen = hasSelection && !st.megaMenu && leftPanel == null;
+        // panneau d'ajout épinglé : la fiche du meuble touché s'ouvre à droite, le panneau reste à gauche
+        final inspectorOpen = hasSelection && !st.megaMenu && (leftPanel == null || (st.browsePinned && leftPanel is CatalogPanel));
         final side = inspectorOpen && width < 1300 ? 380 + Tokens.s3 * 2 : 0.0;
         final stage = Stack(children: [
           Positioned(
@@ -967,8 +1186,8 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
                     padding: const EdgeInsets.symmetric(horizontal: Tokens.s4, vertical: Tokens.s2),
                     child: Text(
                         st.engine.kitchen
-                            ? tr('Ouvrez « Éléments de rangement » ou « Propositions / remplir » pour commencer')
-                            : tr('Ouvrez « Éléments de rangement » pour poser vos meubles'),
+                            ? tr('Ouvrez « Ajouter des meubles » ou « Propositions / remplir » pour commencer')
+                            : tr('Ouvrez « Ajouter des meubles » pour poser vos meubles'),
                         style: TextStyle(color: scheme.onPrimary, fontWeight: FontWeight.w600)),
                   ),
                 ),
@@ -977,6 +1196,8 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         ]);
 
         return Scaffold(
+        // tablette : le clavier passe par-dessus la scène, il ne la rétrécit pas
+        resizeToAvoidBottomInset: false,
           key: _scaffold,
           endDrawer: Drawer(
             width: 400,

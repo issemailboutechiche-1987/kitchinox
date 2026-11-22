@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'start_helper.dart';
 import 'package:kitchen_planner/engine/engine.dart';
 import 'package:kitchen_planner/main.dart';
 import 'package:kitchen_planner/ui/app_state.dart';
@@ -79,7 +81,7 @@ void main() {
     await t.pumpWidget(KitchenApp(state: AppState(cat), googleFonts: false, showHome: true));
     await t.pump(const Duration(milliseconds: 3000));
     await t.tap(find.text('Cuisine'));
-    await t.pumpAndSettle();
+    await startNewProject(t);
     expect(find.byTooltip('Accueil'), findsOneWidget);
     await t.tap(find.byTooltip('Accueil'));
     await t.pumpAndSettle();

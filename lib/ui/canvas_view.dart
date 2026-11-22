@@ -103,6 +103,7 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
   Offset? _dragStartLocal;
   double _startS = 0, _startZ = 0, _grab = 0;
   String? _hoverUid;
+  Offset? _ghostAt; // souris au-dessus du plan pendant la pose d'un meuble armé
   bool _snapped = false;
 
   AppState get st => widget.state;
@@ -296,6 +297,20 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
   }
 
   void _onTapUp(TapUpDetails d) {
+    // meuble choisi dans le panneau d'ajout : on le pose là où on touche (et on peut continuer)
+    final armed = st.armedModel == null ? null : st.catalog.tryGet(st.armedModel!);
+    if (armed != null && st.step == PlanStep.layout) {
+      _placeModel(armed, d.localPosition, st.armedWidth);
+      return;
+    }
+    if (st.browse != null && st.step == PlanStep.layout && st.view == ViewMode.plan) {
+      final wid = _hitWall(d.localPosition);
+      if (wid != null) {
+        st.setWall(wid);
+        widget.onMessage(trp('Mur {0} choisi : « + » y pose les meubles', [wid]));
+        return;
+      }
+    }
     final dim = _hitRoomDim(d.localPosition);
     if (dim != null) {
       _editRoomDim(dim);
@@ -347,6 +362,10 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
 
   void _onPanStart(DragStartDetails d) {
     _dragStartLocal = d.localPosition;
+    if (st.lockMoves) {
+      _panning = true; // verrou : on navigue seulement (rien ne bouge)
+      return;
+    }
     final ob = st.step == PlanStep.summary || st.view != ViewMode.plan ? null : _hitObject(d.localPosition);
     if (ob != null) {
       final o = st.project.objects.firstWhere((x) => x.uid == ob);
@@ -596,22 +615,40 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
 
   void _onDrop(DragTargetDetails<CabinetModel> d) {
     final box = context.findRenderObject() as RenderBox?;
-    final v = _view;
     if (box == null) return;
     final m = d.data;
-    final local = box.globalToLocal(d.offset + const Offset(40, 40));
+    _placeModel(m, box.globalToLocal(d.offset + const Offset(40, 40)), st.armedModel == m.id ? st.armedWidth : null);
+  }
+
+  /// Pose [m] à l'endroit touché [local] : sur le mur affiché (vue de face), sur le mur le plus proche (plan),
+  /// sinon à la première place libre (3D). Le meuble est centré sur le doigt.
+  void _placeModel(CabinetModel m, Offset local, int? width) {
+    final v = _view;
+    final w = (width ?? m.defaultWidth).toDouble();
     String? err;
     if (st.view == ViewMode.view3d || v == null) {
-      err = st.addModel(m.id);
+      err = st.addModel(m.id, width: width);
     } else if (v.front) {
       final (a, b) = v.toWorld(local);
-      err = st.addModel(m.id, wall: st.wallId, s: a - m.defaultWidth / 2, z: m.kind.isHigh ? b - m.defaultHeight / 2 : null);
+      err = st.addModel(m.id, wall: st.wallId, s: a - w / 2, z: m.kind.isHigh ? b - m.defaultHeight / 2 : null, width: width);
     } else {
       final (a, b) = v.toWorld(local);
       final (wall, s) = _nearestWall(a, b);
-      err = st.addModel(m.id, wall: wall, s: s - m.defaultWidth / 2);
+      err = st.addModel(m.id, wall: wall, s: s - w / 2, width: width);
     }
     widget.onMessage(err ?? trp('{0} ajouté', [tr(m.name)]));
+  }
+
+  /// Aperçu du meuble armé sous la souris (vue de face) : rectangle à sa taille, là où il sera posé.
+  Rect? _ghostRect() {
+    final at = _ghostAt, v = _view, id = st.armedModel;
+    if (at == null || v == null || id == null || !v.front) return null;
+    final m = st.catalog.tryGet(id);
+    if (m == null) return null;
+    final w = (st.armedWidth ?? m.defaultWidth).toDouble(), h = m.defaultHeight.toDouble();
+    final (a, b) = v.toWorld(at);
+    final z = m.kind.isHigh ? b - h / 2 : st.engine.defaultZ(m);
+    return v.rect(a - w / 2, z, a + w / 2, z + h);
   }
 
   // ---------------------------------------------------------------- rendu
@@ -648,6 +685,10 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
                   ? (st.view == ViewMode.view3d ? SystemMouseCursors.click : SystemMouseCursors.grab)
                   : SystemMouseCursors.basic,
               onHover: (e) {
+                if (st.armedModel != null) {
+                  setState(() => _ghostAt = e.localPosition);
+                  return;
+                }
                 final h = _hitPoint(e.localPosition) ?? _hit(e.localPosition)?.$1;
                 final w = h == null && st.step != PlanStep.summary ? _hitWall(e.localPosition) : null;
                 if (h != _hoverUid || w != _hoverWall) {
@@ -660,6 +701,7 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
               onExit: (_) => setState(() {
                 _hoverUid = null;
                 _hoverWall = null;
+                _ghostAt = null;
               }),
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -677,6 +719,7 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
                   },
                   child: CustomPaint(
                     size: size,
+                    foregroundPainter: st.armedModel == null ? null : _GhostPainter(_ghostRect(), theme.colorScheme.primary),
                     painter: _PlannerPainter(
                       st: st,
                       view: _view,
@@ -809,6 +852,41 @@ class _PlannerPainter extends CustomPainter {
       canvas.restore();
     } else {
       _label(canvas, value, mid, bg: pc.canvas, style: style);
+    }
+  }
+
+  /// Cote en chaîne le long du mur [w], à l'extérieur (côté plinthe du mur) : un trait par bord de meuble,
+  /// la longueur de chaque meuble et de chaque vide.
+  void _chainDim(Canvas canvas, _View v, Wall w, double t, List<double> ticks) {
+    final out = Offset(-w.nx, -w.ny);
+    final o = out * 18;
+    Offset at(double s) {
+      final (x, y) = w.toPlan(s, -t);
+      return v.toScreen(x, y) + o;
+    }
+
+    final p = _stroke(pc.dimension, 1);
+    canvas.drawLine(at(0), at(w.length), p);
+    final n = out * 5;
+    final vertical = w.dx.abs() < 0.5;
+    final style = text.copyWith(fontSize: 11, fontWeight: FontWeight.w600);
+    for (var i = 0; i < ticks.length; i++) {
+      final a = at(ticks[i]);
+      canvas.drawLine(a - n, a + n, p);
+      if (i + 1 >= ticks.length) continue;
+      final b = at(ticks[i + 1]);
+      final len = ticks[i + 1] - ticks[i];
+      if ((b - a).distance < 30 || len < 1) continue;
+      final mid = Offset.lerp(a, b, 0.5)! + out * 9;
+      if (vertical) {
+        canvas.save();
+        canvas.translate(mid.dx, mid.dy);
+        canvas.rotate(-math.pi / 2);
+        _label(canvas, lenText(len), Offset.zero, bg: pc.canvas, style: style);
+        canvas.restore();
+      } else {
+        _label(canvas, lenText(len), mid, bg: pc.canvas, style: style);
+      }
     }
   }
 
@@ -1069,10 +1147,21 @@ class _PlannerPainter extends CustomPainter {
       }
     }
 
-    // cotes extérieures (pièce rectangulaire uniquement)
+    // cotes extérieures (pièce rectangulaire uniquement) : cote en chaîne des meubles de chaque mur
+    // (|— 600 —|— 3000 —|), puis la cote générale du mur, parallèle, un peu plus loin
     if (room.outline == null) {
-      _dim(canvas, v.toScreen(0, -t) + const Offset(0, -26), v.toScreen(w0, -t) + const Offset(0, -26), lenText(w0));
-      _dim(canvas, v.toScreen(-t, 0) + const Offset(-26, 0), v.toScreen(-t, d0) + const Offset(-26, 0), lenText(d0), vertical: true);
+      final chained = <String>{};
+      for (final w in room.walls.where((w) => w.straight)) {
+        final its = [for (final c in st.project.items) if (c.wallId == w.id && !st.engine.modelOf(c).kind.isHigh) c];
+        final mine = its.isNotEmpty ? its : [for (final c in st.project.items) if (c.wallId == w.id) c];
+        if (mine.isEmpty) continue;
+        chained.add(w.id);
+        final ticks = <double>{0, w.length, for (final c in mine) ...[c.s.clamp(0, w.length).toDouble(), c.right.clamp(0, w.length).toDouble()]}.toList()..sort();
+        _chainDim(canvas, v, w, t, ticks);
+      }
+      final ga = chained.contains('A') ? -48.0 : -26.0, gc = chained.contains('C') ? -48.0 : -26.0;
+      _dim(canvas, v.toScreen(0, -t) + Offset(0, ga), v.toScreen(w0, -t) + Offset(0, ga), lenText(w0));
+      _dim(canvas, v.toScreen(-t, 0) + Offset(gc, 0), v.toScreen(-t, d0) + Offset(gc, 0), lenText(d0), vertical: true);
     }
 
     // noms des murs, écrits dans l'épaisseur du mur (grisés si le mur ne reçoit pas de caissons)
@@ -1086,7 +1175,7 @@ class _PlannerPainter extends CustomPainter {
         fontWeight: FontWeight.w800,
         color: w.enabled ? const Color(0xFF3D4650) : const Color(0xFF8A939D),
       );
-      final label = 'MUR ${w.id}${w.enabled ? '' : ' · sans caissons'}';
+      final label = (trp('Mur {0}', [w.id]) + (w.enabled ? '' : tr(' (sans caissons)'))).toUpperCase();
       if (t * v.k < 10) continue;
       if (w.dx.abs() < 1e-6) {
         canvas.save();
@@ -1101,7 +1190,7 @@ class _PlannerPainter extends CustomPainter {
         var ang = math.atan2(w.dy, w.dx);
         if (ang > math.pi / 2 || ang < -math.pi / 2) ang += math.pi;
         canvas.rotate(ang);
-        _label(canvas, w.straight ? 'MUR ${w.id}' : 'ARC ${w.id}', Offset.zero, style: style);
+        _label(canvas, (w.straight ? trp('Mur {0}', [w.id]) : trp('Arc {0}', [w.id])).toUpperCase(), Offset.zero, style: style);
         canvas.restore();
       } else {
         _label(canvas, label, mid, style: style);
@@ -1113,7 +1202,15 @@ class _PlannerPainter extends CustomPainter {
     final center = v.toScreen(w0 / 2, d0 / 2);
     _label(
       canvas,
-      'Cuisine',
+      // nom de la pièce selon l'univers (cuisine, dressing, salle de bain…)
+      tr(switch (st.project.universe) {
+        'dressing' => 'Dressing',
+        'bain' => 'Salle de bain',
+        'tv' => 'Meuble TV',
+        'interieur' => 'Intérieur',
+        'buanderie' => 'Buanderie',
+        _ => 'Cuisine',
+      }),
       center + const Offset(0, -10),
       style: text.copyWith(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF3F3A33)),
     );
@@ -1736,7 +1833,7 @@ class _PlannerPainter extends CustomPainter {
         if (w > 26) _label(canvas, lenValue(seg), Offset(x + w / 2, y - 9), maxWidth: w, style: text.copyWith(fontSize: 11));
       }
     }
-    _dim(canvas, v.toScreen(0, 0) + const Offset(0, 58), v.toScreen(len, 0) + const Offset(0, 58), 'Mur ${wall.id} · ${lenText(len)}');
+    _dim(canvas, v.toScreen(0, 0) + const Offset(0, 58), v.toScreen(len, 0) + const Offset(0, 58), trp('Mur {0} · {1}', [wall.id, lenText(len)]));
     _dim(canvas, v.toScreen(0, 0) + const Offset(-28, 0), v.toScreen(0, h) + const Offset(-28, 0), lenText(h), vertical: true);
     final tagStyle = text.copyWith(fontSize: 11, fontWeight: FontWeight.w600);
     _label(canvas, '${std.worktopTop}', v.toScreen(len, std.worktopTop.toDouble()) + const Offset(24, 0), style: tagStyle);
@@ -1753,4 +1850,34 @@ class _PlannerPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PlannerPainter old) => true;
+}
+
+
+/// Aperçu fantôme du meuble à poser : contour en pointillés à sa taille réelle sous la souris.
+class _GhostPainter extends CustomPainter {
+  final Rect? rect;
+  final Color color;
+  _GhostPainter(this.rect, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = rect;
+    if (r == null) return;
+    canvas.drawRect(r, Paint()..color = color.withValues(alpha: 0.18));
+    final line = Paint()
+      ..color = color
+      ..strokeWidth = 2;
+    for (final (a, b) in [(r.topLeft, r.topRight), (r.topRight, r.bottomRight), (r.bottomRight, r.bottomLeft), (r.bottomLeft, r.topLeft)]) {
+      final d = b - a;
+      final len = d.distance;
+      if (len < 1) continue;
+      final u = d / len;
+      for (var t = 0.0; t < len; t += 10) {
+        canvas.drawLine(a + u * t, a + u * (t + 6 > len ? len : t + 6), line);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GhostPainter old) => old.rect != rect || old.color != color;
 }

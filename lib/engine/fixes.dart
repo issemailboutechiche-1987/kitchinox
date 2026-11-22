@@ -60,9 +60,9 @@ IssueFix fixFor(LayoutEngine e, Issue i, {MaterialsDb? db}) {
     case 'hood_narrow':
       return IssueFix(L('Recentre la hotte sur la plaque, à sa largeur, et l\'aligne sur les hauts (650 mm au-dessus de la plaque).'),
           label: L('Recentrer'), apply: () {
-        final hood = p.items.where((x) => i.uids.contains(x.uid) && e.modelOf(x).id == 'wall_integrated_hood').firstOrNull;
-        final hob = p.items.where((x) => i.uids.contains(x.uid) && e.isCooking(e.modelOf(x)) && e.modelOf(x).kind.isLow).firstOrNull ??
-            p.items.where((x) => hood != null && x.wallId == hood.wallId && e.isCooking(e.modelOf(x)) && e.modelOf(x).kind.isLow).firstOrNull;
+        final hood = p.items.where((x) => i.uids.contains(x.uid) && e.modelOf(x).isHoodUnit).firstOrNull;
+        final hob = p.items.where((x) => i.uids.contains(x.uid) && e.cooks(x) && e.modelOf(x).kind.isLow).firstOrNull ??
+            p.items.where((x) => hood != null && x.wallId == hood.wallId && e.cooks(x) && e.modelOf(x).kind.isLow).firstOrNull;
         if (hood == null || hob == null) return false;
         final m = e.modelOf(hood);
         final (z, h) = e.hoodPlacement(m, hood.wallId);
@@ -135,7 +135,7 @@ IssueFix fixFor(LayoutEngine e, Issue i, {MaterialsDb? db}) {
             final res = e.trySwap(hob.uid, neighbor.s + neighbor.width / 2);
             if (res != null && res.moved) {
               // Réaligner la hotte si présente au-dessus de la plaque
-              for (final hood in p.items.where((h) => h.wallId == hob.wallId && e.modelOf(h).id == 'wall_integrated_hood')) {
+              for (final hood in p.items.where((h) => h.wallId == hob.wallId && e.modelOf(h).isHoodUnit)) {
                 e.move(hood.uid, s: hob.s + hob.width / 2 - hood.width / 2);
               }
               return true;
@@ -148,7 +148,7 @@ IssueFix fixFor(LayoutEngine e, Issue i, {MaterialsDb? db}) {
             final targetS = hob.s + dir * needed;
             final res = e.move(hob.uid, s: targetS);
             if (res.moved) {
-              for (final hood in p.items.where((h) => h.wallId == hob.wallId && e.modelOf(h).id == 'wall_integrated_hood')) {
+              for (final hood in p.items.where((h) => h.wallId == hob.wallId && e.modelOf(h).isHoodUnit)) {
                 e.move(hood.uid, s: hob.s + hob.width / 2 - hood.width / 2);
               }
               return true;
@@ -279,7 +279,7 @@ List<Issue> waterChecks(LayoutEngine e) {
   if (!e.kitchen) return const [];
   final p = e.project;
   final out = <Issue>[];
-  final sinks = p.items.where((c) => e.isWashing(e.modelOf(c))).toList();
+  final sinks = p.items.where((c) => e.washes(c)).toList();
   if (sinks.isEmpty) return out;
   final existing = p.points.where((x) => x.use == existingUse && !x.hidden).toList();
   final drains = existing.where((x) => x.kind == NetKind.drain).toList();
@@ -343,7 +343,7 @@ double? sinkDrainDistance(LayoutEngine e) {
   final drains = p.points.where((x) => x.use == existingUse && x.kind == NetKind.drain && !x.hidden).toList();
   if (drains.isEmpty) return null;
   var best = double.infinity;
-  for (final s in p.items.where((c) => e.isWashing(e.modelOf(c)))) {
+  for (final s in p.items.where((c) => e.washes(c))) {
     for (final d in drains) {
       best = math.min(best, _planDist(p.room, s.wallId, s.s + s.width / 2, d.wallId, d.s));
     }

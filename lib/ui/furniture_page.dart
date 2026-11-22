@@ -105,6 +105,7 @@ class _FurniturePageState extends State<FurniturePage> {
     final scheme = Theme.of(context).colorScheme;
     final c = cat;
     return Scaffold(
+      resizeToAvoidBottomInset: false, // le clavier passe par-dessus la scène
       appBar: AppBar(
         leading: IconButton(tooltip: tr('Accueil'), icon: const Icon(Icons.home_outlined), onPressed: () => Navigator.of(context).maybePop()),
         titleSpacing: 0,

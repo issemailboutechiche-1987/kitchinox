@@ -41,6 +41,7 @@ void paintFront(
   Color handleColor = const Color(0xFFB4B9BF),
   bool tallXxl = false, // barres XXL sur les portes de colonne
   bool? handleTop, // force la position de la poignée (haut ou bas de porte)
+  bool golaProfile = true, // faux : façade seule (porte ouverte en 3D), le profil Gola reste sur le caisson
 }) {
   final u = pxPerMm ?? r.height / math.max(1, m.defaultHeight); // pixels par mm
   final body = fillPaint ?? (Paint()..color = fill);
@@ -183,7 +184,7 @@ void paintFront(
   }
 
   // sans poignée : gorge (rainure profilée) Gola
-  if (handle == 'gola' && !m.kind.isFiller && m.isCarcass) {
+  if (handle == 'gola' && golaProfile && !m.kind.isFiller && m.isCarcass) {
     if (realistic) {
       final gh = math.max(2.0, 24 * u);
       final golaPaint = Paint()..color = const Color(0xFF222426);
@@ -250,7 +251,7 @@ void paintFront(
   }
 
   void door(Rect d, {required bool hingeLeft, bool handleTop = false}) {
-    final dReal = (handle == 'gola' && !isHigh && m.kind != CabinetKind.tall)
+    final dReal = (handle == 'gola' && golaProfile && !isHigh && m.kind != CabinetKind.tall)
         ? Rect.fromLTRB(d.left, d.top + 30 * u, d.right, d.bottom)
         : d;
     panel(dReal);
@@ -297,7 +298,7 @@ void paintFront(
       final dr = Rect.fromLTWH(d.left, y + (isGola && idx > 0 ? 12 * u : 0), d.width, h - (isGola && idx > 0 ? 12 * u : 0)).deflate(realistic ? 0 : 1);
       panel(dr);
       if (isGola) {
-        if (realistic && idx > 0) {
+        if (realistic && golaProfile && idx > 0) {
           // Gorge intermédiaire Gola (profil C) entre tiroirs
           final gh = math.max(2.0, 14 * u);
           final gola = Rect.fromLTWH(d.left, y - gh / 2, d.width, gh);
@@ -779,4 +780,37 @@ class _ThumbPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ThumbPainter o) => o.m != m || o.fill != fill;
+}
+
+/// Profil Gola (gorge en aluminium) fixé sur le caisson : en haut d'un meuble bas, en bas d'un meuble haut,
+/// à 1300 mm du bas sur une colonne, et entre les tiroirs. Dessiné à part quand les façades sont ouvertes :
+/// il ne bouge pas avec les portes (seule une poignée intégrée suit la porte).
+void paintGolaProfile(Canvas canvas, Rect r, CabinetModel m, {List<FrontCell>? cells, double u = 1}) {
+  if (m.kind.isFiller || !m.isCarcass) return;
+  final gh = math.max(2.0, 24 * u);
+  final golaPaint = Paint()..color = const Color(0xFF222426);
+  final golaHi = Paint()..color = Colors.white30;
+  if (m.kind == CabinetKind.tall) {
+    final gy = r.bottom - 1300 * u;
+    if (gy > r.top && gy < r.bottom) {
+      final g = Rect.fromLTWH(r.left, gy - gh / 2, r.width, gh);
+      canvas.drawRect(g, golaPaint);
+      canvas.drawRect(Rect.fromLTWH(g.left, g.top, g.width, 1), golaHi);
+    }
+  } else {
+    final isHigh = m.kind.isHigh;
+    final g = isHigh ? Rect.fromLTWH(r.left, r.bottom - gh, r.width, gh) : Rect.fromLTWH(r.left, r.top, r.width, gh);
+    canvas.drawRect(g, golaPaint);
+    canvas.drawRect(Rect.fromLTWH(g.left, isHigh ? g.top : g.bottom - 1, g.width, 1), golaHi);
+  }
+  // gorges intermédiaires entre deux tiroirs
+  final cs = cells ?? const <FrontCell>[];
+  for (var i = 1; i < cs.length; i++) {
+    if (cs[i].kind != CellKind.drawer || cs[i - 1].kind != CellKind.drawer) continue;
+    final y = r.top + cs[i].y * u;
+    final h2 = math.max(2.0, 14 * u);
+    final g = Rect.fromLTWH(r.left, y - h2 / 2, r.width, h2);
+    canvas.drawRect(g, golaPaint);
+    canvas.drawRect(Rect.fromLTWH(g.left, g.bottom - 1, g.width, 1), Paint()..color = Colors.white24);
+  }
 }

@@ -1,4 +1,4 @@
-﻿// Tests de l'interface : pilotent l'écran comme un utilisateur (clic, glisser, clavier) et
+// Tests de l'interface : pilotent l'écran comme un utilisateur (clic, glisser, clavier) et
 // enregistrent des captures dans test/goldens (flutter test --update-goldens).
 
 import 'dart:io';
@@ -90,32 +90,53 @@ void main() {
     await t.pumpAndSettle();
     expect(st.step, PlanStep.layout);
 
-    // menu du catalogue en colonnes → panneau de produits
-    await t.tap(find.text('Éléments de rangement'));
-    await t.pumpAndSettle();
-    expect(st.megaMenu, isTrue);
-    // un article touché dans le menu est posé directement, le menu se referme
-    await t.tap(find.text('Bas 1 porte').first);
-    await t.pumpAndSettle();
-    expect(st.megaMenu, isFalse);
-    expect(st.project.items.single.modelId, 'base_standard_single_door');
-
-    // titre d'une famille → liste des produits ; ajout depuis la liste
-    await t.tap(find.text('Éléments de rangement'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('Éléments bas').first);
+    // « Ajouter des meubles » ouvre le panneau à vignettes (un seul chemin)
+    await t.tap(find.text('Ajouter des meubles'));
     await t.pumpAndSettle();
     expect(st.browse, isNotNull);
+    expect(st.megaMenu, isFalse);
+    // « + » pose tout de suite à la première place libre ; le panneau reste ouvert
+    await t.tap(find.byTooltip('Ajouter Bas 1 porte'));
+    await t.pumpAndSettle();
+    expect(st.project.items.single.modelId, 'base_standard_single_door');
+    expect(st.browse, isNotNull, reason: 'le panneau reste ouvert pour poser en série');
     await t.tap(find.byTooltip('Ajouter Bas 2 portes'));
     await t.pumpAndSettle();
     expect(st.project.items.length, 2);
     final b = st.project.items[1];
     expect(b.s, 600);
+    // toucher une carte arme le meuble (taille au choix), puis toucher le plan le pose là
+    st.setView(ViewMode.front);
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('card_base_standard_single_door')));
+    await t.pumpAndSettle();
+    expect(st.armedModel, 'base_standard_single_door');
+    expect(find.byKey(const ValueKey('armed_banner')), findsOneWidget);
+    final chip = find.byKey(const ValueKey('w_base_standard_single_door_450'));
+    if (chip.evaluate().isNotEmpty) {
+      await t.tap(chip);
+      await t.pumpAndSettle();
+      expect(st.armedWidth, 450);
+    }
+    final canvasRect = t.getRect(find.byType(PlannerCanvas));
+    await t.tapAt(Offset(canvasRect.right - 120, canvasRect.center.dy));
+    await t.pumpAndSettle();
+    expect(st.project.items.length, 3, reason: 'posé au toucher');
+    expect(st.armedModel, 'base_standard_single_door', reason: 'pose en série : reste armé');
+    await t.tap(find.byTooltip('Arrêter la pose (Échap)'));
+    await t.pumpAndSettle();
+    expect(st.armedModel, isNull);
+    st.select(st.project.items.last.uid);
+    st.deleteSelected();
+    st.openBrowse(const CatalogBrowse(Shelf.base));
+    st.setView(ViewMode.plan);
+    await t.pumpAndSettle();
 
     // recherche
     await t.enterText(find.byType(TextField).first, 'évier');
     await t.pumpAndSettle();
-    expect(st.browseModels().map((m) => m.id), ['base_sink']);
+    expect(st.browseModels().map((m) => m.id), containsAll(['base_sink', 'base_sink_1door', 'base_sink_2doors']));
+    expect(st.browseModels().every((m) => m.id.startsWith('base_sink')), isTrue);
     st.openBrowse(null);
 
     // glisser en vue de face

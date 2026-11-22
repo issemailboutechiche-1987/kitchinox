@@ -1,0 +1,178 @@
+{
+"Aperçu 3D": [
+"3D preview",
+"معاينة ثلاثية الأبعاد"
+],
+"Aperçu 3D assemblé · {0} liaison(s) à usiner": [
+"Assembled 3D preview · {0} link(s) to machine",
+"معاينة مجمّعة ثلاثية الأبعاد · {0} وصلة للتشغيل"
+],
+"Assemblage auto": [
+"Automatic joint",
+"تجميع تلقائي"
+],
+"Assemblage de la liaison": [
+"Joint for this link",
+"تجميع هذه الوصلة"
+],
+"Aucune liaison notée : touchez deux chants pour en créer une.": [
+"No link yet: touch two edges to create one.",
+"لا توجد وصلة: المس حافتين لإنشاء واحدة."
+],
+"Auto : {0}": [
+"Auto: {0}",
+"تلقائي: {0}"
+],
+"Cadrer": [
+"Fit view",
+"ملاءمة العرض"
+],
+"Caisson de base": [
+"Base cabinet",
+"خزانة أساسية"
+],
+"Choisissez une base (caisson, colonne, étagère…), puis divisez-la en colonnes et en étagères.": [
+"Choose a base (cabinet, tall unit, shelf…), then divide it into columns and shelves.",
+"اختر قاعدة (خزانة، عمود، رف…) ثم قسّمها إلى أعمدة ورفوف."
+],
+"Commencer à dessiner sans modèle": [
+"Start drawing without a template",
+"ابدأ الرسم بدون نموذج"
+],
+"Création ouverte : {0} pièce(s)": [
+"Creation opened: {0} part(s)",
+"تم فتح التصميم: {0} قطعة"
+],
+"Créer": [
+"Create",
+"إنشاء"
+],
+"Effacer les liaisons notées": [
+"Clear pending links",
+"مسح الوصلات المسجلة"
+],
+"Fermer l’aperçu 3D": [
+"Close 3D preview",
+"إغلاق المعاينة ثلاثية الأبعاد"
+],
+"Fichier de débit illisible : une ligne par pièce « nom ; longueur ; largeur ; quantité ; épaisseur ».": [
+"Unreadable cutting file: one line per part \"name; length; width; quantity; thickness\".",
+"ملف تقطيع غير مقروء: سطر لكل قطعة «الاسم؛ الطول؛ العرض؛ الكمية؛ السماكة»."
+],
+"Format de la feuille": [
+"Sheet size",
+"مقاس اللوح"
+],
+"Importer un fichier de débit (CSV ou JSON)": [
+"Import a cutting file (CSV or JSON)",
+"استيراد ملف تقطيع (CSV أو JSON)"
+],
+"La feuille se pose à plat en vue de dessus : coupez-la en X ou en Y, puis liez les chants des pièces et usinez.": [
+"The sheet lies flat in top view: cut it along X or Y, then link the part edges and machine.",
+"يوضع اللوح مسطحًا في المنظر العلوي: اقطعه على X أو Y، ثم اربط حواف القطع وشغّلها."
+],
+"Liaison {0} notée : chant {1} sous le chant {2}. « Usiner » assemble les pièces.": [
+"Link {0} noted: edge {1} under edge {2}. \"Machine\" assembles the parts.",
+"تم تسجيل الوصلة {0}: الحافة {1} تحت الحافة {2}. «تشغيل» يجمع القطع."
+],
+"Mode Art : création libre": [
+"Art mode: free design",
+"وضع الفن: تصميم حر"
+],
+"Nouvelle création": [
+"New creation",
+"تصميم جديد"
+],
+"Personnalisée": [
+"Custom",
+"مخصص"
+],
+"Scène vide": [
+"Empty scene",
+"مشهد فارغ"
+],
+"Scène vide : dessinez un rectangle, une ligne ou posez une feuille quand vous voulez.": [
+"Empty scene: draw a rectangle or a line, or lay a sheet whenever you like.",
+"مشهد فارغ: ارسم مستطيلًا أو خطًا، أو ضع لوحًا متى شئت."
+],
+"Une scène vide : dessinez des panneaux librement avec les outils.": [
+"An empty scene: draw panels freely with the tools.",
+"مشهد فارغ: ارسم الألواح بحرية بالأدوات."
+],
+"Usiner ({0})": [
+"Machine ({0})",
+"تشغيل ({0})"
+],
+"{0} liaison(s) usinée(s) : {1} tourillon(s), {2} vis. Modifiez un assemblage dans l’onglet Usinage.": [
+"{0} link(s) machined: {1} dowel(s), {2} screw(s). Change a joint in the Machining tab.",
+"تم تشغيل {0} وصلة: {1} وتد، {2} برغي. عدّل التجميع في تبويب التشغيل."
+],
+"{0} pièce(s) importée(s) à plat : touchez deux chants pour les lier, puis « Usiner ».": [
+"{0} part(s) imported flat: touch two edges to link them, then \"Machine\".",
+"تم استيراد {0} قطعة مسطحة: المس حافتين لربطهما، ثم «تشغيل»."
+],
+"Écran partagé : création 2D à gauche, meuble assemblé en 3D à droite": [
+"Split screen: 2D design on the left, assembled 3D furniture on the right",
+"شاشة مقسومة: التصميم ثنائي الأبعاد يسارًا، والأثاث المجمّع ثلاثي الأبعاد يمينًا"
+],
+"Épaisseur": [
+"Thickness",
+"السماكة"
+],
+"Nouveau": [
+"New",
+"جديد"
+],
+"Ouvrir": [
+"Open",
+"فتح"
+],
+"Lier": [
+"Link",
+"ربط"
+],
+"Feuille standard ou personnalisée, caisson de base, ou scène vide.": [
+"Standard or custom sheet, base cabinet, or empty scene.",
+"لوح قياسي أو مخصص، خزانة أساسية، أو مشهد فارغ."
+],
+"Une création enregistrée, un caisson ou un fichier de débit (JSON, CSV).": [
+"A saved creation, a cabinet or a cutting file (JSON, CSV).",
+"تصميم محفوظ أو خزانة أو ملف تقطيع (JSON، CSV)."
+],
+"Vos meubles enregistrés, prêts à poser.": [
+"Your saved furniture, ready to place.",
+"أثاثك المحفوظ، جاهز للوضع."
+],
+"2800 × 2070 (mélaminé, MDF)": [
+"2800 × 2070 (melamine, MDF)",
+"2800 × 2070 (ميلامين، MDF)"
+],
+"2750 × 1830 (MDF, aggloméré)": [
+"2750 × 1830 (MDF, chipboard)",
+"2750 × 1830 (MDF، خشب مضغوط)"
+],
+"2440 × 1220 (contreplaqué, MDF)": [
+"2440 × 1220 (plywood, MDF)",
+"2440 × 1220 (خشب رقائقي، MDF)"
+],
+"2500 × 1250 (latté, contreplaqué)": [
+"2500 × 1250 (blockboard, plywood)",
+"2500 × 1250 (خشب ملبّس، رقائقي)"
+],
+"3050 × 1220 (MDF long)": [
+"3050 × 1220 (long MDF)",
+"3050 × 1220 (MDF طويل)"
+],
+"2800 × 2100 (mélaminé)": [
+"2800 × 2100 (melamine)",
+"2800 × 2100 (ميلامين)"
+],
+"1220 × 610 (demi-feuille)": [
+"1220 × 610 (half sheet)",
+"1220 × 610 (نصف لوح)"
+],
+"Ma bibliothèque": [
+"My library",
+"مكتبتي"
+]
+}

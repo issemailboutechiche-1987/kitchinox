@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
+import 'art_library.dart';
+import 'art_page.dart' show artColor;
 import 'finishes.dart';
 import 'openings_ui.dart';
 import 'fronts.dart';
@@ -218,20 +220,57 @@ class SceneExporter {
           final topPanels = m.kind.isLow
               ? [
                   at(s0 + 18, s1 - 18, t0, t0 + 70, b.z1 - 18, b.z1), // traverse arrière
-                  at(s0 + 18, s1 - 18, tf - 70, tf, b.z1 - 18, b.z1), // traverse avant
+                  if (style.handle != 'gola') at(s0 + 18, s1 - 18, tf - 70, tf, b.z1 - 18, b.z1), // traverse avant (remplacée par le profil Gola)
                 ]
               : [
                   at(s0 + 18, s1 - 18, t0, tf, b.z1 - 18, b.z1), // dessus plein (hauts et colonnes)
                 ];
 
-          for (final bx in [
-            at(s0, s0 + 18, t0, tf, b.z0, b.z1), // côtés
-            at(s1 - 18, s1, t0, tf, b.z0, b.z1),
-            at(s0 + 18, s1 - 18, t0, tf, b.z0, b.z0 + 18), // dessous
-            ...topPanels,
-            at(s0 + 18, s1 - 18, t0, t0 + 18, b.z0 + 18, b.z1 - 18), // dos
+          // profil Gola (sans poignée) : gorge en aluminium fixée dans le caisson, sous le plan de travail
+          // (et entre deux tiroirs) ; les façades s'arrêtent dessous, en dégageant la prise de main
+          if (style.handle == 'gola' && m.kind.isLow && !m.kind.isFiller) {
+            final golaMat = _plain(const Color(0xFFB9BDC2), rough: 0.35, metal: 0.6);
+            // gorge de 26 mm de profondeur et 33 mm de haut : fond, lèvre basse, rebord haut
+            void channel(double zTop) {
+              solids.add({..._box(at(s0, s1, tf - 26, tf - 23, zTop - 33, zTop)), 'mat': golaMat, 'uid': c.uid});
+              solids.add({..._box(at(s0, s1, tf - 26, tf, zTop - 33, zTop - 30)), 'mat': golaMat, 'uid': c.uid});
+              solids.add({..._box(at(s0, s1, tf - 26, tf, zTop - 3, zTop)), 'mat': golaMat, 'uid': c.uid});
+            }
+            channel(b.z1);
+            final rows = cellsOf(rowsOf(m, c) ?? seedRows(m, c), c.height);
+            final total = rows.isEmpty ? (b.z1 - b.z0) : rows.last.y + rows.last.h;
+            final kz = (b.z1 - b.z0) / (total <= 0 ? 1 : total);
+            for (var i = 1; i < rows.length; i++) {
+              if (rows[i].kind == CellKind.drawer && rows[i - 1].kind == CellKind.drawer) channel(b.z1 - rows[i].y * kz);
+            }
+          }
+          // Détection des côtés gauche et droit exposés (ex: côté visible d'une colonne à côté d'un plan de travail)
+          final leftNeighbor = p.items.where((o) => o != c && o.wallId == c.wallId && (o.s + o.width - c.s).abs() < 15).firstOrNull;
+          final rightNeighbor = p.items.where((o) => o != c && o.wallId == c.wallId && (c.s + c.width - o.s).abs() < 15).firstOrNull;
+          
+          final leftExposed = leftNeighbor == null || leftNeighbor.height < c.height - 50 || leftNeighbor.depth < c.depth - 50;
+          final rightExposed = rightNeighbor == null || rightNeighbor.height < c.height - 50 || rightNeighbor.depth < c.depth - 50;
+          
+          // Finition de façade pour les côtés / joues visibles (choix personnalisé ou accordé aux bas/hauts)
+          final epf = style.endPanelFinish;
+          final sideFinish = epf != null
+              ? frontFinish(style, epf)
+              : (m.kind.isHigh
+                  ? frontFinish(style, style.frontUpper ?? style.front)
+                  : frontFinish(style, style.frontLower ?? style.front));
+          final sideMat = await _mat(sideFinish, rough: 0.5, vertical: true);
+
+          final leftSideMat = (leftExposed && (c.s > 10 || style.endPanels)) ? sideMat : carcassMat;
+          final rightSideMat = (rightExposed && (c.s + c.width < w.length - 10 || style.endPanels)) ? sideMat : carcassMat;
+
+          for (final (bx, mat) in [
+            (at(s0, s0 + 18, t0, tf, b.z0, b.z1), leftSideMat), // côté gauche
+            (at(s1 - 18, s1, t0, tf, b.z0, b.z1), rightSideMat), // côté droit
+            (at(s0 + 18, s1 - 18, t0, tf, b.z0, b.z0 + 18), carcassMat), // dessous
+            for (final pan in topPanels) (pan, carcassMat),
+            (at(s0 + 18, s1 - 18, t0, t0 + 18, b.z0 + 18, b.z1 - 18), carcassMat), // dos
           ]) {
-            solids.add({..._box(bx), 'mat': carcassMat, 'uid': c.uid});
+            solids.add({..._box(bx), 'mat': mat, 'uid': c.uid});
           }
           // étagères réelles dans les cases à porte sans appareil
           final apps = appliancesOf(m, c);
@@ -246,7 +285,7 @@ class SceneExporter {
               solids.add({..._box(at(s0 + 18, s1 - 18, t0 + 18, tf - 30, z - 9, z + 9)), 'mat': carcassMat, 'uid': c.uid});
             }
           }
-        } else {
+        } else if (!m.isFreeHood) {
           solids.add({..._box(b), 'mat': isPanel ? frMat : carcassMat, 'uid': c.uid});
         }
       }
@@ -278,7 +317,8 @@ class SceneExporter {
               appliances: apps,
               carcass: carcass.color,
               gloss: fr.gloss,
-              handleTop: handleTop);
+              handleTop: handleTop,
+              golaProfile: false); // la gorge est une pièce du caisson, pas un dessin sur la porte
         });
         return img.key;
       }
@@ -320,8 +360,15 @@ class SceneExporter {
                       (c.opening == 'hinged_left' || (c.opening != 'hinged_right' && cell.hinge != 'right')) ? 'left' : 'right',
                     ),
                   ];
+            final gola = style.handle == 'gola' && m.isCarcass && !m.kind.isFiller;
+            var fz0 = zTop - h, fz1 = zTop;
+            if (gola && m.kind.isLow && (cell.y < 0.5 || (cell.kind == CellKind.drawer && all.indexOf(cell) > 0 && all[all.indexOf(cell) - 1].kind == CellKind.drawer))) {
+              fz1 -= 30; // sous le profil : on passe les doigts dans la gorge
+            } else if (gola && m.kind.isHigh && cell.y + cell.h >= total - 0.5) {
+              fz0 += 30; // meuble haut : gorge en bas
+            }
             for (final (ls, lw, hinge) in halves) {
-              final single = FrontCell(cell.kind == CellKind.door2 ? CellKind.door : cell.kind, 0, h, hinge, cell.index);
+              final single = FrontCell(cell.kind == CellKind.door2 ? CellKind.door : cell.kind, 0, fz1 - fz0, hinge, cell.index);
               final m2 = m.id == 'base_integrated_dishwasher_door' ? null : [single];
               // Hauteur de poignée ergonomique :
               // - Sur meuble haut : poignée en bas (handleTop = false)
@@ -336,10 +383,10 @@ class SceneExporter {
                 'hinge': hinge,
                 's0': ls,
                 's1': ls + lw,
-                'z0': zTop - h,
-                'z1': zTop,
-                'img': await frontImg('${cell.kind.name}-$hinge', lw, h, m2, opening: hinge == 'left' ? 'hinged_left' : 'hinged_right', handleTop: isLower),
-                if (kind != 'static') 'inside': await interiorImg(cell, lw, h),
+                'z0': fz0,
+                'z1': fz1,
+                'img': await frontImg('${cell.kind.name}-$hinge', lw, fz1 - fz0, m2, opening: hinge == 'left' ? 'hinged_left' : 'hinged_right', handleTop: isLower),
+                if (kind != 'static') 'inside': await interiorImg(cell, lw, fz1 - fz0),
                 if (kind != 'static') 'insideT': 19.0,
               });
             }
@@ -574,6 +621,19 @@ class SceneExporter {
           'swan': fc.swan,
           'square': fc.square,
         });
+      } else if (m.isFreeHood) {
+        // hotte posée librement : dessinée entière (hotte + cheminée jusqu'au plafond)
+        final (hx, hy) = w.toPlan(c.s + c.width / 2, c.depth / 2);
+        kitchenFixtures.add({
+          'uid': 'hood:${c.uid}',
+          'pick': 'item:${c.uid}',
+          'kind': 'fixture',
+          'type': 'kitchen_hood_free',
+          'hoodStyle': m.id.replaceFirst('hood_free_', ''),
+          'x': hx, 'y': hy, 'z': c.z.toDouble(),
+          'rot': w.rot,
+          'w': c.width.toDouble(), 'd': c.depth.toDouble(), 'h': (room.height - c.z).toDouble(),
+        });
       } else if (isHoodUnit) {
         solids.add({..._box(w.strip(c.s + 40, c.width - 80.0, 480, c.z - 70, 70)), 'mat': steel});
         final (hx, hy) = w.toPlan(c.s + c.width / 2, c.depth / 2);
@@ -593,7 +653,8 @@ class SceneExporter {
     if (style.endPanels) {
       for (final j in endPanels(e)) {
         final w = room.wall(j.wallId);
-        final f = frontFinish(style, j.high ? (style.frontUpper ?? style.front) : (style.frontLower ?? style.front));
+        final finishId = style.endPanelFinish ?? (j.high ? (style.frontUpper ?? style.front) : (style.frontLower ?? style.front));
+        final f = frontFinish(style, finishId);
         solids.add({..._box(w.strip(j.s, EndPanel.thickness, j.depth, j.z0, j.height)), 'mat': await _mat(f, rough: 0.5, vertical: true)});
       }
     }
@@ -603,7 +664,7 @@ class SceneExporter {
     if (style.lighting != 'aucun') {
       for (final c in p.items) {
         final m = e.modelOf(c);
-        if (!m.kind.isHigh || m.id == 'wall_integrated_hood') continue;
+        if (!m.kind.isHigh || m.isHoodUnit || m.isFreeHood) continue;
         final w = room.wall(c.wallId);
         final b = w.strip(c.s + 25, c.width - 50.0, c.depth - 70.0, c.z - 6, 6);
         final (cx, cy) = w.toPlan(c.s + c.width / 2, c.depth - 60.0);
@@ -642,6 +703,7 @@ class SceneExporter {
             'file': ob.isFixture ? null : st.objectCatalog.where((c) => c.id == ob.ref).firstOrNull?.file,
             'yaw': ob.isFixture ? 0 : st.objectCatalog.where((c) => c.id == ob.ref).firstOrNull?.yaw ?? 0,
             'x': ob.x, 'y': ob.y, 'z': ob.z, 'rot': ob.rot, 'w': ob.w, 'h': ob.h, 'd': ob.d,
+            if (ob.ref.startsWith('lib:')) 'panels': ArtLibrary.instance.panelsFor(ob, artColor),
           }
       ],
       // vasques en céramique posées sur les meubles vasque (le toucher choisit le meuble)
@@ -692,7 +754,7 @@ class SceneExporter {
       'yaw': st.yaw,
       'zoom': st.zoom,
       'cam': st.camera3d,
-      'editable': st.step == PlanStep.layout || st.step == PlanStep.style,
+      'editable': !st.lockMoves && (st.step == PlanStep.layout || st.step == PlanStep.style), // verrou : la 3D navigue seulement
     };
   }
 }

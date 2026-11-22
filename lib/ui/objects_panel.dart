@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
 import 'app_state.dart';
+import 'art_library.dart';
 import 'theme.dart';
 import 'web_io.dart';
 import 'i18n.dart';
@@ -72,6 +73,8 @@ class _ObjectsPanelState extends State<ObjectsPanel> {
 
     // Pour bain uniquement : Sanitaires est inclus en premier. Pour les autres univers : catégories de l'univers uniquement.
     final cats = [
+      // meubles créés dans l'atelier, en tête quand il y en a
+      if (visible.any((o) => o.category == libraryCategory)) libraryCategory,
       if (universe == 'bain') 'Sanitaires',
       for (final c in allowedCats)
         if (c != 'Sanitaires' && (visible.any((o) => o.category == c) || c == allowedCats.first)) c,
@@ -194,7 +197,9 @@ class _ObjectsPanelState extends State<ObjectsPanel> {
                       ),
                     for (final o in objs)
                       tile(
-                        icon: (nativeIoEnabled
+                        icon: o.id.startsWith('lib:')
+                            ? Icon(Icons.inventory_2_outlined, size: 48, color: scheme.primary)
+                            : (nativeIoEnabled
                             ? Image.asset('web/${o.thumb}', height: 66, fit: BoxFit.contain, errorBuilder: (_, _, _) => Icon(Icons.chair_outlined, size: 40, color: scheme.outline))
                             : Image.network(o.thumb, height: 66, fit: BoxFit.contain, errorBuilder: (_, _, _) => Icon(Icons.chair_outlined, size: 40, color: scheme.outline))),
                         name: tr(o.name),

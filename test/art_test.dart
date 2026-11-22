@@ -27,7 +27,7 @@ void main() {
     expect(back.material, startsWith('HDF 6'));
     // porte : recouvrement total moins 2 mm de jeu, une seule (600 de large)
     final door = parts.firstWhere((p) => p.name == 'Porte');
-    expect((door.length, door.width, door.qty), (718, 598, 1));
+    expect((door.length, door.width, door.qty), (719, 598, 1)); // jeu en haut seulement : la porte du bas affleure le dessous
     // tablette mobile : 2 mm de jeu, 20 mm en retrait de l'avant
     final shelf = parts.firstWhere((p) => p.name == 'Étagère mobile');
     expect((shelf.length, shelf.width), (562, 518)); // largeur 564 - 2 ; profondeur utile 560 - 16 - 6, moins 20
@@ -138,6 +138,12 @@ void main() {
     final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
+    await closeArtWelcome(t);
+    // les caissons à composer sont dans « Ma bibliothèque »
+    await t.tap(find.byKey(const ValueKey('art_tab_biblio')));
+    await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.text('Colonne de dressing'), 200, scrollable: find.ancestor(of: find.text('Meubles depuis une feuille'), matching: find.byType(Scrollable)).first);
+    await t.pumpAndSettle();
     await t.tap(find.text('Colonne de dressing'));
     await t.pumpAndSettle();
     final art = st.project.art;
@@ -150,6 +156,8 @@ void main() {
     await t.pumpAndSettle();
     expect(art.boxes.single.columns, 3);
     // toucher la zone basse de la 1re colonne dans la 3D : onglet Façades
+    await t.ensureVisible(find.text('Face'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Face'));
     await t.pumpAndSettle();
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
@@ -164,18 +172,43 @@ void main() {
     await t.pumpAndSettle();
     expect(b.covers.values.any((c) => c.type == CoverType.drawers), isTrue);
     // structure commune : vue éclatée, couleurs par composant
+    await t.ensureVisible(find.text('3D'));
+    await t.pumpAndSettle();
     await t.tap(find.text('3D'));
+    await t.ensureVisible(find.text('Éclaté'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Éclaté'));
+    await t.ensureVisible(find.text('Composants'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Composants'));
     await t.pumpAndSettle();
-    expect(find.text('Structure du meuble'), findsOneWidget);
+    expect(find.text('Calques'), findsOneWidget);
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/art_box_eclate.png'));
+    await t.ensureVisible(find.text('Éclaté'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Éclaté'));
+    await t.ensureVisible(find.text('Composants'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Composants'));
     await t.tap(find.text('Débit'));
     await t.pumpAndSettle();
+    // la liste du débit défile : les façades de tiroir sont plus bas
+    final debitList = find.ancestor(of: find.textContaining('Porte ·').first, matching: find.byType(Scrollable)).first;
+    for (var i = 0; i < 8 && find.textContaining('Façade de tiroir').evaluate().isEmpty; i++) {
+      await t.drag(debitList, const Offset(0, -200));
+      await t.pumpAndSettle();
+    }
     expect(find.textContaining('Façade de tiroir'), findsWidgets);
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/art_box_debit.png'));
     expect(t.takeException(), isNull);
   });
+}
+
+/// Ferme l'accueil du mode Art (Nouveau / Ouvrir / Bibliothèque) quand la scène est vide.
+Future<void> closeArtWelcome(WidgetTester t) async {
+  final f = find.byKey(const ValueKey('welcome_close'));
+  if (f.evaluate().isNotEmpty) {
+    await t.tap(f);
+    await t.pumpAndSettle();
+  }
 }

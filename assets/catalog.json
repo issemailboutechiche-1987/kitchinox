@@ -171,7 +171,16 @@
           ],
           "height": 800,
           "depth": 600,
-          "front_layout": "1_drawer_bottom_1_door",
+          "front_layout": [
+            {
+              "k": "drawer",
+              "h": 250
+            },
+            {
+              "k": "drawer",
+              "h": 0
+            }
+          ],
           "back_panel": "recessed_plumbing",
           "internal_config": [
             "siphon_notched_drawers"
@@ -362,8 +371,48 @@
           ]
         },
         {
+          "id": "base_cooktop_door",
+          "name": "Bas plaque de cuisson + porte",
+          "available_widths": [600, 800, 900],
+          "height": 800,
+          "appliances": ["cooktop_4_burners_60"],
+          "front_layout": [{"k": "door", "h": 0}]
+        },
+        {
+          "id": "base_cooktop_drawer_door",
+          "name": "Bas plaque de cuisson + tiroir et porte",
+          "available_widths": [600, 800, 900],
+          "height": 800,
+          "appliances": ["cooktop_4_burners_60"],
+          "front_layout": [{"k": "drawer", "h": 180}, {"k": "door", "h": 0}]
+        },
+        {
+          "id": "base_cooktop_drawers",
+          "name": "Bas plaque de cuisson + tiroirs",
+          "available_widths": [600, 800, 900],
+          "height": 800,
+          "appliances": ["cooktop_4_burners_60"],
+          "front_layout": [{"k": "drawer", "h": 180}, {"k": "drawer", "h": 250}, {"k": "drawer", "h": 0}]
+        },
+        {
+          "id": "base_oven_no_drawer",
+          "name": "Bas four encastré seul (sans tiroir)",
+          "available_widths": [600],
+          "height": 800,
+          "appliances": ["oven_standard_60"],
+          "front_layout": [{"k": "appliance", "h": 0}]
+        },
+        {
+          "id": "base_oven_2drawers",
+          "name": "Bas four encastré + 2 tiroirs",
+          "available_widths": [600],
+          "height": 800,
+          "appliances": ["oven_standard_60"],
+          "front_layout": [{"k": "appliance", "h": 0}, {"k": "drawer", "h": 95}, {"k": "drawer", "h": 95}]
+        },
+        {
           "id": "base_oven_only",
-          "name": "Bas four encastré (sans plaque)",
+          "name": "Bas four encastré + tiroir (sans plaque)",
           "available_widths": [
             600
           ],
@@ -487,6 +536,68 @@
             "requires_wall": true,
             "floor_support": false
           }
+        },
+        {
+          "id": "wall_hood_telescopic",
+          "name": "Haut pour hotte télescopique (casquette tirable)",
+          "available_widths": [600, 900],
+          "available_heights": [360, 600, 720],
+          "depth": 330,
+          "appliances": ["hood_telescopic_or_builtin"],
+          "front_layout": [{"k": "door", "h": 0}, {"k": "panel", "h": 50}],
+          "snapping": {"requires_wall": true, "floor_support": false}
+        },
+        {
+          "id": "wall_hood_group",
+          "name": "Haut pour groupe filtrant (derrière une porte)",
+          "available_widths": [600, 800, 900],
+          "available_heights": [600, 720],
+          "depth": 330,
+          "appliances": ["hood_telescopic_or_builtin"],
+          "front_layout": [{"k": "door", "h": 0}],
+          "snapping": {"requires_wall": true, "floor_support": false}
+        },
+        {
+          "id": "wall_chimney_box",
+          "name": "Caisson cache-conduit (au-dessus d’une hotte)",
+          "available_widths": [300, 400, 600],
+          "available_heights": [300, 360, 600],
+          "depth": 300,
+          "front_layout": [{"k": "door", "h": 0}],
+          "snapping": {"requires_wall": true, "floor_support": false}
+        },
+        {
+          "id": "hood_free_pyramid",
+          "name": "Hotte murale pyramide inox (pose libre)",
+          "available_widths": [600, 900],
+          "available_heights": [700, 900, 1100],
+          "depth": 500,
+          "is_carcass": false,
+          "appliances": ["hood_wall_decorative"],
+          "description": "Hotte décorative fixée au mur avec sa cheminée ; marques courantes au Maroc : Teka, Bosch, Elica, Franke, Candy, Whirlpool",
+          "snapping": {"requires_wall": true, "floor_support": false}
+        },
+        {
+          "id": "hood_free_inclined",
+          "name": "Hotte murale inclinée verre noir (pose libre)",
+          "available_widths": [600, 900],
+          "available_heights": [700, 900, 1100],
+          "depth": 400,
+          "is_carcass": false,
+          "appliances": ["hood_wall_inclined"],
+          "description": "Hotte inclinée en verre noir, aspiration périmétrale ; marques courantes au Maroc : Elica, Teka, Bosch, Samsung, Candy",
+          "snapping": {"requires_wall": true, "floor_support": false}
+        },
+        {
+          "id": "hood_free_box",
+          "name": "Hotte murale box inox (pose libre)",
+          "available_widths": [600, 900],
+          "available_heights": [700, 900, 1100],
+          "depth": 500,
+          "is_carcass": false,
+          "appliances": ["hood_wall_decorative"],
+          "description": "Hotte box rectangulaire en inox avec cheminée ; marques courantes au Maroc : Franke, Teka, Faber, Beko, Whirlpool",
+          "snapping": {"requires_wall": true, "floor_support": false}
         },
         {
           "id": "wall_open_shelf",
@@ -998,6 +1109,55 @@
       ]
     },
     {
+      "id": "corner_tall_cabinets",
+      "name": "Colonnes d'Angle",
+      "depth_nominal": 600,
+      "items": [
+        {
+          "id": "corner_tall_l_shaped",
+          "name": "Colonne d'angle en L (90°)",
+          "width_left": 900,
+          "width_right": 900,
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "depth": 600,
+          "door_type": "bifold_corner_door",
+          "internal_config": [
+            "fixed_corner_shelf",
+            "corner_hanging_rail"
+          ],
+          "snapping": {
+            "corner_anchor": "inner_90",
+            "floor_support": true
+          }
+        },
+        {
+          "id": "corner_tall_blind",
+          "name": "Colonne d'angle droite avec fileur",
+          "width": 1000,
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "depth": 600,
+          "blind_overlap": 600,
+          "accessible_door_width": 400,
+          "door_type": "single_door",
+          "internal_config": [
+            "corner_shelves"
+          ],
+          "snapping": {
+            "corner_anchor": "blind_overlap",
+            "floor_support": true
+          }
+        }
+      ]
+    },
+    {
       "id": "finishing_and_accessories",
       "name": "Fileurs, Joues et Accessoires",
       "items": [
@@ -1044,6 +1204,63 @@
           "height": 800,
           "length_custom": true,
           "role": "island_finishing"
+        }
+      ]
+    },
+    {
+      "id": "custom_cabinets",
+      "name": "Caissons personnalisés",
+      "depth_nominal": 600,
+      "items": [
+        {
+          "id": "custom_base",
+          "name": "Caisson bas personnalisé",
+          "width_min": 150,
+          "width_max": 1200,
+          "height_min": 300,
+          "height_max": 1000,
+          "depth": 600,
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
+        },
+        {
+          "id": "custom_wall",
+          "name": "Caisson haut personnalisé",
+          "width_min": 150,
+          "width_max": 1200,
+          "height_min": 200,
+          "height_max": 1200,
+          "depth": 350,
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "snapping": {
+            "requires_wall": true
+          }
+        },
+        {
+          "id": "custom_tall",
+          "name": "Colonne personnalisée",
+          "width_min": 150,
+          "width_max": 1200,
+          "height_min": 1200,
+          "height_max": 2700,
+          "depth": 600,
+          "opening_options": [
+            "hinged_left",
+            "hinged_right"
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": true
+          }
         }
       ]
     }

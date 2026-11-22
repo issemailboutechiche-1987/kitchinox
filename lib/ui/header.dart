@@ -79,7 +79,8 @@ class StepHeader extends StatelessWidget {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(children: [
-              for (final s in PlanStep.values) _StepTab(state: state, step: s, compact: !wide),
+              // libellés de toutes les étapes dès qu'il y a la place (iPad paysage compris)
+              for (final s in PlanStep.values) _StepTab(state: state, step: s, compact: MediaQuery.sizeOf(context).width < 1000),
             ]),
           ),
         ),
@@ -380,7 +381,7 @@ class _MmFieldState extends State<MmField> {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 150,
+        width: 128, // trois champs tiennent à côté des outils sur iPad
         child: TextField(
           controller: c,
           focusNode: focus,

@@ -287,6 +287,7 @@ class _RoomShapeEditorState extends State<RoomShapeEditor> {
     final scheme = Theme.of(context).colorScheme;
     final r = widget.state.project.room;
     return Scaffold(
+      resizeToAvoidBottomInset: false, // le clavier passe par-dessus le plan
       appBar: AppBar(
         title: Text(tr('Forme de la pièce')),
         actions: [

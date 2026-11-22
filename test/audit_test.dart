@@ -13,7 +13,7 @@ void main() {
     final problems = <String>[];
     for (final m in cat.models) {
       if (m.kind.isHigh) {
-        if (m.appliances.isNotEmpty && m.id != 'wall_integrated_hood') problems.add('${m.id} : appareil dans un haut');
+        if (m.appliances.isNotEmpty && !m.isHoodUnit && !m.isFreeHood) problems.add('${m.id} : appareil dans un haut');
         if (m.frontLayout?.any((r) => r.kind == CellKind.appliance || r.kind == CellKind.drawer) ?? false) {
           problems.add('${m.id} : appareil ou tiroir dans un haut');
         }

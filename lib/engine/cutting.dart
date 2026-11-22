@@ -40,12 +40,22 @@ const frontMaterialChoices = [
   'MDF Laqué',
 ];
 
+const backMaterialChoices = [
+  'HDF 6 mm',
+  'HDF 3 mm',
+  'MDF 3 mm',
+  'Contreplaqué 5 mm',
+  'MDF 6 mm',
+];
+
 const woodSheetPresets = <String, List<SheetPreset>>{
   'Latté (Blockboard)': [
+    SheetPreset('2100 × 2020 mm (Latté meuble atelier)', 2100, 2020),
     SheetPreset('2440 × 1220 mm (Standard 8×4 pieds - Plus répandu)', 2440, 1220),
     SheetPreset('2500 × 1220 mm', 2500, 1220),
     SheetPreset('2500 × 1250 mm', 2500, 1250),
     SheetPreset('2800 × 2070 mm (Grand format)', 2800, 2070),
+    SheetPreset('2800 × 2100 mm', 2800, 2100),
   ],
   'MDF': [
     SheetPreset('2800 × 2100 mm (Standard atelier - Plus répandu)', 2800, 2100),
@@ -65,6 +75,11 @@ const woodSheetPresets = <String, List<SheetPreset>>{
     SheetPreset('2750 × 1220 mm', 2750, 1220),
     SheetPreset('2800 × 2100 mm (Grand format)', 2800, 2100),
   ],
+  'HDF / Fonds': [
+    SheetPreset('2800 × 2100 mm (Grand format standard)', 2800, 2100),
+    SheetPreset('2440 × 1220 mm (Standard 8×4)', 2440, 1220),
+    SheetPreset('2070 × 2800 mm', 2070, 2800),
+  ],
 };
 
 class CutSettings {
@@ -72,6 +87,8 @@ class CutSettings {
   int sheetWidth;
   int? frontSheetLength;
   int? frontSheetWidth;
+  int? backSheetLength;
+  int? backSheetWidth;
   int kerf; // trait de scie
   int trim; // recoupe des bords du panneau
   int carcassThickness;
@@ -96,6 +113,9 @@ class CutSettings {
   String machine; // 'scie' (scie à panneaux : bandes puis tronçons) | 'cnc' (imbrication libre)
 
   (int, int) sheetDimensionsFor(String material) {
+    // matière qui porte son format (« … · 2440×1220 ») : celui du tarif
+    final f = RegExp(r'(\d{3,4})\s*[x×]\s*(\d{3,4})\s*\)?$').firstMatch(material);
+    if (f != null) return (int.parse(f.group(1)!), int.parse(f.group(2)!));
     final isFront = material == frontMaterial ||
         material.contains('Façade') ||
         material.contains('Porte') ||
@@ -106,6 +126,15 @@ class CutSettings {
     if (isFront && frontSheetLength != null && frontSheetWidth != null) {
       return (frontSheetLength!, frontSheetWidth!);
     }
+    final isBack = material == backMaterial ||
+        material.contains('HDF') ||
+        material.contains('Fond') ||
+        material.contains('fond') ||
+        material.contains('MDF 6 mm') ||
+        material.contains('MDF 3 mm');
+    if (isBack && backSheetLength != null && backSheetWidth != null) {
+      return (backSheetLength!, backSheetWidth!);
+    }
     return (sheetLength, sheetWidth);
   }
 
@@ -114,6 +143,8 @@ class CutSettings {
     this.sheetWidth = 2100,
     this.frontSheetLength,
     this.frontSheetWidth,
+    this.backSheetLength,
+    this.backSheetWidth,
     this.kerf = 4,
     this.trim = 4,
     this.carcassThickness = 18,
@@ -143,6 +174,8 @@ class CutSettings {
     'sheet_width': sheetWidth,
     if (frontSheetLength != null) 'front_sheet_length': frontSheetLength,
     if (frontSheetWidth != null) 'front_sheet_width': frontSheetWidth,
+    if (backSheetLength != null) 'back_sheet_length': backSheetLength,
+    if (backSheetWidth != null) 'back_sheet_width': backSheetWidth,
     'kerf': kerf,
     'trim': trim,
     'carcass_thickness': carcassThickness,
@@ -175,6 +208,8 @@ class CutSettings {
       sheetWidth: j['sheet_width'] ?? d.sheetWidth,
       frontSheetLength: j['front_sheet_length'],
       frontSheetWidth: j['front_sheet_width'],
+      backSheetLength: j['back_sheet_length'],
+      backSheetWidth: j['back_sheet_width'],
       kerf: j['kerf'] ?? d.kerf,
       trim: j['trim'] ?? d.trim,
       carcassThickness: j['carcass_thickness'] ?? d.carcassThickness,
@@ -251,6 +286,7 @@ List<CutPart> cutList(LayoutEngine e, CutSettings cs, Map<String, int> reperes) 
 
   for (final c in items) {
     final m = e.modelOf(c);
+    if (m.isFreeHood) continue; // hotte posée librement : un appareil acheté, rien à découper
     final rep = reperes[c.uid];
     final tag = rep == null ? m.name : 'Rep. $rep - ${m.name}';
     // el : chants le long du côté a ; es : chants le long du côté b
@@ -294,7 +330,7 @@ List<CutPart> cutList(LayoutEngine e, CutSettings cs, Map<String, int> reperes) 
     int fw(int count, [int? width]) => count <= 1 ? (width ?? W) - gh : ((width ?? W) - gh - gb * (count - 1)) ~/ count;
     final g2 = cs.grooveDepth;
     void back(int len, int wid) {
-      if (cs.backPanel) add(cs.backMaterial, 'Fond arrière ${cs.backThickness} mm (rainuré)', len, wid, 1);
+      if (cs.backPanel && !c.noBack) add(cs.backMaterial, 'Fond arrière ${cs.backThickness} mm (rainuré)', len, wid, 1);
     }
 
     // caisson : 2 côtés (H x profondeur) + dessus et dessous (largeur - 2 épaisseurs x profondeur),
@@ -466,6 +502,7 @@ List<CutPart> cutList(LayoutEngine e, CutSettings cs, Map<String, int> reperes) 
         }
       case CabinetKind.cornerBase:
       case CabinetKind.cornerWall:
+      case CabinetKind.cornerTall:
         // formules d'angle (L 90°, pan coupé 45°, borgne) ; Gola : portes basses raccourcies de 35 mm
         final golaCorner = e.project.style.handle == 'gola' && m.kind == CabinetKind.cornerBase;
         for (final (kind, name, a, b, q, el, es) in cornerCutList(m, c, T: T, td: cs.doorThickness, gap: gap, gola: golaCorner)) {
@@ -487,7 +524,7 @@ List<CutPart> cutList(LayoutEngine e, CutSettings cs, Map<String, int> reperes) 
   // joues de finition automatiques : panneau de façade, chant sur la face avant et les bouts visibles
   if (e.project.style.endPanels) {
     for (final j in endPanels(e)) {
-      final finishId = j.high ? (e.project.style.frontUpper ?? e.project.style.front) : (e.project.style.frontLower ?? e.project.style.front);
+      final finishId = e.project.style.endPanelFinish ?? (j.high ? (e.project.style.frontUpper ?? e.project.style.front) : (e.project.style.frontLower ?? e.project.style.front));
       final mat = frontDecorOf?.call(finishId) ?? cs.frontMaterial;
       final grain = frontGrainLocked?.call(finishId) ?? false;
       final p = CutPart(
@@ -1535,8 +1572,9 @@ class _BState {
 /// Meilleure feuille (une seule) par recherche en faisceau sur les largeurs de bande.
 CutSheet? _beamSheet(List<(CutPart, int)> pieces, String mat, CutSettings cs, int number, bool alongLength, {int beam = 40}) {
   final k = cs.kerf.toDouble(), trim = cs.trim.toDouble();
-  final L = (alongLength ? cs.sheetLength : cs.sheetWidth) - 2 * trim;
-  final W = (alongLength ? cs.sheetWidth : cs.sheetLength) - 2 * trim;
+  final (sL, sW) = cs.sheetDimensionsFor(mat); // format propre à la matière (latté, panneaux minces…)
+  final L = (alongLength ? sL : sW) - 2 * trim;
+  final W = (alongLength ? sW : sL) - 2 * trim;
   int byArea((CutPart, int) a, (CutPart, int) b) => b.$1.area.compareTo(a.$1.area);
   int byLen((CutPart, int) a, (CutPart, int) b) => b.$1.length.compareTo(a.$1.length) != 0 ? b.$1.length.compareTo(a.$1.length) : b.$1.width.compareTo(a.$1.width);
   int byWid((CutPart, int) a, (CutPart, int) b) => b.$1.width.compareTo(a.$1.width) != 0 ? b.$1.width.compareTo(a.$1.width) : b.$1.length.compareTo(a.$1.length);
@@ -1610,7 +1648,7 @@ CutSheet? _beamSheet(List<(CutPart, int)> pieces, String mat, CutSettings cs, in
     }
   }
   if (bestEnd.strips == 0) return null;
-  final s = CutSheet(number, mat, cs.sheetLength, cs.sheetWidth, cs.trim);
+  final s = CutSheet(number, mat, sL, sW, cs.trim);
   s._free.clear();
   s.strips = bestEnd.strips;
   s.cutLen = bestEnd.cut;

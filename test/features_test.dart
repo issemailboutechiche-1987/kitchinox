@@ -152,6 +152,13 @@ void main() {
         final cam = Camera3d.fit(p.room, -0.55, s, zoom: 1.5, panX: 100, panY: 150);
         Scene3dPainter(e, cam, selectColor: Colors.orange, background: Colors.white, open: half).paint(c, s);
       }));
+      // profil Gola : il reste sur le caisson, les portes et tiroirs ouverts n'en portent pas
+      p.style.handle = 'gola';
+      File('test/out/3d_gola_mi_ouvert.png').writeAsBytesSync(await renderPng(size, (c, s) {
+        final cam = Camera3d.fit(p.room, -0.55, s, zoom: 1.5, panX: 100, panY: 150);
+        Scene3dPainter(e, cam, selectColor: Colors.orange, background: Colors.white, open: half).paint(c, s);
+      }));
+      p.style.handle = 'bar';
       final hc = HandleCatalog.parse(File('assets/data/handles.json').readAsStringSync());
       p.style
         ..handleId = 'handle_d_pull_flat'
@@ -174,5 +181,41 @@ void main() {
         Scene3dPainter(e, cam, selectColor: Colors.orange, background: Colors.white).paint(c, s);
       }));
     });
+  });
+
+  test('3 catégories de panneaux (Caissons, Façades, Fonds) et dimensions propres', () {
+    final cs = CutSettings(
+      carcassMaterial: 'Latté (Blockboard)',
+      sheetLength: 2100,
+      sheetWidth: 2020,
+      carcassThickness: 18,
+      frontMaterial: 'MDF High Gloss (Brillant)',
+      frontSheetLength: 2800,
+      frontSheetWidth: 1220,
+      doorThickness: 18,
+      backMaterial: 'HDF 6 mm',
+      backSheetLength: 2800,
+      backSheetWidth: 2100,
+      backThickness: 6,
+    );
+
+    // Dimensions propres à chaque matière
+    expect(cs.sheetDimensionsFor('Latté (Blockboard)'), equals((2100, 2020)));
+    expect(cs.sheetDimensionsFor('MDF High Gloss (Brillant)'), equals((2800, 1220)));
+    expect(cs.sheetDimensionsFor('HDF 6 mm'), equals((2800, 2100)));
+
+    // Sérialisation JSON aller-retour
+    final json = cs.toJson();
+    expect(json['sheet_length'], 2100);
+    expect(json['sheet_width'], 2020);
+    expect(json['front_sheet_length'], 2800);
+    expect(json['front_sheet_width'], 1220);
+    expect(json['back_sheet_length'], 2800);
+    expect(json['back_sheet_width'], 2100);
+
+    final cs2 = CutSettings.fromJson(json);
+    expect(cs2.sheetDimensionsFor(cs2.carcassMaterial), equals((2100, 2020)));
+    expect(cs2.sheetDimensionsFor(cs2.frontMaterial), equals((2800, 1220)));
+    expect(cs2.sheetDimensionsFor(cs2.backMaterial), equals((2800, 2100)));
   });
 }

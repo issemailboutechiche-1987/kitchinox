@@ -1,0 +1,67 @@
+{
+  "source": "Relevé de prix publics, quincaillerie et accessoires de meubles (Maroc), novembre 2026 — à confirmer avec le fournisseur",
+  "currency": "MAD",
+  "categories": [
+    {
+      "id": "meuble_bas",
+      "name": "Meuble bas (cuisine)",
+      "items": [
+        {"id": "spice_150", "name": "Range-épices et bouteilles coulissant 150 mm", "width": 150, "min": 440, "max": 550},
+        {"id": "spice_200", "name": "Range-épices et bouteilles coulissant 200 mm", "width": 200, "min": 390, "max": 650},
+        {"id": "spice_300", "name": "Range-épices et bouteilles coulissant 300 mm (fermeture amortie, 30 kg)", "width": 300, "min": 575, "max": 1150},
+        {"id": "spice_3", "name": "Range-épices 3 étages", "min": 630, "max": 900},
+        {"id": "pan_drawer", "name": "Tiroir casserolier équipé (3 accessoires)", "min": 1250, "max": 1250},
+        {"id": "cleaning", "name": "Rangement produits d'entretien sous évier", "min": 570, "max": 950},
+        {"id": "multi_basket", "name": "Panier coulissant multi-usages", "min": 270, "max": 1080}
+      ]
+    },
+    {
+      "id": "colonne_angle",
+      "name": "Colonne et angle",
+      "items": [
+        {"id": "pullout_kit", "name": "Kit de rangement coulissant", "min": 4790, "max": 5990},
+        {"id": "tall_pullout", "name": "Kit colonne coulissante (garde-manger)", "min": 2485, "max": 2765},
+        {"id": "corner_pullout", "name": "Rangement d'angle coulissant (meuble d'angle)", "min": 3420, "max": 4890}
+      ]
+    },
+    {
+      "id": "poubelles",
+      "name": "Poubelles",
+      "items": [
+        {"id": "bin_64", "name": "Poubelle de tri encastrable 64 L", "min": 2590, "max": 2590},
+        {"id": "bin_30", "name": "Poubelle à pédale 30 L", "min": 990, "max": 990}
+      ]
+    },
+    {
+      "id": "dressing",
+      "name": "Dressing",
+      "items": [
+        {"id": "fold_rail", "name": "Penderie rabattable (ascenseur de penderie)", "min": 375, "max": 1750},
+        {"id": "fold_rail_electric", "name": "Penderie rabattable électrique", "min": 3000, "max": 4050},
+        {"id": "trouser_rack", "name": "Porte-pantalons coulissant", "min": 450, "max": 1200},
+        {"id": "shoe_rack", "name": "Porte-chaussures extractible", "min": 450, "max": 1500},
+        {"id": "tie_rack", "name": "Porte-cintres et cravates extractible", "min": 250, "max": 800},
+        {"id": "pull_mirror", "name": "Miroir extractible", "min": 900, "max": 2000}
+      ]
+    },
+    {
+      "id": "poignees",
+      "name": "Poignées et boutons",
+      "items": [
+        {"id": "handle_basic", "name": "Poignée de meuble (gamme simple)", "min": 25, "max": 45},
+        {"id": "handle_mid", "name": "Poignée de meuble (gamme courante)", "min": 50, "max": 90},
+        {"id": "handle_design", "name": "Poignée de meuble (design)", "min": 95, "max": 115}
+      ]
+    },
+    {
+      "id": "pieds",
+      "name": "Pieds",
+      "items": [
+        {"id": "leg_steel", "name": "Pied acier fin (1 pièce)", "min": 150, "max": 190},
+        {"id": "leg_square", "name": "Pied carré ou rectangulaire (1 pièce)", "min": 300, "max": 350},
+        {"id": "leg_coffee", "name": "Pied de table basse (1 pièce)", "min": 600, "max": 600},
+        {"id": "leg_xxl", "name": "Pied XXL design (1 pièce)", "min": 850, "max": 950}
+      ]
+    }
+  ]
+}

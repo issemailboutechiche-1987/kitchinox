@@ -198,8 +198,7 @@ List<NetPoint> generateNetworks(LayoutEngine e, {String hobEnergy = 'gas'}) {
 
   // ---- eau, évacuation et lave-vaisselle
   for (final c in items) {
-    final m = e.modelOf(c);
-    if (!e.isWashing(m)) continue;
+    if (!e.washes(c)) continue;
     final mid = c.s + c.width / 2;
     add(NetKind.waterCold, c.wallId, mid - 120, NetHeights.waterSupply, NetUse.sink, forUid: c.uid);
     add(NetKind.waterHot, c.wallId, mid + 120, NetHeights.waterSupply, NetUse.sink, forUid: c.uid);
@@ -210,7 +209,7 @@ List<NetPoint> generateNetworks(LayoutEngine e, {String hobEnergy = 'gas'}) {
     if (!_isDishwasher(m) && !_isWasher(m)) continue;
     final use = _isWasher(m) ? NetUse.washer : NetUse.dishwasher;
     // prise et robinet jamais derrière l'appareil : dans le meuble voisin (de préférence l'évier)
-    final sink = items.where((o) => o.wallId == c.wallId && e.isWashing(e.modelOf(o)) && math.min((o.s - c.right).abs(), (c.s - o.right).abs()) < 60).firstOrNull;
+    final sink = items.where((o) => o.wallId == c.wallId && e.washes(o) && math.min((o.s - c.right).abs(), (c.s - o.right).abs()) < 60).firstOrNull;
     final host = sink ?? neighbour(c);
     if (host != null) {
       final x = sideOf(host, c);
@@ -228,7 +227,7 @@ List<NetPoint> generateNetworks(LayoutEngine e, {String hobEnergy = 'gas'}) {
   for (final c in items) {
     final m = e.modelOf(c);
     final mid = c.s + c.width / 2;
-    if (m.id == 'base_cooktop_oven' || (e.isCooking(m) && m.kind.isLow)) {
+    if (m.id == 'base_cooktop_oven' || (e.hasHob(c))) {
       if (hobEnergy == 'electric') {
         add(NetKind.out32, c.wallId, mid, NetHeights.hob32, NetUse.hob, forUid: c.uid);
       } else {
@@ -335,8 +334,8 @@ List<NetPoint> generateNetworks(LayoutEngine e, {String hobEnergy = 'gas'}) {
     final forbid = <(double, double)>[];
     for (final c in items.where((c) => c.wallId == w.id)) {
       final m = e.modelOf(c);
-      if (e.isWashing(m)) forbid.add((c.s - 150, c.right + 150)); // pas de prise au-dessus de l'évier
-      if (e.isCooking(m) && m.kind.isLow) forbid.add((c.s - 150, c.right + 150)); // ni au-dessus de la plaque
+      if (e.washes(c)) forbid.add((c.s - 150, c.right + 150)); // pas de prise au-dessus de l'évier
+      if (e.hasHob(c)) forbid.add((c.s - 150, c.right + 150)); // ni au-dessus de la plaque
       if (m.kind == CabinetKind.tall) forbid.add((c.s - 20, c.right + 20));
     }
     for (final o in p.openings.where((o) => o.wallId == w.id)) {
@@ -458,9 +457,8 @@ bool _socketAllowedAt(LayoutEngine e, String wallId, double s, double z) {
   final std = e.project.standards;
   if (z < std.worktopTop || z > std.worktopTop + 700) return true;
   for (final c in e.project.items.where((c) => c.wallId == wallId)) {
-    final m = e.modelOf(c);
-    if (e.isWashing(m) && s > c.s - 100 && s < c.right + 100) return false;
-    if (e.isCooking(m) && m.kind.isLow && s > c.s - 100 && s < c.right + 100) return false;
+    if (e.washes(c) && s > c.s - 100 && s < c.right + 100) return false;
+    if (e.hasHob(c) && s > c.s - 100 && s < c.right + 100) return false;
   }
   return true;
 }
@@ -494,11 +492,10 @@ List<Issue> networkChecks(LayoutEngine e) {
     }
     if (x.kind.network == 'elec' && x.kind != NetKind.out32 && x.z > std.worktopTop && x.z < std.worktopTop + 700) {
       for (final c in p.items.where((c) => c.wallId == x.wallId)) {
-        final m = e.modelOf(c);
-        if (e.isWashing(m) && x.s > c.s - 100 && x.s < c.right + 100) {
+        if (e.washes(c) && x.s > c.s - 100 && x.s < c.right + 100) {
           out.add(Issue(Severity.error, 'net_sink', L('{0} au-dessus de l\'évier : à éloigner des projections d\'eau', [L(x.kind.label)]), [x.uid, c.uid]));
         }
-        if (e.isCooking(m) && m.kind.isLow && x.s > c.s - 100 && x.s < c.right + 100) {
+        if (e.hasHob(c) && x.s > c.s - 100 && x.s < c.right + 100) {
           out.add(Issue(Severity.warning, 'net_hob', L('{0} au-dessus de la plaque : chaleur et graisses', [L(x.kind.label)]), [x.uid, c.uid]));
         }
       }
@@ -537,7 +534,7 @@ List<Issue> networkChecks(LayoutEngine e) {
   }
   for (final c in p.items) {
     final m = e.modelOf(c);
-    if (e.isWashing(m)) {
+    if (e.washes(c)) {
       if (!has(NetUse.sink, c.uid, (k) => k == NetKind.waterCold) || !has(NetUse.sink, c.uid, (k) => k == NetKind.drain)) {
         out.add(Issue(Severity.error, 'net_water', L('{0} : arrivée d\'eau ou évacuation manquante', [L(m.name)]), [c.uid]));
       }

@@ -196,6 +196,37 @@ const kitchenTemplates = <KitchenTemplate>[
       description: 'Kitchenette scandinave en chêne clair, vitrines, compacte et pratique.',
       shapes: {'lin', 'p'}, fill: 'mixte', uppers: Uppers.glass, front: 'chene_clair', worktop: 'corian_blanc', handle: 'edge',
       handleId: 'edge_pull_individual_cut', handleFinish: 'Noir mat anodisé', floor: 'parquet_clair', splash: null),
+  // ---------------------------------------------------------------- cuisines équipées (prix de référence du marché marocain)
+  KitchenTemplate(
+      id: 'eq_saphir', name: 'Saphir', family: 'Cuisines équipées',
+      description: 'Laqué brillant bicolore blanc et chêne, poignées barres. Référence marché : 22 900 DH la cuisine équipée.',
+      shapes: {'l', 'u', 'lin'}, fill: 'mixte', front: 'blanc_brillant', frontLower: 'chene', worktop: 'quartz_blanc', handle: 'bar',
+      handleId: 'handle_tubular_t_bar', handleFinish: 'Inox brossé', floor: 'carrelage_gris', splash: 'metro_blanc'),
+  KitchenTemplate(
+      id: 'eq_onyx', name: 'Onyx', family: 'Cuisines équipées',
+      description: 'Super-mat noir anti-traces, plan effet marbre, sans poignée. Référence marché : 22 900 DH.',
+      shapes: {'l', 'u', 'li'}, fill: 'tiroirs', front: 'noir_mat', worktop: 'dekton_marbre', handle: 'gola',
+      floor: 'parquet_chene', splash: null),
+  KitchenTemplate(
+      id: 'eq_velours', name: 'Velours', family: 'Cuisines équipées',
+      description: 'Mat velours taupe, profil Gola sans poignée. Référence marché : 17 900 DH ; linéaire 2,40 m dès 10 470 DH.',
+      shapes: {'lin', 'l'}, fill: 'tiroirs', front: 'cachemire', worktop: 'beton', handle: 'gola',
+      floor: 'parquet_clair', wall: 'beige_sable', splash: null),
+  KitchenTemplate(
+      id: 'eq_lumiere', name: 'Lumière', family: 'Cuisines équipées',
+      description: 'Taupe mat avec étagères ouvertes en chêne et éclairage LED. Référence marché : 17 900 DH.',
+      shapes: {'l', 'lin'}, fill: 'mixte', uppers: Uppers.open, front: 'cachemire', frontUpper: 'chene', worktop: 'quartz_gris', handle: 'gola',
+      floor: 'parquet_clair', splash: 'zellige_blanc'),
+  KitchenTemplate(
+      id: 'eq_cedre', name: 'Atlas bois', family: 'Cuisines équipées',
+      description: 'Décors bois chaleureux, plan granit. Référence marché : 18 900 DH ; linéaire 2,40 m dès 12 039 DH.',
+      shapes: {'l', 'u', 'lin'}, fill: 'mixte', front: 'noyer', worktop: 'granit_noir', handle: 'bar',
+      handleId: 'handle_tubular_t_bar', handleFinish: 'Noir mat', floor: 'carrelage_gris', splash: 'metro_blanc'),
+  KitchenTemplate(
+      id: 'eq_satin', name: 'Satin', family: 'Cuisines équipées',
+      description: 'Mélaminé satiné gris, ouverture push-pull sans poignée. Référence marché : 18 900 DH.',
+      shapes: {'l', 'lin', 'p'}, fill: 'tiroirs', front: 'gris_galet', worktop: 'quartz_blanc', handle: 'gola',
+      floor: 'carrelage_blanc', splash: 'metro_blanc'),
 ];
 
 /// Applique la composition des hauts du modèle (étagères ouvertes, vitrines, aucun haut).
@@ -203,7 +234,7 @@ void _applyUppers(LayoutEngine e, Uppers u) {
   if (u == Uppers.normal) return;
   final highs = e.project.items.where((c) {
     final m = e.modelOf(c);
-    return m.kind == CabinetKind.wall && m.id != 'wall_integrated_hood';
+    return m.kind == CabinetKind.wall && !m.isHoodUnit && !m.isFreeHood && m.id != 'wall_chimney_box';
   }).toList();
   for (final c in highs) {
     switch (u) {

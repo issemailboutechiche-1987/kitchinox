@@ -36,3 +36,6 @@ const bool nativeIoEnabled = false;
 void Function(Object error)? onStoreFailure;
 
 void saveImportedAsset(String name, Uint8List bytes) {}
+
+/// Tests : rien n'est écrit.
+Future<String?> saveToKitchinox(String name, List<int> bytes) async => null;

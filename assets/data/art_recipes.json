@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "aide": "lo = longueur posée en X sur la feuille ; la = largeur en Z, qui court le long du chant de liaison. cote = chant de la pièce b (bas, haut, avant, arriere, gauche, droite) ; vers = côté de la face de b où va la pièce a. Types : bout, applique, articule (porte). T = épaisseur de la feuille.",
+  "recettes": [
+    {
+      "id": "bas_1p",
+      "nom": "Caisson bas 1 porte",
+      "famille": "Cuisine",
+      "description": "Côtés en applique sur le dessous, 2 traverses de 100, fond, porte en applique, pieds réglables et plinthe.",
+      "params": [
+        {"id": "L", "nom": "Largeur", "defaut": 600, "min": 300, "max": 1000},
+        {"id": "H", "nom": "Hauteur", "defaut": 750, "min": 400, "max": 1000},
+        {"id": "P", "nom": "Profondeur", "defaut": 600, "min": 300, "max": 800},
+        {"id": "pieds", "nom": "Hauteur des pieds", "defaut": 100, "min": 0, "max": 200}
+      ],
+      "variables": {"Pc": "P-T-2"},
+      "pieces": [
+        {"id": "dessous", "nom": "Dessous", "role": "tablette", "lo": "L-2*T", "la": "Pc", "chants": {"lo": 1}},
+        {"id": "coteG", "nom": "Côté gauche", "role": "montant", "lo": "H", "la": "Pc", "chants": {"lo": 1}},
+        {"id": "coteD", "nom": "Côté droit", "role": "montant", "lo": "H", "la": "Pc", "chants": {"lo": 1}},
+        {"id": "traverseAv", "nom": "Traverse avant", "role": "tablette", "lo": "L-2*T", "la": "100", "chants": {"lo": 1}},
+        {"id": "traverseAr", "nom": "Traverse arrière", "role": "tablette", "lo": "L-2*T", "la": "100"},
+        {"id": "fond", "nom": "Fond", "role": "fond", "lo": "H-2*T", "la": "L-2*T"},
+        {"id": "porte", "nom": "Porte", "role": "porte", "lo": "H-3", "la": "L-3", "chants": {"lo": 2, "la": 2}},
+        {"id": "plinthe", "nom": "Plinthe", "role": "plinthe", "lo": "L", "la": "pieds-3", "si": "pieds>20", "chants": {"lo": 1}}
+      ],
+      "liens": [
+        {"a": "coteG", "b": "dessous", "cote": "gauche", "type": "applique", "vers": "+Y"},
+        {"a": "coteD", "b": "dessous", "cote": "droite", "type": "applique", "vers": "+Y"},
+        {"a": "traverseAv", "b": "coteG", "cote": "haut", "type": "bout", "vers": "+X", "align": "debut"},
+        {"a": "traverseAr", "b": "coteG", "cote": "haut", "type": "bout", "vers": "+X", "align": "fin"},
+        {"a": "fond", "b": "dessous", "cote": "arriere", "type": "bout", "vers": "+Y", "align": "centre"},
+        {"a": "porte", "b": "dessous", "cote": "avant", "type": "articule", "vers": "+Y", "align": "centre"}
+      ],
+      "support": {"type": "pieds", "ancre": "dessous", "hauteur": "pieds", "plinthe": "plinthe", "retrait": 50}
+    },
+    {
+      "id": "haut_2p",
+      "nom": "Caisson haut 2 portes",
+      "famille": "Cuisine",
+      "description": "Côtés en applique sur le dessous, dessus entre les côtés, tablette fixe au milieu, fond, 2 portes en applique.",
+      "params": [
+        {"id": "L", "nom": "Largeur", "defaut": 800, "min": 400, "max": 1200},
+        {"id": "H", "nom": "Hauteur", "defaut": 720, "min": 300, "max": 1000},
+        {"id": "P", "nom": "Profondeur", "defaut": 350, "min": 250, "max": 600}
+      ],
+      "variables": {"Lp": "(L-6)/2"},
+      "pieces": [
+        {"id": "dessous", "nom": "Dessous", "role": "tablette", "lo": "L-2*T", "la": "P", "chants": {"lo": 1}},
+        {"id": "coteG", "nom": "Côté gauche", "role": "montant", "lo": "H", "la": "P", "chants": {"lo": 1}},
+        {"id": "coteD", "nom": "Côté droit", "role": "montant", "lo": "H", "la": "P", "chants": {"lo": 1}},
+        {"id": "dessus", "nom": "Dessus", "role": "tablette", "lo": "L-2*T", "la": "P", "chants": {"lo": 1}},
+        {"id": "tablette", "nom": "Tablette", "role": "tablette", "lo": "L-2*T", "la": "P-T", "chants": {"lo": 1}},
+        {"id": "fond", "nom": "Fond", "role": "fond", "lo": "H-2*T", "la": "L-2*T"},
+        {"id": "porteG", "nom": "Porte gauche", "role": "porte", "lo": "H-3", "la": "Lp", "chants": {"lo": 2, "la": 2}},
+        {"id": "porteD", "nom": "Porte droite", "role": "porte", "lo": "H-3", "la": "Lp", "chants": {"lo": 2, "la": 2}}
+      ],
+      "liens": [
+        {"a": "coteG", "b": "dessous", "cote": "gauche", "type": "applique", "vers": "+Y"},
+        {"a": "coteD", "b": "dessous", "cote": "droite", "type": "applique", "vers": "+Y"},
+        {"a": "dessus", "b": "coteG", "cote": "haut", "type": "bout", "vers": "+X"},
+        {"a": "tablette", "b": "coteG", "cote": "bas", "type": "bout", "vers": "+X", "retrait": "H/2-T/2"},
+        {"a": "fond", "b": "dessous", "cote": "arriere", "type": "bout", "vers": "+Y", "align": "centre"},
+        {"a": "porteG", "b": "dessous", "cote": "avant", "type": "articule", "vers": "+Y", "align": "decale", "decale": "1.5-T"},
+        {"a": "porteD", "b": "dessous", "cote": "avant", "type": "articule", "vers": "+Y", "align": "decale", "decale": "L-T-1.5-Lp"}
+      ]
+    },
+    {
+      "id": "colonne_2p",
+      "nom": "Colonne 2 portes",
+      "famille": "Cuisine",
+      "description": "Côtés pleine hauteur, dessus, tablette fixe à la séparation des portes, fond, 2 portes superposées, pieds et plinthe.",
+      "params": [
+        {"id": "L", "nom": "Largeur", "defaut": 600, "min": 300, "max": 900},
+        {"id": "H", "nom": "Hauteur", "defaut": 2100, "min": 1200, "max": 2600},
+        {"id": "P", "nom": "Profondeur", "defaut": 580, "min": 300, "max": 700},
+        {"id": "Hb", "nom": "Hauteur de la porte du bas", "defaut": 1300, "min": 500, "max": 1800},
+        {"id": "pieds", "nom": "Hauteur des pieds", "defaut": 100, "min": 0, "max": 200}
+      ],
+      "variables": {"Pc": "P-T-2"},
+      "pieces": [
+        {"id": "dessous", "nom": "Dessous", "role": "tablette", "lo": "L-2*T", "la": "Pc", "chants": {"lo": 1}},
+        {"id": "coteG", "nom": "Côté gauche", "role": "montant", "lo": "H", "la": "Pc", "chants": {"lo": 1}},
+        {"id": "coteD", "nom": "Côté droit", "role": "montant", "lo": "H", "la": "Pc", "chants": {"lo": 1}},
+        {"id": "dessus", "nom": "Dessus", "role": "tablette", "lo": "L-2*T", "la": "Pc", "chants": {"lo": 1}},
+        {"id": "tablette", "nom": "Tablette fixe", "role": "tablette", "lo": "L-2*T", "la": "Pc-T", "chants": {"lo": 1}},
+        {"id": "fond", "nom": "Fond", "role": "fond", "lo": "H-2*T", "la": "L-2*T"},
+        {"id": "porteBas", "nom": "Porte du bas", "role": "porte", "lo": "Hb-1.5", "la": "L-3", "chants": {"lo": 2, "la": 2}},
+        {"id": "porteHaut", "nom": "Porte du haut", "role": "porte", "lo": "H-Hb-1.5", "la": "L-3", "chants": {"lo": 2, "la": 2}},
+        {"id": "plinthe", "nom": "Plinthe", "role": "plinthe", "lo": "L", "la": "pieds-3", "si": "pieds>20", "chants": {"lo": 1}}
+      ],
+      "liens": [
+        {"a": "coteG", "b": "dessous", "cote": "gauche", "type": "applique", "vers": "+Y"},
+        {"a": "coteD", "b": "dessous", "cote": "droite", "type": "applique", "vers": "+Y"},
+        {"a": "dessus", "b": "coteG", "cote": "haut", "type": "bout", "vers": "+X"},
+        {"a": "tablette", "b": "coteG", "cote": "bas", "type": "bout", "vers": "+X", "retrait": "Hb-T/2"},
+        {"a": "fond", "b": "dessous", "cote": "arriere", "type": "bout", "vers": "+Y", "align": "centre"},
+        {"a": "porteBas", "b": "dessous", "cote": "avant", "type": "articule", "vers": "+Y", "align": "centre"},
+        {"a": "porteHaut", "b": "dessus", "cote": "avant", "type": "articule", "vers": "-Y", "align": "centre"}
+      ],
+      "support": {"type": "pieds", "ancre": "dessous", "hauteur": "pieds", "plinthe": "plinthe", "retrait": 50}
+    },
+    {
+      "id": "etagere",
+      "nom": "Étagère ouverte",
+      "famille": "Rangement",
+      "description": "Côtés en applique sur le dessous, dessus entre les côtés, 2 tablettes fixes au tiers, sans porte.",
+      "params": [
+        {"id": "L", "nom": "Largeur", "defaut": 800, "min": 300, "max": 1200},
+        {"id": "H", "nom": "Hauteur", "defaut": 1000, "min": 400, "max": 2400},
+        {"id": "P", "nom": "Profondeur", "defaut": 300, "min": 150, "max": 600}
+      ],
+      "pieces": [
+        {"id": "dessous", "nom": "Dessous", "role": "tablette", "lo": "L-2*T", "la": "P", "chants": {"lo": 1}},
+        {"id": "coteG", "nom": "Côté gauche", "role": "montant", "lo": "H", "la": "P", "chants": {"lo": 1}},
+        {"id": "coteD", "nom": "Côté droit", "role": "montant", "lo": "H", "la": "P", "chants": {"lo": 1}},
+        {"id": "dessus", "nom": "Dessus", "role": "tablette", "lo": "L-2*T", "la": "P", "chants": {"lo": 1}},
+        {"id": "tab1", "nom": "Tablette 1", "role": "tablette", "lo": "L-2*T", "la": "P", "chants": {"lo": 1}},
+        {"id": "tab2", "nom": "Tablette 2", "role": "tablette", "lo": "L-2*T", "la": "P", "chants": {"lo": 1}}
+      ],
+      "liens": [
+        {"a": "coteG", "b": "dessous", "cote": "gauche", "type": "applique", "vers": "+Y"},
+        {"a": "coteD", "b": "dessous", "cote": "droite", "type": "applique", "vers": "+Y"},
+        {"a": "dessus", "b": "coteG", "cote": "haut", "type": "bout", "vers": "+X"},
+        {"a": "tab1", "b": "coteG", "cote": "bas", "type": "bout", "vers": "+X", "retrait": "H/3-T/2"},
+        {"a": "tab2", "b": "coteG", "cote": "bas", "type": "bout", "vers": "+X", "retrait": "2*H/3-T/2"}
+      ]
+    },
+    {
+      "id": "simple_1p",
+      "nom": "Caisson 1 porte (dessus plein)",
+      "famille": "Rangement",
+      "description": "Dessous pleine largeur, côtés posés dessus, dessus entre les côtés, fond, porte en applique.",
+      "params": [
+        {"id": "L", "nom": "Largeur", "defaut": 600, "min": 300, "max": 1000},
+        {"id": "H", "nom": "Hauteur", "defaut": 720, "min": 300, "max": 1000},
+        {"id": "P", "nom": "Profondeur", "defaut": 560, "min": 250, "max": 800}
+      ],
+      "pieces": [
+        {"id": "dessous", "nom": "Dessous", "role": "tablette", "lo": "L", "la": "P", "chants": {"lo": 1}},
+        {"id": "coteG", "nom": "Côté gauche", "role": "montant", "lo": "H-T", "la": "P", "chants": {"lo": 1}},
+        {"id": "coteD", "nom": "Côté droit", "role": "montant", "lo": "H-T", "la": "P", "chants": {"lo": 1}},
+        {"id": "dessus", "nom": "Dessus", "role": "tablette", "lo": "L-2*T", "la": "P", "chants": {"lo": 1}},
+        {"id": "fond", "nom": "Fond", "role": "fond", "lo": "H-2*T", "la": "L-2*T"},
+        {"id": "porte", "nom": "Porte", "role": "porte", "lo": "H-3", "la": "L-3", "chants": {"lo": 2, "la": 2}}
+      ],
+      "liens": [
+        {"a": "coteG", "b": "dessous", "cote": "gauche", "type": "bout", "vers": "+Y"},
+        {"a": "coteD", "b": "dessous", "cote": "droite", "type": "bout", "vers": "+Y"},
+        {"a": "dessus", "b": "coteG", "cote": "haut", "type": "bout", "vers": "+X"},
+        {"a": "fond", "b": "dessous", "cote": "arriere", "type": "bout", "vers": "+Y", "align": "centre"},
+        {"a": "porte", "b": "dessous", "cote": "avant", "type": "articule", "vers": "+Y", "align": "centre"}
+      ]
+    }
+  ]
+}

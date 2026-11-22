@@ -203,7 +203,7 @@ class _ManualCutPageState extends State<ManualCutPage> {
   }
 
   Future<void> _open() async {
-    final f = await pickFile(accept: '.kin,.sct,.json');
+    final f = await pickFile(accept: '.kin,.sct');
     if (f == null || !mounted) return;
     final r = manualCutFromFile(f.name, f.bytes, widget.state);
     if (r == null) {
