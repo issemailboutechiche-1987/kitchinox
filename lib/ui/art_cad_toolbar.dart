@@ -5,6 +5,7 @@
 // 4. Outil Pousser / Tirer (Extrusion SketchUp)
 // 5. Outils de menuiserie : Bande de chant, Rainure
 
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../engine/art.dart';
@@ -353,7 +354,7 @@ class ArtCadContextHud extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 880),
+        constraints: BoxConstraints(maxWidth: math.min(880.0, MediaQuery.of(context).size.width - 32)),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
