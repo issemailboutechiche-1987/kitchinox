@@ -4,6 +4,15 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+    # la documentation seule ne change pas l'application : pas de construction
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+# un nouvel envoi remplace la construction en cours de la meme branche
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-ios:
