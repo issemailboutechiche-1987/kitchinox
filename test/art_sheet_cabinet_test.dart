@@ -24,8 +24,6 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('welcome_new')));
     await t.pumpAndSettle();
-    await t.tap(find.text('Meuble'));
-    await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('recipe_simple_1p')));
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('new_ok')));
@@ -58,8 +56,6 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('welcome_new')));
     await t.pumpAndSettle();
-    await t.tap(find.text('Meuble'));
-    await t.pumpAndSettle();
     // recette par défaut : caisson bas 1 porte, 600 × 750 × 600, pieds 100
     expect(find.byKey(const ValueKey('param_pieds')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('new_ok')));
@@ -79,6 +75,105 @@ void main() {
     expect(m.count(MachiningKind.foot), 4);
     expect(m.hingeCupsCount, 2);
     await expectLater(find.byType(ArtPage), matchesGoldenFile('goldens/art_caisson_bas_usine.png'));
+    await t.pump(const Duration(seconds: 6));
+  });
+
+  testWidgets('SketchUp du bois : accueil, palette, tiroir qui suit l’outil, case des cotes, monter, débit', (t) async {
+    t.view.physicalSize = const Size(1180, 820);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    expect(s.home, isTrue);
+    await expectLater(find.byType(ArtPage), matchesGoldenFile('goldens/art_accueil.png'));
+    await t.tap(find.byKey(const ValueKey('welcome_close')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('art_palette')), findsOneWidget);
+    // feuille posée depuis le tiroir : outil Couper, rubrique Pièces
+    await t.tap(find.byKey(const ValueKey('start_sheet')));
+    await t.pumpAndSettle();
+    expect(s.open, 'pieces');
+    // cote tapée dans la case du bas : 600 mm
+    await t.enterText(find.byKey(const ValueKey('cad_measure')), '600');
+    await t.testTextInput.receiveAction(TextInputAction.done);
+    await t.pumpAndSettle();
+    final art = st.project.art;
+    expect(art.free, hasLength(2));
+    await t.pump(const Duration(seconds: 6));
+    await expectLater(find.byType(ArtPage), matchesGoldenFile('goldens/art_decoupe.png'));
+    // pièce choisie : ses infos s'ouvrent dans le tiroir
+    await t.tap(find.byKey(const ValueKey('tool_select')));
+    await t.pumpAndSettle();
+    final p = art.free.first;
+    s.selectedPanel = null;
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
+    await t.tapAt(vp.topLeft + (s.screenOf(p.x + p.w / 2, p.top, p.z + p.d / 2) as Offset));
+    await t.pumpAndSettle();
+    expect(s.open, 'info');
+    expect(find.byKey(const ValueKey('art_props')), findsOneWidget);
+    await expectLater(find.byType(ArtPage), matchesGoldenFile('goldens/art_infos.png'));
+    // effacer depuis la palette
+    await t.tap(find.byKey(const ValueKey('tool_erase')));
+    await t.pumpAndSettle();
+    expect(art.free, hasLength(1));
+    // nouvelle création : tout est effacé, retour à l'accueil
+    await t.tap(find.byKey(const ValueKey('menu_file')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('menu_new')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('new_confirm')));
+    await t.pumpAndSettle();
+    expect(art.isEmpty, isTrue);
+    expect(s.home, isTrue);
+    // meuble à vos mesures : coupé et lié, puis monté
+    await t.tap(find.byKey(const ValueKey('welcome_new')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('new_ok')));
+    await t.pumpAndSettle();
+    await t.pump(const Duration(seconds: 6));
+    await t.tap(find.byKey(const ValueKey('side_reopen')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Liaisons notées'), findsOneWidget);
+    await expectLater(find.byType(ArtPage), matchesGoldenFile('goldens/art_assemblage.png'));
+    await t.tap(find.byKey(const ValueKey('link_machine')));
+    await t.pumpAndSettle();
+    expect(art.edgeLinks, isEmpty);
+    expect(find.byKey(const Key('art-preview3d')), findsNothing, reason: 'monté : une seule vue');
+    await t.tap(find.byKey(const ValueKey('tray_make')));
+    await t.pumpAndSettle();
+    await t.pump(const Duration(seconds: 6));
+    await expectLater(find.byType(ArtPage), matchesGoldenFile('goldens/art_debit.png'));
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('découpe : cotes de chaque pièce sur la feuille, pas de ligne hors de la feuille', (t) async {
+    t.view.physicalSize = const Size(1180, 820);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
+    st.project.art.free.addAll([
+      ArtPanel(id: 'a', role: ArtRole.decor, x: 0, y: 0, z: 0, w: 1396, h: 18, d: 548),
+      ArtPanel(id: 'b', role: ArtRole.decor, x: 1400, y: 0, z: 0, w: 600, h: 18, d: 548),
+      ArtPanel(id: 'c', role: ArtRole.decor, x: 0, y: 0, z: 552, w: 2000, h: 18, d: 300)..note = 'Chute',
+    ]);
+    await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('tool_cut')));
+    await t.pumpAndSettle();
+    final s = t.state(find.byType(ArtPage)) as dynamic;
+    final vp = t.getRect(find.byKey(const Key('art-viewport')));
+    final g = await t.startGesture(vp.topLeft + (s.screenOf(700.0, 18.0, 200.0) as Offset));
+    await g.moveBy(const Offset(0, 20));
+    await t.pump();
+    expect(s.cutAtValue, isNotNull);
+    await g.moveTo(vp.topLeft + (s.screenOf(-300.0, 18.0, 200.0) as Offset));
+    await t.pump();
+    expect(s.cutAtValue, isNull, reason: 'à côté de la feuille');
+    await g.up();
+    await t.pumpAndSettle();
+    await expectLater(find.byKey(const Key('art-viewport')), matchesGoldenFile('goldens/art_decoupe_cotes.png'));
     await t.pump(const Duration(seconds: 6));
   });
 

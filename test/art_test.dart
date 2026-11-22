@@ -138,11 +138,8 @@ void main() {
     final st = AppState(Catalog.parse(File('assets/catalog.json').readAsStringSync()));
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
-    await closeArtWelcome(t);
-    // les caissons à composer sont dans « Ma bibliothèque »
-    await t.tap(find.byKey(const ValueKey('art_tab_biblio')));
-    await t.pumpAndSettle();
-    await t.scrollUntilVisible(find.text('Colonne de dressing'), 200, scrollable: find.ancestor(of: find.text('Meubles depuis une feuille'), matching: find.byType(Scrollable)).first);
+    // étape 1 : les caissons à composer sont sur la page de départ
+    await t.scrollUntilVisible(find.text('Colonne de dressing'), 200, scrollable: find.descendant(of: find.byKey(const ValueKey('art_start')), matching: find.byType(Scrollable)).first);
     await t.pumpAndSettle();
     await t.tap(find.text('Colonne de dressing'));
     await t.pumpAndSettle();
@@ -163,10 +160,12 @@ void main() {
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
     final b = art.boxes.single;
     final z = b.zones.first;
-    // en vue de face cadrée, la zone basse gauche est en bas à gauche du meuble
-    await t.tapAt(vp.center + Offset(-vp.width * 0.18 * (b.w - z.fx1) / b.w, vp.height * 0.2));
+    final st8 = t.state(find.byType(ArtPage)) as dynamic;
+    await t.tapAt(vp.topLeft + (st8.screenOf((z.x0 + z.x1) / 2, (z.y0 + z.y1) / 2, 0.0) as Offset));
     await t.pumpAndSettle();
     await t.tap(find.text('Façades').last);
+    await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.text('Tiroirs'), 120, scrollable: find.descendant(of: find.byKey(const ValueKey('side_facades')), matching: find.byType(Scrollable)).first);
     await t.pumpAndSettle();
     await t.tap(find.text('Tiroirs').first);
     await t.pumpAndSettle();
@@ -175,26 +174,16 @@ void main() {
     await t.ensureVisible(find.text('3D'));
     await t.pumpAndSettle();
     await t.tap(find.text('3D'));
-    await t.ensureVisible(find.text('Éclaté'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('Éclaté'));
-    await t.ensureVisible(find.text('Composants'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('Composants'));
-    await t.pumpAndSettle();
-    expect(find.text('Calques'), findsOneWidget);
+    await toggleView(t, 'Éclaté');
+    await toggleView(t, 'Composants');
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/art_box_eclate.png'));
-    await t.ensureVisible(find.text('Éclaté'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('Éclaté'));
-    await t.ensureVisible(find.text('Composants'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('Composants'));
-    await t.tap(find.text('Débit'));
+    await toggleView(t, 'Éclaté');
+    await toggleView(t, 'Composants');
+    await t.tap(find.byKey(const ValueKey('tray_make')));
     await t.pumpAndSettle();
     // la liste du débit défile : les façades de tiroir sont plus bas
-    final debitList = find.ancestor(of: find.textContaining('Porte ·').first, matching: find.byType(Scrollable)).first;
-    for (var i = 0; i < 8 && find.textContaining('Façade de tiroir').evaluate().isEmpty; i++) {
+    final debitList = find.descendant(of: find.byKey(const ValueKey('make_debit')), matching: find.byType(Scrollable)).first;
+    for (var i = 0; i < 20 && find.textContaining('Façade de tiroir').evaluate().isEmpty; i++) {
       await t.drag(debitList, const Offset(0, -200));
       await t.pumpAndSettle();
     }
@@ -211,4 +200,12 @@ Future<void> closeArtWelcome(WidgetTester t) async {
     await t.tap(f);
     await t.pumpAndSettle();
   }
+}
+
+/// Coche ou décoche une ligne du menu Affichage de la vue.
+Future<void> toggleView(WidgetTester t, String label) async {
+  await t.tap(find.byKey(const ValueKey('view_options')));
+  await t.pumpAndSettle();
+  await t.tap(find.text(label).last);
+  await t.pumpAndSettle();
 }

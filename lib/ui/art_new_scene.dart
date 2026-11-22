@@ -30,13 +30,16 @@ class NewArtSceneDialog extends StatefulWidget {
   /// Seulement le choix d'un meuble (la feuille est déjà posée) : pas de format ni d'épaisseur.
   final bool recipeOnly;
   final String? initialRecipe;
-  const NewArtSceneDialog({super.key, this.recipeOnly = false, this.initialRecipe});
+
+  /// Type déjà choisi (« sheet », « recipe ») : le dialogue ne le redemande pas.
+  final String? fixedKind;
+  const NewArtSceneDialog({super.key, this.recipeOnly = false, this.initialRecipe, this.fixedKind});
   @override
   State<NewArtSceneDialog> createState() => _NewArtSceneDialogState();
 }
 
 class _NewArtSceneDialogState extends State<NewArtSceneDialog> {
-  late String kind = widget.recipeOnly ? 'recipe' : 'sheet';
+  late String kind = widget.recipeOnly ? 'recipe' : widget.fixedKind ?? 'sheet';
   int preset = 0; // index de standardSheets, -1 : personnalisée
   double thickness = 18;
   final l = TextEditingController(text: '2000'), w = TextEditingController(text: '1000');
@@ -108,12 +111,12 @@ class _NewArtSceneDialogState extends State<NewArtSceneDialog> {
         );
     final recipe = recipeId == null ? null : ArtRecipes.byId(recipeId!);
     return AlertDialog(
-      title: Text(tr(widget.recipeOnly ? 'Meuble depuis cette feuille' : 'Nouvelle création')),
+      title: Text(tr(switch (widget.fixedKind) { 'recipe' => 'Meuble à vos mesures', 'sheet' => 'Feuille à découper', _ => widget.recipeOnly ? 'Meuble depuis cette feuille' : 'Nouvelle création' })),
       content: SizedBox(
         width: 560,
         child: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            if (!widget.recipeOnly) ...[
+            if (!widget.recipeOnly && widget.fixedKind == null) ...[
               SegmentedButton<String>(
                 key: const ValueKey('new_kind'),
                 showSelectedIcon: false,
@@ -184,7 +187,7 @@ class _NewArtSceneDialogState extends State<NewArtSceneDialog> {
               const SizedBox(height: 10),
             ],
             if (kind == 'recipe')
-              Text(tr('Les pièces sont coupées à la guillotine (une feuille de plus si besoin) et les liaisons notées : vérifiez l’aperçu 3D, puis « Usiner » pose vis, tourillons, charnières, pieds et plinthe.'),
+              Text(tr('Les pièces sont coupées à la guillotine (une feuille de plus si besoin) et les liaisons notées : vérifiez l’aperçu 3D, puis « Monter le meuble » pose vis, tourillons, charnières, pieds et plinthe.'),
                   style: t.bodySmall)
             else if (kind == 'sheet')
               Text(tr('La feuille se pose à plat en vue de dessus : coupez-la en X ou en Y, puis liez les chants des pièces et usinez.'), style: t.bodySmall)

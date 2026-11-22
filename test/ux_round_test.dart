@@ -95,14 +95,14 @@ void main() {
     expect(st.favoritesOnly, isTrue);
   });
 
-  testWidgets('mode Art : barre de menus Fichier, Édition, Affichage, Dessin, Outils, Fenêtre, Aide', (t) async {
+  testWidgets('mode Art : mêmes menus que la cuisine', (t) async {
     t.view.physicalSize = const Size(1366, 1024);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     final st = AppState(cat);
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
-    for (final k in ['menu_file', 'menu_edit', 'menu_view', 'menu_draw', 'menu_tools', 'menu_window', 'menu_help']) {
+    for (final k in ['menu_file', 'menu_edit', 'menu_view', 'menu_insert', 'menu_tools', 'menu_window', 'menu_help', 'menu_help']) {
       expect(find.byKey(ValueKey(k)), findsOneWidget, reason: k);
     }
     final f = find.byKey(const ValueKey('welcome_close'));
@@ -110,7 +110,7 @@ void main() {
       await t.tap(f);
       await t.pumpAndSettle();
     }
-    await t.tap(find.byKey(const ValueKey('menu_draw')));
+    await t.tap(find.byKey(const ValueKey('menu_insert')));
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('menu_tool_rectangle')));
     await t.pumpAndSettle();

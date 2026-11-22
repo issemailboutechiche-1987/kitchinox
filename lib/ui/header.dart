@@ -326,47 +326,14 @@ class _StepTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final t = Theme.of(context).textTheme;
-    final active = state.step == step;
-    final done = step.index < state.step.index;
-    return Semantics(
-      selected: active,
-      button: true,
-      label: trp('Étape {0} : {1}', [step.index + 1, tr(step.label)]),
-      child: InkWell(
-        onTap: () => state.goTo(step),
-        child: Container(
-          height: height,
-          padding: const EdgeInsets.symmetric(horizontal: Tokens.s3),
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: active ? scheme.primary : Colors.transparent, width: 3)),
-          ),
-          child: Row(children: [
-            AnimatedContainer(
-              duration: Tokens.fast,
-              width: 24,
-              height: 24,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: active || done ? scheme.primary : Colors.transparent,
-                border: Border.all(color: active || done ? scheme.primary : scheme.outline),
-              ),
-              child: done
-                  ? Icon(Icons.check, size: 14, color: scheme.onPrimary)
-                  : Text('${step.index + 1}',
-                      style: t.labelMedium?.copyWith(color: active ? scheme.onPrimary : scheme.onSurfaceVariant, fontWeight: FontWeight.w700)),
-            ),
-            if (!compact || active) ...[
-              const SizedBox(width: Tokens.s2),
-              Text(tr(step.label),
-                  style: t.titleSmall?.copyWith(
-                      fontWeight: active ? FontWeight.w800 : FontWeight.w600, color: active ? scheme.primary : scheme.onSurface)),
-            ],
-          ]),
-        ),
-      ),
+    return KxStepTab(
+      number: step.index + 1,
+      label: tr(step.label),
+      active: state.step == step,
+      done: step.index < state.step.index,
+      compact: compact,
+      height: height,
+      onTap: () => state.goTo(step),
     );
   }
 }

@@ -1,6 +1,6 @@
-// Atelier Art : le meuble se construit sur la base universelle d'un caisson en panneaux de bois.
-// À gauche, les réglages par étape (Caisson, Intérieur, Façades, Extérieur, Débit) ; au centre la 3D :
-// un doigt tourne, deux doigts déplacent et zooment, toucher une zone la choisit pour régler sa façade.
+// Atelier Art : un SketchUp simplifié pour la découpe du bois. Palette d'outils nommés à gauche, dessin au centre
+// (un doigt tourne, deux doigts déplacent et zooment), tiroir à droite (infos, feuille, pièces, assemblage, débit),
+// case des cotes en bas.
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -65,12 +65,14 @@ class _ArtPageState extends State<ArtPage> {
   int boxIndex = 0;
   String? zoneId;
   int column = 0;
-  String tab = 'caisson';
+  String tab = 'caisson'; // réglages du caisson : caisson | interieur | facades | exterieur
+  String makeTab = 'debit'; // Débit et plans : debit | usinage
+  bool home = true; // page d'accueil : par quoi commencer
+  String? open = 'sheet'; // rubrique ouverte du tiroir : info | sheet | box | pieces | assemble | make
+  ArtPanel? _trayFor; // pièce pour laquelle la rubrique Infos s'est ouverte
   bool showFronts = true;
   bool showDims = true;
   bool exploded = false; // vue éclatée : chaque composant écarté de sa place
-  bool layersCollapsed = false; // fenêtre Calques repliée (titre seul)
-  Offset layersAt = const Offset(12, 118); // position de la fenêtre Calques (déplaçable)
   bool byComp = false; // couleurs par composant
   Comp? focus; // composant mis en avant (les autres en transparence)
   final _undo = <String>[], _redo = <String>[];
@@ -119,7 +121,7 @@ class _ArtPageState extends State<ArtPage> {
   final Map<int, double> _lastCut = {}; // dernière ligne de coupe par axe (coordonnée feuille) // la petite coupe s'active après une première coupe
   V3? _circleAt; // coupe circulaire : centre choisi
   // fenêtres : le panneau latéral se replie au toucher de la zone de travail, sauf s'il est épinglé
-  bool sideOpen = true, sidePinned = false, dockPinned = false;
+  bool sideOpen = true, sidePinned = true;
   // navigation : main (glisser = déplacer la vue), pivot de rotation (centre de l'écran ou objet choisi)
   bool panMode = false;
   bool navLock = false; // verrou : glisser fait tourner la vue, rien ne bouge (ni pièce, ni tracé)
@@ -186,6 +188,20 @@ class _ArtPageState extends State<ArtPage> {
     cam.fit(art.panels);
     final b = box;
     if (b != null) zoneId = b.zones.first.id;
+    if (!art.isEmpty) home = false;
+    if (box != null) open = 'box';
+  }
+
+  /// Quitte l'accueil : la vue se cadre une fois à sa taille.
+  void _leaveHome() {
+    if (!home) return;
+    setState(() {
+      home = false;
+      welcomeDone = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && art.panels.isNotEmpty) setState(() => cam.fit(art.panels));
+    });
   }
 
   // ---------------------------------------------------------------- historique
@@ -257,6 +273,10 @@ class _ArtPageState extends State<ArtPage> {
 
   // ---------------------------------------------------------------- caissons
   void _addBox(ArtBox b) {
+    tab = 'caisson';
+    sideOpen = true;
+    open = 'box';
+    _leaveHome();
     change(() {
       art.boxes.add(b);
       boxIndex = art.boxes.length - 1;
@@ -284,7 +304,7 @@ class _ArtPageState extends State<ArtPage> {
     }
   }
 
-  /// Message bref, en bas à droite au-dessus de la barre d'outils du bas (il ne la couvre jamais).
+  /// Message bref, au-dessus de la barre du bas.
   void _msg(String m) {
     final w = MediaQuery.sizeOf(context).width;
     ScaffoldMessenger.of(context)
@@ -293,7 +313,8 @@ class _ArtPageState extends State<ArtPage> {
         content: Text(m),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
-        margin: EdgeInsets.only(left: math.max(16, w - 436), right: 16, bottom: 170),
+        // en bas à gauche du dessin : ni le tiroir, ni la barre du bas, ni les réglages de l'outil ne sont couverts
+        margin: EdgeInsets.only(left: home ? 16 : 152, right: math.max(16, w - (home ? 16 : 152) - 440), bottom: 150),
       ));
   }
 
@@ -310,6 +331,10 @@ class _ArtPageState extends State<ArtPage> {
 
   // ---------------------------------------------------------------- sélection et outils CAO
   void _selectTool(CadTool tool) {
+    if (tool != CadTool.select) _leaveHome();
+    // le tiroir suit l'outil
+    if (tool == CadTool.cut) open = 'pieces';
+    if (tool == CadTool.link) open = 'assemble';
     if ((tool == CadTool.cut || tool == CadTool.link) && activeTool != CadTool.cut && activeTool != CadTool.link) {
       // découpe et liaison des chants : toujours vue de dessus, cadrée sur les pièces
       cam.view('dessus');
@@ -1141,7 +1166,7 @@ class _ArtPageState extends State<ArtPage> {
           selectedPanel = hit;
         }
         selectedShape = null;
-      } else if (!add && !dockPinned) {
+      } else if (!add) {
         selectedShape = _pickSketch(px);
         selectedPanel = null;
         selection.clear();
@@ -1631,7 +1656,7 @@ class _ArtPageState extends State<ArtPage> {
   List<(V3, String, bool, String)> _edgeLabels() {
     if (activeTool != CadTool.link) return const [];
     final out = <(V3, String, bool, String)>[];
-    for (final p in art.free.where((q) => !art.isHidden(q) && !art.isLocked(q))) {
+    for (final p in art.free.where((q) => !art.isHidden(q) && !art.isLocked(q) && q.note != 'Chute')) {
       final c = V3(p.x + p.w / 2, p.y + p.h / 2, p.z + p.d / 2);
       for (var n = 1; n <= 4; n++) {
         final (a, b) = _edgeSegment(p, n);
@@ -1675,7 +1700,7 @@ class _ArtPageState extends State<ArtPage> {
         ..addAll([first.$1, e.$1]);
       selectedPanel = first.$1;
     });
-    _msg(trp('Liaison {0} notée : chant {1} sous le chant {2}. « Usiner » assemble les pièces.', [art.edgeLinks.length, first.$2, e.$2]));
+    _msg(trp('Liaison {0} notée : chant {1} sous le chant {2}. « Monter le meuble » assemble les pièces.', [art.edgeLinks.length, first.$2, e.$2]));
     cadStatus = 'Touchez le chant de la pièce qui passera dessous, puis le chant de la pièce qui la couvre.';
   }
 
@@ -1691,12 +1716,17 @@ class _ArtPageState extends State<ArtPage> {
       _linkFirst = null;
       _hoverEdge = null;
       activeTool = CadTool.select;
-      isMachiningMode = true;
+      selection.clear();
+      selectedPanel = null;
+      cadStatus = '';
+      splitView = false; // le meuble est monté : une seule vue
+      _splitAuto = false;
     });
     cam.view('iso');
     cam.fit(art.panels);
+    _refitAfterSplit();
     final m = computeMachiningElements(art.panels, fittings: art.fittings, jointCuts: art.jointCuts, jointFits: art.jointFits);
-    _msg(trp('{0} liaison(s) usinée(s) : {1} tourillon(s), {2} vis. Modifiez un assemblage dans l’onglet Usinage.', [n, m.dowelsCount, m.screwsCount]));
+    _msg(trp('{0} liaison(s) usinée(s) : {1} tourillon(s), {2} vis. La liste à débiter est dans « Débit et plans ».', [n, m.dowelsCount, m.screwsCount]));
   }
 
   /// Segments des liaisons notées (chant de a, chant de b, numéro) pour les dessiner entre les pièces.
@@ -1777,6 +1807,18 @@ class _ArtPageState extends State<ArtPage> {
       if (_px(hit.withAxis(ax, mid), hit) < 16) {
         at = mid;
         _cutOnMid = true;
+      }
+    }
+    final all = _cutTargets;
+    if (all.isNotEmpty) {
+      final lo = all.map((p) => ax == 0 ? p.x : p.z).reduce(math.min), hi = all.map((p) => ax == 0 ? p.right : p.back).reduce(math.max);
+      if (at < lo || at > hi) {
+        // doigt à côté de la feuille : pas de ligne
+        setState(() {
+          _cutAt = null;
+          cadStatus = 'Placez la ligne sur une pièce.';
+        });
+        return;
       }
     }
     final targets = _cutTargets.where((p) => at > (ax == 0 ? p.x : p.z) + 1 && at < (ax == 0 ? p.right : p.back) - 1).toList();
@@ -1886,6 +1928,11 @@ class _ArtPageState extends State<ArtPage> {
     return out;
   }
 
+  /// Découpe et liaison (vue de dessus) : longueur et largeur de chaque pièce à plat, pour les coter sur la feuille.
+  List<ArtPanel> _sizedParts() => activeTool == CadTool.cut || activeTool == CadTool.link
+      ? [for (final p in art.free) if (thicknessAxis(p) == 1 && !art.isHidden(p)) p]
+      : const [];
+
   /// Coin 0,0 de la feuille (haut gauche à l'écran).
   V3? _sheetOrigin() {
     final s = _sheet;
@@ -1993,8 +2040,10 @@ class _ArtPageState extends State<ArtPage> {
         ..add(sheet);
       selectedPanel = sheet;
       activeTool = CadTool.cut;
+      open = 'pieces';
       cadStatus = 'Touchez la feuille là où couper, ou tapez la distance depuis le bord puis Entrée.';
     });
+    _leaveHome();
     cam.view('dessus'); // découpe : vue de dessus
     cam.fit(art.panels);
     _msg(trp('Feuille {0} × {1} posée (recoupe de {2} mm déduite : {3} × {4} utiles) : choisissez Coupe X ou Y', [fl.round(), fw.round(), trim.round(), l.round(), w.round()]));
@@ -2054,8 +2103,8 @@ class _ArtPageState extends State<ArtPage> {
                     const SizedBox(height: 12),
                     if (p.role == ArtRole.porte) ...[
                       DropdownButtonFormField<String>(
-                        key: ValueKey('hinge_${p.id}_${p.hingeType}'),
                         isExpanded: true,
+                        key: ValueKey('hinge_${p.id}_${p.hingeType}'),
                         initialValue: p.hingeType ?? '',
                         decoration: InputDecoration(labelText: tr('Charnière de cette porte'), isDense: true, border: const OutlineInputBorder()),
                         items: [
@@ -2139,6 +2188,7 @@ class _ArtPageState extends State<ArtPage> {
                       children: [
                         SizedBox(
                           child: DropdownButtonFormField<ArtRole>(
+                            isExpanded: true,
                             initialValue: p.role,
                             decoration: InputDecoration(labelText: tr('Rôle'), isDense: true, border: const OutlineInputBorder()),
                             items: [
@@ -2156,9 +2206,9 @@ class _ArtPageState extends State<ArtPage> {
                         const SizedBox(height: 10),
                         SizedBox(
                           child: DropdownButtonFormField<String>(
+                            isExpanded: true,
                             initialValue: p.finish,
                             decoration: InputDecoration(labelText: tr('Finition'), isDense: true, border: const OutlineInputBorder()),
-                            isExpanded: true,
                             // toutes les finitions (façades et caissons), plus celle du panneau si elle n'y est pas
                             items: [
                               for (final f in {for (final f in [...fronts, ...carcasses]) if (!f.id.startsWith('tex:')) f.id: f}.values)
@@ -2208,9 +2258,8 @@ class _ArtPageState extends State<ArtPage> {
                       children: [
                         SizedBox(
                           child: Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(tr('Chants Longs :'), style: const TextStyle(fontSize: 12)),
+                              Expanded(child: Text(tr('Chants Longs :'), style: const TextStyle(fontSize: 12))),
                               const SizedBox(width: 4),
                               DropdownButton<int>(
                                 value: p.edgeLong,
@@ -2231,9 +2280,8 @@ class _ArtPageState extends State<ArtPage> {
                         ),
                         SizedBox(
                           child: Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(tr('Chants Courts :'), style: const TextStyle(fontSize: 12)),
+                              Expanded(child: Text(tr('Chants Courts :'), style: const TextStyle(fontSize: 12))),
                               const SizedBox(width: 4),
                               DropdownButton<int>(
                                 value: p.edgeShort,
@@ -2479,76 +2527,6 @@ class _ArtPageState extends State<ArtPage> {
   }
 
   /// Panneau des propriétés, ancré à droite de la vue : s'ouvre quand un panneau est sélectionné.
-  Widget _propsDock() {
-    final p = selectedPanel;
-    if (p == null || activeTool != CadTool.select) return const SizedBox.shrink();
-    final t = Theme.of(context).textTheme;
-    final multi = selection.length > 1;
-    return Material(
-      key: const ValueKey('art_props'),
-      elevation: 6,
-      borderRadius: BorderRadius.circular(12),
-      color: Theme.of(context).colorScheme.surface,
-      child: SizedBox(
-        width: 390,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 4, 0),
-            child: Row(children: [
-              const Icon(Icons.tune, color: _orange, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(multi ? trp('{0} panneaux sélectionnés', [selection.length]) : '${tr('Propriétés')} : ${tr(p.role.label)}',
-                    style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-              ),
-              IconButton(
-                key: const ValueKey('dock_pin'),
-                tooltip: dockPinned ? tr('Désépingler') : tr('Épingler (reste ouvert)'),
-                isSelected: dockPinned,
-                icon: const Icon(Icons.push_pin_outlined, size: 18),
-                selectedIcon: const Icon(Icons.push_pin, size: 18, color: _orange),
-                onPressed: () => setState(() => dockPinned = !dockPinned),
-              ),
-              IconButton(
-                tooltip: tr('Supprimer (Suppr)'),
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: _deleteSelected,
-              ),
-              IconButton(
-                tooltip: tr('Fermer'),
-                icon: const Icon(Icons.close),
-                onPressed: () => setState(() {
-                  selection.clear();
-                  selectedPanel = null;
-                }),
-              ),
-            ]),
-          ),
-          const Divider(height: 8),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
-              child: !art.free.contains(p)
-                  ? Text(tr('Ce panneau appartient à un caisson standard. Modifiez le caisson ou ses dimensions.'), style: t.bodySmall)
-                  : multi
-                      ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                          if (selection.length == 2) _jointCard(t, selection.first, selection.last),
-                          _materialPicker(null, (v) => _setMaterial(selection.toList(), v), label: 'Matière de toute la sélection'),
-                          const SizedBox(height: 10),
-                          Text(tr('Ctrl + clic pour ajouter ou retirer un panneau. Glissez avec l’outil Déplacer pour bouger l’ensemble, Suppr pour tout supprimer.'),
-                              style: t.bodySmall),
-                        ])
-                      : _panelProps(context, p, (f) => setState(f), close: () => setState(() {
-                            selection.clear();
-                            selectedPanel = null;
-                          })),
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-
   void _showPanelInspector(ArtPanel p) {
     showDialog(
       context: context,
@@ -2603,7 +2581,8 @@ class _ArtPageState extends State<ArtPage> {
             boxIndex = i;
             zoneId = z.id;
             column = z.col;
-            if (tab == 'caisson' || tab == 'debit' || tab == 'exterieur') tab = 'facades';
+            if (tab == 'caisson' || tab == 'exterieur') tab = 'facades';
+            open = 'box';
             sideOpen = true; // zone de caisson choisie : ses réglages s'affichent
           });
           return;
@@ -2668,7 +2647,7 @@ class _ArtPageState extends State<ArtPage> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
-    final side = MediaQuery.sizeOf(context).width < 1200 ? 340.0 : 380.0;
+    final side = MediaQuery.sizeOf(context).width < 1200 ? 300.0 : 350.0;
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _undoOnce,
@@ -2681,46 +2660,31 @@ class _ArtPageState extends State<ArtPage> {
           // tablette : le clavier passe par-dessus la scène, il ne la rétrécit pas
           resizeToAvoidBottomInset: false,
           body: SafeArea(
-            child: Column(children: [
+            child: Stack(children: [
+              Column(children: [
               _menuBar(scheme),
               Divider(height: 1, color: scheme.outlineVariant),
-              _topBar(t, scheme),
-              Divider(height: 1, color: scheme.outlineVariant),
               Expanded(
-                child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  if (sideOpen) ...[
-                    SizedBox(
-                      width: side,
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                          IconButton(
-                            key: const ValueKey('side_pin'),
-                            visualDensity: VisualDensity.compact,
-                            tooltip: sidePinned ? tr('Désépingler (se replie au toucher de la zone de travail)') : tr('Épingler (reste ouvert)'),
-                            isSelected: sidePinned,
-                            icon: const Icon(Icons.push_pin_outlined, size: 18),
-                            selectedIcon: const Icon(Icons.push_pin, size: 18, color: _orange),
-                            onPressed: () => setState(() => sidePinned = !sidePinned),
-                          ),
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            tooltip: tr('Replier'),
-                            icon: const Icon(Icons.chevron_left, size: 20),
-                            onPressed: () => setState(() => sideOpen = false),
-                          ),
-                        ]),
-                        Expanded(child: _side(t, scheme)),
-                      ]),
-                    ),
-                    VerticalDivider(width: 1, color: scheme.outlineVariant),
-                  ],
+                child: home
+                    ? _startPage(t, scheme)
+                    : Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  _palette(t, scheme),
+                  VerticalDivider(width: 1, color: scheme.outlineVariant),
                   Expanded(child: ClipRect(child: _viewport())),
                   if (splitView) ...[
                     VerticalDivider(width: 1, color: scheme.outlineVariant),
                     Expanded(child: ClipRect(child: _preview3d(scheme))),
                   ],
+                  if (sideOpen) ...[
+                    VerticalDivider(width: 1, color: scheme.outlineVariant),
+                    SizedBox(width: side, child: Material(color: scheme.surface, child: _tray(t, scheme))),
+                  ],
                 ]),
               ),
+              if (!home) const SizedBox(height: 52), // barre du bas
+            ]),
+              // la barre du bas passe au-dessus du clavier de la tablette, le dessin ne bouge pas
+              if (!home) Positioned(left: 0, right: 0, bottom: MediaQuery.viewInsetsOf(context).bottom, child: _statusBar(t, scheme)),
             ]),
           ),
         ),
@@ -2737,7 +2701,7 @@ class _ArtPageState extends State<ArtPage> {
     _msg(path == null ? tr('Projet enregistré et horodaté (.kin)') : trp('Projet enregistré : {0}', [path]));
   }
 
-  /// Barre de menus à la manière de SketchUp : Fichier, Édition, Affichage, Dessin, Outils, Fenêtre, Aide.
+  /// Menus : les mêmes que dans la cuisine (Fichier, Édition, Affichage, Insertion, Outils, Fenêtre).
   Widget _menuBar(ColorScheme scheme) {
     const item = kxItem;
     MenuItemButton tool(CadTool t, {IconData? icon, MenuSerializableShortcut? keys}) =>
@@ -2745,11 +2709,6 @@ class _ArtPageState extends State<ArtPage> {
     void view(String v) => setState(() {
           cam.view(v);
           cam.fit(art.panels);
-        });
-    void side(String id) => setState(() {
-          tab = id;
-          sideOpen = true;
-          if (id == 'usinage') isMachiningMode = true;
         });
     KxMenu menu(String label, String key, List<Widget> children) => KxMenu(label, key, children);
     return KxTopBar(
@@ -2759,7 +2718,7 @@ class _ArtPageState extends State<ArtPage> {
       onSave: _saveKin,
       menus: [
           menu('Fichier', 'menu_file', [
-            item('Nouveau…', _newScene, icon: Icons.add_box_outlined, key: 'menu_new'),
+            item('Nouvelle création', _newCreation, icon: Icons.add_box_outlined, key: 'menu_new'),
             item('Ouvrir… (.kin, .sct)', _openFile, icon: Icons.folder_open_outlined, key: 'menu_open'),
             item('Enregistrer', _saveKin, icon: Icons.save_outlined, keys: const SingleActivator(LogicalKeyboardKey.keyS, control: true), key: 'menu_save'),
             const Divider(height: 1),
@@ -2768,6 +2727,8 @@ class _ArtPageState extends State<ArtPage> {
             item('Enregistrer dans la bibliothèque', _saveToLibrary, icon: Icons.bookmark_add_outlined),
             const Divider(height: 1),
             item('Plan de fabrication (PDF)', _blueprint, icon: Icons.picture_as_pdf_outlined),
+            item('Plan de coupe (PDF)', _pdf, icon: Icons.grid_on),
+            item('Fichiers SketchCut (.sct)', _sct, icon: Icons.content_cut),
             const Divider(height: 1),
             item('Quitter le mode Art', () => Navigator.of(context).maybePop(), icon: Icons.logout),
           ]),
@@ -2805,10 +2766,15 @@ class _ArtPageState extends State<ArtPage> {
             item('Chutes de la feuille', art.free.any((p) => p.note == 'Chute') ? _toggleOffcuts : null, checked: !_offcutsHidden && art.free.any((p) => p.note == 'Chute')),
             item('Façades', () => setState(() => showFronts = !showFronts), checked: showFronts),
             item('Cotes', () => setState(() => showDims = !showDims), checked: showDims),
-            item('Mode usinage', () => setState(() => isMachiningMode = !isMachiningMode), checked: isMachiningMode),
-            item('Panneau latéral', () => setState(() => sideOpen = !sideOpen), checked: sideOpen),
+            item('Couleurs par composant', () => setState(() => byComp = !byComp), checked: byComp),
+            item('Perçages et usinages', () => setState(() => isMachiningMode = !isMachiningMode), checked: isMachiningMode),
+            item('Tiroir', () => setState(() => sideOpen = !sideOpen), checked: sideOpen),
           ]),
-          menu('Dessin', 'menu_draw', [
+          menu('Insertion', 'menu_insert', [
+            item('Meuble à vos mesures', () => _newScene('recipe'), icon: Icons.door_front_door_outlined),
+            item('Caisson à composer', _chooseBase, icon: Icons.kitchen_outlined),
+            item('Feuille à découper', () => _newScene('sheet'), icon: Icons.crop_landscape),
+            const Divider(height: 1),
             tool(CadTool.line, icon: Icons.show_chart),
             tool(CadTool.freehand, icon: Icons.gesture),
             tool(CadTool.rectangle, icon: Icons.rectangle_outlined),
@@ -2828,7 +2794,7 @@ class _ArtPageState extends State<ArtPage> {
             const Divider(height: 1),
             tool(CadTool.cut, icon: Icons.content_cut),
             tool(CadTool.link, icon: Icons.link),
-            item('Usiner les liaisons notées', art.edgeLinks.isEmpty ? null : _machineLinks, icon: Icons.precision_manufacturing_outlined),
+            item('Monter le meuble', art.edgeLinks.isEmpty ? null : _machineLinks, icon: Icons.precision_manufacturing_outlined),
             const Divider(height: 1),
             tool(CadTool.drill, icon: Icons.adjust),
             tool(CadTool.groove, icon: Icons.horizontal_rule),
@@ -2838,116 +2804,787 @@ class _ArtPageState extends State<ArtPage> {
             item('Valider la découpe…', _cutDone, icon: Icons.task_alt, key: 'menu_cut_done'),
           ]),
           menu('Fenêtre', 'menu_window', [
-            item('Démarrer', () => side('bases'), icon: Icons.play_circle_outline),
-            item('Ma bibliothèque', () => side('biblio'), icon: Icons.inventory_2_outlined),
-            item('Usinage', () => side('usinage'), icon: Icons.handyman_outlined),
-            item('Débit', () => side('debit'), icon: Icons.grid_on),
+            item('Accueil de l’atelier', () => setState(() => home = true), icon: Icons.home_work_outlined, key: 'menu_home_art'),
+            for (final (id, label) in const [('info', 'Infos sur la pièce'), ('sheet', 'Feuille'), ('pieces', 'Pièces'), ('assemble', 'Assemblage'), ('make', 'Débit et plans')])
+              item(label, () {
+                _leaveHome();
+                setState(() {
+                  sideOpen = true;
+                  open = id;
+                });
+              }, checked: sideOpen && open == id, key: 'menu_tray_$id'),
           ]),
-          menu('Aide', 'menu_help', [
-            item('Raccourcis clavier', () => showDialog<void>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: Text(tr('Raccourcis clavier')),
-                    content: Text(tr('Espace : sélection · L : ligne · R : rectangle · C : cercle · P : pousser/tirer · M : déplacer · Q : pivoter · T : mètre · K : lier · '
+      ],
+      trailing: [
+        if (art.edgeLinks.isNotEmpty && !home)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Tokens.s2),
+            child: FilledButton.icon(
+              key: const ValueKey('link_machine'),
+              onPressed: _machineLinks,
+              icon: const Icon(Icons.handyman_outlined, size: 18),
+              label: Text(trp('Monter le meuble ({0})', [art.edgeLinks.length])),
+            ),
+          ),
+        PopupMenuButton<int>(
+          key: const ValueKey('menu_help'),
+          tooltip: tr('Aide'),
+          icon: const Icon(Icons.help_outline),
+          onSelected: (v) => showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text(v == 0 ? tr('Comment faire un meuble') : tr('Raccourcis clavier')),
+              content: SizedBox(
+                width: 520,
+                child: Text(v == 0
+                    ? tr('1. Posez une feuille, puis « Couper » : touchez la feuille ou tapez la cote et Entrée.\n2. « Lier » : touchez deux chants, l’aperçu monté se met à jour.\n3. « Monter le meuble » assemble les pièces, vis et tourillons compris.\n4. Débit et plans : liste, plan de fabrication, SketchCut et stock.')
+                    : tr('Espace : sélection · L : ligne · R : rectangle · C : cercle · P : pousser/tirer · M : déplacer · Q : pivoter · T : mètre · K : lier · '
                         'Ctrl+Z / Ctrl+Y : annuler / rétablir · Ctrl+D : dupliquer · Suppr : supprimer · Échap : annuler l’outil · chiffres + Entrée : cote exacte')),
-                    actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Fermer')))],
-                  ),
-                ), icon: Icons.keyboard_outlined),
-            item('Créer un meuble depuis une feuille', () => showDialog<void>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: Text(tr('Créer un meuble depuis une feuille')),
-                    content: Text(tr('1. Fichier → Nouveau → Meuble, ou Ma bibliothèque : choisissez le meuble et ses cotes.\n'
-                        '2. Les pièces sont coupées dans la feuille et les liaisons notées (aperçu 3D à droite).\n'
-                        '3. Outils → Usiner : le meuble se monte, vis, tourillons, charnières, pieds et plinthe sont posés.\n'
-                        '4. Fichier → Plan de fabrication (PDF) pour l’atelier.')),
-                    actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Fermer')))],
-                  ),
-                ), icon: Icons.help_outline),
-          ]),
+              ),
+              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Fermer')))],
+            ),
+          ),
+          itemBuilder: (_) => [
+            PopupMenuItem(value: 0, child: Text(tr('Comment faire un meuble'))),
+            PopupMenuItem(value: 1, child: Text(tr('Raccourcis clavier'))),
+          ],
+        ),
       ],
     );
   }
 
-  Widget _topBar(TextTheme t, ColorScheme scheme) {
+  /// Outils qui ont des réglages (bandeau au-dessus de la barre du bas).
+  static bool _hasOptions(CadTool x) =>
+      x.isDrawing || const {CadTool.cut, CadTool.link, CadTool.pushPull, CadTool.edgeBand, CadTool.groove, CadTool.symmetry, CadTool.move, CadTool.rotate}.contains(x);
+
+  static const _shapes = [
+    (CadTool.rectangle, Icons.rectangle_outlined),
+    (CadTool.line, Icons.show_chart),
+    (CadTool.circle, Icons.circle_outlined),
+    (CadTool.polygon, Icons.hexagon_outlined),
+    (CadTool.arc, Icons.architecture),
+    (CadTool.freehand, Icons.gesture),
+    (CadTool.rotatedRectangle, Icons.crop_rotate),
+  ];
+
+  IconData _toolIcon(CadTool x) => switch (x) {
+        CadTool.select => Icons.near_me_outlined,
+        CadTool.cut => Icons.content_cut,
+        CadTool.pushPull => Icons.unfold_more,
+        CadTool.move => Icons.open_with,
+        CadTool.rotate => Icons.rotate_right,
+        CadTool.symmetry => Icons.flip,
+        CadTool.scale => Icons.aspect_ratio,
+        CadTool.link => Icons.link,
+        CadTool.drill => Icons.adjust,
+        CadTool.edgeBand => Icons.border_outer,
+        CadTool.groove => Icons.horizontal_rule,
+        CadTool.tape => Icons.straighten,
+        CadTool.dimension => Icons.linear_scale,
+        _ => _shapes.firstWhere((s) => s.$1 == x).$2,
+      };
+
+  /// Palette d'outils, façon SketchUp : deux colonnes, chaque outil avec son nom, rangés dans l'ordre du travail.
+  Widget _palette(TextTheme t, ColorScheme scheme) {
+    const keys = {
+      CadTool.select: 'Espace', CadTool.line: 'L', CadTool.rectangle: 'R', CadTool.circle: 'C', CadTool.move: 'M', CadTool.rotate: 'Q', CadTool.tape: 'T',
+      CadTool.dimension: 'D', CadTool.pushPull: 'P', CadTool.edgeBand: 'B', CadTool.groove: 'G', CadTool.cut: 'X', CadTool.link: 'K', CadTool.drill: 'H',
+    };
+    Widget cell(String key, IconData icon, String label, bool on, VoidCallback? tap, {String? tip}) => SizedBox(
+          width: 64,
+          height: 56,
+          child: Tooltip(
+            message: tip ?? tr(label),
+            child: Material(
+              color: on ? scheme.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                key: ValueKey(key),
+                borderRadius: BorderRadius.circular(10),
+                onTap: tap,
+                child: Opacity(
+                  opacity: tap == null ? 0.38 : 1,
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Icon(icon, size: 22, color: on ? scheme.onPrimary : scheme.onSurface),
+                    const SizedBox(height: 3),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(tr(label), maxLines: 1, style: t.labelSmall?.copyWith(color: on ? scheme.onPrimary : scheme.onSurface, fontWeight: on ? FontWeight.w800 : FontWeight.w600)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        );
+    Widget tool(CadTool x, String label) => cell('tool_${x.name}', _toolIcon(x), label, activeTool == x, () => _selectTool(x),
+        tip: keys[x] == null ? tr(x.description) : '${tr(x.description)} (${tr(keys[x]!)})');
+    final shape = _shapes.skip(2).where((s) => s.$1 == activeTool).firstOrNull;
+    final groups = <List<Widget>>[
+      [
+        tool(CadTool.select, 'Choisir'),
+        cell('tool_erase', Icons.delete_outline, 'Effacer', false, selectedPanel != null && art.free.contains(selectedPanel) ? _deleteSelected : null),
+      ],
+      [
+        cell('tool_sheet', Icons.crop_landscape, 'Feuille', false, () => _newScene('sheet')),
+        tool(CadTool.cut, 'Couper'),
+      ],
+      [
+        tool(CadTool.rectangle, 'Rectangle'),
+        tool(CadTool.line, 'Ligne'),
+        PopupMenuButton<CadTool>(
+          key: const ValueKey('tool_draw'),
+          tooltip: tr('Autres formes'),
+          padding: EdgeInsets.zero,
+          onSelected: _selectTool,
+          itemBuilder: (_) => [for (final (x, icon) in _shapes.skip(2)) PopupMenuItem(value: x, child: ListTile(leading: Icon(icon), title: Text(tr(x.label)), selected: activeTool == x))],
+          child: IgnorePointer(child: cell('tool_shapes', shape?.$2 ?? Icons.interests_outlined, shape?.$1.label ?? 'Formes', shape != null, () {})),
+        ),
+        tool(CadTool.pushPull, 'Pousser'),
+      ],
+      [
+        tool(CadTool.move, 'Déplacer'),
+        tool(CadTool.rotate, 'Pivoter'),
+        tool(CadTool.symmetry, 'Miroir'),
+        cell('tool_copy', Icons.copy_all_outlined, 'Copier', false, selectedPanel != null && art.free.contains(selectedPanel) ? _duplicateSelected : null),
+      ],
+      [
+        tool(CadTool.link, 'Lier'),
+        tool(CadTool.drill, 'Percer'),
+        tool(CadTool.edgeBand, 'Chant'),
+        tool(CadTool.groove, 'Rainure'),
+      ],
+      [
+        tool(CadTool.tape, 'Mètre'),
+        tool(CadTool.dimension, 'Cote'),
+      ],
+    ];
+    return Container(
+      key: const ValueKey('art_palette'),
+      width: 140,
+      color: scheme.surface,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: Column(children: [
+          for (var i = 0; i < groups.length; i++) ...[
+            if (i > 0) Divider(height: 9, color: scheme.outlineVariant),
+            Wrap(children: groups[i]),
+          ],
+          Divider(height: 9, color: scheme.outlineVariant),
+          _drawSettings(t),
+        ]),
+      ),
+    );
+  }
+
+  /// Tiroir de droite, façon SketchUp : une rubrique ouverte à la fois, celle dont on a besoin s'ouvre seule.
+  Widget _tray(TextTheme t, ColorScheme scheme) {
+    final b = box;
+    if (activeTool == CadTool.select && !identical(selectedPanel, _trayFor)) {
+      _trayFor = selectedPanel;
+      if (selectedPanel != null && art.free.contains(selectedPanel)) open = 'info';
+    }
+    final sections = <(String, IconData, String, Widget Function())>[
+      ('info', Icons.tune, 'Infos sur la pièce', () => _infoPanel(t, scheme)),
+      ('sheet', Icons.crop_landscape, 'Feuille', () => _sheetPanel(t, scheme)),
+      if (b != null) ('box', Icons.kitchen_outlined, 'Caisson', () => _boxPanel(b, t, scheme)),
+      ('pieces', Icons.layers_outlined, art.free.isEmpty ? 'Pièces' : trp('Pièces ({0})', [art.panels.length]), () => _piecesPanel(t, scheme)),
+      ('assemble', Icons.link, art.edgeLinks.isEmpty ? 'Assemblage' : trp('Assemblage ({0})', [art.edgeLinks.length]), () => _assemblePanel(t, scheme)),
+      ('make', Icons.grid_on, 'Débit et plans', () => _makePanel(t, scheme)),
+    ];
+    if (open == 'box' && b == null) open = 'sheet';
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      for (final (id, icon, label, build) in sections) ...[
+        InkWell(
+          key: ValueKey('tray_$id'),
+          onTap: () => setState(() => open = open == id ? null : id),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 44),
+            padding: const EdgeInsets.symmetric(horizontal: Tokens.s3),
+            color: open == id ? scheme.primary.withValues(alpha: 0.10) : null,
+            child: Row(children: [
+              Icon(icon, size: 20, color: open == id ? scheme.primary : scheme.onSurfaceVariant),
+              const SizedBox(width: Tokens.s2),
+              Expanded(child: Text(tr(label), maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800))),
+              if (id == 'info') ...[
+                IconButton(
+                  key: const ValueKey('side_pin'),
+                  visualDensity: VisualDensity.compact,
+                  tooltip: sidePinned ? tr('Désépingler (se replie au toucher de la zone de travail)') : tr('Épingler (reste ouvert)'),
+                  isSelected: sidePinned,
+                  icon: const Icon(Icons.push_pin_outlined, size: 18),
+                  selectedIcon: const Icon(Icons.push_pin, size: 18, color: _orange),
+                  onPressed: () => setState(() => sidePinned = !sidePinned),
+                ),
+                IconButton(
+                  key: const ValueKey('side_toggle'),
+                  visualDensity: VisualDensity.compact,
+                  tooltip: tr('Replier'),
+                  icon: const Icon(Icons.chevron_right, size: 20),
+                  onPressed: () => setState(() => sideOpen = false),
+                ),
+              ],
+              Icon(open == id ? Icons.expand_less : Icons.expand_more, size: 20, color: scheme.onSurfaceVariant),
+            ]),
+          ),
+        ),
+        Divider(height: 1, color: scheme.outlineVariant),
+        if (open == id) ...[
+          Expanded(child: KeyedSubtree(key: ValueKey('tray_body_$id'), child: build())),
+          Divider(height: 1, color: scheme.outlineVariant),
+        ],
+      ],
+    ]);
+  }
+
+  Widget _tabs(List<(String, String)> list, String current, void Function(String) pick) {
+    final t = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Row(children: [
+      for (final (id, label) in list)
+        Expanded(
+          child: InkWell(
+            key: ValueKey('art_tab_$id'),
+            onTap: () => setState(() => pick(id)),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 44),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: current == id ? _orange : scheme.outlineVariant, width: current == id ? 3 : 1))),
+              child: FittedBox(
+                  child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(tr(label), style: t.labelLarge?.copyWith(fontWeight: current == id ? FontWeight.w800 : FontWeight.w500)),
+              )),
+            ),
+          ),
+        ),
+    ]);
+  }
+
+  /// Infos : cotes, matière et réglages de la pièce choisie.
+  Widget _infoPanel(TextTheme t, ColorScheme scheme) {
+    final p = selectedPanel;
+    if (p == null) {
+      return Padding(padding: const EdgeInsets.all(Tokens.s4), child: Text(tr('Touchez une pièce avec « Choisir » pour voir et changer ses cotes.'), style: t.bodyMedium));
+    }
+    final multi = selection.length > 1;
+    return ListView(key: const ValueKey('art_props'), padding: const EdgeInsets.fromLTRB(14, 8, 14, 14), children: [
+      Row(children: [
+        Expanded(
+          child: Text(multi ? trp('{0} panneaux sélectionnés', [selection.length]) : (p.note != null ? tr(p.note!) : tr(p.role.label)),
+              style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        ),
+        IconButton(
+          tooltip: tr('Fermer'),
+          icon: const Icon(Icons.close, size: 20),
+          onPressed: () => setState(() {
+            selection.clear();
+            selectedPanel = null;
+          }),
+        ),
+      ]),
+      if (!art.free.contains(p))
+        Text(tr('Ce panneau appartient à un caisson standard. Modifiez le caisson ou ses dimensions.'), style: t.bodySmall)
+      else if (multi) ...[
+        if (selection.length == 2) _jointCard(t, selection.first, selection.last),
+        _materialPicker(null, (v) => _setMaterial(selection.toList(), v), label: 'Matière de toute la sélection'),
+        const SizedBox(height: 10),
+        Text(tr('Ctrl + clic pour ajouter ou retirer un panneau. Glissez avec l’outil Déplacer pour bouger l’ensemble, Suppr pour tout supprimer.'), style: t.bodySmall),
+      ] else
+        _panelProps(context, p, (f) => setState(f), close: () => setState(() {
+              selection.clear();
+              selectedPanel = null;
+            })),
+    ]);
+  }
+
+  /// Feuille : matière du tarif, pose et coupe ; ou un meuble tout coupé.
+  Widget _sheetPanel(TextTheme t, ColorScheme scheme) => ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
+        _materialPicker(sheetMaterial, (v) => setState(() => sheetMaterial = v), label: 'Feuille'),
+        const SizedBox(height: 10),
+        FilledButton.icon(
+          key: const ValueKey('start_sheet'),
+          onPressed: _startFromSheet,
+          icon: const Icon(Icons.content_cut),
+          label: Text(tr('Poser la feuille et couper')),
+        ),
+        const SizedBox(height: 6),
+        OutlinedButton.icon(onPressed: () => _newScene('sheet'), icon: const Icon(Icons.straighten), label: Text(tr('Autre format…'))),
+        const Divider(height: Tokens.s6),
+        OutlinedButton.icon(onPressed: () => _newScene('recipe'), icon: const Icon(Icons.door_front_door_outlined), label: Text(tr('Meuble à vos mesures'))),
+        const SizedBox(height: 6),
+        OutlinedButton.icon(onPressed: _chooseBase, icon: const Icon(Icons.kitchen_outlined), label: Text(tr('Caisson à composer'))),
+        const SizedBox(height: 6),
+        OutlinedButton.icon(onPressed: () => setState(() => home = true), icon: const Icon(Icons.inventory_2_outlined), label: Text(tr('Modèles et bibliothèque'))),
+      ]);
+
+  /// Caisson composé : ses réglages, zone par zone.
+  Widget _boxPanel(ArtBox b, TextTheme t, ColorScheme scheme) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        SizedBox(
+          height: 52,
+          child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.fromLTRB(Tokens.s3, 8, Tokens.s3, 4), children: [
+            for (var i = 0; i < art.boxes.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: ChoiceChip(
+                  label: Text('${i + 1} · ${art.boxes[i].name}'),
+                  selected: i == boxIndex,
+                  onSelected: (_) => setState(() {
+                    boxIndex = i;
+                    zoneId = art.boxes[i].zones.first.id;
+                    column = 0;
+                  }),
+                ),
+              ),
+            ActionChip(avatar: const Icon(Icons.add, size: 18), label: Text(tr('Caisson')), onPressed: _chooseBase),
+            const SizedBox(width: 6),
+            ActionChip(
+              key: const ValueKey('box_duplicate'),
+              avatar: const Icon(Icons.control_point_duplicate_outlined, size: 18),
+              label: Text(tr('Dupliquer')),
+              onPressed: () {
+                final clone = b.copy();
+                clone.name = '${b.name} (copie)';
+                _addBox(clone);
+                _msg(tr('Caisson dupliqué avec succès'));
+              },
+            ),
+          ]),
+        ),
+        _tabs(const [('caisson', 'Caisson'), ('interieur', 'Intérieur'), ('facades', 'Façades'), ('exterieur', 'Extérieur')], tab, (id) => tab = id),
+        Expanded(
+          // chaque onglet garde son propre défilement (sinon il hérite de celui de l'onglet précédent)
+          child: KeyedSubtree(
+              key: ValueKey('side_$tab'),
+              child: switch (tab) {
+                'interieur' => _interior(b, t, scheme),
+                'facades' => _fronts(b, t, scheme),
+                'exterieur' => _exterior(b, t, scheme),
+                _ => _carcass(b, t, scheme),
+              }),
+        ),
+      ]);
+
+  /// Débit et plans : liste à débiter, usinages, fichiers pour l'atelier.
+  Widget _makePanel(TextTheme t, ColorScheme scheme) {
+    if (art.panels.isEmpty) {
+      return Padding(padding: const EdgeInsets.all(Tokens.s4), child: Text(tr('Rien à débiter : créez d’abord des pièces.'), style: t.bodyMedium));
+    }
+    PopupMenuItem<VoidCallback> item(IconData icon, String label, VoidCallback f) => PopupMenuItem(value: f, child: ListTile(leading: Icon(icon), title: Text(tr(label))));
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(Tokens.s3, Tokens.s2, Tokens.s3, 0),
+        child: Row(children: [
+          Expanded(
+            child: PopupMenuButton<VoidCallback>(
+              key: const ValueKey('make_export'),
+              tooltip: tr('Plans et fichiers'),
+              onSelected: (f) => f(),
+              itemBuilder: (_) => [
+                item(Icons.architecture, 'Plan de fabrication (PDF)', _blueprint),
+                item(Icons.grid_on, 'Plan de coupe (PDF)', _pdf),
+                item(Icons.content_cut, 'Fichiers SketchCut (.sct)', _sct),
+                item(Icons.edit_note, 'Débit manuel', _toManual),
+                item(Icons.inventory_outlined, 'Stock et chutes', () => openStock(context, widget.state)),
+                item(Icons.bookmark_add_outlined, 'Ajouter à ma bibliothèque', _saveToLibrary),
+              ],
+              child: IgnorePointer(
+                child: FilledButton.icon(onPressed: () {}, icon: const Icon(Icons.picture_as_pdf_outlined, size: 18), label: Text(tr('Plans et fichiers'), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              ),
+            ),
+          ),
+          const SizedBox(width: Tokens.s2),
+          IconButton.outlined(key: const ValueKey('make_cut_done'), tooltip: tr('Valider la découpe'), onPressed: _cutDone, icon: const Icon(Icons.task_alt)),
+        ]),
+      ),
+      _tabs(const [('debit', 'Débit'), ('usinage', 'Usinage')], makeTab, (id) {
+        makeTab = id;
+        isMachiningMode = id == 'usinage';
+      }),
+      Expanded(child: KeyedSubtree(key: ValueKey('make_$makeTab'), child: makeTab == 'usinage' ? _machiningTab(t, scheme) : _cut(t, scheme))),
+    ]);
+  }
+
+  /// Barre du bas : l'outil, ce qu'il attend, et la case des cotes (tapez une mesure puis Entrée).
+  Widget _statusBar(TextTheme t, ColorScheme scheme) {
+    final hint = _measureHint;
+    final idle = activeTool == CadTool.select;
+    return Material(
+      color: scheme.surface,
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: Tokens.s3),
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: scheme.outlineVariant))),
+        child: Row(children: [
+          Icon(_toolIcon(activeTool), size: 20, color: scheme.primary),
+          const SizedBox(width: Tokens.s2),
+          Text(tr(activeTool.label), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: scheme.primary)),
+          if (!idle)
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: tr('Fermer / Revenir à la sélection'),
+              icon: const Icon(Icons.close, size: 18),
+              onPressed: () => _selectTool(CadTool.select),
+            ),
+          const SizedBox(width: Tokens.s3),
+          Expanded(
+            child: Text(
+              idle && cadStatus.isEmpty ? tr('Touchez une pièce pour la choisir. Un doigt tourne la vue, deux doigts la déplacent.') : tr(cadStatus),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: t.bodyMedium,
+            ),
+          ),
+          const SizedBox(width: Tokens.s3),
+          Text(tr('Cotes'), style: t.labelLarge),
+          const SizedBox(width: Tokens.s2),
+          SizedBox(
+            width: 210,
+            height: 40,
+            child: TextField(
+              key: const ValueKey('cad_measure'),
+              controller: measure,
+              focusNode: measureFocus,
+              enabled: hint.isNotEmpty,
+              textInputAction: TextInputAction.done,
+              keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
+              style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+              decoration: InputDecoration(
+                isDense: true,
+                prefixIcon: const Icon(Icons.straighten, size: 18),
+                hintText: hint,
+                hintStyle: t.bodySmall,
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              ),
+              onSubmitted: (v) {
+                _applyMeasure(v);
+                measureFocus.unfocus();
+              },
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  void _toggleSplit() {
+    setState(() {
+      splitView = !splitView;
+      _splitAuto = true;
+      if (splitView) cam3d.view('iso');
+    });
+    _refitAfterSplit();
+  }
+
+  /// Réglages du dessin : grille, aimants, plan de travail, formes pleines.
+  Widget _drawSettings(TextTheme t) {
+    String g(double v) => v == v.roundToDouble() ? '${v.round()}' : '$v';
+    return PopupMenuButton<String>(
+      key: const ValueKey('precision'),
+      tooltip: tr('Précision : grille, aimants, guides'),
+      onSelected: (v) => setState(() {
+        if (v.startsWith('grid:')) gridStep = double.parse(v.substring(5));
+        if (v.startsWith('plane:')) workPlane = CadWorkPlane.values.byName(v.substring(6));
+        if (v == 'snapGrid') snapGrid = !snapGrid;
+        if (v == 'snapPoints') snapPoints = !snapPoints;
+        if (v == 'snapMid') snapMid = !snapMid;
+        if (v == 'snapAlign') snapAlign = !snapAlign;
+        if (v == 'ortho') orthoLock = !orthoLock;
+        if (v == 'extrude') autoExtrude = !autoExtrude;
+        if (v == 'clear') {
+          change(() {
+            art.sketches.clear();
+            art.dimensions.clear();
+          });
+          _msg(tr('Toutes les esquisses 2D ont été effacées'));
+        }
+      }),
+      itemBuilder: (_) => [
+        PopupMenuItem(enabled: false, child: Text(tr('Pas de la grille'), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800))),
+        for (final st in const [1.0, 5.0, 10.0, 50.0, 100.0])
+          CheckedPopupMenuItem(value: 'grid:$st', checked: gridStep == st, child: Text(trp('{0} mm', [g(st)]))),
+        const PopupMenuDivider(),
+        PopupMenuItem(enabled: false, child: Text(tr('Plan de dessin'), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800))),
+        for (final wp in CadWorkPlane.values) CheckedPopupMenuItem(value: 'plane:${wp.name}', checked: workPlane == wp, child: Text(tr(wp.label))),
+        const PopupMenuDivider(),
+        CheckedPopupMenuItem(value: 'snapGrid', checked: snapGrid, child: Text(tr('Aimanter à la grille'))),
+        CheckedPopupMenuItem(value: 'snapPoints', checked: snapPoints, child: Text(tr('Aimanter aux coins'))),
+        CheckedPopupMenuItem(value: 'snapMid', checked: snapMid, child: Text(tr('Aimanter aux milieux et centres'))),
+        CheckedPopupMenuItem(value: 'snapAlign', checked: snapAlign, child: Text(tr('Guides d’alignement'))),
+        CheckedPopupMenuItem(value: 'ortho', checked: orthoLock, child: Text(tr('Lignes à 90°'))),
+        CheckedPopupMenuItem(value: 'extrude', checked: autoExtrude, child: Text(tr('Une forme fermée devient un panneau'))),
+        if (art.sketches.isNotEmpty || art.dimensions.isNotEmpty) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem(value: 'clear', child: Text(tr('Effacer les esquisses 2D'))),
+        ],
+      ],
+      child: Container(
+        height: 44,
+        alignment: Alignment.center,
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.grid_4x4, size: 18, color: snapGrid ? _orange : null),
+          const SizedBox(width: 6),
+          Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: Text(trp('Grille {0} mm', [g(gridStep)]), style: t.labelMedium?.copyWith(fontWeight: FontWeight.w700)))),
+        ]),
+      ),
+    );
+  }
+
+  /// Vue : 3D, face, dessus, côté, cadrer, main, verrou, et ce qu'on affiche. Une seule barre, en haut à droite.
+  Widget _viewBar(ColorScheme scheme) {
     Widget view(String id, String label) => TextButton(
-          style: TextButton.styleFrom(minimumSize: const Size(44, 40), padding: const EdgeInsets.symmetric(horizontal: 10)),
+          style: TextButton.styleFrom(minimumSize: const Size(44, 44), padding: const EdgeInsets.symmetric(horizontal: 10)),
           onPressed: () => setState(() {
             cam.view(id);
             cam.fit(art.panels);
           }),
           child: Text(label),
         );
-    return Container(
-      color: scheme.surface,
-      padding: const EdgeInsets.symmetric(horizontal: Tokens.s2, vertical: 4),
-      child: Row(children: [
-        IconButton(
-          key: const ValueKey('side_toggle'),
-          tooltip: tr('Panneau latéral'),
-          isSelected: sideOpen,
-          icon: const Icon(Icons.view_sidebar_outlined),
-          selectedIcon: const Icon(Icons.view_sidebar),
-          onPressed: () => setState(() => sideOpen = !sideOpen),
-        ),
-        const SizedBox(width: 8),
-        Text(tr('Atelier'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(width: 6),
-        IconButton(
-          tooltip: tr('Ajouter un caisson'),
-          icon: const Icon(Icons.add_box_outlined),
-          onPressed: _chooseBase,
-        ),
-        if (box != null)
-          IconButton(
-            tooltip: tr('Dupliquer le caisson vers la droite'),
-            icon: const Icon(Icons.control_point_duplicate_outlined),
-            onPressed: () {
-              final b = box;
-              if (b == null) return;
-              final clone = b.copy();
-              clone.name = '${b.name} (copie)';
-              _addBox(clone);
-              _msg(tr('Caisson dupliqué avec succès'));
-            },
+    Widget nav(String key, bool on, IconData icon, IconData onIcon, String tip, VoidCallback tap) => IconButton(
+          key: ValueKey(key),
+          tooltip: tip,
+          isSelected: on,
+          icon: Icon(icon),
+          selectedIcon: Icon(onIcon, color: _orange),
+          onPressed: tap,
+        );
+    return Material(
+      elevation: 2,
+      borderRadius: BorderRadius.circular(12),
+      color: scheme.surface.withValues(alpha: 0.96),
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          view('iso', tr('3D')),
+          view('face', tr('Face')),
+          view('dessus', tr('Dessus')),
+          view('droite', tr('Côté')),
+          IconButton(tooltip: tr('Tout voir'), onPressed: _fit, icon: const Icon(Icons.fit_screen_outlined)),
+          if (art.free.isNotEmpty)
+            nav('nav_split', splitView, Icons.vertical_split_outlined, Icons.vertical_split, splitView ? tr('Fermer l’aperçu 3D') : tr('Écran partagé : création 2D à gauche, meuble assemblé en 3D à droite'), _toggleSplit),
+          nav('nav_pan', panMode, Icons.pan_tool_outlined, Icons.pan_tool,
+              panMode ? tr('Main active : glisser déplace la vue (touchez pour revenir à la rotation)') : tr('Main : glisser déplace la vue au lieu de la tourner. Aussi : bouton molette ou bouton droit, deux doigts sur tablette.'),
+              () => setState(() => panMode = !panMode)),
+          nav('nav_lock', navLock, Icons.lock_open_outlined, Icons.lock,
+              navLock ? tr('Verrou actif : on navigue, rien ne bouge (toucher pour déverrouiller)') : tr('Verrouiller : naviguer sans déplacer les pièces'),
+              () => setState(() => navLock = !navLock)),
+          PopupMenuButton<String>(
+            key: const ValueKey('view_options'),
+            tooltip: tr('Affichage'),
+            icon: const Icon(Icons.visibility_outlined),
+            onSelected: (v) => setState(() {
+              switch (v) {
+                case 'fronts':
+                  showFronts = !showFronts;
+                case 'dims':
+                  showDims = !showDims;
+                case 'exploded':
+                  exploded = !exploded;
+                case 'comp':
+                  byComp = !byComp;
+                case 'machining':
+                  isMachiningMode = !isMachiningMode;
+                case 'pivot':
+                  pivotOnObject = !pivotOnObject;
+                case 'offcuts':
+                  _toggleOffcuts();
+              }
+            }),
+            itemBuilder: (_) => [
+              CheckedPopupMenuItem(value: 'fronts', checked: showFronts, child: Text(tr('Façades'))),
+              CheckedPopupMenuItem(value: 'dims', checked: showDims, child: Text(tr('Cotes'))),
+              CheckedPopupMenuItem(value: 'exploded', checked: exploded, child: Text(tr('Éclaté'))),
+              CheckedPopupMenuItem(value: 'comp', checked: byComp, child: Text(tr('Composants'))),
+              CheckedPopupMenuItem(value: 'machining', checked: isMachiningMode, child: Text(tr('Perçages et usinages'))),
+              if (art.free.any((p) => p.note == 'Chute')) CheckedPopupMenuItem(value: 'offcuts', checked: !_offcutsHidden, child: Text(tr('Chutes de la feuille'))),
+              CheckedPopupMenuItem(key: const ValueKey('nav_pivot'), value: 'pivot', checked: pivotOnObject, child: Text(tr('Tourner autour de l’objet choisi'))),
+            ],
           ),
-        IconButton(
-          key: const ValueKey('blueprint'),
-          tooltip: tr('Plan de fabrication (PDF)'),
-          icon: const Icon(Icons.architecture),
-          onPressed: _blueprint,
-        ),
-        IconButton(
-          key: const ValueKey('lib_save'),
-          tooltip: tr('Enregistrer dans la bibliothèque'),
-          icon: const Icon(Icons.bookmark_add_outlined),
-          onPressed: _saveToLibrary,
-        ),
-        const Spacer(),
-        Flexible(
-          flex: 6,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            reverse: true,
-            child: Row(children: [
-              view('iso', tr('3D')),
-              view('face', tr('Face')),
-              view('dessus', tr('Dessus')),
-              view('droite', tr('Côté')),
-              const SizedBox(width: 6),
-              FilterChip(label: Text(tr('Façades')), selected: showFronts, onSelected: (v) => setState(() => showFronts = v)),
-              const SizedBox(width: 6),
-              FilterChip(label: Text(tr('Cotes')), selected: showDims, onSelected: (v) => setState(() => showDims = v)),
-              const SizedBox(width: 6),
-              FilterChip(label: Text(tr('Éclaté')), selected: exploded, onSelected: (v) => setState(() => exploded = v)),
-              const SizedBox(width: 6),
-              FilterChip(label: Text(tr('Composants')), selected: byComp, onSelected: (v) => setState(() => byComp = v)),
-              IconButton(tooltip: tr('Tout voir'), onPressed: _fit, icon: const Icon(Icons.fit_screen_outlined)),
-            ]),
-          ),
-        ),
-      ]),
+        ]),
+      ),
     );
+  }
+
+  /// Étape 1 : par quoi commencer. Tous les départs et la bibliothèque, sur une seule page.
+  Widget _startPage(TextTheme t, ColorScheme scheme) {
+    Widget card(double width, String key, IconData icon, String title, String text, VoidCallback onTap) => SizedBox(
+          width: width,
+          height: 190,
+          child: Card(
+            key: ValueKey(key),
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.all(Tokens.s4),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Icon(icon, size: 36, color: _orange),
+                  const SizedBox(height: Tokens.s2),
+                  Text(tr(title), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  Text(tr(text), maxLines: 3, overflow: TextOverflow.ellipsis, style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+                ]),
+              ),
+            ),
+          ),
+        );
+    return ColoredBox(
+      color: scheme.surfaceContainerLowest,
+      child: ListenableBuilder(
+        listenable: Listenable.merge([ArtLibrary.instance, Favorites.instance]),
+        builder: (context, _) => ListView(
+          key: const ValueKey('art_start'),
+          padding: const EdgeInsets.all(Tokens.s5),
+          children: [
+            Text(tr('Que voulez-vous fabriquer ?'), style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(tr('Choisissez un départ. Tout se change ensuite.'), style: t.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+            const SizedBox(height: Tokens.s4),
+            if (!art.isEmpty) ...[
+              Card(
+                margin: EdgeInsets.zero,
+                color: _orange.withValues(alpha: 0.08),
+                child: ListTile(
+                  key: const ValueKey('art_resume'),
+                  leading: const Icon(Icons.play_circle_outline, color: _orange, size: 32),
+                  title: Text(trp('Reprendre « {0} »', [trName(art.name)]), style: const TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: Text(trp('{0} pièces', [art.panels.length])),
+                  trailing: TextButton(onPressed: _newCreation, child: Text(tr('Repartir de zéro'))),
+                  onTap: _leaveHome,
+                ),
+              ),
+              const SizedBox(height: Tokens.s4),
+            ],
+            LayoutBuilder(builder: (context, box) {
+              // cinq cartes de front sur tablette et PC, sinon trois
+              final per = box.maxWidth >= 940 ? 5 : 3;
+              final w = math.min(280.0, (box.maxWidth - Tokens.s4 * (per - 1)) / per - 0.1);
+              return Wrap(spacing: Tokens.s4, runSpacing: Tokens.s4, children: [
+              card(w, 'welcome_new', Icons.door_front_door_outlined, 'Meuble à vos mesures', 'Donnez les cotes : les pièces se coupent et se lient seules.', () => _newScene('recipe')),
+              card(w, 'welcome_box', Icons.kitchen_outlined, 'Caisson à composer', 'Colonnes, étagères, portes et tiroirs, zone par zone.', _chooseBase),
+              card(w, 'welcome_sheet', Icons.crop_landscape, 'Feuille à découper', 'Posez une feuille et coupez-la vous-même.', () => _newScene('sheet')),
+              card(w, 'welcome_close', Icons.draw_outlined, 'Dessin libre', 'Une scène vide, vous dessinez chaque pièce.', _leaveHome),
+              card(w, 'welcome_open', Icons.folder_open_outlined, 'Ouvrir un fichier', 'Un projet kitchinox (.kin) ou un débit SketchCut (.sct).', _openFile),
+            ]);
+            }),
+            const SizedBox(height: Tokens.s5),
+            ..._library(t, scheme),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Modèles et meubles enregistrés.
+  List<Widget> _library(TextTheme t, ColorScheme scheme) {
+    final items = ArtLibrary.instance.items;
+    Widget title(String s, String hint) => Padding(
+          padding: const EdgeInsets.only(top: Tokens.s3, bottom: Tokens.s2),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(tr(s), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            Text(tr(hint), style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+          ]),
+        );
+    Widget grid(List<Widget> w) => Wrap(spacing: Tokens.s3, runSpacing: Tokens.s2, children: [for (final x in w) SizedBox(width: 356, child: x)]);
+    return [
+      title('Meubles depuis une feuille', 'Un modèle à régler : cotes, tablettes, pieds.'),
+      grid([
+        for (final r in Favorites.instance.sorted(ArtRecipes.all, (r) => 'art:recipe:${r.id}'))
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              key: ValueKey('lib_recipe_${r.id}'),
+              leading: const Icon(Icons.door_front_door_outlined, color: _orange),
+              title: Text(tr(r.name), style: const TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text(tr(r.description), maxLines: 2, overflow: TextOverflow.ellipsis),
+              trailing: FavoriteStar(id: 'art:recipe:${r.id}'),
+              onTap: () => _recipeFromLibrary(r.id),
+            ),
+          ),
+      ]),
+      title('Caissons à composer', 'Une base à diviser en colonnes et en étagères, puis à habiller zone par zone.'),
+      grid([for (final p in Favorites.instance.sorted(artPresets, (p) => 'art:preset:${p.name}')) _presetTile(p, t, () => _addBox(p.build()))]),
+      title('Mes meubles', 'Vos meubles enregistrés : à réinsérer ici, ou à poser comme objet dans les autres modes (panneau Objets → Bibliothèque).'),
+      if (items.isEmpty) Text(tr('La bibliothèque est vide.'), style: t.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+      grid([
+        for (final it in items.reversed)
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              leading: const Icon(Icons.inventory_2_outlined, color: _orange),
+              title: Text(it.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text(trp('{0} × {1} × {2} mm · {3} panneaux', [it.w, it.h, it.d, it.panels.length])),
+              onTap: () => _insertFromLibrary(it),
+              trailing: IconButton(
+                tooltip: tr('Retirer de la bibliothèque'),
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () async {
+                  final yes = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text(tr('Retirer de la bibliothèque ?')),
+                      content: Text(trp('« {0} » ne sera plus proposé. Les projets où il est déjà posé le gardent tant que la bibliothèque le contient.', [it.name])),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Annuler'))),
+                        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Retirer'))),
+                      ],
+                    ),
+                  );
+                  if (yes == true) ArtLibrary.instance.remove(it.id);
+                },
+              ),
+            ),
+          ),
+      ]),
+    ];
+  }
+
+  /// Repartir de zéro : la création en cours est effacée (Annuler la ramène).
+  Future<void> _newCreation() async {
+    if (!art.isEmpty) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(tr('Nouvelle création ?')),
+          content: Text(tr('La création en cours est effacée de l’atelier. « Annuler » la ramène.')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Garder'))),
+            FilledButton(key: const ValueKey('new_confirm'), onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Repartir de zéro'))),
+          ],
+        ),
+      );
+      if (ok != true) return;
+      change(() {
+        art.boxes.clear();
+        art.free.clear();
+        art.sketches.clear();
+        art.dimensions.clear();
+        art.edgeLinks.clear();
+        art.support = null;
+        art.stockFrozen = null;
+        art.hiddenLayers.clear();
+        art.lockedLayers.clear();
+        selection.clear();
+        selectedPanel = null;
+        zoneId = null;
+        boxIndex = 0;
+      });
+    }
+    _selectTool(CadTool.select);
+    setState(() {
+      splitView = false;
+      _splitAuto = false;
+      isMachiningMode = false;
+      welcomeDone = false;
+      open = 'sheet';
+      home = true;
+    });
   }
 
   // ---------------------------------------------------------------- 3D
@@ -3138,6 +3775,8 @@ class _ArtPageState extends State<ArtPage> {
                     liveLabel: _liveLabel,
                     cutLine: _cutLineSegment(),
                     cutPreview: _cutPreview(),
+                    sizedParts: _sizedParts(),
+                    sizesInside: activeTool == CadTool.link,
                     dimPreview: activeTool == CadTool.dimension ? _dimPreview : null,
                     cutLabel: _cutAt == null || activeTool != CadTool.cut || cutMode == 'circle'
                         ? null
@@ -3152,64 +3791,11 @@ class _ArtPageState extends State<ArtPage> {
                     gridStep: gridStep,
                   ),
                 ),
-                if (!art.isEmpty) Positioned(left: layersAt.dx, top: layersAt.dy, child: _legend()),
-                if (art.isEmpty && art.free.isEmpty && art.sketches.isEmpty && !welcomeDone) Positioned.fill(child: _welcome()),
-                Positioned(
-                  left: 12,
-                  top: 72,
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    _precisionMenu(),
-                    const SizedBox(width: 6),
-                    _navButton(
-                      key: 'nav_pan',
-                      on: panMode,
-                      icon: Icons.pan_tool_outlined,
-                      onIcon: Icons.pan_tool,
-                      tip: panMode
-                          ? tr('Main active : glisser déplace la vue (touchez pour revenir à la rotation)')
-                          : tr('Main : glisser déplace la vue au lieu de la tourner. Aussi : bouton molette ou bouton droit, deux doigts sur tablette.'),
-                      onTap: () => setState(() => panMode = !panMode),
-                    ),
-                    const SizedBox(width: 6),
-                    _navButton(
-                      key: 'nav_pivot',
-                      on: pivotOnObject,
-                      icon: Icons.filter_center_focus,
-                      onIcon: Icons.center_focus_strong,
-                      tip: pivotOnObject ? tr('Rotation autour de l’objet sélectionné') : tr('Rotation autour du centre de l’écran'),
-                      onTap: () => setState(() => pivotOnObject = !pivotOnObject),
-                    ),
-                    const SizedBox(width: 6),
-                    _navButton(
-                      key: 'nav_lock',
-                      on: navLock,
-                      icon: Icons.lock_open_outlined,
-                      onIcon: Icons.lock,
-                      tip: navLock ? tr('Verrou actif : on navigue, rien ne bouge (toucher pour déverrouiller)') : tr('Verrouiller : naviguer sans déplacer les pièces'),
-                      onTap: () => setState(() => navLock = !navLock),
-                    ),
-                    const SizedBox(width: 6),
-                    _navButton(
-                      key: 'nav_split',
-                      on: splitView,
-                      icon: Icons.vertical_split_outlined,
-                      onIcon: Icons.vertical_split,
-                      tip: splitView ? tr('Fermer l’aperçu 3D') : tr('Écran partagé : création 2D à gauche, meuble assemblé en 3D à droite'),
-                      onTap: () {
-                        setState(() {
-                          splitView = !splitView;
-                          _splitAuto = true;
-                          if (splitView) cam3d.view('iso');
-                        });
-                        _refitAfterSplit();
-                      },
-                    ),
-                  ]),
-                ),
-                // panneau latéral replié : languette pour le rouvrir, au bord gauche de la zone de travail
+                Positioned(top: 10, left: 10, right: 10, child: Align(alignment: AlignmentDirectional.topEnd, child: _viewBar(Theme.of(context).colorScheme))),
+                // tiroir replié : languette pour le rouvrir, au bord droit
                 if (!sideOpen)
                   Positioned(
-                    left: 0,
+                    right: 0,
                     top: 0,
                     bottom: 0,
                     child: Center(
@@ -3217,56 +3803,21 @@ class _ArtPageState extends State<ArtPage> {
                         key: const ValueKey('side_reopen'),
                         color: _orange,
                         elevation: 4,
-                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
                         child: InkWell(
-                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
                           onTap: () => setState(() => sideOpen = true),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 18),
-                            child: Column(mainAxisSize: MainAxisSize.min, children: [
-                              const Icon(Icons.chevron_right, color: Colors.white),
-                              const SizedBox(height: 6),
-                              RotatedBox(
-                                quarterTurns: 1,
-                                child: Text(tr('Panneau latéral'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
-                              ),
-                            ]),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 28),
+                            child: Icon(Icons.chevron_left, color: Colors.white),
                           ),
                         ),
                       ),
                     ),
                   ),
-                Positioned(
-                  top: 12,
-                  left: 12,
-                  right: 12,
-                  child: Center(
-                    child: ArtCadToolbar(
-                      activeTool: activeTool,
-                      onToolSelected: _selectTool,
-                      onClearSketches: () => change(() {
-                        art.sketches.clear();
-                        art.dimensions.clear();
-                        _msg(tr('Toutes les esquisses 2D ont été effacées'));
-                      }),
-                      sketchCount: art.sketches.length,
-                      dimensionCount: art.dimensions.length,
-                      isMachiningMode: isMachiningMode,
-                      onToggleMachiningMode: () => setState(() => isMachiningMode = !isMachiningMode),
-                      workPlane: workPlane,
-                      onWorkPlaneChanged: (wp) => setState(() => workPlane = wp),
-                      orthoLock: orthoLock,
-                      onToggleOrtho: (val) => setState(() => orthoLock = val),
-                      autoExtrude: autoExtrude,
-                      onToggleAutoExtrude: (val) => setState(() => autoExtrude = val),
-                    ),
-                  ),
-                ),
-                if (selectedPanel != null && activeTool == CadTool.select)
-                  Positioned(top: 76, right: 12, bottom: 120, child: Align(alignment: Alignment.topRight, child: _propsDock())),
-                if (activeTool != CadTool.select || selectedPanel != null)
+                if (_hasOptions(activeTool))
                   Positioned(
-                    bottom: 14 + MediaQuery.viewInsetsOf(context).bottom, // au-dessus du clavier de la tablette
+                    bottom: 10 + MediaQuery.viewInsetsOf(context).bottom, // au-dessus du clavier de la tablette
                     left: 14,
                     right: 14,
                     child: Center(
@@ -3291,7 +3842,18 @@ class _ArtPageState extends State<ArtPage> {
                         onDeleteSelected: selectedPanel != null ? _deleteSelected : null,
                         extra: activeTool == CadTool.link
                             ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [
-                                _cutLinkSwitch(),
+                                SegmentedButton<String>(
+                                  key: const ValueKey('link_kind'),
+                                  showSelectedIcon: false,
+                                  style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                                  segments: [
+                                    ButtonSegment(value: 'bout', label: Text(tr('Bout')), tooltip: tr('Le chant contre la face, à l’intérieur (dessus entre deux côtés, tablette)')),
+                                    ButtonSegment(value: 'applique', label: Text(tr('Applique')), tooltip: tr('La pièce couvre le chant de l’autre (côté posé sur les chants du dessous)')),
+                                    ButtonSegment(value: 'articule', label: Text(tr('Porte')), tooltip: tr('Façade en applique : porte ou abattant, charnières, rien de vissé au caisson')),
+                                  ],
+                                  selected: {linkKind},
+                                  onSelectionChanged: (v) => setState(() => linkKind = v.first),
+                                ),
                                 SegmentedButton<String>(
                                   key: const ValueKey('link_align'),
                                   showSelectedIcon: false,
@@ -3305,67 +3867,31 @@ class _ArtPageState extends State<ArtPage> {
                                   selected: {linkAlign},
                                   onSelectionChanged: (v) => setState(() => linkAlign = v.first),
                                 ),
-                                SegmentedButton<bool>(
-                                  key: const ValueKey('link_side'),
-                                  showSelectedIcon: false,
-                                  style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                                  segments: [
-                                    ButtonSegment(value: false, label: Text(tr('Dessous')), icon: const Icon(Icons.vertical_align_bottom, size: 16)),
-                                    ButtonSegment(value: true, label: Text(tr('Dessus')), icon: const Icon(Icons.vertical_align_top, size: 16)),
+                                PopupMenuButton<String>(
+                                  key: const ValueKey('link_more'),
+                                  tooltip: tr('Plus d’options'),
+                                  onSelected: (v) => setState(() {
+                                    if (v == 'over') linkOver = !linkOver;
+                                    if (v == 'miter') linkMiter = !linkMiter;
+                                    if (v.startsWith('joint:')) linkJoint = v == 'joint:auto' ? null : v.substring(6);
+                                  }),
+                                  itemBuilder: (_) => [
+                                    CheckedPopupMenuItem(value: 'over', checked: linkOver, child: Text(tr('Passe au-dessus'))),
+                                    CheckedPopupMenuItem(value: 'miter', checked: linkMiter, child: Text(tr('Onglet 45°'))),
+                                    const PopupMenuDivider(),
+                                    CheckedPopupMenuItem(value: 'joint:auto', checked: linkJoint == null, child: Text(trp('Auto : {0}', [tr(art.fittings.joint.label)]))),
+                                    for (final j in JointType.values) CheckedPopupMenuItem(value: 'joint:${j.name}', checked: linkJoint == j.name, child: Text(tr(j.label))),
                                   ],
-                                  selected: {linkOver},
-                                  onSelectionChanged: (v) => setState(() => linkOver = v.first),
-                                ),
-                                FilterChip(
-                                  key: const ValueKey('link_miter'),
-                                  label: Text(tr('Onglet 45°')),
-                                  selected: linkMiter,
-                                  onSelected: (v) => setState(() => linkMiter = v),
-                                ),
-                                SegmentedButton<String>(
-                                  key: const ValueKey('link_kind'),
-                                  showSelectedIcon: false,
-                                  style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                                  segments: [
-                                    ButtonSegment(value: 'bout', label: Text(tr('Bout')), tooltip: tr('Le chant contre la face, à l’intérieur (dessus entre deux côtés, tablette)')),
-                                    ButtonSegment(value: 'applique', label: Text(tr('Applique')), tooltip: tr('La pièce couvre le chant de l’autre (côté posé sur les chants du dessous)')),
-                                    ButtonSegment(value: 'articule', label: Text(tr('Porte')), tooltip: tr('Façade en applique : porte ou abattant, charnières, rien de vissé au caisson')),
-                                  ],
-                                  selected: {linkKind},
-                                  onSelectionChanged: (v) => setState(() => linkKind = v.first),
-                                ),
-                                _jointPicker(linkJoint, (v) => setState(() => linkJoint = v)),
-                                if (art.edgeLinks.isNotEmpty)
-                                  IconButton(
-                                    key: const ValueKey('link_clear'),
-                                    tooltip: tr('Effacer les liaisons notées'),
-                                    icon: const Icon(Icons.link_off),
-                                    onPressed: () => change(art.edgeLinks.clear),
-                                  ),
-                                FilledButton.icon(
-                                  key: const ValueKey('link_machine_hud'),
-                                  onPressed: art.edgeLinks.isEmpty ? null : _machineLinks,
-                                  icon: const Icon(Icons.precision_manufacturing_outlined, size: 16),
-                                  label: Text(trp('Usiner ({0})', [art.edgeLinks.length])),
+                                  child: Chip(avatar: const Icon(Icons.tune, size: 16), label: Text(tr('Plus d’options'))),
                                 ),
                               ])
                             : activeTool == CadTool.cut
                             ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [
-                                _cutLinkSwitch(),
-                                IconButton(
-                                  key: const ValueKey('cut_cabinet'),
-                                  tooltip: tr('Meuble depuis cette feuille (caisson, colonne, étagère…)'),
-                                  icon: const Icon(Icons.door_front_door_outlined),
-                                  onPressed: () async {
-                                    final r = await showDialog<NewArtScene>(context: context, builder: (_) => const NewArtSceneDialog(recipeOnly: true));
-                                    if (r?.recipe != null) _recipeFromSheet(r!.recipe!, r.params);
-                                  },
-                                ),
-                                IconButton(
-                                  key: const ValueKey('cut_import'),
-                                  tooltip: tr('Importer un fichier de débit (CSV ou JSON)'),
-                                  icon: const Icon(Icons.upload_file_outlined),
-                                  onPressed: _importCutFile,
+                                FilledButton.icon(
+                                  key: const ValueKey('cut_apply'),
+                                  onPressed: (cutMode == 'circle' ? _circleAt : _cutAt) == null ? null : () => _applyCut(),
+                                  icon: const Icon(Icons.content_cut, size: 16),
+                                  label: Text(tr('Couper')),
                                 ),
                                 SegmentedButton<String>(
                                   key: const ValueKey('cut_mode'),
@@ -3412,12 +3938,6 @@ class _ArtPageState extends State<ArtPage> {
                                   selected: {cutRelative},
                                   onSelectionChanged: (v) => setState(() => cutRelative = v.first),
                                 ),
-                                FilledButton.icon(
-                                  key: const ValueKey('cut_apply'),
-                                  onPressed: (cutMode == 'circle' ? _circleAt : _cutAt) == null ? null : () => _applyCut(),
-                                  icon: const Icon(Icons.content_cut, size: 16),
-                                  label: Text(tr('Couper')),
-                                ),
                               ])
                             : activeTool.isDrawing
                             ? SizedBox(width: 230, child: _materialPicker(drawMaterial, (v) {
@@ -3428,10 +3948,6 @@ class _ArtPageState extends State<ArtPage> {
                                 });
                               }, label: 'Matière des panneaux'))
                             : null,
-                        measureController: measure,
-                        measureFocus: measureFocus,
-                        measureHint: _measureHint,
-                        onMeasure: (v) => _applyMeasure(v),
                         onSetRole: selectedPanel != null && art.free.contains(selectedPanel)
                             ? (r) => change(() {
                                   final p = selectedPanel!;
@@ -3443,19 +3959,6 @@ class _ArtPageState extends State<ArtPage> {
                             ? () => change(() => selectedPanel!.hinge = selectedPanel!.hinge == 'left' ? 'right' : 'left')
                             : null,
                       ),
-                    ),
-                  ),
-                // liaisons notées : « Usiner » toujours visible, en haut à droite de la vue de création
-                if (art.edgeLinks.isNotEmpty && (activeTool == CadTool.link || activeTool == CadTool.cut))
-                  Positioned(
-                    right: 12,
-                    top: 132,
-                    child: FilledButton.icon(
-                      key: const ValueKey('link_machine'),
-                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
-                      onPressed: _machineLinks,
-                      icon: const Icon(Icons.precision_manufacturing_outlined, size: 18),
-                      label: Text(trp('Usiner ({0})', [art.edgeLinks.length])),
                     ),
                   ),
               ]),
@@ -3475,35 +3978,6 @@ class _ArtPageState extends State<ArtPage> {
           }
         });
       });
-
-  /// Bascule Couper / Lier les chants (mode découpe, vue de dessus).
-  Widget _cutLinkSwitch() => SegmentedButton<CadTool>(
-        key: const ValueKey('cut_link_switch'),
-        showSelectedIcon: false,
-        style: const ButtonStyle(visualDensity: VisualDensity.compact),
-        segments: [
-          ButtonSegment(value: CadTool.cut, label: Text(tr('Couper')), icon: const Icon(Icons.content_cut, size: 16)),
-          ButtonSegment(value: CadTool.link, label: Text(tr('Lier')), icon: const Icon(Icons.link, size: 16)),
-        ],
-        selected: {activeTool == CadTool.link ? CadTool.link : CadTool.cut},
-        onSelectionChanged: (v) => _selectTool(v.first),
-      );
-
-  /// Assemblage d'une liaison : automatique (réglage général) ou choisi (vis, tourillons, colle…).
-  Widget _jointPicker(String? value, void Function(String?) on) => PopupMenuButton<String>(
-        key: const ValueKey('link_joint'),
-        tooltip: tr('Assemblage de la liaison'),
-        initialValue: value ?? 'auto',
-        onSelected: (v) => on(v == 'auto' ? null : v),
-        itemBuilder: (_) => [
-          PopupMenuItem(value: 'auto', child: Text(trp('Auto : {0}', [tr(art.fittings.joint.label)]))),
-          for (final j in JointType.values) PopupMenuItem(value: j.name, child: Text(tr(j.label))),
-        ],
-        child: Chip(
-          avatar: const Icon(Icons.hardware_outlined, size: 16),
-          label: Text(value == null ? tr('Assemblage auto') : tr(JointType.values.byName(value).label), overflow: TextOverflow.ellipsis),
-        ),
-      );
 
   /// Aperçu 3D (écran partagé) : le meuble tel qu'il sera une fois les liaisons notées usinées.
   Widget _preview3d(ColorScheme scheme) => LayoutBuilder(builder: (context, c) {
@@ -3559,62 +4033,9 @@ class _ArtPageState extends State<ArtPage> {
         );
       });
 
-  /// Accueil du mode Art : Nouveau, Ouvrir, Bibliothèque.
-  Widget _welcome() {
-    final t = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    Widget card(String key, IconData icon, String title, String text, VoidCallback onTap) => SizedBox(
-          width: 230,
-          child: Card(
-            key: ValueKey(key),
-            elevation: 3,
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(icon, size: 44, color: _orange),
-                  const SizedBox(height: 10),
-                  Text(tr(title), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 6),
-                  Text(tr(text), textAlign: TextAlign.center, style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
-                ]),
-              ),
-            ),
-          ),
-        );
-    return ColoredBox(
-      color: scheme.surface.withValues(alpha: 0.92),
-      child: Center(
-        child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(tr('Mode Art : création libre'), style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 18),
-            Wrap(spacing: 16, runSpacing: 16, alignment: WrapAlignment.center, children: [
-              card('welcome_new', Icons.add_box_outlined, 'Nouveau', 'Feuille standard ou personnalisée, caisson de base, ou scène vide.', _newScene),
-              card('welcome_open', Icons.folder_open_outlined, 'Ouvrir', 'Une création enregistrée, un caisson ou un fichier de débit (JSON, CSV).', _openFile),
-              card('welcome_library', Icons.inventory_2_outlined, 'Ma bibliothèque', 'Vos meubles enregistrés, prêts à poser.', () => setState(() {
-                    welcomeDone = true;
-                    tab = 'biblio';
-                    sideOpen = true;
-                  })),
-            ]),
-            const SizedBox(height: 14),
-            TextButton(
-              key: const ValueKey('welcome_close'),
-              onPressed: () => setState(() => welcomeDone = true),
-              child: Text(tr('Commencer à dessiner sans modèle')),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-
   /// Nouveau : feuille standard, feuille personnalisée, caisson de base ou scène vide.
-  Future<void> _newScene() async {
-    final r = await showDialog<NewArtScene>(context: context, builder: (_) => const NewArtSceneDialog());
+  Future<void> _newScene([String? kind]) async {
+    final r = await showDialog<NewArtScene>(context: context, builder: (_) => NewArtSceneDialog(fixedKind: kind));
     if (r == null) return;
     setState(() => welcomeDone = true);
     switch (r.kind) {
@@ -3660,6 +4081,7 @@ class _ArtPageState extends State<ArtPage> {
         widget.state.project.art = opened;
         welcomeDone = true;
       });
+      _leaveHome();
       _fit();
       _msg(trp('Création ouverte : {0} pièce(s)', [opened.panels.length]));
     } catch (e) {
@@ -3702,7 +4124,7 @@ class _ArtPageState extends State<ArtPage> {
         ..clear()
         ..addAll(cut!);
       selectedPanel = null;
-      if (!sidePinned) sideOpen = false; // la place pour la feuille et l'aperçu 3D
+      if (MediaQuery.sizeOf(context).width < 1400) sideOpen = false; // la place pour la feuille et l'aperçu 3D
     });
     if (cut == null) {
       _undo.removeLast(); // rien n'a été coupé
@@ -3711,7 +4133,7 @@ class _ArtPageState extends State<ArtPage> {
     }
     _selectTool(CadTool.link);
     cam.fit(art.panels);
-    _msg(trp('{0} : {1} pièces coupées, {2} liaisons notées. Vérifiez l’aperçu 3D, puis « Usiner ».', [tr(r.name), cut!.length, art.edgeLinks.length]));
+    _msg(trp('{0} : {1} pièces coupées, {2} liaisons notées. Vérifiez l’aperçu 3D, puis « Monter le meuble ».', [tr(r.name), cut!.length, art.edgeLinks.length]));
   }
 
   /// Importer un fichier de débit : les pièces se posent à plat, prêtes à lier.
@@ -3735,74 +4157,7 @@ class _ArtPageState extends State<ArtPage> {
     });
     _selectTool(CadTool.link);
     cam.fit(art.panels);
-    _msg(trp('{0} pièce(s) importée(s) à plat : touchez deux chants pour les lier, puis « Usiner ».', [placed.length]));
-  }
-
-  Widget _navButton({required String key, required bool on, required IconData icon, required IconData onIcon, required String tip, required VoidCallback onTap}) =>
-      Material(
-        elevation: 3,
-        borderRadius: BorderRadius.circular(10),
-        color: on ? _orange : Theme.of(context).colorScheme.surface,
-        child: Tooltip(
-          message: tip,
-          child: InkWell(
-            key: ValueKey(key),
-            borderRadius: BorderRadius.circular(10),
-            onTap: onTap,
-            child: Padding(padding: const EdgeInsets.all(8), child: Icon(on ? onIcon : icon, size: 20, color: on ? Colors.white : null)),
-          ),
-        ),
-      );
-
-  /// Réglages de précision : pas de grille, aimants, guides d'alignement.
-  Widget _precisionMenu() {
-    final t = Theme.of(context).textTheme;
-    String g(double v) => v == v.roundToDouble() ? '${v.round()}' : '$v';
-    return Material(
-      elevation: 3,
-      borderRadius: BorderRadius.circular(10),
-      color: Theme.of(context).colorScheme.surface,
-      child: PopupMenuButton<String>(
-        key: const ValueKey('precision'),
-        tooltip: tr('Précision : grille, aimants, guides'),
-        onSelected: (v) => setState(() {
-          if (v.startsWith('grid:')) gridStep = double.parse(v.substring(5));
-          if (v == 'snapGrid') snapGrid = !snapGrid;
-          if (v == 'snapPoints') snapPoints = !snapPoints;
-          if (v == 'snapMid') snapMid = !snapMid;
-          if (v == 'snapAlign') snapAlign = !snapAlign;
-          if (v == 'ortho') orthoLock = !orthoLock;
-        }),
-        itemBuilder: (_) => [
-          PopupMenuItem(enabled: false, child: Text(tr('Pas de la grille'), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800))),
-          for (final st in const [1.0, 5.0, 10.0, 50.0, 100.0])
-            CheckedPopupMenuItem(value: 'grid:$st', checked: gridStep == st, child: Text(trp('{0} mm', [g(st)]))),
-          const PopupMenuDivider(),
-          CheckedPopupMenuItem(value: 'snapGrid', checked: snapGrid, child: Text(tr('Aimanter à la grille'))),
-          CheckedPopupMenuItem(value: 'snapPoints', checked: snapPoints, child: Text(tr('Aimanter aux coins'))),
-          CheckedPopupMenuItem(value: 'snapMid', checked: snapMid, child: Text(tr('Aimanter aux milieux et centres'))),
-          CheckedPopupMenuItem(value: 'snapAlign', checked: snapAlign, child: Text(tr('Guides d’alignement'))),
-          CheckedPopupMenuItem(value: 'ortho', checked: orthoLock, child: Text(tr('Lignes à 90°'))),
-          const PopupMenuDivider(),
-          PopupMenuItem(
-            enabled: false,
-            child: Text(tr('Flèches : déplacer d’un pas (Maj : × 10), Pg préc. / suiv. : en profondeur. Cotes exactes : tapez-les puis Entrée.'),
-                style: t.bodySmall),
-          ),
-        ],
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.grid_4x4, size: 18, color: snapGrid ? _orange : null),
-            const SizedBox(width: 6),
-            Text(trp('Grille {0} mm', [g(gridStep)]), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(width: 6),
-            Icon(Icons.adjust, size: 16, color: snapPoints ? _orange : Theme.of(context).disabledColor),
-            Icon(Icons.straighten, size: 16, color: snapAlign ? _orange : Theme.of(context).disabledColor),
-          ]),
-        ),
-      ),
-    );
+    _msg(trp('{0} pièce(s) importée(s) à plat : touchez deux chants pour les lier, puis « Monter le meuble ».', [placed.length]));
   }
 
   /// Les composants communs à tout meuble, avec leur nombre dans ce projet : toucher pour les mettre en avant.
@@ -3825,9 +4180,7 @@ class _ArtPageState extends State<ArtPage> {
   }
 
   /// Calques : un par composant des caissons et un par pièce libre, avec visibilité (œil) et verrou.
-  Widget _legend() {
-    final t = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
+  Widget _piecesPanel(TextTheme t, ColorScheme scheme) {
     final counts = <Comp, int>{};
     for (final p in art.panels) {
       final c = p.comp;
@@ -3877,57 +4230,20 @@ class _ArtPageState extends State<ArtPage> {
       );
     }
 
-    return Material(
-      key: const ValueKey('layers'),
-      color: scheme.surface.withValues(alpha: 0.96),
-      elevation: 2,
-      borderRadius: BorderRadius.circular(12),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 260, maxHeight: 360),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            // en-tête : glisser pour déplacer la fenêtre, chutes, replier
-            GestureDetector(
-              key: const ValueKey('layers_drag'),
-              behavior: HitTestBehavior.opaque,
-              onPanUpdate: (d) => setState(() {
-                final size = MediaQuery.sizeOf(context);
-                layersAt = Offset((layersAt.dx + d.delta.dx).clamp(0, size.width - 120), (layersAt.dy + d.delta.dy).clamp(0, size.height - 80));
-              }),
-              child: Padding(
-                padding: const EdgeInsets.only(left: 2, bottom: 2),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.drag_indicator, size: 18, color: scheme.outline),
-                  const SizedBox(width: 2),
-                  const Icon(Icons.layers_outlined, size: 18),
-                  const SizedBox(width: 6),
-                  Text(tr('Calques'), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
-                  const SizedBox(width: 12),
-                  if (art.free.any((p) => p.note == 'Chute'))
-                    IconButton(
-                      key: const ValueKey('toggle_offcuts'),
-                      visualDensity: VisualDensity.compact,
-                      iconSize: 18,
-                      tooltip: _offcutsHidden ? tr('Afficher les chutes') : tr('Masquer les chutes'),
-                      icon: Icon(_offcutsHidden ? Icons.texture : Icons.texture_outlined, color: _offcutsHidden ? scheme.outline : _orange),
-                      onPressed: _toggleOffcuts,
-                    ),
-                  IconButton(
-                    key: const ValueKey('layers_collapse'),
-                    visualDensity: VisualDensity.compact,
-                    iconSize: 20,
-                    tooltip: layersCollapsed ? tr('Déplier') : tr('Replier'),
-                    icon: Icon(layersCollapsed ? Icons.expand_more : Icons.expand_less),
-                    onPressed: () => setState(() => layersCollapsed = !layersCollapsed),
-                  ),
-                ]),
-              ),
-            ),
-            if (!layersCollapsed)
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
+    if (art.panels.isEmpty) {
+      return Padding(padding: const EdgeInsets.all(Tokens.s4), child: Text(tr('Aucune pièce : posez une feuille ou dessinez un rectangle.'), style: t.bodyMedium));
+    }
+    final waste = art.free.any((p) => p.note == 'Chute');
+    return ListView(key: const ValueKey('layers'), padding: const EdgeInsets.fromLTRB(6, 6, 6, 12), children: [
+      if (waste)
+        SwitchListTile(
+          key: const ValueKey('toggle_offcuts'),
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+          title: Text(tr('Chutes de la feuille')),
+          value: !_offcutsHidden,
+          onChanged: (_) => _toggleOffcuts(),
+        ),
                   for (final c in Comp.values)
                     if (counts[c] != null)
                       row(
@@ -3952,118 +4268,90 @@ class _ArtPageState extends State<ArtPage> {
                         activeTool = CadTool.select;
                       }),
                     ),
-                ]),
-              ),
+    ]);
+  }
+
+  // ---------------------------------------------------------------- panneau de réglages
+  /// Assembler : la marche à suivre, les liaisons notées et le choix des assemblages.
+  Widget _assemblePanel(TextTheme t, ColorScheme scheme) {
+    final n = art.edgeLinks.length;
+    Widget line(int i, String text, bool done) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            CircleAvatar(
+              radius: 11,
+              backgroundColor: done ? const Color(0xFF16A34A) : scheme.surfaceContainerHighest,
+              child: done ? const Icon(Icons.check, size: 14, color: Colors.white) : Text('$i', style: t.labelSmall?.copyWith(fontWeight: FontWeight.w800)),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(tr(text), style: t.bodyMedium)),
+          ]),
+        );
+    final flat = art.free.where((p) => thicknessAxis(p) == 1 && p.note != 'Chute').length;
+    return ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
+      if (art.free.isNotEmpty) ...[
+        line(1, 'Touchez « Lier deux chants », puis le chant d’une pièce et celui où il se pose.', n > 0),
+        line(2, 'Vérifiez l’aperçu monté à droite.', false),
+        line(3, 'Touchez « Monter le meuble ».', n == 0 && flat < art.free.length && art.free.length > 1),
+        if (activeTool != CadTool.link)
+          FilledButton.tonalIcon(
+            key: const ValueKey('start_link'),
+            onPressed: () => _selectTool(CadTool.link),
+            icon: const Icon(Icons.link),
+            label: Text(tr('Lier deux chants')),
+          ),
+        if (n > 0) ...[
+          const SizedBox(height: Tokens.s3),
+          Row(children: [
+            Expanded(child: Text(trp('Liaisons notées ({0})', [n]), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800))),
+            TextButton.icon(
+              key: const ValueKey('link_clear'),
+              onPressed: () => change(art.edgeLinks.clear),
+              icon: const Icon(Icons.link_off, size: 18),
+              label: Text(tr('Tout effacer')),
             ),
           ]),
+          for (var i = 0; i < n; i++) _linkRow(t, scheme, i),
+        ],
+        const Divider(height: Tokens.s6),
+      ] else
+        Padding(
+          padding: const EdgeInsets.only(bottom: Tokens.s3),
+          child: Text(tr('Un caisson composé est déjà assemblé : choisissez seulement les assemblages et accessoires.'), style: t.bodyMedium),
         ),
+      Text(tr('Assemblages et accessoires'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+      const SizedBox(height: Tokens.s2),
+      ..._fitPicks(),
+    ]);
+  }
+
+  Widget _linkRow(TextTheme t, ColorScheme scheme, int i) {
+    final l = art.edgeLinks[i];
+    String name(String id) {
+      final p = art.free.where((q) => q.id == id).firstOrNull;
+      return p == null ? id : (p.note != null ? tr(p.note!) : tr(p.role.label));
+    }
+
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(radius: 11, backgroundColor: const Color(0xFF2563EB), child: Text('${i + 1}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800))),
+      title: Text('${name(l.a)} → ${name(l.b)}', maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: IconButton(
+        tooltip: tr('Retirer cette liaison'),
+        icon: const Icon(Icons.close, size: 18),
+        onPressed: () => change(() => art.edgeLinks.removeAt(i)),
       ),
     );
   }
 
-  // ---------------------------------------------------------------- panneau de réglages
-  Widget _tabStrip(TextTheme t, ColorScheme scheme, List<(String, String)> tabs) => Row(children: [
-        for (final (id, label) in tabs)
-          Expanded(
-            child: InkWell(
-              key: ValueKey('art_tab_$id'),
-              onTap: () => setState(() {
-                tab = id;
-                if (id == 'usinage') isMachiningMode = true;
-              }),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tab == id ? _orange : scheme.outlineVariant, width: tab == id ? 3 : 1))),
-                child: Center(child: FittedBox(child: Text(tr(label), style: t.labelLarge?.copyWith(fontWeight: tab == id ? FontWeight.w800 : FontWeight.w500)))),
-              ),
-            ),
-          ),
-      ]);
-
-  Widget _side(TextTheme t, ColorScheme scheme) {
-    final b = box;
-    if (b == null) {
-      // dessin libre (sans caisson tout fait) : bases, usinage, débit et bibliothèque
-      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _tabStrip(t, scheme, const [('bases', 'Démarrer'), ('usinage', 'Usinage'), ('debit', 'Débit'), ('biblio', 'Ma bibliothèque')]),
-        Expanded(
-          child: KeyedSubtree(key: ValueKey('free_$tab'), child: switch (tab) {
-            'usinage' => _machiningTab(t, scheme),
-            'debit' => art.free.isEmpty ? _start(t, scheme) : _cut(t, scheme),
-            'biblio' => _libraryTab(t, scheme),
-            _ => _start(t, scheme),
-          }),
-        ),
-      ]);
-    }
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      // caissons du meuble
-      SizedBox(
-        height: 52,
-        child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.fromLTRB(Tokens.s3, 8, Tokens.s3, 4), children: [
-          for (var i = 0; i < art.boxes.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: ChoiceChip(
-                label: Text('${i + 1} · ${art.boxes[i].name}'),
-                selected: i == boxIndex,
-                onSelected: (_) => setState(() {
-                  boxIndex = i;
-                  zoneId = art.boxes[i].zones.first.id;
-                  column = 0;
-                }),
-              ),
-            ),
-          ActionChip(avatar: const Icon(Icons.add, size: 18), label: Text(tr('Caisson')), onPressed: _chooseBase),
-        ]),
-      ),
-      // étapes : 1 caisson, 2 intérieur, 3 façades, 4 extérieur, 5 débit, 6 usinage
-      Row(children: [
-        for (final (id, n, label) in const [
-          ('caisson', 1, 'Caisson'),
-          ('interieur', 2, 'Intérieur'),
-          ('facades', 3, 'Façades'),
-          ('exterieur', 4, 'Extérieur'),
-          ('debit', 5, 'Débit'),
-          ('usinage', 6, 'Usinage'),
-          ('biblio', 7, 'Ma bibliothèque'),
-        ])
-          Expanded(
-            child: InkWell(
-              onTap: () => setState(() {
-                tab = id;
-                if (id == 'usinage') isMachiningMode = true;
-              }),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: tab == id ? _orange : scheme.outlineVariant, width: tab == id ? 3 : 1))),
-                child: Column(children: [
-                  CircleAvatar(
-                    radius: 11,
-                    backgroundColor: tab == id ? _orange : scheme.surfaceContainerHighest,
-                    child: Text('$n', style: t.labelSmall?.copyWith(color: tab == id ? Colors.white : scheme.onSurface, fontWeight: FontWeight.w800)),
-                  ),
-                  const SizedBox(height: 3),
-                  FittedBox(child: Text(tr(label), style: t.labelMedium?.copyWith(fontWeight: tab == id ? FontWeight.w800 : FontWeight.w500))),
-                ]),
-              ),
-            ),
-          ),
-      ]),
-      Expanded(
-        // chaque onglet garde son propre défilement (sinon il hérite de celui de l'onglet précédent)
-        child: KeyedSubtree(key: ValueKey('side_$tab'), child: switch (tab) {
-          'interieur' => _interior(b, t, scheme),
-          'facades' => _fronts(b, t, scheme),
-          'exterieur' => _exterior(b, t, scheme),
-          'debit' => _cut(t, scheme),
-          'usinage' => _machiningTab(t, scheme),
-          'biblio' => _libraryTab(t, scheme),
-          _ => _carcass(b, t, scheme),
-        }),
-      ),
-    ]);
-  }
+  List<Widget> _fitPicks() => [
+        _fitPick<JointType>('Assemblage des panneaux', JointType.values, art.fittings.joint, (v) => v.label, (v) => v.usage, (v) => art.fittings.joint = v),
+        _fitPick<HingeType>('Charnières des portes', HingeType.values, art.fittings.hinge, (v) => v.label, (v) => v.usage, (v) => art.fittings.hinge = v),
+        _fitPick<HangType>('Fixation des meubles hauts', HangType.values, art.fittings.hang, (v) => v.label, (v) => '', (v) => art.fittings.hang = v),
+        _fitPick<FootType>('Pieds des meubles bas', FootType.values, art.fittings.foot, (v) => v.label, (v) => '', (v) => art.fittings.foot = v),
+        _fitPick<LinkType>('Jonction entre caissons voisins', LinkType.values, art.fittings.link, (v) => v.label, (v) => '', (v) => art.fittings.link = v),
+      ];
 
   /// Enregistre la sélection (ou tout le meuble) dans la bibliothèque, sous un nom.
   Future<void> _saveToLibrary() async {
@@ -4104,7 +4392,6 @@ class _ArtPageState extends State<ArtPage> {
     );
     if (ok != true || !mounted) return;
     final item = ArtLibrary.instance.add(name.text, sel);
-    setState(() => tab = 'biblio');
     _msg(trp('« {0} » ajouté à la bibliothèque ({1} × {2} × {3} mm)', [item.name, item.w, item.h, item.d]));
   }
 
@@ -4113,6 +4400,7 @@ class _ArtPageState extends State<ArtPage> {
     final b = art.bounds;
     final x = b == null ? 0.0 : b.$3 + 100;
     final ps = it.placedAt(x, 0, 0, art.newId);
+    _leaveHome();
     change(() {
       art.free.addAll(ps);
       selection
@@ -4124,128 +4412,6 @@ class _ArtPageState extends State<ArtPage> {
     cam.fit(art.panels);
     _msg(trp('« {0} » inséré', [it.name]));
   }
-
-  Widget _libraryTab(TextTheme t, ColorScheme scheme) => ListenableBuilder(
-        listenable: ArtLibrary.instance,
-        builder: (context, _) {
-          final items = ArtLibrary.instance.items;
-          final presets = Favorites.instance.sorted(artPresets, (p) => 'art:preset:${p.name}');
-          final recipes = Favorites.instance.sorted(ArtRecipes.all, (r) => 'art:recipe:${r.id}');
-          return ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
-            Text(tr('Meubles depuis une feuille'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text(tr('Pièces coupées dans la feuille et liées : vérifiez l’aperçu 3D, puis « Usiner ».'), style: t.bodySmall),
-            const SizedBox(height: Tokens.s2),
-            for (final r in recipes)
-              Card(
-                margin: const EdgeInsets.only(bottom: Tokens.s2),
-                child: ListTile(
-                  key: ValueKey('lib_recipe_${r.id}'),
-                  leading: const Icon(Icons.door_front_door_outlined, color: _orange),
-                  title: Text(tr(r.name), style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text(tr(r.description), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  trailing: FavoriteStar(id: 'art:recipe:${r.id}'),
-                  onTap: () => _recipeFromLibrary(r.id),
-                ),
-              ),
-            const SizedBox(height: Tokens.s3),
-            Text(tr('Caissons à composer'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text(tr('Une base à diviser en colonnes et en étagères, puis à habiller zone par zone.'), style: t.bodySmall),
-            const SizedBox(height: Tokens.s2),
-            for (final p in presets) _presetTile(p, t, () => _addBox(p.build())),
-            const SizedBox(height: Tokens.s3),
-            Text(tr('Mes meubles'), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text(tr('Vos meubles enregistrés : à réinsérer ici, ou à poser comme objet dans les autres modes (panneau Objets → Bibliothèque).'),
-                style: t.bodySmall),
-            const SizedBox(height: Tokens.s3),
-            FilledButton.icon(
-              onPressed: _saveToLibrary,
-              icon: const Icon(Icons.bookmark_add_outlined),
-              label: Text(selection.length > 1 ? tr('Enregistrer la sélection') : tr('Enregistrer ce meuble')),
-            ),
-            const SizedBox(height: Tokens.s3),
-            if (items.isEmpty) Text(tr('La bibliothèque est vide.'), style: t.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
-            for (final it in items.reversed)
-              Card(
-                margin: const EdgeInsets.only(bottom: Tokens.s2),
-                child: ListTile(
-                  leading: const Icon(Icons.inventory_2_outlined, color: _orange),
-                  title: Text(it.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text(trp('{0} × {1} × {2} mm · {3} panneaux', [it.w, it.h, it.d, it.panels.length])),
-                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                    IconButton(tooltip: tr('Insérer'), icon: const Icon(Icons.add_box_outlined), onPressed: () => _insertFromLibrary(it)),
-                    IconButton(
-                      tooltip: tr('Retirer de la bibliothèque'),
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () async {
-                        final yes = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: Text(tr('Retirer de la bibliothèque ?')),
-                            content: Text(trp('« {0} » ne sera plus proposé. Les projets où il est déjà posé le gardent tant que la bibliothèque le contient.', [it.name])),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Annuler'))),
-                              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Retirer'))),
-                            ],
-                          ),
-                        );
-                        if (yes == true) ArtLibrary.instance.remove(it.id);
-                      },
-                    ),
-                  ]),
-                ),
-              ),
-          ]);
-        },
-      );
-
-  Widget _start(TextTheme t, ColorScheme scheme) => ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
-        // départ par une feuille entière, découpée ensuite au trait de scie (X / Y)
-        Card(
-          color: _orange.withValues(alpha: 0.08),
-          child: Padding(
-            padding: const EdgeInsets.all(Tokens.s3),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Row(children: [
-                const Icon(Icons.crop_landscape, color: _orange),
-                const SizedBox(width: 8),
-                Expanded(child: Text(tr('Commencer par une feuille entière'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800))),
-              ]),
-              const SizedBox(height: 4),
-              Text(tr('La feuille du tarif se pose à plat ; l’outil Couper la divise en X ou en Y, trait de scie déduit, jusqu’aux pièces voulues.'),
-                  style: t.bodySmall),
-              const SizedBox(height: 10),
-              _materialPicker(sheetMaterial, (v) => setState(() => sheetMaterial = v), label: 'Feuille'),
-              const SizedBox(height: 8),
-              FilledButton.icon(
-                key: const ValueKey('start_sheet'),
-                onPressed: _startFromSheet,
-                icon: const Icon(Icons.content_cut),
-                label: Text(tr('Poser la feuille et couper')),
-              ),
-            ]),
-          ),
-        ),
-        const SizedBox(height: Tokens.s4),
-        // les meubles prêts (caissons paramétriques et meubles depuis une feuille) sont dans la bibliothèque
-        FilledButton.tonalIcon(
-          key: const ValueKey('start_library'),
-          onPressed: () => setState(() => tab = 'biblio'),
-          icon: const Icon(Icons.inventory_2_outlined),
-          label: Text(tr('Meubles prêts : ouvrir Ma bibliothèque')),
-        ),
-        const SizedBox(height: Tokens.s3),
-        OutlinedButton.icon(onPressed: () => _addBox(ArtBox(name: 'Caisson vide', covers: {})), icon: const Icon(Icons.crop_square), label: Text(tr('Caisson vide 800 x 720'))),
-        const SizedBox(height: 6),
-        OutlinedButton.icon(onPressed: _importJson, icon: const Icon(Icons.file_open_outlined), label: Text(tr('Importer un caisson (JSON)'))),
-        if (art.free.isNotEmpty) ...[
-          const SizedBox(height: Tokens.s3),
-          Text(trp('{0} panneau(x) libre(s) d’un ancien dessin.', [art.free.length]), style: t.bodySmall),
-          TextButton(onPressed: () => change(art.free.clear), child: Text(tr('Les effacer'))),
-        ],
-      ]);
 
   Widget _section(TextTheme t, String title, [String? hint]) => Padding(
         padding: const EdgeInsets.only(top: Tokens.s4, bottom: 6),
@@ -4660,14 +4826,6 @@ class _ArtPageState extends State<ArtPage> {
             Expanded(child: Text(w, style: t.bodySmall)),
           ]),
         ),
-      const SizedBox(height: Tokens.s3),
-      FilledButton.icon(onPressed: parts.isEmpty ? null : _pdf, icon: const Icon(Icons.picture_as_pdf_outlined), label: Text(tr('Plan de coupe (PDF)'))),
-      const SizedBox(height: 6),
-      Row(children: [
-        Expanded(child: OutlinedButton.icon(onPressed: parts.isEmpty ? null : _sct, icon: const Icon(Icons.content_cut), label: Text(tr('.sct')))),
-        const SizedBox(width: 6),
-        Expanded(child: OutlinedButton.icon(onPressed: parts.isEmpty ? null : _toManual, icon: const Icon(Icons.edit_note), label: Text(tr('Débit manuel')))),
-      ]),
       for (final e in byMat.entries) ...[
         _section(t, e.key),
         for (final p in e.value)
@@ -4761,11 +4919,7 @@ class _ArtPageState extends State<ArtPage> {
         const SizedBox(height: Tokens.s4),
         Text(tr('Accessoires'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 6),
-        _fitPick<JointType>('Assemblage des panneaux', JointType.values, art.fittings.joint, (v) => v.label, (v) => v.usage, (v) => art.fittings.joint = v),
-        _fitPick<HingeType>('Charnières des portes', HingeType.values, art.fittings.hinge, (v) => v.label, (v) => v.usage, (v) => art.fittings.hinge = v),
-        _fitPick<HangType>('Fixation des meubles hauts', HangType.values, art.fittings.hang, (v) => v.label, (v) => '', (v) => art.fittings.hang = v),
-        _fitPick<FootType>('Pieds des meubles bas', FootType.values, art.fittings.foot, (v) => v.label, (v) => '', (v) => art.fittings.foot = v),
-        _fitPick<LinkType>('Jonction entre caissons voisins', LinkType.values, art.fittings.link, (v) => v.label, (v) => '', (v) => art.fittings.link = v),
+        ..._fitPicks(),
         const SizedBox(height: Tokens.s3),
         Card(
           elevation: 1,
@@ -4932,6 +5086,8 @@ class _ScenePainter extends CustomPainter {
   final String? liveLabel; // cote affichée à côté du curseur
   final (V3, V3)? cutLine; // ligne de coupe en cours (outil Couper)
   final V3? cutCircle; // centre de la coupe circulaire (CNC)
+  final bool sizesInside; // une seule étiquette « L × l » au milieu de chaque pièce (liaison)
+  final List<ArtPanel> sizedParts; // pièces à plat à coter (découpe, liaison)
   final List<(V3, V3, String)> cutPreview; // largeurs des futurs morceaux
   final CadDimension? dimPreview; // cote en cours
   final String? cutLabel; // position de la ligne (repère feuille)
@@ -4969,6 +5125,8 @@ class _ScenePainter extends CustomPainter {
     this.cutLine,
     this.cutCircle,
     this.cutPreview = const [],
+    this.sizedParts = const [],
+    this.sizesInside = false,
     this.dimPreview,
     this.cutLabel,
     this.sheetOrigin,
@@ -5485,6 +5643,59 @@ class _ScenePainter extends CustomPainter {
           tp.paint(c, Offset(r.left + 7, r.top + 4));
         }
       }
+    }
+
+    // 5 sexies. Découpe : cotes de chaque pièce, le long de ses deux bords (lisibles dans le sens du bord)
+    for (final sp in sizedParts) {
+      final y = sp.top;
+      final corners = [V3(sp.x, y, sp.z), V3(sp.right, y, sp.z), V3(sp.right, y, sp.back), V3(sp.x, y, sp.back)].map(p).toList();
+      final mid = corners.fold(Offset.zero, (a, q) => a + q) / 4;
+      final waste = sp.note == 'Chute';
+      final col = waste ? const Color(0xFF6B7280) : const Color(0xFF1D4ED8);
+      // le bord du haut et le bord de gauche à l'écran
+      final ex = [(corners[0], corners[1]), (corners[3], corners[2])]..sort((a, b) => (a.$1.dy + a.$2.dy).compareTo(b.$1.dy + b.$2.dy));
+      final ez = [(corners[0], corners[3]), (corners[1], corners[2])]..sort((a, b) => (a.$1.dx + a.$2.dx).compareTo(b.$1.dx + b.$2.dx));
+      void cote((Offset, Offset) e, double mm, double across) {
+        var (a, b) = e;
+        if ((b - a).dx < -0.5 || ((b - a).dx.abs() <= 0.5 && (b - a).dy > 0)) (a, b) = (b, a); // texte à l'endroit
+        final len = (b - a).distance;
+        final tp = TextPainter(
+          text: TextSpan(text: '${mm.round()}', style: TextStyle(color: col, fontSize: 13, fontWeight: FontWeight.w800)),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        if (len < tp.width + 10 || across < tp.height + 14) return; // trop petit à cette échelle
+        final u = (b - a) / len;
+        var n = Offset(-u.dy, u.dx);
+        if ((mid - a).dx * n.dx + (mid - a).dy * n.dy < 0) n = -n; // vers l'intérieur de la pièce
+        final off = n * 14.0;
+        final line = Paint()
+          ..color = col
+          ..strokeWidth = 1.2;
+        final a1 = a + off + u * 5, b1 = b + off - u * 5, m = (a1 + b1) / 2;
+        final gap = tp.width / 2 + 5;
+        c.drawLine(a1, m - u * gap, line);
+        c.drawLine(m + u * gap, b1, line);
+        for (final q in [a1, b1]) {
+          c.drawLine(q - n * 4 - u * 2, q + n * 4 + u * 2, line);
+        }
+        c.save();
+        c.translate(m.dx, m.dy);
+        c.rotate(math.atan2(u.dy, u.dx));
+        tp.paint(c, Offset(-tp.width / 2, -tp.height / 2));
+        c.restore();
+      }
+
+      if (sizesInside) {
+        final tp = TextPainter(
+          text: TextSpan(text: '${sp.w.round()} × ${sp.d.round()}', style: TextStyle(color: col, fontSize: 12, fontWeight: FontWeight.w800)),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        if (tp.width + 16 < (ex.first.$2 - ex.first.$1).distance) tp.paint(c, mid - Offset(tp.width / 2, tp.height / 2));
+        continue;
+      }
+      final wPx = (ex.first.$2 - ex.first.$1).distance, dPx = (ez.first.$2 - ez.first.$1).distance;
+      cote(ex.first, sp.w, dPx);
+      cote(ez.first, sp.d, wPx);
     }
 
     // 5 quinquies. Outil Lier : chant choisi (orange épais) et numéros des chants

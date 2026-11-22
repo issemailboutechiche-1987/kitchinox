@@ -21,9 +21,6 @@ void main() {
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
     await closeArtWelcome(t);
-    // panneau latéral épinglé : la zone de travail garde sa taille (positions à l'écran stables)
-    await t.tap(find.byKey(const ValueKey('side_pin')));
-    await t.pumpAndSettle();
     final art = st.project.art;
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
 
@@ -91,7 +88,9 @@ void main() {
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
     await closeArtWelcome(t);
-    await t.tap(find.byTooltip('Activer le Mode Usinage (Tourillons, Vis, Perçages 32mm, Chants)'));
+    await t.tap(find.byKey(const ValueKey('view_options')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Perçages et usinages'));
     await t.pumpAndSettle();
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/art_usinage.png'));
     expect(t.takeException(), isNull);
@@ -136,9 +135,6 @@ void main() {
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
     await closeArtWelcome(t);
-    // panneau latéral épinglé : la zone de travail garde sa taille (positions à l'écran stables)
-    await t.tap(find.byKey(const ValueKey('side_pin')));
-    await t.pumpAndSettle();
     await expectLater(find.byKey(const Key('art-viewport')), matchesGoldenFile('goldens/art_chants_rainures.png'));
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
     final s = t.state(find.byType(ArtPage)) as dynamic;
@@ -273,9 +269,6 @@ void main() {
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
     await closeArtWelcome(t);
-    // panneau latéral épinglé : la zone de travail garde sa taille (positions à l'écran stables)
-    await t.tap(find.byKey(const ValueKey('side_pin')));
-    await t.pumpAndSettle();
     final s = t.state(find.byType(ArtPage)) as dynamic;
     await t.sendKeyEvent(LogicalKeyboardKey.keyK);
     await t.pumpAndSettle();
@@ -319,8 +312,10 @@ void main() {
     await closeArtWelcome(t);
     final s = t.state(find.byType(ArtPage)) as dynamic;
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
-    // toucher la zone de travail replie le panneau latéral (non épinglé)
+    // toucher la zone de travail replie le tiroir quand il n'est pas épinglé
     expect(s.sideOpen, isTrue);
+    await t.tap(find.byKey(const ValueKey('side_pin')));
+    await t.pumpAndSettle();
     await t.tapAt(vp.topLeft + const Offset(40, 300));
     await t.pumpAndSettle();
     expect(s.sideOpen, isFalse);
@@ -332,7 +327,7 @@ void main() {
     // épinglé : il reste ouvert
     await t.tap(find.byKey(const ValueKey('side_toggle')));
     await t.pumpAndSettle();
-    await t.tap(find.byKey(const ValueKey('side_toggle')));
+    await t.tap(find.byKey(const ValueKey('side_reopen')));
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('side_pin')));
     await t.pumpAndSettle();
@@ -395,8 +390,6 @@ void main() {
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
     await closeArtWelcome(t);
-    await t.tap(find.byKey(const ValueKey('side_pin')));
-    await t.pumpAndSettle();
     final s = t.state(find.byType(ArtPage)) as dynamic;
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
     // main : glisser déplace la vue sans la tourner
@@ -420,7 +413,9 @@ void main() {
     // pivot sur l'objet choisi : la rotation tourne autour de lui
     (s.selection as Set).add(p);
     s.selectedPanel = p;
-    await t.tap(find.byKey(const ValueKey('nav_pivot')));
+    await t.tap(find.byKey(const ValueKey('view_options')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Tourner autour de l’objet choisi'));
     await t.pumpAndSettle();
     await t.dragFrom(vp.center + const Offset(-200, 250), const Offset(80, 0));
     await t.pumpAndSettle();
@@ -440,8 +435,6 @@ void main() {
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
     await closeArtWelcome(t);
-    await t.tap(find.byKey(const ValueKey('side_pin')));
-    await t.pumpAndSettle();
     final s = t.state(find.byType(ArtPage)) as dynamic;
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
     await t.sendKeyEvent(LogicalKeyboardKey.keyD);
@@ -479,8 +472,6 @@ void main() {
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
     await closeArtWelcome(t);
-    await t.tap(find.byKey(const ValueKey('side_pin')));
-    await t.pumpAndSettle();
     final s = t.state(find.byType(ArtPage)) as dynamic;
     await t.sendKeyEvent(LogicalKeyboardKey.keyX);
     await t.pumpAndSettle();
@@ -510,11 +501,11 @@ void main() {
     await t.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light, googleFonts: false), home: ArtPage(state: st)));
     await t.pumpAndSettle();
     await closeArtWelcome(t);
-    await t.tap(find.byKey(const ValueKey('side_pin')));
-    await t.pumpAndSettle();
     final s = t.state(find.byType(ArtPage)) as dynamic;
     final vp = t.getRect(find.byKey(const Key('art-viewport')));
     final at = vp.topLeft + (s.screenOf(400.0, 18.0, 250.0) as Offset);
+    await t.tap(find.byKey(const ValueKey('tray_pieces')));
+    await t.pumpAndSettle();
     expect(find.byKey(const ValueKey('layers')), findsOneWidget);
     // verrou : un clic ne sélectionne plus la pièce
     await t.tap(find.byKey(const ValueKey('lock_a')));

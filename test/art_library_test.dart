@@ -72,10 +72,7 @@ void main() {
     await t.pumpAndSettle();
     await closeArtWelcome(t);
     await expectLater(find.byKey(const Key('art-viewport')), matchesGoldenFile('goldens/art_vis_assemble.png'));
-    await t.ensureVisible(find.text('Éclaté'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('Éclaté'));
-    await t.pumpAndSettle();
+    await toggleView(t, 'Éclaté');
     await expectLater(find.byKey(const Key('art-viewport')), matchesGoldenFile('goldens/art_vis_eclate.png'));
     expect(t.takeException(), isNull);
   });
@@ -89,4 +86,12 @@ Future<void> closeArtWelcome(WidgetTester t) async {
     await t.tap(f);
     await t.pumpAndSettle();
   }
+}
+
+/// Coche ou décoche une ligne du menu Affichage de la vue.
+Future<void> toggleView(WidgetTester t, String label) async {
+  await t.tap(find.byKey(const ValueKey('view_options')));
+  await t.pumpAndSettle();
+  await t.tap(find.text(label).last);
+  await t.pumpAndSettle();
 }

@@ -86,3 +86,52 @@ class KxTopBar extends StatelessWidget {
     );
   }
 }
+
+/// Étape numérotée d'un parcours (cuisine, dressing, atelier…).
+class KxStepTab extends StatelessWidget {
+  final int number;
+  final String label;
+  final bool active, done, compact;
+  final double height;
+  final VoidCallback onTap;
+  const KxStepTab({super.key, required this.number, required this.label, required this.active, required this.done, required this.onTap, this.compact = false, this.height = 52});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final t = Theme.of(context).textTheme;
+    return Semantics(
+      selected: active,
+      button: true,
+      label: trp('Étape {0} : {1}', [number, label]),
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          height: height,
+          padding: const EdgeInsets.symmetric(horizontal: Tokens.s3),
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: active ? scheme.primary : Colors.transparent, width: 3))),
+          child: Row(children: [
+            AnimatedContainer(
+              duration: Tokens.fast,
+              width: 24,
+              height: 24,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: active || done ? scheme.primary : Colors.transparent,
+                border: Border.all(color: active || done ? scheme.primary : scheme.outline),
+              ),
+              child: done
+                  ? Icon(Icons.check, size: 14, color: scheme.onPrimary)
+                  : Text('$number', style: t.labelMedium?.copyWith(color: active ? scheme.onPrimary : scheme.onSurfaceVariant, fontWeight: FontWeight.w700)),
+            ),
+            if (!compact || active) ...[
+              const SizedBox(width: Tokens.s2),
+              Text(label, style: t.titleSmall?.copyWith(fontWeight: active ? FontWeight.w800 : FontWeight.w600, color: active ? scheme.primary : scheme.onSurface)),
+            ],
+          ]),
+        ),
+      ),
+    );
+  }
+}
