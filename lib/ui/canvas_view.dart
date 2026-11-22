@@ -1085,7 +1085,9 @@ class _PlannerPainter extends CustomPainter {
       final r = v.rect(isl.x0, isl.y0, isl.x0 + isl.length, isl.y0 + Island.depth + isl.overhang);
       canvas.drawRect(r, Paint()..color = top.color);
       canvas.drawRect(r, _stroke(const Color(0xFF6B6F75), wallFocus == 'I' ? 2.5 : 1.2));
-      final over = v.rect(isl.x0, isl.y0 + Island.depth, isl.x0 + isl.length, isl.y0 + Island.depth + isl.overhang);
+      final over = isl.flip
+          ? v.rect(isl.x0, isl.y0, isl.x0 + isl.length, isl.y0 + isl.overhang)
+          : v.rect(isl.x0, isl.y0 + Island.depth, isl.x0 + isl.length, isl.y0 + Island.depth + isl.overhang);
       canvas.save();
       canvas.clipRect(over);
       for (var d = -over.height; d < over.width; d += 10) {
@@ -1716,6 +1718,7 @@ class _PlannerPainter extends CustomPainter {
         line: lineOn(fr.color),
         opening: it.opening,
         variant: it.variant,
+        profile: p.style.frontProfile,
         handles: handleSetOf(p.style, st.db?.handles, r.model, front: fr.color),
 
         tallXxl: p.style.tallXxl,

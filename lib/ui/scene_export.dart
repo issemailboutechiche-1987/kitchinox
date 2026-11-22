@@ -255,7 +255,7 @@ class SceneExporter {
           }
           if (!niches && apps.isEmpty && !e.isWashing(m)) {
             final inner = b.z1 - b.z0 - 36;
-            final n = m.kind == CabinetKind.tall ? 4 : (inner > 600 ? 2 : (inner > 330 ? 1 : 0));
+            final n = m.kind == CabinetKind.cornerTall ? 5 : m.kind == CabinetKind.tall ? 4 : (m.id.contains('top') ? 0 : (inner > 600 ? 2 : (inner > 330 ? 1 : 0)));
             final drawers = openableCells(m, c).where((x) => x.kind == CellKind.drawer).fold<double>(0, (a, x) => a + x.h);
             final top = b.z1 - 18, bottom = b.z0 + 18 + (drawers > 0 && m.kind.isLow ? drawers : 0);
             for (var k = 1; k <= n; k++) {
@@ -278,7 +278,7 @@ class SceneExporter {
       final hs = handleSetOf(style, st.db?.handles, m, front: fr.color);
       var grips = <Map<String, dynamic>>[]; // poignées en relief de la dernière façade demandée
       Future<String> frontImg(String what, double wMm, double hMm, List<FrontCell>? cs, {String? opening, bool? handleTop}) async {
-        final key = 'front|${m.id}|$what|${wMm.round()}x${hMm.round()}|${fr.id}|${hs.door.key}|${hs.drawer.key}|'
+        final key = 'front|${m.id}|$what|${wMm.round()}x${hMm.round()}|${fr.id}|${hs.door.key}|${hs.drawer.key}|${style.frontProfile}|'
             '${style.tallXxl}|${opening ?? c.opening}|${c.variant}|${apps.join(',')}|${carcass.id}|${fr.textured}|$handleTop';
         final found = <Map<String, dynamic>>[];
         void paint(Canvas cv, void Function(GripSpec) onGrip) => paintFront(cv, Rect.fromLTWH(0, 0, wMm, hMm), m,
@@ -288,6 +288,7 @@ class SceneExporter {
               opening: opening ?? c.opening,
               variant: c.variant,
               handles: hs,
+              profile: style.frontProfile,
               onGrip: onGrip,
               tallXxl: style.tallXxl,
               fillPaint: fr.paint(vertical: true),
@@ -326,6 +327,7 @@ class SceneExporter {
           final kz = height / (total <= 0 ? 1 : total);
           for (final cell in all) {
             if (niches && cell.kind == CellKind.niche) continue; // niche ouverte : rien devant
+            if (st.studio == 'bare' && cell.kind == CellKind.appliance) continue; // meubles seuls : emplacement vide
             final zTop = b.z1 - cell.y * kz, h = cell.h * kz;
             final moving = cells.any((x) => x.y == cell.y && x.kind == cell.kind);
             final kind = !moving
@@ -373,6 +375,10 @@ class SceneExporter {
                 if (grips.isNotEmpty) 'grips': grips,
                 // porte vitrée : cadre de 60 mm et vrai verre, vus des deux côtés
                 if (cell.kind == CellKind.glass && lw > 160 && fz1 - fz0 > 160) 'glass': 60.0,
+                if (cell.kind == CellKind.glass && (style.frontProfile == 'shaker' || style.frontProfile == 'mouluree')) 'muntins': true,
+                // façade à cadre : vrai relief
+                if (cell.kind.hasFront && cell.kind != CellKind.glass && profileFrame(style.frontProfile, lw, fz1 - fz0) > 0)
+                  'frame': {'w': profileFrame(style.frontProfile, lw, fz1 - fz0), 'raised': style.frontProfile == 'mouluree'},
                 if (kind != 'static') 'inside': await interiorImg(cell, lw, fz1 - fz0),
                 if (kind != 'static') 'insideT': 19.0,
               });
@@ -519,9 +525,36 @@ class SceneExporter {
         return Box3(math.min(ax, bx), math.min(ay, by), z0, math.max(ax, bx), math.max(ay, by), z1);
       }
 
+      final islTop = style.islandTop == null ? top : worktopFinish(style, style.islandTop!);
+      final islMat = style.islandTop == null ? topMat : await _mat(islTop, rough: islTop.tex?.startsWith('marble') ?? false ? 0.3 : 0.55);
+      final islFront = style.islandFront == null ? lowFront : frontFinish(style, style.islandFront!);
+      final islFrontMat = await _mat(islFront, vertical: true);
       for (final (a, b) in e.runs('I', (m) => e.hasWorktop && m.kind.isLow)) {
-        solids.add({..._box(box(a, b, -isl.overhang, Island.depth + 20, std.baseTop.toDouble(), std.worktopTop.toDouble())), 'mat': topMat, 'top': true});
-        solids.add({..._box(box(a, b, -18, 0, 0, std.baseTop.toDouble())), 'mat': await _mat(lowFront, vertical: true)});
+        final th = std.worktopThickness.toDouble();
+        final fall = style.islandWaterfall;
+        solids.add({..._box(box(fall ? a - th : a, fall ? b + th : b, -isl.overhang, Island.depth + 20, std.baseTop.toDouble(), std.worktopTop.toDouble())), 'mat': islMat, 'top': true});
+        if (fall) {
+          // jambages : le plan descend jusqu'au sol
+          for (final s0 in [a - th, b]) {
+            solids.add({..._box(box(s0, s0 + th, -isl.overhang, Island.depth + 20, 0, std.baseTop.toDouble())), 'mat': islMat});
+          }
+        }
+        solids.add({..._box(box(a, b, -18, 0, 0, std.baseTop.toDouble())), 'mat': islFrontMat});
+        // dos : cadres de 600 mm environ, ou cannelures
+        final z0 = std.plinthHeight.toDouble(), z1 = std.baseTop.toDouble();
+        if (style.islandBack == 'cadre') {
+          final n = math.max(1, ((b - a) / 600).round()), w0 = (b - a) / n;
+          for (var k = 0; k < n; k++) {
+            final x0 = a + k * w0, x1 = x0 + w0;
+            for (final (u0, u1, v0, v1) in [(x0, x0 + 60, z0, z1), (x1 - 60, x1, z0, z1), (x0 + 60, x1 - 60, z0, z0 + 60), (x0 + 60, x1 - 60, z1 - 60, z1)]) {
+              solids.add({..._box(box(u0, u1, -26, -18, v0, v1)), 'mat': islFrontMat});
+            }
+          }
+        } else if (style.islandBack == 'cannele') {
+          for (var x = a; x + 20 <= b; x += 40) {
+            solids.add({..._box(box(x, x + 22, -28, -18, z0, z1)), 'mat': islFrontMat});
+          }
+        }
       }
       for (final (a, b) in e.runs('I', (m) => m.floorSupport)) {
         solids.add({..._box(box(a, b, 0, 540, 0, std.plinthHeight.toDouble())), 'mat': plinthMat});
@@ -673,18 +706,20 @@ class SceneExporter {
       'room': {'w': room.width, 'd': room.depth, 'h': room.height},
       if (room.outline != null) 'floorPoly': [for (final (x, y) in room.floorPolygon) [x, y]],
       'lights': lights,
-      'walls': walls,
+      'studio': st.studio,
+      'walls': st.studio.isEmpty ? walls : const [],
       // sol : béton ciré et carrelages plus satinés que le parquet
       'floor': await _mat(floorFinish(style), rough: (floorFinish(style).tex ?? '').startsWith('parquet') ? 0.6 : 0.35),
       'wall': await _mat(wallFinish(style), rough: 0.9),
       'splashMat': style.splash == null ? null : await _mat(splashFinish(style), rough: 0.35),
-      'splash': style.splash == null ? const [] : splash,
+      'splash': style.splash == null || st.studio.isNotEmpty ? const [] : splash,
       'solids': solids,
       'tops': tops,
       'fronts': fronts,
       'items': items,
       // objets de la pièce : sanitaires (volumes générés) et modèles glTF du catalogue libre, chargés à la demande
       'objects': [
+        if (st.studio.isEmpty)
         for (final ob in p.objects)
           {
             'uid': ob.uid,
@@ -695,7 +730,20 @@ class SceneExporter {
             'x': ob.x, 'y': ob.y, 'z': ob.z, 'rot': ob.rot, 'w': ob.w, 'h': ob.h, 'd': ob.d,
             if (ob.ref.startsWith('lib:')) 'panels': ArtLibrary.instance.panelsFor(ob, artColor),
           },
+        // décor du rendu (petits appareils, plantes, rideaux…), montré ou caché
+        if (st.studio.isEmpty ? style.showDecor : st.studio == 'decor')
+          for (final q in placeDecor(e))
+            if (st.studio.isEmpty || (q.item.spot != 'fenetre' && q.item.spot != 'sol'))
+              () {
+                final model = q.item.model == null ? null : st.objectCatalog.where((o) => o.id == q.item.model).firstOrNull;
+                return {
+                  'uid': q.uid, 'decor': true, 'kind': model == null ? 'fixture' : 'model', 'type': model == null ? 'deco_${q.item.id}' : model.id,
+                  'file': model?.file, 'yaw': model?.yaw ?? 0,
+                  'x': q.x, 'y': q.y, 'z': q.z, 'rot': q.rot, 'w': q.w, 'h': q.h, 'd': q.d,
+                };
+              }(),
         // machines logées dans leur meuble (le toucher choisit le meuble)
+        if (st.studio != 'bare')
         for (final c in p.items)
           for (final (i, mc) in e.machinesIn(c).indexed)
             () {
@@ -726,10 +774,10 @@ class SceneExporter {
               };
             }(),
       ],
-      'kitchenFixtures': kitchenFixtures,
+      'kitchenFixtures': st.studio == 'bare' ? const [] : kitchenFixtures,
       'socketFinish': style.socketFinish,
       // points de réseau (prises, interrupteurs, sorties, arrivées d'eau…) : plaques et appareils sur les murs
-      'netPoints': !p.networks
+      'netPoints': !p.networks || st.studio.isNotEmpty
           ? const []
           : [
               for (final x in visiblePoints(p))

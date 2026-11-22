@@ -148,16 +148,18 @@ class RoomVertex {
 class Island {
   double x0, y0, length;
   double overhang;
-  Island({required this.x0, required this.y0, required this.length, this.overhang = 300});
+  bool flip; // façades vers la salle (le débord repas passe de l'autre côté)
+  Island({required this.x0, required this.y0, required this.length, this.overhang = 300, this.flip = false});
 
   static const depth = 600.0;
 
-  Map<String, dynamic> toJson() => {'x0': x0, 'y0': y0, 'length': length, 'overhang': overhang};
+  Map<String, dynamic> toJson() => {'x0': x0, 'y0': y0, 'length': length, 'overhang': overhang, if (flip) 'flip': true};
   factory Island.fromJson(Map<String, dynamic> j) => Island(
         x0: (j['x0'] as num).toDouble(),
         y0: (j['y0'] as num).toDouble(),
         length: (j['length'] as num).toDouble(),
         overhang: (j['overhang'] as num?)?.toDouble() ?? 300,
+        flip: j['flip'] == true,
       );
 }
 
@@ -222,6 +224,7 @@ class Room {
       case 'I':
         final i = island;
         if (i == null) throw ArgumentError('pas d\'îlot');
+        if (i.flip) return Wall('I', i.x0, i.y0 + i.overhang, 1, 0, 0, 1, i.length);
         // ligne arrière des caissons, façades vers le mur A (même sens de lecture que le mur D)
         return Wall('I', i.x0 + i.length, i.y0 + Island.depth, -1, 0, 0, -1, i.length);
     }
@@ -525,6 +528,13 @@ class KitchenStyle {
   String? splash; // crédence entre le plan de travail et les hauts (null = comme les murs)
   bool endPanels; // joues de finition posées automatiquement aux extrémités visibles
   String? endPanelFinish; // finition personnalisée des joues / côtés visibles (si null : suit les façades)
+  String frontProfile; // modèle de façade : 'lisse' | 'shaker' | 'shaker_fin' | 'mouluree' | 'cannelee'
+  String? islandFront; // façades de l'îlot (null : comme les bas)
+  String? islandTop; // plan de l'îlot (null : comme les autres)
+  bool islandWaterfall; // plan en cascade : jambages jusqu'au sol
+  String islandBack; // dos de l'îlot : 'lisse' | 'cadre' | 'cannele'
+  final Set<String> decor; // décor du rendu (voir decorItems)
+  bool showDecor; // décor montré en 3D
   String lighting; // 'aucun' | 'led_hauts' | 'led_hauts_plinthes'
   String? sink; // modèle d'évier (null : évier 1 bac avec égouttoir)
   String? faucet; // modèle de mitigeur (null : mitigeur standard)
@@ -559,6 +569,13 @@ class KitchenStyle {
     this.splash,
     this.endPanels = true,
     this.endPanelFinish,
+    this.frontProfile = 'lisse',
+    this.islandFront,
+    this.islandTop,
+    this.islandWaterfall = false,
+    this.islandBack = 'lisse',
+    Set<String>? decor,
+    this.showDecor = true,
     this.lighting = 'aucun',
     this.sink,
     this.faucet,
@@ -572,7 +589,8 @@ class KitchenStyle {
     this.ovenHandle = 'bar',
     this.socketFinish = 'blanc',
     List<CustomTexture>? textures,
-  })  : handleByZone = handleByZone ?? {},
+  })  : decor = decor ?? {},
+        handleByZone = handleByZone ?? {},
         textures = textures ?? [];
 
   /// Poignée générale.
@@ -582,7 +600,7 @@ class KitchenStyle {
   HandleChoice handleAt(String zone) => (handle == 'gola' && zone != 'haut') ? handleChoice : (handleByZone[zone] ?? handleChoice);
 
   /// Finition des façades d'un caisson : la sienne, sinon celle des hauts / des bas, sinon la générale.
-  String frontOf(PlacedCabinet c, {required bool high}) => c.front ?? (high ? frontUpper : frontLower) ?? front;
+  String frontOf(PlacedCabinet c, {required bool high}) => c.front ?? (c.wallId == 'I' ? islandFront : null) ?? (high ? frontUpper : frontLower) ?? front;
 
   Map<String, dynamic> toJson() => {
         'front': front,
@@ -604,6 +622,13 @@ class KitchenStyle {
         if (splash != null) 'splash': splash,
         if (!endPanels) 'end_panels': false,
         if (endPanelFinish != null) 'end_panel_finish': endPanelFinish,
+        if (frontProfile != 'lisse') 'front_profile': frontProfile,
+        if (islandFront != null) 'island_front': islandFront,
+        if (islandTop != null) 'island_top': islandTop,
+        if (islandWaterfall) 'island_waterfall': true,
+        if (islandBack != 'lisse') 'island_back': islandBack,
+        if (decor.isNotEmpty) 'decor': [...decor],
+        if (!showDecor) 'show_decor': false,
         if (lighting != 'aucun') 'lighting': lighting,
         if (sink != null) 'sink': sink,
         if (faucet != null) 'faucet': faucet,
@@ -639,6 +664,13 @@ class KitchenStyle {
         splash: j['splash'] as String?,
         endPanels: j['end_panels'] as bool? ?? true,
         endPanelFinish: j['end_panel_finish'] as String?,
+        frontProfile: j['front_profile'] as String? ?? 'lisse',
+        islandFront: j['island_front'] as String?,
+        islandTop: j['island_top'] as String?,
+        islandWaterfall: j['island_waterfall'] == true,
+        islandBack: j['island_back'] as String? ?? 'lisse',
+        decor: {for (final x in (j['decor'] as List? ?? const [])) '$x'},
+        showDecor: j['show_decor'] as bool? ?? true,
         lighting: j['lighting'] as String? ?? 'aucun',
         sink: j['sink'] as String?,
         faucet: j['faucet'] as String?,

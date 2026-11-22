@@ -29,6 +29,8 @@ const cornerSizes = <String, List<CornerSize>>{
   'corner_tall_l_shaped': [CornerSize(900, 900), CornerSize(1000, 1000)],
   'wardrobe_corner_L_90': [CornerSize(900, 900), CornerSize(1000, 1000), CornerSize(1100, 1100)],
   'wardrobe_corner_diagonal_45': [CornerSize(950, 950), CornerSize(1050, 1050)],
+  'corner_tall_pantry': [CornerSize(900, 900), CornerSize(1000, 1000), CornerSize(1100, 1100), CornerSize(1200, 1200)],
+  'corner_top_l_shaped': [CornerSize(600, 600), CornerSize(680, 680), CornerSize(900, 900), CornerSize(1000, 1000)],
   'corner_tall_blind': [
     CornerSize(1050, 650, carcass: 1000, filler: 50),
     CornerSize(1250, 650, carcass: 1200, filler: 50),
@@ -73,7 +75,9 @@ List<CornerPart> cornerCutList(CabinetModel m, PlacedCabinet c, {required int T,
       add('caisson', 'Dos porteur mur 2', H, w2 - 2 * T, 1);
       add('caisson', low ? 'Fond en L (découpe CNC)' : 'Fond et dessus en L (découpe CNC)', w1 - 2 * T, w2 - 2 * T, low ? 1 : 2, el: 1);
       if (low) add('caisson', 'Traverse haute', w1 - 2 * T, 100, 2, el: 1);
-      add('caisson', 'Étagère en L (découpe CNC)', w1 - 2 * T - 2, w2 - 2 * T - 2, 1, el: 1);
+      // garde-manger : six niveaux ; casquette : sans étagère
+      final shelves = m.id == 'corner_tall_pantry' ? 5 : (m.id == 'corner_top_l_shaped' ? 0 : 1);
+      add('caisson', 'Étagère en L (découpe CNC)', w1 - 2 * T - 2, w2 - 2 * T - 2, shelves, el: 1);
       add('facade', 'Porte maître (pliante)', hd, (w1 - D) - td - CornerRules.masterClearance, 1, el: 2, es: 2);
       add('facade', 'Porte esclave (pliante, poignée)', hd, (w2 - D) - td - CornerRules.slaveClearance, 1, el: 2, es: 2);
     case CabinetShape.diagonal:

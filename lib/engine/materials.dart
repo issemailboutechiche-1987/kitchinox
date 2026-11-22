@@ -750,8 +750,21 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
     final v = wt.variants[math.min(wtVariant, wt.variants.length - 1)];
     // épaisseur : celle choisie si la matière l'a, sinon la plus courante de la matière
     final th = wt.thicknesses.isEmpty || wt.thicknesses.contains(specs.worktopThickness) ? specs.worktopThickness : wt.thicknesses.last;
-    out.add(SupplyLine('Plan de travail', wt.name, '${v.label} · $th mm', double.parse((bom.worktopLength / 1000).toStringAsFixed(2)),
+    // îlot : son propre plan, jambages compris s'il est en cascade
+    final islLen = e.room.island == null ? 0.0 : e.runs('I', (m) => e.hasWorktop && m.kind.isLow).fold<double>(0, (a, r) => a + r.$2 - r.$1);
+    final islLook = islLen > 0 ? e.project.style.islandTop : null;
+    final falls = islLen > 0 && e.project.style.islandWaterfall ? 2 * e.std.worktopTop.toDouble() : 0.0;
+    final own = islLook == null ? null : worktopLooks[islLook];
+    final main = bom.worktopLength - (own != null ? islLen : 0) + (own == null ? falls : 0);
+    out.add(SupplyLine('Plan de travail', wt.name, '${v.label} · $th mm', double.parse((main / 1000).toStringAsFixed(2)),
         'm.l.', v.price));
+    if (own != null) {
+      final iw = db.worktop(own.$1);
+      if (iw != null && iw.variants.isNotEmpty) {
+        final iv = iw.variants[math.min(own.$2, iw.variants.length - 1)];
+        out.add(SupplyLine('Plan de travail', 'Îlot : ${iw.name}', '${iv.label}${falls > 0 ? ' · jambages compris' : ''}', double.parse(((islLen + falls) / 1000).toStringAsFixed(2)), 'm.l.', iv.price));
+      }
+    }
     // crédence ou relevé dans la même matière : prix au mètre (600 mm de profondeur) ramené au m²
     if (splashMatchesTop(e.project.style)) {
       final m2 = double.parse(splashArea(e).toStringAsFixed(2));

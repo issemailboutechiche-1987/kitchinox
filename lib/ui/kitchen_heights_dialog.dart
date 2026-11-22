@@ -68,49 +68,14 @@ Future<void> showKitchenHeightsDialog(
         }
 
         void generateCasquettes() {
-          var count = 0;
+          var r = (0, 0);
           st.edit(() {
-            final wallsWithHauts = <String, List<PlacedCabinet>>{};
-            for (final c in st.project.items) {
-              final m = st.engine.modelOf(c);
-              if (m.kind == CabinetKind.wall) {
-                (wallsWithHauts[c.wallId] ??= []).add(c);
-              }
-            }
-
-            final actualCasquetteH = casquetteH > 0 && casquetteH <= ceilingDist
-                ? casquetteH
-                : math.max(250, ceilingDist);
-
-            for (final entry in wallsWithHauts.entries) {
-              final wId = entry.key;
-              final list = entry.value;
-              for (final c in list) {
-                // Vérifier s'il y a déjà un caisson au-dessus
-                final alreadyHasAbove = st.project.items.any(
-                  (other) => other.wallId == wId && other.z >= c.top - 10 && (other.s - c.s).abs() < 50,
-                );
-                if (!alreadyHasAbove && actualCasquetteH >= 200) {
-                  final modelId = c.width >= 700 ? 'wall_lift_up' : 'wall_standard_single_door';
-                  try {
-                    final newCab = st.engine.add(
-                      modelId,
-                      wId,
-                      s: c.s,
-                      z: c.top,
-                      width: c.width,
-                      height: actualCasquetteH.toInt(),
-                    );
-                    newCab.depth = casquetteD;
-                    count++;
-                  } catch (_) {}
-                }
-              }
-            }
+            final h = casquetteH > 0 && casquetteH <= ceilingDist ? casquetteH : math.max(250, ceilingDist);
+            r = placeTopBoxes(st.engine, height: h.toInt(), depth: casquetteD);
           });
           st.refresh();
           Navigator.pop(ctx);
-          onMessage(trp('{0} caisson(s) casquette posé(s) au-dessus des hauts', [count]));
+          onMessage(trp('{0} casquette(s) posée(s), dont {1} d’angle en L', [r.$1 + r.$2, r.$2]));
         }
 
         Widget chipGroup<T>({
@@ -263,7 +228,7 @@ Future<void> showKitchenHeightsDialog(
                   contentPadding: EdgeInsets.zero,
                   title: Text(tr('Caissons casquette (sur-meubles)'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                   subtitle: Text(
-                    tr('Remplissage toute hauteur jusqu’au plafond au-dessus des meubles hauts'),
+                    tr('Au-dessus des hauts et des colonnes, avec une casquette d’angle en L dans les coins'),
                     style: t.labelSmall,
                   ),
                   value: casquette,
@@ -294,7 +259,7 @@ Future<void> showKitchenHeightsDialog(
                   FilledButton.tonalIcon(
                     onPressed: generateCasquettes,
                     icon: const Icon(Icons.vertical_align_top),
-                    label: Text(tr('Poser les caissons casquette sur les hauts existants')),
+                    label: Text(tr('Poser les casquettes (angles compris)')),
                   ),
                   const SizedBox(height: Tokens.s2),
                 ],

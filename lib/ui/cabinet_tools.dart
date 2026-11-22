@@ -801,7 +801,7 @@ class _HandlePickerState extends State<_HandlePicker> {
           SizedBox(
             height: 150,
             width: double.infinity,
-            child: CustomPaint(key: const ValueKey('handle_preview'), painter: _HandlePainter(state.catalog, look, front, zone: zone ?? 'bas', big: true)),
+            child: CustomPaint(key: const ValueKey('handle_preview'), painter: _HandlePainter(state.catalog, look, front, zone: zone ?? 'bas', big: true, profile: st.frontProfile)),
           ),
           const SizedBox(height: Tokens.s2),
           Text(tr(cur?.name ?? 'Poignée standard'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
@@ -932,7 +932,7 @@ class _HandlePickerState extends State<_HandlePicker> {
                           border: Border.all(color: on ? scheme.primary : scheme.outlineVariant, width: on ? 2 : 1),
                         ),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          SizedBox(height: 92, width: double.infinity, child: CustomPaint(painter: _HandlePainter(state.catalog, lookOf(h, c: cur?.id == h.id ? choice : null), front, zone: zone ?? 'bas'))),
+                          SizedBox(height: 92, width: double.infinity, child: CustomPaint(painter: _HandlePainter(state.catalog, lookOf(h, c: cur?.id == h.id ? choice : null), front, zone: zone ?? 'bas', profile: st.frontProfile))),
                           const SizedBox(height: 6),
                           Text(tr(h.name), maxLines: 3, overflow: TextOverflow.ellipsis, style: t.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: on ? scheme.primary : null)),
                           if (h.render != HandleRender.gola && h.render != HandleRender.push) Text('${_mad(h.price)} ${_unit(h)}', style: t.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
@@ -953,7 +953,8 @@ class _HandlePainter extends CustomPainter {
   final Finish front;
   final String zone;
   final bool big;
-  _HandlePainter(this.catalog, this.look, this.front, {required this.zone, this.big = false});
+  final String profile;
+  _HandlePainter(this.catalog, this.look, this.front, {required this.zone, this.big = false, this.profile = 'lisse'});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -974,6 +975,7 @@ class _HandlePainter extends CustomPainter {
           line: lineOn(front.color),
           fillPaint: front.paint(vertical: true),
           handles: (door: look, drawer: look),
+          profile: profile,
           cells: [FrontCell(kind, 0, hMm, 'left', -1)],
           realistic: true,
           pxPerMm: 1,
@@ -1028,5 +1030,5 @@ class _HandlePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_HandlePainter o) => o.look.key != look.key || o.front.id != front.id || o.zone != zone || o.big != big;
+  bool shouldRepaint(_HandlePainter o) => o.look.key != look.key || o.front.id != front.id || o.zone != zone || o.big != big || o.profile != profile;
 }

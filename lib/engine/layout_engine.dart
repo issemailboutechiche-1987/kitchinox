@@ -475,6 +475,9 @@ class LayoutEngine {
   /// Famille de pose : 0 bas, 1 haut, 2 colonne (on n'échange qu'à l'intérieur d'une famille).
   int _family(CabinetModel m) => m.kind == CabinetKind.tall ? 2 : (m.kind.isHigh ? 1 : 0);
 
+  /// Le caisson touche-t-il un autre volume, une ouverture, ou sort-il du mur ?
+  bool clashes(PlacedCabinet c) => _clashes(c);
+
   bool _clashes(PlacedCabinet c) {
     final mine = solidOf(c);
     for (final o in project.items) {

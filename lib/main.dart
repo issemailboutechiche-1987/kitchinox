@@ -16,6 +16,7 @@ import 'ui/custom_cabinet_ui.dart';
 import 'ui/furniture_accessories_ui.dart';
 import 'ui/kx_top_bar.dart';
 import 'ui/openings_ui.dart';
+import 'ui/presentation_bar.dart';
 import 'ui/project_settings_dialog.dart';
 import 'ui/saved_projects_dialog.dart';
 import 'ui/sct_export.dart';
@@ -1004,6 +1005,11 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         kxItem('3D', () => st.setView(ViewMode.view3d), icon: Icons.view_in_ar_outlined, checked: st.view == ViewMode.view3d),
         const Divider(height: 1),
         kxItem('Tout afficher', st.resetZoom, icon: Icons.fit_screen_outlined),
+        kxItem('Décor du rendu', st.toggleDecor, icon: Icons.local_florist_outlined, checked: st.project.style.showDecor && st.project.style.decor.isNotEmpty, key: 'menu_decor'),
+        const Divider(height: 1),
+        for (final m in studioModes.entries)
+          kxItem('Présentation : ${m.value.toLowerCase()}', () => st.setStudio(m.key), icon: Icons.photo_camera_outlined, checked: st.studio == m.key, key: 'menu_studio_${m.key}'),
+        if (st.studio.isNotEmpty) kxItem('Revenir à la pièce', () => st.setStudio(''), icon: Icons.meeting_room_outlined),
         const Divider(height: 1),
         for (final l in AppLang.values)
           kxItem(l.label, () {
@@ -1092,6 +1098,8 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
                 top: Tokens.s3,
                 bottom: Tokens.s3,
                 child: st.selectedObjectObj != null ? ObjectCard(state: st, onMessage: _msg) : InspectorCard(state: st, onMessage: _msg)),
+          if (st.studio.isNotEmpty && st.view == ViewMode.view3d)
+            Positioned(top: Tokens.s3, left: Tokens.s3, right: side + Tokens.s3, child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: PresentationBar(state: st, onMessage: _msg)))),
           if (st.step != PlanStep.summary)
             Positioned(
                 left: Tokens.s3,

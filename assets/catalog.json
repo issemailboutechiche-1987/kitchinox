@@ -373,42 +373,113 @@
         {
           "id": "base_cooktop_door",
           "name": "Bas plaque de cuisson + porte",
-          "available_widths": [600, 800, 900],
+          "available_widths": [
+            600,
+            800,
+            900
+          ],
           "height": 800,
-          "appliances": ["cooktop_4_burners_60"],
-          "front_layout": [{"k": "door", "h": 0}]
+          "appliances": [
+            "cooktop_4_burners_60"
+          ],
+          "front_layout": [
+            {
+              "k": "door",
+              "h": 0
+            }
+          ]
         },
         {
           "id": "base_cooktop_drawer_door",
           "name": "Bas plaque de cuisson + tiroir et porte",
-          "available_widths": [600, 800, 900],
+          "available_widths": [
+            600,
+            800,
+            900
+          ],
           "height": 800,
-          "appliances": ["cooktop_4_burners_60"],
-          "front_layout": [{"k": "drawer", "h": 180}, {"k": "door", "h": 0}]
+          "appliances": [
+            "cooktop_4_burners_60"
+          ],
+          "front_layout": [
+            {
+              "k": "drawer",
+              "h": 180
+            },
+            {
+              "k": "door",
+              "h": 0
+            }
+          ]
         },
         {
           "id": "base_cooktop_drawers",
           "name": "Bas plaque de cuisson + tiroirs",
-          "available_widths": [600, 800, 900],
+          "available_widths": [
+            600,
+            800,
+            900
+          ],
           "height": 800,
-          "appliances": ["cooktop_4_burners_60"],
-          "front_layout": [{"k": "drawer", "h": 180}, {"k": "drawer", "h": 250}, {"k": "drawer", "h": 0}]
+          "appliances": [
+            "cooktop_4_burners_60"
+          ],
+          "front_layout": [
+            {
+              "k": "drawer",
+              "h": 180
+            },
+            {
+              "k": "drawer",
+              "h": 250
+            },
+            {
+              "k": "drawer",
+              "h": 0
+            }
+          ]
         },
         {
           "id": "base_oven_no_drawer",
           "name": "Bas four encastré seul (sans tiroir)",
-          "available_widths": [600],
+          "available_widths": [
+            600
+          ],
           "height": 800,
-          "appliances": ["oven_standard_60"],
-          "front_layout": [{"k": "appliance", "h": 0}]
+          "appliances": [
+            "oven_standard_60"
+          ],
+          "front_layout": [
+            {
+              "k": "appliance",
+              "h": 0
+            }
+          ]
         },
         {
           "id": "base_oven_2drawers",
           "name": "Bas four encastré + 2 tiroirs",
-          "available_widths": [600],
+          "available_widths": [
+            600
+          ],
           "height": 800,
-          "appliances": ["oven_standard_60"],
-          "front_layout": [{"k": "appliance", "h": 0}, {"k": "drawer", "h": 95}, {"k": "drawer", "h": 95}]
+          "appliances": [
+            "oven_standard_60"
+          ],
+          "front_layout": [
+            {
+              "k": "appliance",
+              "h": 0
+            },
+            {
+              "k": "drawer",
+              "h": 95
+            },
+            {
+              "k": "drawer",
+              "h": 95
+            }
+          ]
         },
         {
           "id": "base_oven_only",
@@ -516,6 +587,26 @@
           }
         },
         {
+          "id": "wall_top_box",
+          "name": "Casquette (sur-meuble)",
+          "width_min": 200,
+          "width_max": 1200,
+          "height_min": 200,
+          "height_max": 900,
+          "depth": 370,
+          "front_layout": [
+            {
+              "k": "flap",
+              "h": 0
+            }
+          ],
+          "description": "Sur-meuble posé au-dessus des hauts ou des colonnes, jusqu’au plafond ; porte relevable",
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
+        },
+        {
           "id": "wall_integrated_hood",
           "name": "Haut pour hotte intégrée",
           "available_widths": [
@@ -540,64 +631,154 @@
         {
           "id": "wall_hood_telescopic",
           "name": "Haut pour hotte télescopique (casquette tirable)",
-          "available_widths": [600, 900],
-          "available_heights": [360, 600, 720],
+          "available_widths": [
+            600,
+            900
+          ],
+          "available_heights": [
+            360,
+            600,
+            720
+          ],
           "depth": 330,
-          "appliances": ["hood_telescopic_or_builtin"],
-          "front_layout": [{"k": "door", "h": 0}, {"k": "panel", "h": 50}],
-          "snapping": {"requires_wall": true, "floor_support": false}
+          "appliances": [
+            "hood_telescopic_or_builtin"
+          ],
+          "front_layout": [
+            {
+              "k": "door",
+              "h": 0
+            },
+            {
+              "k": "panel",
+              "h": 50
+            }
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
         },
         {
           "id": "wall_hood_group",
           "name": "Haut pour groupe filtrant (derrière une porte)",
-          "available_widths": [600, 800, 900],
-          "available_heights": [600, 720],
+          "available_widths": [
+            600,
+            800,
+            900
+          ],
+          "available_heights": [
+            600,
+            720
+          ],
           "depth": 330,
-          "appliances": ["hood_telescopic_or_builtin"],
-          "front_layout": [{"k": "door", "h": 0}],
-          "snapping": {"requires_wall": true, "floor_support": false}
+          "appliances": [
+            "hood_telescopic_or_builtin"
+          ],
+          "front_layout": [
+            {
+              "k": "door",
+              "h": 0
+            }
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
         },
         {
           "id": "wall_chimney_box",
           "name": "Caisson cache-conduit (au-dessus d’une hotte)",
-          "available_widths": [300, 400, 600],
-          "available_heights": [300, 360, 600],
+          "available_widths": [
+            300,
+            400,
+            600
+          ],
+          "available_heights": [
+            300,
+            360,
+            600
+          ],
           "depth": 300,
-          "front_layout": [{"k": "door", "h": 0}],
-          "snapping": {"requires_wall": true, "floor_support": false}
+          "front_layout": [
+            {
+              "k": "door",
+              "h": 0
+            }
+          ],
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
         },
         {
           "id": "hood_free_pyramid",
           "name": "Hotte murale pyramide inox (pose libre)",
-          "available_widths": [600, 900],
-          "available_heights": [700, 900, 1100],
+          "available_widths": [
+            600,
+            900
+          ],
+          "available_heights": [
+            700,
+            900,
+            1100
+          ],
           "depth": 500,
           "is_carcass": false,
-          "appliances": ["hood_wall_decorative"],
+          "appliances": [
+            "hood_wall_decorative"
+          ],
           "description": "Hotte décorative fixée au mur avec sa cheminée ; marques courantes au Maroc : Teka, Bosch, Elica, Franke, Candy, Whirlpool",
-          "snapping": {"requires_wall": true, "floor_support": false}
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
         },
         {
           "id": "hood_free_inclined",
           "name": "Hotte murale inclinée verre noir (pose libre)",
-          "available_widths": [600, 900],
-          "available_heights": [700, 900, 1100],
+          "available_widths": [
+            600,
+            900
+          ],
+          "available_heights": [
+            700,
+            900,
+            1100
+          ],
           "depth": 400,
           "is_carcass": false,
-          "appliances": ["hood_wall_inclined"],
+          "appliances": [
+            "hood_wall_inclined"
+          ],
           "description": "Hotte inclinée en verre noir, aspiration périmétrale ; marques courantes au Maroc : Elica, Teka, Bosch, Samsung, Candy",
-          "snapping": {"requires_wall": true, "floor_support": false}
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
         },
         {
           "id": "hood_free_box",
           "name": "Hotte murale box inox (pose libre)",
-          "available_widths": [600, 900],
-          "available_heights": [700, 900, 1100],
+          "available_widths": [
+            600,
+            900
+          ],
+          "available_heights": [
+            700,
+            900,
+            1100
+          ],
           "depth": 500,
           "is_carcass": false,
-          "appliances": ["hood_wall_decorative"],
+          "appliances": [
+            "hood_wall_decorative"
+          ],
           "description": "Hotte box rectangulaire en inox avec cheminée ; marques courantes au Maroc : Franke, Teka, Faber, Beko, Whirlpool",
-          "snapping": {"requires_wall": true, "floor_support": false}
+          "snapping": {
+            "requires_wall": true,
+            "floor_support": false
+          }
         },
         {
           "id": "wall_open_shelf",
@@ -1105,6 +1286,36 @@
           "snapping": {
             "corner_anchor": "inner_diagonal"
           }
+        },
+        {
+          "id": "corner_top_l_shaped",
+          "name": "Casquette d’angle en L (90°)",
+          "width_left": [
+            600,
+            650,
+            680,
+            700,
+            750,
+            800,
+            850,
+            900,
+            950,
+            1000,
+            1050,
+            1100
+          ],
+          "width_right": 680,
+          "height_min": 200,
+          "height_max": 900,
+          "depth": 370,
+          "door_type": "bifold_corner_door",
+          "internal_config": [
+            "corner_shelves"
+          ],
+          "description": "Sur-meuble d’angle : raccorde les casquettes de deux murs",
+          "snapping": {
+            "corner_anchor": "inner_90"
+          }
         }
       ]
     },
@@ -1129,6 +1340,32 @@
             "fixed_corner_shelf",
             "corner_hanging_rail"
           ],
+          "snapping": {
+            "corner_anchor": "inner_90",
+            "floor_support": true
+          }
+        },
+        {
+          "id": "corner_tall_pantry",
+          "name": "Colonne d’angle garde-manger (stock de nourriture)",
+          "width_left": [
+            900,
+            1000,
+            1100,
+            1200
+          ],
+          "width_right": 900,
+          "available_heights": [
+            2000,
+            2200,
+            2400
+          ],
+          "depth": 600,
+          "door_type": "bifold_corner_door",
+          "internal_config": [
+            "pantry_corner_shelves"
+          ],
+          "description": "Grande réserve d’angle : six niveaux d’étagères en L pour les provisions",
           "snapping": {
             "corner_anchor": "inner_90",
             "floor_support": true

@@ -380,7 +380,14 @@ class Scene3dPainter {
 
       for (final (a, b) in e.runs('I', (m) => e.hasWorktop && m.kind.isLow)) {
         // plan de travail : 20 mm devant, débord repas à l'arrière
-        solids.add(_Solid(box(a, b, -isl.overhang, Island.depth + 20, std.baseTop.toDouble(), std.worktopTop.toDouble()), top.color, finish: top));
+        final it = p.style.islandTop == null ? top : worktopFinish(p.style, p.style.islandTop!);
+        solids.add(_Solid(box(a, b, -isl.overhang, Island.depth + 20, std.baseTop.toDouble(), std.worktopTop.toDouble()), it.color, finish: it));
+        if (p.style.islandWaterfall) {
+          final th = std.worktopThickness.toDouble();
+          for (final s0 in [a - th, b]) {
+            solids.add(_Solid(box(s0, s0 + th, -isl.overhang, Island.depth + 20, 0, std.worktopTop.toDouble()), it.color, finish: it));
+          }
+        }
         // habillage arrière sous le débord
         solids.add(_Solid(box(a, b, -18, 0, 0, std.baseTop.toDouble()), lowFront.color, finish: lowFront));
       }
@@ -626,7 +633,8 @@ class Scene3dPainter {
                 fill: fr.color,
                 stroke: shade(fr.color, -0.3),
                 line: lineOn(fr.color),
-                handles: handleSetOf(p.style, handles, m, front: fr.color),
+                profile: p.style.frontProfile,
+        handles: handleSetOf(p.style, handles, m, front: fr.color),
 
                 tallXxl: p.style.tallXxl,
                 fillPaint: fr.paint(vertical: true),
@@ -924,6 +932,7 @@ class Scene3dPainter {
         fill: fr.color,
         stroke: shade(fr.color, -0.3),
         line: lineOn(fr.color),
+        profile: p.style.frontProfile,
         handles: handleSetOf(p.style, handles, m, front: fr.color),
 
         tallXxl: p.style.tallXxl,
@@ -951,7 +960,8 @@ class Scene3dPainter {
       opening: c.opening,
       variant: c.variant,
       strokeWidth: 1.1 / scale,
-      handles: handleSetOf(p.style, handles, m, front: fr.color),
+      profile: p.style.frontProfile,
+        handles: handleSetOf(p.style, handles, m, front: fr.color),
 
       tallXxl: p.style.tallXxl,
       fillPaint: fr.paint(vertical: true, origin: Offset(-s0, 0)),

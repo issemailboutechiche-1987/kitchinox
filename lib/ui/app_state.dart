@@ -812,6 +812,7 @@ class AppState extends ChangeNotifier {
 
   void goTo(PlanStep s) {
     step = s;
+    studio = '';
     megaMenu = false;
     armedModel = null;
     armedWidth = null;
@@ -852,6 +853,7 @@ class AppState extends ChangeNotifier {
 
   void setView(ViewMode v) {
     view = v;
+    if (v != ViewMode.view3d) studio = '';
     resetZoom(notify: false);
     notifyListeners();
   }
@@ -1030,6 +1032,30 @@ class AppState extends ChangeNotifier {
   }
 
   /// Point de vue de la 3D : 0 perspective, 1 dessus, 2 à hauteur d'œil.
+  /// Présentation : '' (pièce), 'decor' (complet), 'appliances' (avec appareils), 'bare' (meubles seuls), sur fond blanc.
+  String studio = '';
+  void setStudio(String v) {
+    if (studio == v) return;
+    studio = v;
+    if (v.isNotEmpty) {
+      view = ViewMode.view3d;
+      selected = null;
+      selectedObject = null;
+    }
+    notifyListeners();
+  }
+
+  /// Décor du rendu : ajoute celui de la pièce, ou le montre / le cache.
+  void toggleDecor() => edit(() {
+        final st = project.style;
+        if (st.decor.isEmpty) {
+          st.decor.addAll(defaultDecor(project.universe));
+          st.showDecor = true;
+        } else {
+          st.showDecor = !st.showDecor;
+        }
+      });
+
   int camera3d = 0;
   void setCamera3d(int v) {
     if (camera3d == v) return;
@@ -1231,6 +1257,9 @@ class AppState extends ChangeNotifier {
   String? applyLayoutProposal(LayoutProposal pr, {bool withStyle = false}) {
     final err = edit(() {
       applyProposal(engine, pr);
+      project.style
+        ..islandWaterfall = pr.project.style.islandWaterfall
+        ..islandBack = pr.project.style.islandBack;
       if (withStyle) {
         // modèle de la collection : son style complet (façades, plan, poignées, sol, murs, crédence)
         final src = pr.project.style, dst = project.style;
@@ -1246,6 +1275,9 @@ class AppState extends ChangeNotifier {
           ..handleOrient = src.handleOrient
           ..handlePos = src.handlePos
           ..handlePair = src.handlePair
+          ..frontProfile = src.frontProfile
+          ..islandFront = src.islandFront
+          ..islandTop = src.islandTop
           ..floor = src.floor
           ..wall = src.wall
           ..splash = src.splash;

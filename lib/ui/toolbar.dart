@@ -17,10 +17,11 @@ import 'scene3d.dart';
 import 'diagnostic_pdf.dart';
 import 'header.dart';
 import 'kitchen_heights_dialog.dart';
+import 'kx_choices.dart';
 import 'theme.dart';
 import 'i18n.dart';
 
-enum StyleSection { fronts, worktop, handles, carcass, room }
+enum StyleSection { fronts, worktop, handles, carcass, room, decor }
 
 class StepToolbar extends StatelessWidget {
   final AppState state;
@@ -191,6 +192,7 @@ class StepToolbar extends StatelessWidget {
             (StyleSection.handles, Icons.drag_handle, 'Poignées'),
             (StyleSection.carcass, Icons.inventory_2_outlined, 'Caissons'),
             (StyleSection.room, Icons.wallpaper_outlined, 'Sol et murs'),
+            (StyleSection.decor, Icons.local_florist_outlined, 'Décor'),
           ])
             ToolTile(icon: icon, label: tr(label), active: styleSection == s, onTap: () => onStyleSection(s)),
         ]);
@@ -376,14 +378,46 @@ Future<void> showIslandDialog(BuildContext context, AppState state, void Functio
       title: Text(tr('Îlot')),
       content: SizedBox(
         width: 380,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(tr('Formes d’îlot'), style: Theme.of(ctx).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: Tokens.s2),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final pr in islandPresets.entries)
+              Tooltip(
+                message: tr(pr.value.$2),
+                child: OutlinedButton(key: ValueKey('island_${pr.key}'), onPressed: () => Navigator.pop(ctx, 'preset:${pr.key}'), child: Text(tr(pr.value.$1))),
+              ),
+          ]),
+          const SizedBox(height: Tokens.s3),
+          StatefulBuilder(
+            builder: (ctx, setS) => Column(children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                title: Text(tr('Façades tournées vers la salle')),
+                value: isl.flip,
+                onChanged: (v) => setS(() => state.edit(() => isl.flip = v)),
+              ),
+              KxChoices<String>(
+                segments: [
+                  ButtonSegment(value: 'lisse', label: Text(tr('Dos lisse'))),
+                  ButtonSegment(value: 'cadre', label: Text(tr('Dos à cadres'))),
+                  ButtonSegment(value: 'cannele', label: Text(tr('Dos cannelé'))),
+                ],
+                selected: {state.project.style.islandBack},
+                onSelectionChanged: (v) => setS(() => state.edit(() => state.project.style.islandBack = v.first)),
+              ),
+            ]),
+          ),
+          const SizedBox(height: Tokens.s3),
           for (final e in fields.entries)
             Padding(
               padding: const EdgeInsets.only(bottom: Tokens.s3),
               child: TextField(
                 controller: e.value,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: e.key, border: const OutlineInputBorder(), isDense: true, suffixText: 'mm'),
+                decoration: InputDecoration(labelText: tr(e.key), border: const OutlineInputBorder(), isDense: true, suffixText: 'mm'),
               ),
             ),
           Text(tr('Caissons bas uniquement, façades tournées vers le mur du fond. Passages de 1000 mm minimum autour.'),
@@ -404,6 +438,7 @@ Future<void> showIslandDialog(BuildContext context, AppState state, void Functio
               ),
           ]),
         ]),
+        ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, 'auto'), child: Text(tr('Replacer automatiquement'))),
@@ -417,7 +452,12 @@ Future<void> showIslandDialog(BuildContext context, AppState state, void Functio
       ],
     ),
   );
-  if (r == 'delete') {
+  if (r != null && r.startsWith('preset:')) {
+    var ok = false;
+    final id = r.substring(7);
+    final err = state.edit(() => ok = applyIslandPreset(state.engine, id));
+    onMessage(err ?? (ok ? trp('{0} posé', [tr(islandPresets[id]!.$1)]) : tr('Pas de place pour un îlot avec 1 m de passage tout autour')));
+  } else if (r == 'delete') {
     state.removeIsland();
     onMessage(tr('Îlot supprimé'));
   } else if (r == 'auto') {
@@ -653,6 +693,14 @@ class ViewSwitcher extends StatelessWidget {
                 icon: Icon(icon),
                 style: state.camera3d == i ? IconButton.styleFrom(backgroundColor: scheme.primary.withValues(alpha: 0.16)) : null,
               ),
+            IconButton(
+              key: const ValueKey('view_decor'),
+              tooltip: tr(state.project.style.showDecor && state.project.style.decor.isNotEmpty ? 'Cacher le décor' : 'Montrer le décor'),
+              isSelected: state.project.style.showDecor && state.project.style.decor.isNotEmpty,
+              onPressed: state.toggleDecor,
+              icon: const Icon(Icons.local_florist_outlined),
+            ),
+            IconButton(key: const ValueKey('view_studio'), tooltip: tr('Présentation sur fond blanc'), onPressed: () => state.setStudio('decor'), icon: const Icon(Icons.photo_camera_outlined)),
             IconButton(tooltip: tr('Tourner à gauche'), onPressed: () => state.rotate3d(-0.35), icon: const Icon(Icons.rotate_left)),
             IconButton(tooltip: tr('Tourner à droite'), onPressed: () => state.rotate3d(0.35), icon: const Icon(Icons.rotate_right)),
             IconButton(

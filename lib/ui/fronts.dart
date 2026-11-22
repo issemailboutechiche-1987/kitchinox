@@ -54,6 +54,7 @@ void paintFront(
   bool? handleTop, // force la position de la poignée (haut ou bas de porte)
   HandleSet? handles, // poignées des portes et des tiroirs (remplace handle, handleSize, handleColor)
   void Function(GripSpec g)? onGrip, // poignées en relief (3D) : signalées au lieu d'être peintes
+  String profile = 'lisse', // modèle de façade (voir frontProfiles)
   bool golaProfile = true, // faux : façade seule (porte ouverte en 3D), le profil Gola reste sur le caisson
 }) {
   var orient = 'auto', place = 'auto';
@@ -272,11 +273,80 @@ void paintFront(
     ..strokeWidth = math.max(0.5, 1.4 * u)
     ..color = Colors.black.withValues(alpha: 0.16);
 
+  /// Cadre, moulure ou cannelures de la façade [d].
+  void molding(Rect d) {
+    if (profile == 'lisse') return;
+    final w = d.width / u, h = d.height / u;
+    if (profile == 'cannelee') {
+      if (h < 100) return;
+      final step = 24 * u;
+      if (!realistic) {
+        for (var x = d.left + step * 2; x < d.right; x += step * 3) {
+          canvas.drawLine(Offset(x, d.top), Offset(x, d.bottom), ln);
+        }
+        return;
+      }
+      canvas.save();
+      canvas.clipRect(d.deflate(2 * u));
+      for (var x = d.left; x < d.right; x += step) {
+        final r0 = Rect.fromLTWH(x, d.top, step, d.height);
+        canvas.drawRect(
+            r0,
+            Paint()
+              ..shader = LinearGradient(colors: [Colors.black.withValues(alpha: 0.20), Colors.white.withValues(alpha: 0.16), Colors.white.withValues(alpha: 0.0), Colors.black.withValues(alpha: 0.12)], stops: const [0, 0.3, 0.65, 1])
+                  .createShader(r0));
+      }
+      canvas.restore();
+      return;
+    }
+    final fw = profileFrame(profile, w, h);
+    if (fw == 0) return;
+    final inner = d.deflate(fw * u);
+    if (!realistic) {
+      canvas.drawRect(inner, ln);
+      return;
+    }
+    void bevel(Rect q, double deep) {
+      final dark = Paint()
+        ..color = Colors.black.withValues(alpha: 0.22 * deep)
+        ..strokeWidth = math.max(1, 5 * u);
+      final light = Paint()
+        ..color = Colors.white.withValues(alpha: 0.4 * deep)
+        ..strokeWidth = math.max(1, 4 * u);
+      canvas.drawLine(q.topLeft, q.topRight, dark);
+      canvas.drawLine(q.topLeft, q.bottomLeft, dark);
+      canvas.drawLine(q.bottomLeft, q.bottomRight, light);
+      canvas.drawLine(q.topRight, q.bottomRight, light);
+    }
+
+    canvas.drawRect(inner, Paint()..color = Colors.black.withValues(alpha: 0.035));
+    bevel(inner, 1);
+    if (profile == 'mouluree' && inner.shortestSide / u > 120) {
+      bevel(inner.deflate(14 * u), 0.6);
+      final raised = inner.deflate(40 * u);
+      if (raised.width > 20 * u && raised.height > 20 * u) {
+        canvas.drawRect(raised, Paint()..color = Colors.white.withValues(alpha: 0.04));
+        final p1 = Paint()
+          ..color = Colors.white.withValues(alpha: 0.35)
+          ..strokeWidth = math.max(1, 3 * u);
+        final p2 = Paint()
+          ..color = Colors.black.withValues(alpha: 0.16)
+          ..strokeWidth = math.max(1, 3 * u);
+        canvas.drawLine(raised.topLeft, raised.topRight, p1);
+        canvas.drawLine(raised.topLeft, raised.bottomLeft, p1);
+        canvas.drawLine(raised.bottomLeft, raised.bottomRight, p2);
+        canvas.drawLine(raised.topRight, raised.bottomRight, p2);
+      }
+    }
+  }
+
   void panel(Rect d) {
     if (!realistic) {
       canvas.drawRect(d, ln);
+      molding(d);
       return;
     }
+    molding(d);
     canvas.drawRect(d, gapPaint);
     final i = d.deflate(gapPaint.strokeWidth / 2 + bevelLight.strokeWidth / 2);
     canvas.drawLine(i.topLeft, i.topRight, bevelLight);
@@ -374,7 +444,9 @@ void paintFront(
         y += h;
         continue;
       }
-      final hy = place == 'centre' ? dr.center.dy : (realistic ? dr.top + math.min(55 * u, dr.height * 0.3) : dr.top + math.min(dr.height * 0.25, 10));
+      // tiroir à cadre : coquille et bouton au milieu de la traverse haute
+      final rail = profileFrame(profile, dr.width / u, dr.height / u);
+      final hy = place == 'centre' ? dr.center.dy : realistic && rail > 40 && const {'cup', 'knob'}.contains(handle) ? dr.top + rail * u * 0.5 : (realistic ? dr.top + math.min(55 * u, dr.height * 0.3) : dr.top + math.min(dr.height * 0.25, 10));
       if (pair && dr.width / u >= 780) {
         handleH(dr.left + dr.width * 0.25, hy, dr.width / 2);
         handleH(dr.left + dr.width * 0.75, hy, dr.width / 2);
@@ -462,6 +534,16 @@ void paintFront(
               stops: const [0.2, 0.45, 0.7],
             ).createShader(g));
       canvas.drawRect(g, bevelDark);
+      if (profile == 'shaker' || profile == 'mouluree') {
+        final bar = Paint()..color = fill;
+        final nx = g.width / u > 300 ? 2 : 1, ny = (g.height / u / 280).round().clamp(1, 6);
+        for (var k = 1; k < nx; k++) {
+          canvas.drawRect(Rect.fromLTWH(g.left + g.width * k / nx - 9 * u, g.top, 18 * u, g.height), bar);
+        }
+        for (var k = 1; k < ny; k++) {
+          canvas.drawRect(Rect.fromLTWH(g.left, g.top + g.height * k / ny - 9 * u, g.width, 18 * u), bar);
+        }
+      }
     } else {
       canvas.drawRect(g, ln);
       canvas.drawLine(g.topLeft + Offset(g.width * 0.2, g.height * 0.15), g.topLeft + Offset(g.width * 0.45, g.height * 0.05), ln);

@@ -21,6 +21,7 @@ import 'net_symbols.dart';
 import 'openings_ui.dart';
 import 'brands_ui.dart';
 import 'kx_choices.dart';
+import 'presentation_bar.dart';
 import 'theme.dart';
 import 'textures.dart';
 import 'toolbar.dart';
@@ -485,6 +486,37 @@ class StylePanel extends StatelessWidget {
     Widget frontsBody() => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(tr('Modèle de façade'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: Tokens.s2),
+        Wrap(spacing: 10, runSpacing: 10, children: [
+          for (final e in frontProfiles.entries)
+            () {
+              final on = st.frontProfile == e.key;
+              final f = frontFinish(st, st.frontLower ?? st.front);
+              return InkWell(
+                key: ValueKey('profile_${e.key}'),
+                borderRadius: BorderRadius.circular(Tokens.radius),
+                onTap: () => state.edit(() => st.frontProfile = e.key),
+                child: SizedBox(
+                  width: 78,
+                  child: Column(children: [
+                    Container(
+                      width: 70,
+                      height: 88,
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: on ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant, width: on ? 3 : 1)),
+                      child: CustomPaint(painter: _ProfilePainter(state.catalog, f, e.key)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(tr(e.value.$1), textAlign: TextAlign.center, style: t.labelSmall?.copyWith(fontWeight: on ? FontWeight.w800 : null)),
+                  ]),
+                ),
+              );
+            }(),
+        ]),
+        const SizedBox(height: Tokens.s4),
+        Text(tr('Couleur'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: Tokens.s2),
         if (state.engine.kitchen || hasHigh)
         KxChoices<bool>(
           showSelectedIcon: false,
@@ -512,6 +544,18 @@ class StylePanel extends StatelessWidget {
           Text(tr('Éléments bas et colonnes'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(height: Tokens.s2),
           swatches(frontFinishes(st), st.frontLower ?? st.front, (v) => state.setFrontScope(lower: v)),
+        ],
+        if (state.project.room.island != null) ...[
+          const SizedBox(height: Tokens.s4),
+          Text(tr('Îlot'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: Tokens.s2),
+          KxChoices<bool>(
+            key: const ValueKey('island_front_mode'),
+            segments: [ButtonSegment(value: false, label: Text(tr('Comme les bas'))), ButtonSegment(value: true, label: Text(tr('Sa propre couleur')))],
+            selected: {st.islandFront != null},
+            onSelectionChanged: (v) => state.edit(() => st.islandFront = v.first ? (st.frontLower ?? st.front) : null),
+          ),
+          if (st.islandFront != null) ...[const SizedBox(height: Tokens.s2), swatches(frontFinishes(st), st.islandFront!, (v) => state.edit(() => st.islandFront = v))],
         ],
         const SizedBox(height: Tokens.s3),
         Text(
@@ -839,6 +883,7 @@ class StylePanel extends StatelessWidget {
           ],
         ),
       ),
+      StyleSection.decor => ('Décor', DecorPanel(state: state)),
       StyleSection.handles when state.db != null && state.db!.handles.items.isNotEmpty => ('Poignées', _HandlePicker(state: state, cat: state.db!.handles)),
       StyleSection.handles => (
         'Poignées',
@@ -874,6 +919,46 @@ class StylePanel extends StatelessWidget {
 void _cheekMsg(BuildContext context, (int, int) r) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
       behavior: SnackBarBehavior.floating,
       content: Text(trp(r.$2 == 0 ? '{0} joue(s) ajoutée(s)' : '{0} joue(s) ajoutée(s), {1} sans place', [r.$1, r.$2]))));
+
+/// Une porte et un tiroir dans le modèle de façade.
+class _ProfilePainter extends CustomPainter {
+  final Catalog catalog;
+  final Finish finish;
+  final String profile;
+  _ProfilePainter(this.catalog, this.finish, this.profile);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final m = catalog.models.where((m) => m.isCarcass && m.kind == CabinetKind.base).firstOrNull ?? catalog.models.where((m) => m.isCarcass).firstOrNull;
+    if (m == null) return;
+    void face(Rect r, double wMm, CellKind kind) {
+      final k = r.width / wMm;
+      canvas.save();
+      canvas.translate(r.left, r.top);
+      canvas.scale(k);
+      final hMm = r.height / k;
+      paintFront(canvas, Rect.fromLTWH(0, 0, wMm, hMm), m,
+          fill: finish.color,
+          stroke: shade(finish.color, -0.3),
+          line: lineOn(finish.color),
+          fillPaint: finish.paint(vertical: true),
+          cells: [FrontCell(kind, 0, hMm, 'left', -1)],
+          handle: 'push',
+          profile: profile,
+          realistic: true,
+          pxPerMm: 1,
+          opening: 'hinged_left',
+          gloss: finish.gloss);
+      canvas.restore();
+    }
+
+    final dh = size.height * 0.3;
+    face(Rect.fromLTWH(0, 0, size.width, dh), 450, CellKind.drawer);
+    face(Rect.fromLTWH(0, dh + 1, size.width, size.height - dh - 1), 450, CellKind.door);
+  }
+
+  @override
+  bool shouldRepaint(_ProfilePainter o) => o.profile != profile || o.finish.id != finish.id;
+}
 
 class _Swatch extends StatelessWidget {
   final Finish finish;
@@ -1937,6 +2022,26 @@ class _WorktopMaterialForm extends StatelessWidget {
           for (final x in mat.thicknesses)
             ChoiceChip(label: Text(trp('{0} mm', [x])), selected: th == x, onSelected: (_) => state.edit(() => sp.worktopThickness = x)),
         ]),
+      ],
+      if (p.room.island != null) ...[
+        title('Plan de l’îlot'),
+        KxChoices<bool>(
+          key: const ValueKey('island_top_mode'),
+          segments: [ButtonSegment(value: false, label: Text(tr('Comme les autres'))), ButtonSegment(value: true, label: Text(tr('Son propre plan')))],
+          selected: {st.islandTop != null},
+          onSelectionChanged: (v) => state.edit(() => st.islandTop = v.first ? (worktopLooks.containsKey(st.worktop) ? st.worktop : 'marbre') : null),
+        ),
+        if (st.islandTop != null) ...[
+          const SizedBox(height: Tokens.s2),
+          Wrap(spacing: Tokens.s3, runSpacing: Tokens.s3, children: [for (final f in worktops) _Swatch(key: ValueKey('isl_${f.id}'), finish: f, selected: f.id == st.islandTop, onTap: () => state.edit(() => st.islandTop = f.id))]),
+        ],
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          title: Text(tr('Plan en cascade (jambages jusqu’au sol)')),
+          value: st.islandWaterfall,
+          onChanged: (v) => state.edit(() => st.islandWaterfall = v),
+        ),
       ],
       if (state.engine.kitchen) ...[
         title('4. Crédence'),

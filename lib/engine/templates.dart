@@ -6,6 +6,7 @@ library;
 
 import 'catalog.dart';
 import 'essentials.dart';
+import 'front_profiles.dart';
 import 'layout_engine.dart';
 import 'project.dart';
 import 'proposals.dart';
@@ -29,6 +30,8 @@ class KitchenTemplate {
   final int? handleSize;
   final String floor, wall;
   final String? splash;
+  final String profile; // modèle de façade
+  final String? islandFront, islandTop, island; // îlot : façades, plan, forme
 
   const KitchenTemplate({
     required this.id,
@@ -49,6 +52,10 @@ class KitchenTemplate {
     required this.floor,
     this.wall = 'blanc_casse',
     this.splash,
+    this.profile = 'lisse',
+    this.islandFront,
+    this.islandTop,
+    this.island,
   });
 
   void applyStyle(KitchenStyle s) {
@@ -63,7 +70,10 @@ class KitchenTemplate {
       ..handleSize = handleSize
       ..floor = floor
       ..wall = wall
-      ..splash = splash;
+      ..splash = splash
+      ..frontProfile = profile
+      ..islandFront = islandFront
+      ..islandTop = islandTop;
   }
 }
 
@@ -176,6 +186,66 @@ const kitchenTemplates = <KitchenTemplate>[
       description: 'Familiale, lumineuse et spacieuse : beige et blanc, îlot, plan terrazzo.',
       shapes: {'li', 'lini', 'u'}, fill: 'mixte', front: 'cachemire', frontUpper: 'blanc_mat', worktop: 'terrazzo',
       handle: 'bar', handleId: 'handle_d_pull_flat', handleFinish: 'Or brossé', floor: 'terrazzo_sol', splash: 'metro_blanc'),
+  // ---------------------------------------------------------------- campagne et classiques à cadre
+  KitchenTemplate(
+      id: 'mogador_cadre', name: 'Mogador', family: 'À cadre',
+      description: 'Bleu pétrole à cadre, coquilles chromées, îlot marbre et plans bois : campagne chaleureuse.',
+      shapes: {'li', 'lini', 'l', 'u'}, fill: 'tiroirs', front: 'bleu_petrole', worktop: 'hpl_chene', handle: 'cup',
+      handleId: 'cup_handle_shell_shaker', handleFinish: 'Étain brossé', floor: 'parquet_blanchi', splash: 'metro_blanc',
+      profile: 'shaker', islandTop: 'marbre', island: 'tiroirs'),
+  KitchenTemplate(
+      id: 'ourika_cadre', name: 'Ourika', family: 'À cadre',
+      description: 'Blanc mouluré, vitrines à croisillons en haut, plan bois, grand évier : classique lumineuse.',
+      shapes: {'l', 'u', 'lin'}, fill: 'mixte', uppers: Uppers.glassEnds, front: 'blanc_mat', worktop: 'hpl_chene', handle: 'bar',
+      handleId: 'handle_recessed_bridge', handleFinish: 'Nickel satiné', floor: 'parquet_clair', splash: 'metro_blanc', profile: 'mouluree'),
+  KitchenTemplate(
+      id: 'azrou_cadre', name: 'Azrou', family: 'À cadre',
+      description: 'Noir à cadre, plan bois clair, mur de brique et boutons : esprit atelier.',
+      shapes: {'li', 'lini', 'l'}, fill: 'tiroirs', uppers: Uppers.glassEnds, front: 'noir_mat', worktop: 'hpl_chene', handle: 'knob',
+      handleId: 'knob_round_mushroom', handleFinish: 'Noir mat', floor: 'parquet_blanchi', wall: 'blanc_casse', splash: 'brique_cred',
+      profile: 'shaker', island: 'tiroirs'),
+  KitchenTemplate(
+      id: 'amizmiz_fin', name: 'Amizmiz', family: 'À cadre',
+      description: 'Cadre fin vert olive, plan pierre claire, boutons laiton : le shaker d’aujourd’hui.',
+      shapes: {'l', 'li', 'u', 'lin'}, fill: 'mixte', front: 'vert_olive_facade', worktop: 'marbre_creme', handle: 'knob',
+      handleId: 'knob_cylinder_knurled', handleFinish: 'Or mat', floor: 'parquet_chene', splash: 'zellige_blanc', profile: 'shaker_fin'),
+  KitchenTemplate(
+      id: 'sefrou_fin', name: 'Sefrou', family: 'À cadre',
+      description: 'Cadre fin champignon et chêne en haut, plan marbre, poignées bronze.',
+      shapes: {'l', 'lin', 'u'}, fill: 'mixte', front: 'champignon', frontUpper: 'chene', worktop: 'marbre', handle: 'bar',
+      handleId: 'handle_knurled_industrial', handleFinish: 'Bronze vieilli', floor: 'carrelage_travertin', splash: 'marbre_cred', profile: 'shaker_fin'),
+  // ---------------------------------------------------------------- sans poignée et matières
+  KitchenTemplate(
+      id: 'oualidia_eau', name: 'Oualidia', family: 'Sans poignée',
+      description: 'Vert d’eau sans poignée, profils laiton, plan sable : fraîche et très contemporaine.',
+      shapes: {'l', 'u', 'li'}, fill: 'tiroirs', front: 'vert_deau', worktop: 'quartz_beige', handle: 'gola', handleFinish: 'Or brossé',
+      floor: 'parquet_chene', splash: 'zellige_vert'),
+  KitchenTemplate(
+      id: 'imlil_jade', name: 'Imlil', family: 'Sans poignée',
+      description: 'Vert jade supermat sans poignée, plan effet marbre, niches ouvertes.',
+      shapes: {'l', 'li', 'lin'}, fill: 'tiroirs', uppers: Uppers.open, front: 'vert_jade', worktop: 'dekton_marbre', handle: 'gola',
+      handleFinish: 'Noir mat', floor: 'beton_cire', splash: null),
+  KitchenTemplate(
+      id: 'tinghir_sable', name: 'Tinghir', family: 'Sans poignée',
+      description: 'Sable mat, plan travertin clair, colonnes toute hauteur, îlot repas.',
+      shapes: {'li', 'lini', 'l'}, fill: 'tiroirs', front: 'sable', worktop: 'marbre_creme', handle: 'gola', handleFinish: 'Champagne',
+      floor: 'carrelage_travertin', wall: 'lin_naturel', splash: null, island: 'repas'),
+  KitchenTemplate(
+      id: 'midelt_cannele', name: 'Midelt', family: 'Sans poignée',
+      description: 'Bas en noyer cannelé, hauts lisses sable, îlot cascade en marbre.',
+      shapes: {'li', 'lini', 'l'}, fill: 'tiroirs', front: 'noyer', frontUpper: 'sable', worktop: 'marbre_calacatta', handle: 'gola', handleFinish: 'Noir mat',
+      floor: 'parquet_chene', splash: 'plan', profile: 'cannelee', island: 'cascade'),
+  KitchenTemplate(
+      id: 'erfoud_ocre', name: 'Erfoud', family: 'Deux tons',
+      description: 'Cuisine claire et îlot ocre : une seule touche de terre au centre.',
+      shapes: {'li', 'lini'}, fill: 'mixte', front: 'cachemire', worktop: 'quartz_blanc', handle: 'bar',
+      handleId: 'handle_d_pull_flat', handleFinish: 'Or brossé', floor: 'parquet_clair', splash: 'zellige_blanc', profile: 'shaker_fin',
+      islandFront: 'ocre', islandTop: 'marbre_creme', island: 'repas'),
+  KitchenTemplate(
+      id: 'ksar_prune', name: 'Ksar', family: 'Deux tons',
+      description: 'Prune profond en bas, chêne en haut, marbre veiné : chaleureuse et affirmée.',
+      shapes: {'l', 'li', 'u'}, fill: 'tiroirs', front: 'prune', frontUpper: 'chene_clair', worktop: 'marbre_calacatta', handle: 'edge',
+      handleId: 'edge_pull_individual_cut', handleFinish: 'Or brossé', floor: 'parquet_noyer', splash: 'plan'),
   // ---------------------------------------------------------------- petites cuisines et kitchenettes
   KitchenTemplate(
       id: 'riad', name: 'Riad', family: 'Petites cuisines',
@@ -275,6 +345,20 @@ List<(KitchenTemplate, LayoutProposal)> buildTemplates(LayoutEngine base) {
     _applyUppers(e, t.uppers);
     for (final w in project.room.walls.where((w) => w.enabled)) {
       e.placeHoods(w.id);
+    }
+    // forme d'îlot du modèle, gardée si elle ne gêne rien
+    if (t.island != null && project.room.island != null) {
+      final before = Project.fromJson(project.toJson());
+      final bad = e.validate().where((i) => i.severity == Severity.error).length;
+      if (!applyIslandPreset(e, t.island!) || e.workZones().$1 == null || e.workZones().$2 == null || e.validate().where((i) => i.severity == Severity.error).length > bad) {
+        project.items
+          ..clear()
+          ..addAll(before.items);
+        project.room.island = before.room.island;
+        project.style
+          ..islandWaterfall = false
+          ..islandBack = 'lisse';
+      }
     }
     if (!essentialOk(e)) continue;
     t.applyStyle(project.style);

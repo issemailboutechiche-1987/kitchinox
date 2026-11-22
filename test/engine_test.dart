@@ -18,7 +18,7 @@ void main() {
   group('catalogue', () {
     test('63 modèles, 8 catégories', () {
       expect(catalog.categories.length, 8);
-      expect(catalog.models.length, 63);
+      expect(catalog.models.length, 66);
     });
 
     test('normes appliquées aux bas : 750 au lieu de 800', () {

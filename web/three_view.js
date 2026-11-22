@@ -18,7 +18,7 @@ const groups = new Map(); // clé de groupe → { sig, obj }
 const doors = []; // { uid, pivot, kind, max }
 const progress = new Map(); // uid → ouverture animée 0..1
 let selBox = null;
-let lastYaw = null, lastZoom = null, lastView = 0, baseDist = 6;
+let lastYaw = null, lastZoom = null, lastView = 0, baseDist = 6, lastStudio = '';
 let camAnim = null; // déplacement de caméra en cours { p0, t0, p1, t1, k }
 let handlers = null;
 let lastT = performance.now();
@@ -132,6 +132,16 @@ function onWall(f, s, t, z) {
 function buildRoom(d) {
   const g = new THREE.Group();
   const r = d.room;
+  if (d.studio) {
+    // présentation : fond blanc, seule l'ombre des meubles se voit au sol
+    const big = Math.max(r.w, r.d) * S * 6;
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(big, big), new THREE.ShadowMaterial({ opacity: 0.16 }));
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.set(r.w * S / 2, -0.001, r.d * S / 2);
+    ground.receiveShadow = true;
+    g.add(ground);
+    return g;
+  }
   // sol
   const fm = d.floor;
   let floor;
@@ -237,8 +247,32 @@ function buildRoom(d) {
 // miroir : métal poli qui reflète l'environnement de la pièce
 const mirrorMat = new THREE.MeshStandardMaterial({ color: 0xf4f7f8, metalness: 1, roughness: 0.02 });
 
+/** Relief d'une façade à cadre : quatre montants de [fw] mm en avant du panneau, et un panneau central bombé si [raised]. */
+function frameRelief(w, h, fw, raised, front, edge, uid) {
+  const g = new THREE.Group();
+  const slab = (x0, x1, y0, y1, up) => {
+    const geo = new THREE.BoxGeometry((x1 - x0) * S, (y1 - y0) * S, up);
+    const uv = geo.attributes.uv;
+    const u0 = x0 / w, u1 = x1 / w, v0 = y0 / h, v1 = y1 / h;
+    for (let i = 16; i < 20; i++) uv.setXY(i, u0 + (u1 - u0) * uv.getX(i), v0 + (v1 - v0) * uv.getY(i));
+    // chants dans la teinte de la façade : le relief accroche la lumière
+    const m = new THREE.Mesh(geo, [front, front, front, front, front, edge]);
+    m.position.set(((x0 + x1) / 2 - w / 2) * S, ((y0 + y1) / 2 - h / 2) * S, 0.009 + up / 2);
+    m.castShadow = m.receiveShadow = true;
+    m.userData.uid = uid;
+    g.add(m);
+  };
+  slab(0, fw, 0, h, 0.006);
+  slab(w - fw, w, 0, h, 0.006);
+  slab(fw, w - fw, 0, fw, 0.006);
+  slab(fw, w - fw, h - fw, h, 0.006);
+  const k = fw + 40;
+  if (raised && w - 2 * k > 60 && h - 2 * k > 60) slab(k, w - k, k, h - k, 0.004);
+  return g;
+}
+
 /** Porte vitrée : quatre montants (la matière de la façade devant et derrière) et une vitre transparente. */
-function glassPanel(w, h, fw, front, edge, uid) {
+function glassPanel(w, h, fw, front, edge, uid, muntins) {
   const g = new THREE.Group();
   const bar = (x0, x1, y0, y1) => {
     const geo = new THREE.BoxGeometry((x1 - x0) * S, (y1 - y0) * S, 0.018);
@@ -257,6 +291,11 @@ function glassPanel(w, h, fw, front, edge, uid) {
   bar(w - fw, w, 0, h);
   bar(fw, w - fw, 0, fw);
   bar(fw, w - fw, h - fw, h);
+  if (muntins) {
+    const iw = w - 2 * fw, ih = h - 2 * fw, nx = iw > 300 ? 2 : 1, ny = Math.min(6, Math.max(1, Math.round(ih / 280)));
+    for (let k = 1; k < nx; k++) bar(fw + iw * k / nx - 9, fw + iw * k / nx + 9, fw, h - fw);
+    for (let k = 1; k < ny; k++) bar(fw, w - fw, fw + ih * k / ny - 9, fw + ih * k / ny + 9);
+  }
   const pane = new THREE.Mesh(new THREE.BoxGeometry((w - 2 * fw) * S, (h - 2 * fw) * S, 0.004), glass);
   pane.userData.uid = uid;
   pane.renderOrder = 2; // après l'intérieur du meuble
@@ -330,7 +369,7 @@ function buildPart(f, uid, part, depth, carcassColor) {
   const back = new THREE.MeshStandardMaterial({ color: carcassColor, roughness: 0.7 });
   let panel;
   if (part.glass && !f.mirror) {
-    panel = glassPanel(w, h, part.glass, front, edge, uid);
+    panel = glassPanel(w, h, part.glass, front, edge, uid, part.muntins);
   } else {
     const geo = new THREE.BoxGeometry(w * S, h * S, 0.018);
     panel = new THREE.Mesh(geo, [edge, edge, edge, edge, front, back]);
@@ -362,7 +401,13 @@ function buildPart(f, uid, part, depth, carcassColor) {
   if (part.grips) {
     const grips = buildGrips(part.grips, w, h, uid);
     grips.position.copy(local);
+    if (part.frame) grips.position.z += 0.006; // posées sur le cadre
     pivot.add(grips);
+  }
+  if (part.frame && !f.mirror) {
+    const relief = frameRelief(w, h, part.frame.w, part.frame.raised, front, edge, uid);
+    relief.position.copy(local);
+    pivot.add(relief);
   }
   out.add(frame);
   // intérieur (visible quand la case s'ouvre) et caisson du tiroir
@@ -1073,6 +1118,143 @@ function buildFixture(o, sceneData) {
       }
       break;
     }
+    case 'deco_fruits': {
+      // corbeille tressée et fruits
+      const wood = new THREE.MeshStandardMaterial({ color: 0xa8794a, roughness: 0.8, side: THREE.DoubleSide });
+      const pts = [[0.02, 0], [0.62, 0], [0.82, 0.25], [1, 0.62]].map(([r, y]) => new THREE.Vector2(r * hw, y * h * 0.75));
+      const bowl = mesh(new THREE.LatheGeometry(pts, 36), wood);
+      bowl.position.set(0, 0, d / 2);
+      m.add(bowl);
+      const fruits = [[0xd9432f, 38], [0xf2a11b, 40], [0x8db33a, 37], [0xf0c93a, 36], [0xc8312b, 37], [0xf19a1a, 39], [0x7fa636, 36]];
+      fruits.forEach(([c, r], i) => {
+        const f = mesh(new THREE.SphereGeometry(r, 20, 16), new THREE.MeshStandardMaterial({ color: c, roughness: 0.45 }));
+        const a = (i / 6) * Math.PI * 2, k = i === 6 ? 0 : hw * 0.5;
+        f.position.set(Math.cos(a) * k, h * 0.42 + (i === 6 ? 42 : (i % 2) * 8), d / 2 + Math.sin(a) * k);
+        m.add(f);
+      });
+      break;
+    }
+    case 'deco_bouteilles': {
+      const items = [[-hw * 0.62, 26, h, 0x5f6d2e, 0.25], [-hw * 0.05, 24, h * 0.82, 0x7a4a1e, 0.3], [hw * 0.45, 22, h * 0.36, 0xd8cdbd, 0.6], [hw * 0.82, 22, h * 0.36, 0x3a3a3c, 0.6]];
+      for (const [x, r, hh, c, rough] of items) {
+        const mat = new THREE.MeshStandardMaterial({ color: c, roughness: rough });
+        const b = mesh(new THREE.CylinderGeometry(r, r, hh * 0.7, 22), mat);
+        b.position.set(x, hh * 0.35, d / 2);
+        m.add(b);
+        const neck = mesh(new THREE.CylinderGeometry(hh > h * 0.5 ? r * 0.4 : r * 0.9, hh > h * 0.5 ? r * 0.9 : r, hh * 0.3, 18), hh > h * 0.5 ? mat : darkMat);
+        neck.position.set(x, hh * 0.85, d / 2);
+        m.add(neck);
+      }
+      break;
+    }
+    case 'deco_planches': {
+      // deux planches appuyées au mur
+      const board = (bw, bh, c, x, z, tilt) => {
+        const sh = new THREE.Shape();
+        const r = 26;
+        sh.moveTo(-bw / 2 + r, 0);
+        sh.lineTo(bw / 2 - r, 0);
+        sh.quadraticCurveTo(bw / 2, 0, bw / 2, r);
+        sh.lineTo(bw / 2, bh - r);
+        sh.quadraticCurveTo(bw / 2, bh, bw / 2 - r, bh);
+        sh.lineTo(-bw / 2 + r, bh);
+        sh.quadraticCurveTo(-bw / 2, bh, -bw / 2, bh - r);
+        sh.lineTo(-bw / 2, r);
+        sh.quadraticCurveTo(-bw / 2, 0, -bw / 2 + r, 0);
+        const hole = new THREE.Path();
+        hole.absarc(0, bh - 34, 13, 0, Math.PI * 2);
+        sh.holes.push(hole);
+        const b = mesh(new THREE.ExtrudeGeometry(sh, { depth: 16, bevelEnabled: false }), new THREE.MeshStandardMaterial({ color: c, roughness: 0.6 }));
+        b.position.set(x, 2, z);
+        b.rotation.x = -tilt;
+        m.add(b);
+      };
+      board(w * 0.82, h * 0.96, 0xb98a55, -w * 0.06, 46, 0.1);
+      board(w * 0.56, h * 0.72, 0x7d5331, w * 0.14, 66, 0.11);
+      break;
+    }
+    case 'deco_bouilloire': {
+      const steelM = new THREE.MeshStandardMaterial({ color: 0xc9ccd0, metalness: 0.85, roughness: 0.25 });
+      const body = mesh(new THREE.CylinderGeometry(w * 0.36, w * 0.46, h * 0.78, 32), steelM);
+      body.position.set(0, h * 0.45, d / 2);
+      m.add(body);
+      const base = mesh(new THREE.CylinderGeometry(w * 0.48, w * 0.5, h * 0.07, 32), darkMat);
+      base.position.set(0, h * 0.035, d / 2);
+      m.add(base);
+      const lid = mesh(new THREE.SphereGeometry(w * 0.34, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), steelM);
+      lid.scale.y = 0.35;
+      lid.position.set(0, h * 0.84, d / 2);
+      m.add(lid);
+      const grip = mesh(new THREE.TorusGeometry(h * 0.27, 9, 12, 24, Math.PI), darkMat);
+      grip.rotation.z = -Math.PI / 2;
+      grip.position.set(w * 0.38, h * 0.5, d / 2);
+      m.add(grip);
+      break;
+    }
+    case 'deco_casserole': {
+      const pot = new THREE.MeshStandardMaterial({ color: 0x34373b, metalness: 0.5, roughness: 0.4, side: THREE.DoubleSide });
+      const body = mesh(new THREE.CylinderGeometry(hw * 0.78, hw * 0.74, h * 0.62, 36), pot);
+      body.position.set(0, h * 0.31, d / 2);
+      m.add(body);
+      const lid = mesh(new THREE.SphereGeometry(hw * 0.8, 32, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xc9ccd0, metalness: 0.8, roughness: 0.25 }));
+      lid.scale.y = 0.22;
+      lid.position.set(0, h * 0.62, d / 2);
+      m.add(lid);
+      const knobM = mesh(new THREE.SphereGeometry(13, 16, 12), darkMat);
+      knobM.position.set(0, h * 0.62 + hw * 0.19, d / 2);
+      m.add(knobM);
+      for (const sx of [-1, 1]) {
+        const ear = mesh(new THREE.BoxGeometry(hw * 0.24, 9, 60), darkMat);
+        ear.position.set(sx * hw * 0.88, h * 0.5, d / 2);
+        m.add(ear);
+      }
+      break;
+    }
+    case 'deco_rideau': {
+      // tringle et deux pans de tissu ondulés, ouverts de chaque côté
+      const cloth = new THREE.MeshStandardMaterial({ color: 0xeee6da, roughness: 0.95, side: THREE.DoubleSide });
+      const pan = (x0, x1) => {
+        const n = 48, geo = new THREE.PlaneGeometry(x1 - x0, h - 30, n, 1), pos = geo.attributes.position;
+        for (let i = 0; i < pos.count; i++) pos.setZ(i, Math.sin((pos.getX(i) / (x1 - x0)) * Math.PI * 2 * 5) * 26);
+        geo.computeVertexNormals();
+        const p = mesh(geo, cloth);
+        p.position.set((x0 + x1) / 2, (h - 30) / 2, d / 2);
+        m.add(p);
+      };
+      const pw = Math.min(w * 0.27, 480);
+      pan(-hw, -hw + pw);
+      pan(hw - pw, hw);
+      const rod = mesh(new THREE.CylinderGeometry(11, 11, w + 60, 16), new THREE.MeshStandardMaterial({ color: 0x3a3a3c, metalness: 0.6, roughness: 0.4 }));
+      rod.rotation.z = Math.PI / 2;
+      rod.position.set(0, h - 16, d / 2);
+      m.add(rod);
+      for (const sx of [-1, 1]) {
+        const end = mesh(new THREE.SphereGeometry(20, 16, 12), rod.material);
+        end.position.set(sx * (hw + 34), h - 16, d / 2);
+        m.add(end);
+      }
+      break;
+    }
+    case 'deco_store': {
+      // store vénitien à demi baissé
+      const slat = new THREE.MeshStandardMaterial({ color: 0xf1ece3, roughness: 0.7 });
+      const head = mesh(new THREE.BoxGeometry(w, 45, 45), slat);
+      head.position.set(0, h - 22, d / 2);
+      m.add(head);
+      const step = 42, count = Math.floor((h * 0.5) / step);
+      for (let i = 1; i <= count; i++) {
+        const s0 = mesh(new THREE.BoxGeometry(w - 10, 3, 44), slat);
+        s0.rotation.x = 0.5;
+        s0.position.set(0, h - 45 - i * step, d / 2);
+        m.add(s0);
+      }
+      for (const sx of [-0.32, 0.32]) {
+        const cord = mesh(new THREE.BoxGeometry(4, count * step, 2), slat);
+        cord.position.set(sx * w, h - 45 - (count * step) / 2, d / 2);
+        m.add(cord);
+      }
+      break;
+    }
     case 'miroir': {
       // miroir rétroéclairé : glace, cadre alu fin, LED tout autour
       const frame = mesh(new THREE.BoxGeometry(w, h, 25), new THREE.MeshStandardMaterial({ color: 0xc9ccce, metalness: 0.8, roughness: 0.3 }));
@@ -1504,7 +1686,7 @@ function buildObject(o, d) {
   const root = new THREE.Group();
   root.position.copy(P(o.x, o.y, o.z));
   root.rotation.y = -o.rot * Math.PI / 180;
-  root.userData.uid = o.pick || 'obj:' + o.uid; // toucher l'objet le sélectionne (la vasque : son meuble)
+  if (!o.decor) root.userData.uid = o.pick || 'obj:' + o.uid; // toucher l'objet le sélectionne (la vasque : son meuble)
   const inner = new THREE.Group();
   inner.position.z = -o.d / 2 * S; // dos en z = 0 → recentré
   root.add(inner);
@@ -1895,7 +2077,8 @@ function buildAO(d) {
 function applyScene(d) {
   data = d;
   doors.length = 0;
-  sync('room', JSON.stringify([d.room, d.walls, d.floor, d.wall, d.splashMat, d.splash]), () => buildRoom(d));
+  scene.background = new THREE.Color(d.studio ? 0xffffff : 0xeef1f3);
+  sync('room', JSON.stringify([d.studio || '', d.room, d.walls, d.floor, d.wall, d.splashMat, d.splash]), () => buildRoom(d));
   sync('lights', JSON.stringify(d.lights || []), () => buildLights(d));
   const uids = [...new Set(d.items.map((i) => i.uid))];
   // les portes sont reconstruites avec leur groupe : on vide la liste et on la remplit pour tous
@@ -1925,7 +2108,7 @@ function applyScene(d) {
   sync('others', JSON.stringify([d.solids.filter((x) => !x.uid), d.tops]), () => bakeStatic(buildOthers(d)));
   syncObjects(d);
   sync('netPoints', JSON.stringify([d.netPoints || [], d.socketFinish]), () => buildNetPoints(d));
-  sync('ao', JSON.stringify([d.room, d.floorPoly || null, groundFootprints(d)]), () => buildAO(d));
+  sync('ao', JSON.stringify([d.studio || '', d.room, d.floorPoly || null, groundFootprints(d)]), () => (d.studio ? new THREE.Group() : buildAO(d)));
   // sélection : boîte orange
   if (selBox) {
     scene.remove(selBox);
@@ -1970,6 +2153,33 @@ function applyScene(d) {
     lastYaw = d.yaw;
     lastZoom = d.zoom;
     lastView = view;
+  }
+  // présentation : cadrage serré sur les meubles, de trois quarts ; retour à la vue de la pièce en sortant
+  if ((d.studio || '') !== lastStudio && (!!d.studio !== !!lastStudio || lastStudio === null)) {
+    if (d.studio) {
+      const bb = new THREE.Box3();
+      for (const [key, v] of groups) if (key.startsWith('item:')) bb.expandByObject(v.obj);
+      if (!bb.isEmpty()) {
+        const c = bb.getCenter(new THREE.Vector3()), size = bb.getSize(new THREE.Vector3());
+        const rad = size.length() / 2, dist2 = (rad / Math.sin((camera.fov * Math.PI) / 360)) * Math.max(1, 1.15 / (camera.aspect || 1)) * 0.95;
+        const dir = new THREE.Vector3(0.42, 0.24, 1).normalize();
+        camera.position.copy(c).addScaledVector(dir, dist2);
+        controls.target.copy(c);
+        controls.update();
+        camAnim = null;
+      }
+    } else lastYaw = null; // recadre la pièce au prochain passage
+  }
+  const leaving = lastStudio && !d.studio;
+  lastStudio = d.studio || '';
+  if (leaving) {
+    const dist = baseDist * Math.max(1, 1.4 / (camera.aspect || 1));
+    camera.position.set(target.x - Math.sin(d.yaw) * dist, target.y + dist * 0.72, target.z + Math.cos(d.yaw) * dist);
+    controls.target.copy(target);
+    controls.update();
+    lastYaw = d.yaw;
+    lastZoom = d.zoom;
+    lastView = d.cam || 0;
   }
   // lumière principale cadrée sur la pièce (positionnée en hauteur et orientée pour des ombres douces et réalistes)
   sun.position.set(target.x + 0.5, 6.0, target.z + 4.2);
