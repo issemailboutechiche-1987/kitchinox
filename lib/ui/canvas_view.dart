@@ -17,6 +17,7 @@ import 'fronts.dart';
 import 'net_symbols.dart';
 import 'openings_ui.dart';
 import 'scene3d.dart';
+import 'objects_panel.dart' show paintHomeAppliance;
 import 'theme.dart';
 import 'toolbar.dart' show showIslandDialog;
 import 'view3d.dart';
@@ -1327,13 +1328,16 @@ class _PlannerPainter extends CustomPainter {
               .createShader(r));
         canvas.drawRect(r, _stroke(const Color(0xFF9AA0A6), 2));
         canvas.drawLine(Offset(r.left + r.width * 0.2, r.bottom), Offset(r.left + r.width * 0.55, r.top), _stroke(const Color(0x88FFFFFF), 6));
-      case 'chauffe_eau':
-        final rr = RRect.fromRectAndRadius(r, Radius.circular(r.width / 2));
-        canvas.drawRRect(rr, white);
-        canvas.drawRRect(rr, ink);
-        canvas.drawLine(v.toScreen(mid - 60, z0), v.toScreen(mid - 60, z0 - 150), _stroke(const Color(0xFF9AA0A6), math.max(1.5, 24 * k)));
-        canvas.drawLine(v.toScreen(mid + 60, z0), v.toScreen(mid + 60, z0 - 150), _stroke(const Color(0xFF9AA0A6), math.max(1.5, 24 * k)));
       default:
+        if (f != null && paintHomeAppliance(canvas, r, f.id, ink, white, fit: true)) {
+          if (isHeater(f) && o.z > 300) {
+            final pipe = _stroke(const Color(0xFF9AA0A6), math.max(1.5, 24 * k));
+            for (final (kind, lx, _) in fixtureWaterLocal(o)) {
+              if (kind != 'evac') canvas.drawLine(v.toScreen(mid + lx, z0), v.toScreen(mid + lx, z0 - 120), pipe);
+            }
+          }
+          break;
+        }
         // objet du catalogue libre : silhouette et nom
         final cat = st.objectCatalog.where((c) => c.id == o.ref).firstOrNull;
         final rr = RRect.fromRectAndRadius(r, Radius.circular(math.min(r.width, r.height) * 0.06));
@@ -1417,10 +1421,21 @@ class _PlannerPainter extends CustomPainter {
             final x = -w / 2 + w * i / 6;
             canvas.drawLine(Offset(x, -d / 2), Offset(x, d / 2), _stroke(const Color(0x884A4F55), 1));
           }
-        case 'chauffe_eau':
+        case 'chauffe_eau' || 'chauffe_eau_sol' || 'chauffe_eau_thermo':
           canvas.drawOval(r, white);
           canvas.drawOval(r, ink);
           canvas.drawLine(Offset(-w * 0.2, 0), Offset(w * 0.2, 0), ink);
+        case 'tour_lavage' || 'll_hublot' || 'll_encastrable' || 'll_sechant' || 'll_mini' || 'sl_evac' || 'sl_cond' || 'sl_pac' || 'sl_mural':
+          // machine à hublot : la porte se lit à l'avant
+          canvas.drawRect(r, white);
+          canvas.drawRect(r, ink);
+          canvas.drawLine(at(0, 0.9), at(1, 0.9), ink);
+          canvas.drawCircle(at(0.5, 0.45), math.min(w, d) * 0.28, ink);
+        case 'll_top' || 'll_cuve' || 'll_semi':
+          canvas.drawRect(r, white);
+          canvas.drawRect(r, ink);
+          canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromPoints(at(0.1, 0.25), at(f.id == 'll_semi' ? 0.55 : 0.9, 0.92)), const Radius.circular(3)), ink);
+          if (f.id == 'll_semi') canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromPoints(at(0.62, 0.25), at(0.92, 0.92)), const Radius.circular(3)), ink);
         default:
           canvas.drawRect(r, white);
           canvas.drawRect(r, ink);

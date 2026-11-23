@@ -149,7 +149,7 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
           return;
         }
         st.select(u);
-        st.toggleOpen(u);
+        st.togglePart(u, a.length > 1 ? (a[1] as num).toInt() : -1, a.length > 2 ? (a[2] as num).toInt() : 0);
       case 'dragStart':
         if (_covered || u == null) return;
         st.select(u);

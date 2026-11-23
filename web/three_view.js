@@ -17,7 +17,7 @@ let renderer, scene, camera, controls, host, raf = 0;
 let data = null;
 const groups = new Map(); // clé de groupe → { sig, obj }
 const doors = []; // { uid, pivot, kind, max }
-const progress = new Map(); // uid → ouverture animée 0..1
+const progress = new Map(); // partie (uid#n) → ouverture animée 0..1
 let selBox = null;
 let hemiLight, ambLight, fillLight, sideLight, rimLight;
 let lastYaw = null, lastZoom = null, lastView = 0, baseDist = 6, lastStudio = '';
@@ -371,7 +371,9 @@ function buildPart(f, uid, part, depth, carcassColor) {
   const w = part.s1 - part.s0, h = part.z1 - part.z0;
   const front = f.mirror ? mirrorMat : imageMat(part.img, { rough: 0.45, gloss: part.gloss });
   const edge = new THREE.MeshStandardMaterial({ color: part.ec ?? 0xdedbd4, roughness: 0.6 }); // chant de la façade
-  const back = new THREE.MeshStandardMaterial({ color: carcassColor, roughness: 0.7 });
+  const back = f.machine
+    ? new THREE.MeshStandardMaterial({ color: 0xc9ced2, metalness: 0.5, roughness: 0.36 })
+    : new THREE.MeshStandardMaterial({ color: carcassColor, roughness: 0.7 });
   let panel;
   if (part.glass && !f.mirror) {
     panel = glassPanel(w, h, part.glass, front, edge, uid, part.muntins);
@@ -404,6 +406,20 @@ function buildPart(f, uid, part, depth, carcassColor) {
   }
   panel.position.copy(local);
   pivot.add(panel);
+  if (f.machine && part.kind === 'flapDown') {
+    // contre-porte : épaisseur inox, bandeau et bac à produit
+    const inner = (bw, bh, bd, x, y, z, color, metal = 0.5) => {
+      const o = new THREE.Mesh(new THREE.BoxGeometry(bw * S, bh * S, bd * S), new THREE.MeshStandardMaterial({ color, metalness: metal, roughness: 0.4 }));
+      o.position.set(local.x + x * S, local.y + y * S, local.z + (z - 9) * S);
+      o.castShadow = o.receiveShadow = true;
+      o.userData.uid = uid;
+      pivot.add(o);
+    };
+    inner(w - 14, h - 20, 2, 0, 0, -1.5, 0xc9ced2);
+    inner(w - 60, 44, 3, 0, h / 2 - 34, -2.5, 0x2d3135, 0.2);
+    inner(170, 120, 10, w * 0.12, 10, -6, 0x9aa1a7, 0.3);
+    inner(60, 90, 12, w * 0.12 - 40, 10, -8, 0xe9ecee, 0.1);
+  }
   if (part.grips) {
     const grips = buildGrips(part.grips, w, h, uid);
     grips.position.copy(local);
@@ -445,8 +461,91 @@ function buildPart(f, uid, part, depth, carcassColor) {
     tray.position.set(0, -0.01, -0.02);
     pivot.add(tray);
   }
-  if (part.kind !== 'static') doors.push({ uid, pivot, kind: part.kind, hinge: part.hinge, depth });
+  if (part.kind !== 'static') doors.push({ uid, k: part.k ?? 0, pivot, kind: part.kind, hinge: part.hinge, depth, f, part });
   return out;
+}
+
+/** Lave-vaisselle intégrable derrière sa façade (repère du mur) : cuve inox, deux paniers garnis ; le panier bas sort avec la porte. */
+function buildDishwasher(f, uid) {
+  const q = f.machine;
+  const g = new THREE.Group();
+  g.applyMatrix4(wallBasis(f));
+  g.position.copy(onWall(f, (q.s0 + q.s1) / 2, 0, q.z0));
+  const m = new THREE.Group();
+  m.scale.set(S, S, S); // mm ; x le long du mur, y vers le haut, z vers la pièce
+  g.add(m);
+  const w = q.s1 - q.s0 - 6, h = q.z1 - q.z0 - 6, zf = f.t - 22, z0 = 25;
+  const steel = new THREE.MeshStandardMaterial({ color: 0xc3c8cc, metalness: 0.55, roughness: 0.34 });
+  const shell = new THREE.MeshStandardMaterial({ color: 0x8c9297, metalness: 0.4, roughness: 0.5 });
+  const wire = new THREE.MeshStandardMaterial({ color: 0xe4e7ea, metalness: 0.3, roughness: 0.4 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x3a3f44, roughness: 0.7 });
+  const china = new THREE.MeshStandardMaterial({ color: 0xf6f5f1, roughness: 0.3 });
+  const blue = new THREE.MeshStandardMaterial({ color: 0x8fa9b8, roughness: 0.35 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0xdbeaf0, roughness: 0.1, transparent: true, opacity: 0.55 });
+  const add = (parent, geo, mat, x, y, z, rx = 0, rz = 0) => {
+    const o = new THREE.Mesh(geo, mat);
+    o.position.set(x, y, z);
+    o.rotation.set(rx, 0, rz);
+    o.castShadow = o.receiveShadow = true;
+    o.userData.uid = uid;
+    parent.add(o);
+    return o;
+  };
+  const box = (parent, x0, x1, y0, y1, za, zb, mat) => add(parent, new THREE.BoxGeometry(x1 - x0, y1 - y0, zb - za), mat, (x0 + x1) / 2, (y0 + y1) / 2, (za + zb) / 2);
+  const hw = w / 2;
+  // cuve : base (moteur), fond, côtés, dessus, dos
+  box(m, -hw, hw, 0, 95, z0, zf - 30, dark);
+  box(m, -hw, hw, 95, 103, z0, zf, steel);
+  box(m, -hw, -hw + 20, 103, h, z0, zf, steel);
+  box(m, hw - 20, hw, 103, h, z0, zf, steel);
+  box(m, -hw, hw, h - 18, h, z0, zf, shell);
+  box(m, -hw + 20, hw - 20, 103, h - 18, z0, z0 + 10, steel);
+  box(m, -hw + 20, hw - 20, h - 24, h - 18, zf - 10, zf, dark); // joint
+  if (q.empty) return g;
+  // bras de lavage
+  box(m, -hw + 70, hw - 70, 112, 122, (z0 + zf) / 2 - 20, (z0 + zf) / 2 + 20, dark);
+  const rw = w - 56, rd = zf - z0 - 60;
+  const rack = (parent, y, hh) => {
+    const R = 2.2;
+    const barX = (yy, z, len = rw) => add(parent, new THREE.CylinderGeometry(R, R, len, 6), wire, 0, yy, z, 0, Math.PI / 2);
+    const barZ = (x, yy) => add(parent, new THREE.CylinderGeometry(R, R, rd, 6), wire, x, yy, z0 + 30 + rd / 2, Math.PI / 2);
+    for (const yy of [y, y + hh / 2, y + hh]) {
+      barX(yy, z0 + 30);
+      barX(yy, z0 + 30 + rd);
+      barZ(-rw / 2, yy);
+      barZ(rw / 2, yy);
+    }
+    const n = Math.max(4, Math.round(rw / 70));
+    for (let i = 1; i < n; i++) barZ(-rw / 2 + (rw * i) / n, y);
+    for (let i = 0; i <= n; i++) for (const z of [z0 + 30, z0 + 30 + rd]) add(parent, new THREE.CylinderGeometry(R, R, hh, 6), wire, -rw / 2 + (rw * i) / n, y + hh / 2, z);
+    box(parent, -rw / 2, rw / 2, y + hh - 4, y + hh + 14, z0 + 28 + rd, z0 + 38 + rd, shell); // poignée du panier
+  };
+  // panier haut : verres et tasses
+  const top = new THREE.Group();
+  m.add(top);
+  const ty = 103 + (h - 103) * 0.56;
+  rack(top, ty, 110);
+  const nx = Math.max(3, Math.floor(rw / 95));
+  for (let i = 0; i < nx; i++) for (let j = 0; j < 4; j++) {
+    const x = -rw / 2 + (rw * (i + 0.5)) / nx, z = z0 + 30 + (rd * (j + 0.5)) / 4;
+    if ((i + j) % 3 === 2) add(top, new THREE.CylinderGeometry(30, 38, 70, 18), j % 2 ? blue : china, x, ty + 40, z);
+    else add(top, new THREE.CylinderGeometry(26, 33, 100, 18), glass, x, ty + 54, z);
+  }
+  // panier bas : assiettes debout et panier à couverts, sur glissière
+  const slide = new THREE.Group();
+  m.add(slide);
+  const by = 128;
+  rack(slide, by, 120);
+  const np = Math.max(4, Math.floor(rd / 62));
+  for (const side of [-1, 1]) for (let i = 0; i < np; i++) {
+    if (side === 1 && i < 2) continue;
+    const r = Math.min(118, rw * 0.22);
+    add(slide, new THREE.CylinderGeometry(r, r * 0.7, 10, 28), (i + (side > 0 ? 1 : 0)) % 4 === 3 ? blue : china, side * rw * 0.25, by + r + 6, z0 + 30 + (rd * (i + 0.5)) / np, Math.PI / 2 - 0.18);
+  }
+  box(slide, rw * 0.1, rw * 0.42, by + 8, by + 110, z0 + 40, z0 + 130, dark);
+  for (let i = 0; i < 7; i++) box(slide, rw * 0.13 + i * rw * 0.038, rw * 0.13 + i * rw * 0.038 + 7, by + 60, by + 190, z0 + 60 + (i % 3) * 22, z0 + 63 + (i % 3) * 22, steel);
+  doors.push({ uid, k: 0, pivot: slide, kind: 'rack', travel: rd * 0.55, follows: true });
+  return g;
 }
 
 function buildItem(d, uid) {
@@ -461,6 +560,7 @@ function buildItem(d, uid) {
   const carcassColor = new THREE.Color(d.solids.find((x) => x.uid === uid)?.mat?.color ?? '#f2f1ee');
   for (const f of d.fronts.filter((x) => x.uid === uid)) {
     for (const part of f.parts) g.add(buildPart(f, uid, part, f.depth, carcassColor));
+    if (f.machine) g.add(buildDishwasher(f, uid));
   }
   return g;
 }
@@ -921,6 +1021,52 @@ function mixerRealistic(m, x, y, z, options = {}) {
 }
 
 /** Sanitaire en volume, aux cotes de l'objet (w, h, d), le dos en z = 0 (contre le mur). */
+/** Lave-linge ou sèche-linge à hublot (mm, dos à z = 0) : caisse, bandeau, tiroir à lessive ou réservoir, hublot. */
+function frontLoader(m, type, y0, w, h, d) {
+  const dryer = type.startsWith('sl_'), built = type === 'll_encastrable';
+  const g = new THREE.Group();
+  g.position.y = y0;
+  m.add(g);
+  const white = new THREE.MeshPhysicalMaterial({ color: 0xf7f7f6, roughness: 0.38, clearcoat: 0.4 });
+  const add = (geo, mat, x, y, z, rx = 0) => {
+    const q = mesh(geo, mat);
+    q.position.set(x, y, z);
+    q.rotation.x = rx;
+    g.add(q);
+    return q;
+  };
+  const hw = w / 2, bar = Math.min(125, h * 0.15), depth = d - 22;
+  add(new THREE.BoxGeometry(w - 6, h - 24, depth), white, 0, 12 + h / 2, depth / 2);
+  add(new THREE.BoxGeometry(w - 4, 16, depth + 4), white, 0, h - 8, depth / 2); // dessus
+  for (const x of [-hw + 50, hw - 50]) for (const z of [50, depth - 50]) add(new THREE.CylinderGeometry(20, 20, 24, 16), darkMat, x, 12, z);
+  add(new THREE.BoxGeometry(w - 30, 70, 3), greyMat, 0, 60, depth + 1); // plinthe et trappe de filtre
+  add(new THREE.BoxGeometry(90, 56, 4), white, -hw + 80, 60, depth + 3);
+  // bandeau : tiroir (ou réservoir d'eau), programmateur, écran
+  add(new THREE.BoxGeometry(w - 6, bar, 8), white, 0, h - 16 - bar / 2, depth + 4);
+  add(new THREE.BoxGeometry(w - 6, 2, 10), greyMat, 0, h - 17 - bar, depth + 4);
+  add(new THREE.BoxGeometry(w * 0.27, bar * 0.66, 6), white, -hw + w * 0.17, h - 16 - bar / 2, depth + 9);
+  add(new THREE.BoxGeometry(w * 0.12, 8, 10), greyMat, -hw + w * 0.17, h - 16 - bar * 0.32, depth + 12);
+  add(new THREE.CylinderGeometry(Math.min(34, bar * 0.28), Math.min(36, bar * 0.3), 22, 40), chrome, w * 0.02, h - 16 - bar / 2, depth + 16, Math.PI / 2);
+  add(new THREE.BoxGeometry(w * 0.26, bar * 0.4, 3), darkMat, w * 0.29, h - 16 - bar / 2, depth + 9);
+  if (built) {
+    // porte d'habillage prête à recevoir une façade
+    add(new THREE.BoxGeometry(w - 30, h - bar - 130, 6), white, 0, (h - bar - 30) / 2 + 60, depth + 4);
+  }
+  const cy = (h - 16 - bar + 100) / 2, r = Math.min(w * 0.34, (h - bar - 130) * 0.44);
+  const ring = new THREE.MeshStandardMaterial({ color: dryer ? 0xf2f2f1 : 0xd0d4d7, metalness: dryer ? 0.1 : 0.7, roughness: 0.3 });
+  add(new THREE.TorusGeometry(r, r * 0.14, 20, 64), ring, 0, cy, depth + 6);
+  add(new THREE.CylinderGeometry(r * 0.96, r * 0.96, 10, 56), new THREE.MeshStandardMaterial({ color: 0x23272b, roughness: 0.4 }), 0, cy, depth + 1, Math.PI / 2);
+  const bowl = add(new THREE.SphereGeometry(r * 0.82, 40, 24, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshPhysicalMaterial({ color: 0x3c464d, roughness: 0.05, metalness: 0.1, clearcoat: 1, transparent: true, opacity: dryer ? 0.75 : 0.6 }), 0, cy, depth + 4, Math.PI / 2);
+  bowl.scale.y = 0.22;
+  // tambour visible derrière le verre
+  const drum = add(new THREE.TorusGeometry(r * 0.5, r * 0.06, 12, 40), chrome, 0, cy, depth + 5);
+  drum.scale.z = 0.4;
+  add(new THREE.BoxGeometry(16, r * 0.5, 12), dryer ? greyMat : chrome, r * 1.06, cy, depth + 20); // poignée
+  if (type === 'sl_pac') for (let i = 0; i < 6; i++) add(new THREE.BoxGeometry(w * 0.3, 4, 3), darkMat, w * 0.24, 40 + i * 9, depth + 4); // grille d'échange
+  if (type === 'sl_evac') add(new THREE.CylinderGeometry(52, 52, 60, 28), greyMat, 0, 200, 10, Math.PI / 2); // sortie de gaine
+  if (type === 'll_sechant') add(new THREE.BoxGeometry(w * 0.2, 10, 3), new THREE.MeshStandardMaterial({ color: 0xe08a3c, roughness: 0.5 }), w * 0.29, h - 16 - bar * 0.86, depth + 9);
+}
+
 function buildFixture(o, sceneData) {
   const g = new THREE.Group();
   g.renderOrder = 2;
@@ -931,6 +1077,15 @@ function buildFixture(o, sceneData) {
     const { w, h, d } = o;
     const hw = w / 2;
     const tapMat = getTapMat(sceneData);
+    const enamel = () => new THREE.MeshPhysicalMaterial({ color: 0xfafafa, roughness: 0.35, clearcoat: 0.6 });
+    const chromeSoft = () => new THREE.MeshStandardMaterial({ color: 0xc6cacd, metalness: 0.7, roughness: 0.35 });
+    // piquages sous l'appareil, entraxe 2k, repères bleu (froide) et rouge (chaude)
+    const pipes = (x, k, z) => {
+      for (const [q, c] of [[x - k, 0x3f7fc4], [x + k, 0xc94f3f]]) {
+        m.add(at(mesh(new THREE.CylinderGeometry(10, 10, 120, 18), chrome), q, -58, z));
+        m.add(at(mesh(new THREE.CylinderGeometry(15, 15, 16, 18), new THREE.MeshStandardMaterial({ color: c, roughness: 0.5 })), q, -6, z));
+      }
+    };
     switch (o.type) {
     case 'wc_suspendu':
     case 'bidet':
@@ -1140,6 +1295,207 @@ function buildFixture(o, sceneData) {
       });
       break;
     }
+    case 'deco_vaisselle': {
+      // pile d'assiettes, bols, verres, pot : variés d'un niveau à l'autre
+      const white = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.35 });
+      const clay = new THREE.MeshStandardMaterial({ color: 0xb98864, roughness: 0.7 });
+      const dark = new THREE.MeshStandardMaterial({ color: 0x55615c, roughness: 0.5 });
+      const kind = Math.round(h) % 3, cz = d / 2, r = Math.min(105, d * 0.44);
+      const cyl = (x, y0, rr, hh, mat, top = rr) => {
+        const q = mesh(new THREE.CylinderGeometry(top, rr, hh, 26), mat);
+        q.position.set(x, y0 + hh / 2, cz);
+        m.add(q);
+      };
+      const plates = (x, count) => {
+        for (let i = 0; i < count; i++) cyl(x, i * 11, r * 0.62, 8, white, r);
+      };
+      const bowls = (x, count, mat) => {
+        for (let i = 0; i < count; i++) cyl(x, i * 26, r * 0.34, 46, mat, r * 0.66);
+      };
+      const cups = (x0, count) => {
+        for (let i = 0; i < count; i++) cyl(x0 + i * 78, 0, 26, 84, kind === 1 ? glass : white, 32);
+      };
+      const span = hw - r;
+      if (kind === 0) {
+        plates(-span * 0.75, 6);
+        bowls(span * 0.1, 3, clay);
+        if (w > 420) cyl(span * 0.8, 0, 46, Math.min(170, h * 0.8), dark, 34);
+      } else if (kind === 1) {
+        cups(-span * 0.85, Math.max(2, Math.min(5, Math.floor(w / 130))));
+        if (w > 460) plates(span * 0.75, 4);
+      } else {
+        cyl(-span * 0.7, 0, 55, Math.min(190, h * 0.85), clay, 40);
+        bowls(span * 0.05, 2, white);
+        if (w > 420) plates(span * 0.8, 5);
+      }
+      break;
+    }
+    case 'deco_lessive':
+    case 'deco_savon':
+    case 'deco_bougies': {
+      const M = (c, rough = 0.5) => new THREE.MeshStandardMaterial({ color: c, roughness: rough });
+      const cyl = (x, y0, r0, hh, mat, r1 = r0, z = d / 2) => {
+        const q = mesh(new THREE.CylinderGeometry(r1, r0, hh, 28), mat);
+        q.position.set(x, y0 + hh / 2, z);
+        m.add(q);
+      };
+      if (o.type === 'deco_lessive') {
+        // bidon, flacon d'adoucissant, bocal de pastilles
+        for (const [x, bw, bh, c, cap] of [[-hw * 0.6, 92, h, 0x5f8fb0, 0xf2f2f0], [hw * 0.18, 72, h * 0.78, 0xa9c7a5, 0xe9e2d2]]) {
+          const b = mesh(extrudeUp(roundRectPath(new THREE.Shape(), x - bw / 2, d / 2 - 34, x + bw / 2, d / 2 + 34, 22), 0, bh * 0.78, 8), M(c, 0.35));
+          m.add(b);
+          cyl(x, bh * 0.78, 24, bh * 0.2, M(cap, 0.4), 20);
+          const lab = mesh(new THREE.BoxGeometry(bw * 0.62, bh * 0.3, 2), M(0xfafafa, 0.6));
+          lab.position.set(x, bh * 0.4, d / 2 + 42);
+          m.add(lab);
+        }
+        cyl(hw * 0.78, 0, 34, h * 0.42, glass);
+        cyl(hw * 0.78, 4, 30, h * 0.26, M(0xf4f4f2, 0.7));
+        cyl(hw * 0.78, h * 0.42, 36, 14, M(0xb98a55, 0.6));
+      } else if (o.type === 'deco_savon') {
+        // distributeur, gobelet et brosses, savon
+        cyl(-hw * 0.62, 0, 34, h * 0.68, M(0x8a7f73, 0.4));
+        cyl(-hw * 0.62, h * 0.68, 12, h * 0.16, chrome);
+        const spout = mesh(new THREE.BoxGeometry(12, 10, 52), chrome);
+        spout.position.set(-hw * 0.62, h * 0.86, d / 2 + 18);
+        m.add(spout);
+        cyl(hw * 0.1, 0, 34, h * 0.48, M(0xf1ede6, 0.4), 38);
+        for (const [dx, c, tz] of [[-14, 0x4f86a8, 0.16], [12, 0xd98a6a, -0.14]]) {
+          const b = mesh(new THREE.BoxGeometry(9, 180, 7), M(c, 0.4));
+          b.position.set(hw * 0.1 + dx, h * 0.24 + 72, d / 2);
+          b.rotation.z = tz;
+          m.add(b);
+        }
+        cyl(hw * 0.72, 0, 46, 10, M(0xf1ede6, 0.4), 52);
+        cyl(hw * 0.72, 10, 32, 22, M(0xe8d9b8, 0.6), 28);
+      } else {
+        for (const [x, r, hh, c] of [[-hw * 0.55, 40, h, 0xefe6d6], [hw * 0.2, 34, h * 0.68, 0xd8c3a5], [hw * 0.8, 28, h * 0.42, 0xb9a58c]]) {
+          cyl(x, 0, r, hh * 0.9, M(c, 0.75));
+          cyl(x, hh * 0.9, 1.6, 12, darkMat);
+        }
+      }
+      break;
+    }
+    case 'deco_serviettes':
+    case 'deco_panier':
+    case 'deco_panier_linge':
+    case 'deco_linge': {
+      const tones = [0xf3efe8, 0xcdbfae, 0x9fb3a6, 0xd9a58a, 0x8fa4b5, 0xe6dccb];
+      const cloth = (i) => new THREE.MeshStandardMaterial({ color: tones[((i % 6) + 6) % 6], roughness: 0.95 });
+      const wicker = new THREE.MeshStandardMaterial({ color: 0xb08a5b, roughness: 0.9, side: THREE.DoubleSide });
+      // pile de linge plié : plis arrondis à l'avant
+      const pile = (x, y0, bw, bd, count, th, seed, z = d / 2) => {
+        for (let i = 0; i < count; i++) {
+          const b = Math.min(8, th * 0.3);
+          const q = mesh(extrudeUp(roundRectPath(new THREE.Shape(), -bw / 2 + b, -bd / 2 + b, bw / 2 - b, bd / 2 - b, Math.min(18, bw * 0.12)), 0, th - 3, b), cloth(seed + i));
+          q.position.set(x + ((i * 37 + seed * 11) % 9) - 4, y0 + i * th, z);
+          m.add(q);
+        }
+      };
+      const basket = (x, bw, bh, bd, z = d / 2) => {
+        m.add(mesh(extrudeUp(roundRectPath(new THREE.Shape(), x - bw / 2, z - bd / 2, x + bw / 2, z + bd / 2, 30), 0, bh, 4), wicker));
+        for (let i = 1; i < 6; i++) m.add(mesh(extrudeUp(roundRectPath(new THREE.Shape(), x - bw / 2 - 7, z - bd / 2 - 7, x + bw / 2 + 7, z + bd / 2 + 7, 32), bh * i / 6, 6, 0), wicker));
+      };
+      if (o.type === 'deco_serviettes') pile(0, 0, w * 0.92, d * 0.92, 4, h / 4, 0);
+      else if (o.type === 'deco_panier') {
+        basket(0, w * 0.94, h * 0.62, d * 0.94);
+        pile(-w * 0.2, h * 0.62, w * 0.4, d * 0.7, 3, h * 0.12, 1);
+        pile(w * 0.22, h * 0.62, w * 0.38, d * 0.7, 2, h * 0.13, 3);
+      } else if (o.type === 'deco_panier_linge') {
+        const z = d / 2;
+        for (const [r0, r1, y0, hh, mat] of [[hw * 0.8, hw * 0.94, 0, h * 0.86, wicker], [hw * 0.9, hw * 0.78, h * 0.84, h * 0.1, cloth(0)]]) {
+          const q = mesh(new THREE.CylinderGeometry(r1, r0, hh, 36), mat);
+          q.position.set(0, y0 + hh / 2, z);
+          m.add(q);
+        }
+        for (let i = 1; i < 8; i++) {
+          const r = mesh(new THREE.TorusGeometry(hw * (0.8 + 0.14 * i / 8) + 3, 5, 8, 40), wicker);
+          r.rotation.x = Math.PI / 2;
+          r.position.set(0, h * 0.86 * i / 8, z);
+          m.add(r);
+        }
+      } else {
+        // niche : piles, boîtes selon le niveau
+        const kind = Math.round(h) % 3, bw = Math.min(300, w * 0.46), bd = d * 0.86;
+        const boxAt = (x, c) => {
+          const bh = Math.min(200, h * 0.7);
+          const q = mesh(new THREE.BoxGeometry(bw * 0.9, bh, bd), new THREE.MeshStandardMaterial({ color: c, roughness: 0.85 }));
+          q.position.set(x, bh / 2, d / 2);
+          m.add(q);
+          const lid = mesh(new THREE.BoxGeometry(bw * 0.94, 26, bd + 8), new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }));
+          lid.position.set(x, bh, d / 2);
+          m.add(lid);
+        };
+        const n = Math.max(1, Math.floor(w / (bw + 20)));
+        for (let i = 0; i < n; i++) {
+          const x = -hw + (w * (i + 0.5)) / n;
+          if ((i + kind) % 3 === 2) boxAt(x, kind === 1 ? 0xc9b79c : 0x8d8a83);
+          else pile(x, 0, bw * 0.92, bd, Math.max(2, Math.min(5, Math.floor(h * 0.75 / 42))), 42, i * 2 + kind);
+        }
+      }
+      break;
+    }
+    case 'deco_vetements': {
+      // vêtements sur cintres, de longueurs et de couleurs variées
+      const tones = [0x2f3a4a, 0xe9e4da, 0x8c6f5a, 0x6f8577, 0xb55d4c, 0x3b3b3d, 0xc9b59a, 0x7f93ab, 0xf4f2ee, 0x55463f];
+      const step = 62, count = Math.max(3, Math.floor((w * 0.86) / step));
+      for (let i = 0; i < count; i++) {
+        const x = -((count - 1) * step) / 2 + i * step;
+        const len = (h - 70) * [0.95, 0.72, 0.8, 0.66, 0.9][(i * 7 + Math.round(h)) % 5], sh = d * 0.46;
+        const s2 = new THREE.Shape();
+        s2.moveTo(-28, 0);
+        s2.lineTo(28, 0);
+        s2.lineTo(sh, -70);
+        s2.lineTo(sh * 0.86, -len);
+        s2.lineTo(-sh * 0.86, -len);
+        s2.lineTo(-sh, -70);
+        s2.closePath();
+        const q = mesh(new THREE.ExtrudeGeometry(s2, { depth: 24, bevelEnabled: true, bevelSize: 6, bevelThickness: 8, bevelSegments: 2 }), new THREE.MeshStandardMaterial({ color: tones[(i * 3 + Math.round(w)) % 10], roughness: 0.95 }));
+        q.rotation.y = Math.PI / 2;
+        q.position.set(x - 12, h - 50, d / 2);
+        m.add(q);
+        const hook = mesh(new THREE.TorusGeometry(16, 2.4, 8, 18, Math.PI * 1.4), chrome);
+        hook.rotation.y = Math.PI / 2;
+        hook.position.set(x, h - 8, d / 2);
+        m.add(hook);
+      }
+      break;
+    }
+    case 'deco_livres_niche': {
+      const tones = [0x8c4a3c, 0x2f4858, 0xd8c7a6, 0x5b6f5a, 0x3a3a3c, 0xb98a55, 0xe8e2d6, 0x7c5c74];
+      const kind = Math.round(h) % 3, M = (c, r = 0.7) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+      const span = kind === 2 ? w * 0.4 : w * 0.58;
+      let x = kind === 1 ? hw - span : -hw;
+      for (let i = 0; x < (kind === 1 ? hw : -hw + span) - 20; i++) {
+        const bt = 20 + ((i * 13 + kind * 7) % 22), bh = Math.min(h * 0.92, 190 + ((i * 29) % 70)), bd = Math.min(d * 0.8, 170);
+        const q = mesh(new THREE.BoxGeometry(bt, bh, bd), M(tones[(i * 5 + kind) % 8]));
+        q.position.set(x + bt / 2, bh / 2, d / 2);
+        m.add(q);
+        x += bt + 1.5;
+      }
+      const ox = kind === 1 ? -hw * 0.55 : hw * 0.6, ph = Math.min(190, h * 0.8);
+      if (w > 420) {
+        if (kind === 0) {
+          const v = mesh(new THREE.LatheGeometry([[0.5, 0], [0.9, 0.2], [1, 0.45], [0.5, 0.75], [0.36, 0.9], [0.5, 1]].map(([r, y]) => new THREE.Vector2(r * 52, y * Math.min(210, h * 0.85))), 32), new THREE.MeshStandardMaterial({ color: 0xc8beb0, roughness: 0.6, side: THREE.DoubleSide }));
+          v.position.set(ox, 0, d / 2);
+          m.add(v);
+        } else if (kind === 1) {
+          for (const [pw, hh, c, z] of [[150, ph, 0x3a2d24, 0], [120, ph - 32, 0xd9d2c4, 10]]) {
+            const fr = mesh(new THREE.BoxGeometry(pw, hh, z ? 4 : 16), M(c));
+            fr.position.set(ox, ph / 2, d / 2 - 20 + z);
+            fr.rotation.x = -0.12;
+            m.add(fr);
+          }
+        } else {
+          for (const [k, r] of [[0, 46], [1, 32]]) {
+            const b = mesh(new THREE.SphereGeometry(r, 24, 18), M(k ? 0xb98a55 : 0x4c5a55, 0.5));
+            b.position.set(ox - 40 + k * 86, r, d / 2);
+            m.add(b);
+          }
+        }
+      }
+      break;
+    }
     case 'deco_bouteilles': {
       const items = [[-hw * 0.62, 26, h, 0x5f6d2e, 0.25], [-hw * 0.05, 24, h * 0.82, 0x7a4a1e, 0.3], [hw * 0.45, 22, h * 0.36, 0xd8cdbd, 0.6], [hw * 0.82, 22, h * 0.36, 0x3a3a3c, 0.6]];
       for (const [x, r, hh, c, rough] of items) {
@@ -1274,14 +1630,140 @@ function buildFixture(o, sceneData) {
       m.add(led);
       break;
     }
-    case 'chauffe_eau': {
-      const r = Math.min(w, d) / 2;
-      const body = mesh(new THREE.CapsuleGeometry(r, Math.max(10, h - 2 * r), 16, 48), new THREE.MeshPhysicalMaterial({ color: 0xfafafa, roughness: 0.35, clearcoat: 0.6 }));
-      body.position.set(0, h / 2, r);
+    case 'chauffe_eau':
+    case 'chauffe_eau_h': {
+      const flat = o.type === 'chauffe_eau_h';
+      const len = flat ? w : h, r = Math.min(flat ? h : w, d) / 2;
+      const body = mesh(new THREE.CapsuleGeometry(r, Math.max(10, len - 2 * r), 16, 48), enamel());
+      body.position.set(0, h / 2, d - r);
+      if (flat) body.rotation.z = Math.PI / 2;
       m.add(body);
-      m.add(at(mesh(new THREE.CylinderGeometry(70, 70, 12, 40), darkMat), 0, h * 0.3, 2 * r - 4).rotateX(Math.PI / 2));
-      lcylMM(m, -70, -60, r, 11, 120);
-      lcylMM(m, 70, -60, r, 11, 120);
+      // pattes murales
+      for (const k of [-0.28, 0.28]) m.add(at(mesh(new THREE.BoxGeometry(flat ? 40 : w * 0.5, flat ? h * 0.5 : 40, Math.max(6, d - r)), greyMat), flat ? w * k : 0, flat ? h / 2 : h / 2 + h * k, (d - r) / 2));
+      if (flat) {
+        const cap = mesh(new THREE.CylinderGeometry(70, 70, 14, 40), darkMat);
+        cap.rotation.z = Math.PI / 2;
+        cap.position.set(w / 2 - 6, h / 2, d - r);
+        m.add(cap);
+        pipes(-hw + 160, 70, d - r);
+      } else {
+        m.add(at(mesh(new THREE.CylinderGeometry(Math.min(70, r * 0.35), Math.min(70, r * 0.35), 12, 40), darkMat), 0, h * 0.3, d - 4).rotateX(Math.PI / 2));
+        pipes(0, Math.min(70, hw * 0.45), d - r);
+      }
+      break;
+    }
+    case 'chauffe_eau_plat':
+    case 'chauffe_eau_plat_h':
+    case 'chauffe_eau_carre':
+    case 'chauffe_eau_inst':
+    case 'chauffe_eau_gaz': {
+      const flat = o.type.startsWith('chauffe_eau_plat'), lying = o.type.endsWith('_h');
+      const rad = flat ? Math.min(d * 0.45, Math.min(w, h) * 0.24) : Math.min(w, h) * 0.09;
+      // coque : contour arrondi de face, extrudé vers l'avant avec un arrondi
+      const bev = flat ? Math.min(45, d * 0.16) : Math.min(16, d * 0.12);
+      const sh = new THREE.Shape();
+      const X = hw - bev, Y = h - bev, R = Math.max(4, rad - bev);
+      sh.moveTo(-X + R, bev);
+      sh.lineTo(X - R, bev);
+      sh.quadraticCurveTo(X, bev, X, bev + R);
+      sh.lineTo(X, Y - R);
+      sh.quadraticCurveTo(X, Y, X - R, Y);
+      sh.lineTo(-X + R, Y);
+      sh.quadraticCurveTo(-X, Y, -X, Y - R);
+      sh.lineTo(-X, bev + R);
+      sh.quadraticCurveTo(-X, bev, -X + R, bev);
+      const shell = mesh(new THREE.ExtrudeGeometry(sh, { depth: Math.max(10, d - 2 * bev), bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 6, curveSegments: 20 }), enamel());
+      shell.position.z = bev;
+      m.add(shell);
+      const face = (bw, bh, x, y, mat, out = 2) => m.add(at(mesh(new THREE.BoxGeometry(bw, bh, 4), mat), x, y, d + out - 2));
+      const knob = (x, y, r) => m.add(at(mesh(new THREE.CylinderGeometry(r, r * 1.08, 18, 36), greyMat), x, y, d + 7).rotateX(Math.PI / 2));
+      if (flat) {
+        face(lying ? 60 : w * 0.42, lying ? h * 0.36 : 60, lying ? w * 0.36 : 0, lying ? h / 2 : h * 0.16, darkMat);
+        pipes(lying ? -hw + 160 : 0, Math.min(70, hw * 0.45), d / 2);
+      } else if (o.type === 'chauffe_eau_carre') {
+        knob(0, h * 0.24, 24);
+        face(w * 0.2, 8, 0, h * 0.42, new THREE.MeshStandardMaterial({ color: 0xd9803a, roughness: 0.5 }));
+        pipes(0, Math.min(70, hw * 0.45), d / 2);
+      } else if (o.type === 'chauffe_eau_inst') {
+        face(w * 0.62, h * 0.2, 0, h * 0.34, darkMat);
+        pipes(0, Math.min(45, hw * 0.4), d / 2);
+      } else {
+        // gaz : hublot de flamme, deux boutons, buse de fumée jusqu'au plafond
+        face(w * 0.2, h * 0.09, 0, h * 0.42, darkMat);
+        face(w * 0.1, h * 0.035, 0, h * 0.405, new THREE.MeshStandardMaterial({ color: 0x4aa3ff, emissive: 0x2a6cff, emissiveIntensity: 0.6 }), 3);
+        knob(-w * 0.2, h * 0.16, 22);
+        knob(w * 0.2, h * 0.16, 22);
+        const top = Math.max(180, Math.min(600, ((sceneData?.room?.h ?? 2600) - (o.z || 0) - h)));
+        m.add(at(mesh(new THREE.CylinderGeometry(58, 58, top, 32), chromeSoft()), 0, h + top / 2 - 4, d * 0.5));
+        pipes(0, Math.min(85, hw * 0.5), d / 2);
+        m.add(at(mesh(new THREE.CylinderGeometry(9, 9, 120, 16), new THREE.MeshStandardMaterial({ color: 0xd9b13a, metalness: 0.6, roughness: 0.35 })), 0, -58, d / 2));
+      }
+      break;
+    }
+    case 'chauffe_eau_sol':
+    case 'chauffe_eau_thermo': {
+      const thermo = o.type === 'chauffe_eau_thermo', wall = (o.z || 0) > 300;
+      const r = hw, foot = wall ? 0 : 70, head = thermo ? Math.min(460, h * 0.26) : 0;
+      const pts = [[0, foot], [r * 0.82, foot], [r, foot + 40], [r, h - head - 60], [r * 0.9, h - head - 14], [0, h - head]].map(([x, y]) => new THREE.Vector2(x, y));
+      m.add(at(mesh(new THREE.LatheGeometry(pts, 56), enamel()), 0, 0, d - r));
+      if (!wall) for (const a of [0.5, 2.6, 4.7]) m.add(at(mesh(new THREE.CylinderGeometry(18, 18, foot + 8, 18), darkMat), Math.cos(a) * r * 0.72, foot / 2, d - r + Math.sin(a) * r * 0.72));
+      if (thermo) {
+        // pompe à chaleur : tête grise, grille et deux manchettes d'air
+        const grey = new THREE.MeshStandardMaterial({ color: 0x7d858b, roughness: 0.55 });
+        m.add(at(mesh(new THREE.CylinderGeometry(r * 0.98, r, head - 10, 56), grey), 0, h - head / 2, d - r));
+        m.add(at(mesh(new THREE.CylinderGeometry(r * 0.9, r * 0.98, 12, 56), darkMat), 0, h - 5, d - r));
+        for (const k of [-1, 1]) m.add(at(mesh(new THREE.CylinderGeometry(80, 80, 120, 32), chromeSoft()), k * r * 0.45, h + 55, d - r));
+        m.add(at(mesh(new THREE.BoxGeometry(w * 0.32, head * 0.3, 8), darkMat), 0, h - head * 0.5, d - 2));
+      } else {
+        m.add(at(mesh(new THREE.CylinderGeometry(95, 95, 16, 40), darkMat), 0, h * 0.32, d - 4).rotateX(Math.PI / 2));
+      }
+      for (const [x, c] of [[-70, 0x3f7fc4], [70, 0xc94f3f]]) {
+        const q = mesh(new THREE.CylinderGeometry(11, 11, 90, 16), chrome);
+        q.rotation.x = Math.PI / 2;
+        q.position.set(x, wall ? 60 : foot + 130, 30);
+        m.add(q);
+        m.add(at(mesh(new THREE.CylinderGeometry(15, 15, 10, 16), new THREE.MeshStandardMaterial({ color: c, roughness: 0.5 })), x, wall ? 60 : foot + 130, 8).rotateX(Math.PI / 2));
+      }
+      break;
+    }
+    case 'll_hublot':
+    case 'll_mini':
+    case 'll_encastrable':
+    case 'll_sechant':
+    case 'sl_evac':
+    case 'sl_cond':
+    case 'sl_pac':
+    case 'sl_mural':
+      frontLoader(m, o.type, 0, w, h, d);
+      break;
+    case 'tour_lavage': {
+      const gap = 18, hh = (h - gap) / 2;
+      frontLoader(m, 'll_hublot', 0, w, hh, d);
+      m.add(at(mesh(new THREE.BoxGeometry(w - 6, gap, d - 10), darkMat), 0, hh + gap / 2, d / 2));
+      frontLoader(m, 'sl_pac', hh + gap, w, hh, d);
+      break;
+    }
+    case 'll_top':
+    case 'll_cuve':
+    case 'll_semi': {
+      const body = enamel(), bar = Math.min(150, h * 0.15), top = o.type === 'll_top' ? h - 60 : h - bar;
+      m.add(mesh(extrudeUp(roundRectPath(new THREE.Shape(), -hw + 4, 4, hw - 4, d - 4, 26), 20, top - 20, 4), body));
+      m.add(at(mesh(new THREE.BoxGeometry(w - 30, 20, d - 30), darkMat), 0, 10, d / 2));
+      // bandeau de commande au dos
+      m.add(at(mesh(new THREE.BoxGeometry(w - 10, h - top, d * 0.22), o.type === 'll_semi' ? new THREE.MeshStandardMaterial({ color: 0x7f9db5, roughness: 0.5 }) : body), 0, top + (h - top) / 2, d * 0.12));
+      m.add(at(mesh(new THREE.BoxGeometry(w * 0.3, Math.min(60, (h - top) * 0.5), 4), darkMat), w * 0.18, top + (h - top) / 2, d * 0.23 + 2));
+      const lid = (x, lw, mat) => m.add(at(mesh(extrudeUp(roundRectPath(new THREE.Shape(), -lw / 2, 0, lw / 2, d * 0.66, 22), 0, 16, 4), mat), x, top, d * 0.27));
+      if (o.type === 'll_semi') {
+        lid(-w * 0.17, w * 0.54, new THREE.MeshStandardMaterial({ color: 0x9fb8cc, roughness: 0.3 }));
+        lid(w * 0.29, w * 0.3, new THREE.MeshStandardMaterial({ color: 0x9fb8cc, roughness: 0.3 }));
+        for (const k of [-0.3, 0, 0.3]) m.add(at(mesh(new THREE.CylinderGeometry(22, 24, 24, 28), greyMat), w * k, top + (h - top) / 2, d * 0.23 + 12).rotateX(Math.PI / 2));
+      } else if (o.type === 'll_cuve') {
+        lid(0, w * 0.86, darkMat);
+        m.add(at(mesh(new THREE.BoxGeometry(w * 0.3, 8, 24), chromeSoft()), 0, top + 20, d * 0.9));
+      } else {
+        lid(0, w * 0.88, body);
+        m.add(at(mesh(new THREE.BoxGeometry(w * 0.4, 14, 14), greyMat), 0, top + 12, d * 0.93));
+      }
       break;
     }
     case 'kitchen_sink': {
@@ -2080,6 +2562,34 @@ function buildAO(d) {
   return g;
 }
 
+let lastFit = null;
+
+/** « Tout afficher » : même direction de regard, toute la pièce (ou les meubles en présentation) centrée dans le cadre. */
+function fitCamera(d) {
+  const bb = new THREE.Box3();
+  if (d.studio) for (const [key, v] of groups) if (key.startsWith('item:')) bb.expandByObject(v.obj);
+  if (bb.isEmpty()) bb.set(new THREE.Vector3(0, 0, 0), new THREE.Vector3(d.room.w * S, Math.min(2.4, (d.room.h || 2400) * S), d.room.d * S));
+  const c = bb.getCenter(new THREE.Vector3());
+  const dir = camera.position.clone().sub(controls.target);
+  if (dir.lengthSq() < 1e-6) dir.set(0, 0.7, 1);
+  const probe = camera.clone();
+  probe.position.copy(c).add(dir.normalize().multiplyScalar(bb.getSize(new THREE.Vector3()).length() * 1.4));
+  for (let pass = 0; pass < 5; pass++) {
+    probe.lookAt(c);
+    probe.updateMatrixWorld();
+    probe.matrixWorldInverse.copy(probe.matrixWorld).invert();
+    let most = 0.01;
+    for (let k = 0; k < 8; k++) {
+      const v = new THREE.Vector3(k & 1 ? bb.max.x : bb.min.x, k & 2 ? bb.max.y : bb.min.y, k & 4 ? bb.max.z : bb.min.z);
+      const p = v.clone().applyMatrix4(probe.matrixWorldInverse);
+      const q = v.project(probe);
+      most = Math.max(most, p.z < -0.01 ? Math.max(Math.abs(q.x), Math.abs(q.y)) : 2);
+    }
+    probe.position.sub(c).multiplyScalar(most / 0.9).add(c);
+  }
+  camAnim = { p0: camera.position.clone(), t0: controls.target.clone(), p1: probe.position.clone(), t1: c, k: 0 };
+}
+
 function applyScene(d) {
   data = d;
   doors.length = 0;
@@ -2131,7 +2641,19 @@ function applyScene(d) {
   const target = new THREE.Vector3(r.w * S / 2, 0.9, r.d * S / 2);
   baseDist = Math.max(r.w, r.d) * S * 1.55 + 1;
   const view = d.cam || 0;
-  if (lastYaw === null || Math.abs(d.yaw - lastYaw) > 1e-6 || Math.abs(d.zoom - lastZoom) > 1e-6 || view !== lastView) {
+  if (lastFit !== null && (d.fit || 0) !== lastFit && view !== 2) {
+    fitCamera(d);
+    lastYaw = d.yaw;
+    lastZoom = d.zoom;
+    lastView = view;
+  } else if (lastYaw !== null && view === lastView && (d.fit || 0) === lastFit && (Math.abs(d.yaw - lastYaw) > 1e-6 || Math.abs(d.zoom - lastZoom) > 1e-6)) {
+    // boutons zoom et rotation : à partir du point de vue actuel, sans revenir à l'angle de départ
+    const p0 = camAnim ? camAnim.p1 : camera.position, t0 = camAnim ? camAnim.t1 : controls.target;
+    const v = p0.clone().sub(t0).applyAxisAngle(new THREE.Vector3(0, 1, 0), lastYaw - d.yaw).multiplyScalar((lastZoom || 1) / (d.zoom || 1));
+    camAnim = { p0: camera.position.clone(), t0: controls.target.clone(), p1: v.add(t0), t1: t0.clone(), k: 0 };
+    lastYaw = d.yaw;
+    lastZoom = d.zoom;
+  } else if (lastYaw === null || (lastFit !== null && (d.fit || 0) !== lastFit) || Math.abs(d.yaw - lastYaw) > 1e-6 || Math.abs(d.zoom - lastZoom) > 1e-6 || view !== lastView) {
     // fenêtre étroite : on recule pour garder toute la pièce dans le cadre
     const dist = (baseDist / (d.zoom || 1)) * Math.max(1, 1.4 / (camera.aspect || 1));
     const az = -d.yaw;
@@ -2160,6 +2682,7 @@ function applyScene(d) {
     lastZoom = d.zoom;
     lastView = view;
   }
+  lastFit = d.fit || 0;
   // présentation : cadrage serré sur les meubles, de trois quarts ; retour à la vue de la pièce en sortant
   if ((d.studio || '') !== lastStudio && (!!d.studio !== !!lastStudio || lastStudio === null)) {
     if (d.studio) {
@@ -2175,7 +2698,7 @@ function applyScene(d) {
         const dist2 = Math.max(size.y / (2 * half), (size.x + size.z * 0.45) / (2 * half * asp)) * 1.16 + size.z * 0.5;
         // devant les façades : la moyenne des murs meublés donne la direction (de trois quarts sur un seul mur)
         const [vx, vy] = d.studioDir || [0, 1];
-        const el = (11 * Math.PI) / 180;
+        const el = ((d.studioHigh ? 34 : 11) * Math.PI) / 180;
         camera.position.set(c.x + vx * Math.cos(el) * dist2, c.y + Math.sin(el) * dist2, c.z + vy * Math.cos(el) * dist2);
         // tout le meuble dans le cadre, au plus près
         for (let pass = 0; pass < 4; pass++) {
@@ -2260,15 +2783,17 @@ function animate() {
     if (data) {
       // ouverture : vers la cible (limitée par les obstacles), 0,6 s
       const open = data.open || {};
-      const uids = new Set([...progress.keys(), ...Object.keys(open)]);
-      for (const uid of uids) {
-        const target = uid in open ? open[uid] : 0;
-        const p0 = progress.get(uid) ?? 0;
-        let p = p0;
-        p += Math.sign(target - p) * Math.min(Math.abs(target - p), dt / 0.6);
+      const seen = new Set();
+      for (const dr of doors) {
+        const key = dr.uid + '#' + dr.k;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const target = open[key] ?? open[dr.uid] ?? 0;
+        const p0 = progress.get(key) ?? 0;
+        const p = p0 + Math.sign(target - p0) * Math.min(Math.abs(target - p0), dt / 0.6);
         if (p !== p0) moving = true;
-        if (p <= 0 && target === 0) progress.delete(uid);
-        else progress.set(uid, p);
+        if (p <= 0 && target === 0) progress.delete(key);
+        else progress.set(key, p);
       }
     }
     if (moving) invalidate(true); // portes et tiroirs en mouvement : leurs ombres aussi
@@ -2279,13 +2804,14 @@ function animate() {
     needsRender--;
     if (data) {
       for (const dr of doors) {
-        const p = progress.get(dr.uid) ?? 0;
+        const p = progress.get(dr.uid + '#' + dr.k) ?? 0;
         const e = p * p * (3 - 2 * p);
         dr.pivot.rotation.set(0, 0, 0);
         dr.pivot.position.set(0, 0, 0);
         if (dr.kind === 'door') dr.pivot.rotateY((dr.hinge === 'left' ? -1 : 1) * e * Math.PI / 2);
         else if (dr.kind === 'flapUp') dr.pivot.rotateX(-e * Math.PI * 100 / 180);
         else if (dr.kind === 'flapDown') dr.pivot.rotateX(e * Math.PI * 85 / 180);
+        else if (dr.kind === 'rack') dr.pivot.position.z = Math.max(0, p - 0.55) / 0.45 * dr.travel; // une fois la porte basse
         else if (dr.kind === 'drawer') dr.pivot.translateZ(e * Math.min(450, dr.depth - 120) * S);
       }
       // murs entre la caméra et la cuisine : masqués
@@ -2352,7 +2878,7 @@ function pick(ev) {
   for (const h of hits) {
     let o = h.object;
     while (o && !o.userData.uid) o = o.parent;
-    if (o) return { uid: o.userData.uid, point: h.point };
+    if (o) return { uid: o.userData.uid, point: h.point, object: h.object };
     if (h.object.userData.wall || h.object.userData.wallOf) continue;
     return null;
   }
@@ -2414,7 +2940,27 @@ function onUp(ev) {
 
 function onDouble(ev) {
   const h = pick(ev);
-  if (h) handler('dbl', h.uid);
+  if (!h) return;
+  const mine = doors.filter((x) => x.uid === h.uid);
+  const count = mine.filter((x) => !x.follows).length;
+  let part = -1;
+  // la porte ou le tiroir touché…
+  for (let o = h.object; o && part < 0; o = o.parent) if (o.userData.door) part = o.userData.door.k;
+  // … ou celui devant l'endroit touché (intérieur, chant, gorge)
+  if (part < 0) {
+    let best = 0.4;
+    for (const dr of mine) {
+      if (!dr.f || !dr.part) continue;
+      const x = h.point.x / S - dr.f.ox, y = h.point.z / S - dr.f.oy, z = h.point.y / S;
+      const s = x * dr.f.dx + y * dr.f.dy;
+      const off = Math.max(dr.part.s0 - s, s - dr.part.s1, dr.part.z0 - z, z - dr.part.z1, 0) / 1000;
+      if (off < best) {
+        best = off;
+        part = dr.k;
+      }
+    }
+  }
+  handler('dbl', h.uid, part, count);
 }
 
 // ------------------------------------------------------------------ montage

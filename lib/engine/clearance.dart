@@ -114,11 +114,18 @@ List<(String, Box3)> _obstacles(LayoutEngine e, PlacedCabinet c) => [
     ];
 
 /// Ouverture maximale possible (0..1) et ce qui l'arrête (uid, « mur » ou null).
-(double, String?) openLimit(LayoutEngine e, PlacedCabinet c, {int steps = 9}) {
+/// [part] : une seule porte ou un seul tiroir (même numérotation que les façades de la 3D).
+(double, String?) openLimit(LayoutEngine e, PlacedCabinet c, {int steps = 9, int? part}) {
   final room = e.project.room;
   // volume balayé à toutes les étapes, calculé une fois ; seuls les obstacles qui le touchent sont testés
   // (un obstacle hors de ce volume ne contient aucun point : même résultat, bien moins de tests)
-  final sweep = [for (var k = 1; k <= steps; k++) _movingPoints(e, c, k / steps)];
+  final sweep = [
+    for (var k = 1; k <= steps; k++)
+      () {
+        final all = _movingPoints(e, c, k / steps);
+        return part == null || part >= all.length ? all : [all[part]];
+      }(),
+  ];
   var x0 = double.infinity, y0 = double.infinity, z0 = double.infinity;
   var x1 = -double.infinity, y1 = -double.infinity, z1 = -double.infinity;
   for (final parts in sweep) {

@@ -6,7 +6,9 @@ import 'i18n_hook.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'home_appliances.dart';
 import 'layout_engine.dart';
+import 'materials.dart' show PriceRange;
 import 'project.dart';
 
 /// Sanitaire paramétrique : tailles proposées, hauteur, hauteur de pose, dégagement devant, points d'eau.
@@ -17,7 +19,22 @@ class FixtureType {
   final int clearance; // dégagement libre devant (mm)
   final List<(String, double, int)> water; // (nature : froide | chaude | evac, position en largeur 0..1, hauteur)
   final String note;
-  const FixtureType(this.id, this.name, this.category, this.sizes, this.h, this.z, this.clearance, this.water, this.note);
+  final List<FixtureVariant> variants; // capacités proposées (vide : seulement des tailles)
+  final int def; // capacité par défaut
+  const FixtureType(this.id, this.name, this.category, this.sizes, this.h, this.z, this.clearance, this.water, this.note, {this.variants = const [], this.def = 0});
+
+  FixtureVariant? get defaultVariant => variants.isEmpty ? null : variants[def];
+}
+
+/// Capacité d'un appareil : libellé (80 L, 8 kg…), cotes hors tout, hauteur de pose, prix indicatif.
+class FixtureVariant {
+  final String label;
+  final int w, d, h;
+  final double min, max;
+  final int? z;
+  const FixtureVariant(this.label, this.w, this.d, this.h, this.min, this.max, {this.z});
+
+  PriceRange get price => PriceRange(min, max);
 }
 
 const fixtureTypes = <FixtureType>[
@@ -40,8 +57,7 @@ const fixtureTypes = <FixtureType>[
       'Prise ou sortie de câble à 200 mm du sol, hors volume 1.'),
   FixtureType('miroir', 'Miroir LED', 'Sanitaires', [(600, 30), (800, 30), (1000, 30), (1200, 30)], 800, 1050, 0, [],
       'Miroir rétroéclairé ; prise ou sortie de câble à côté, hors volume 1.'),
-  FixtureType('chauffe_eau', 'Chauffe-eau électrique 100 L', 'Sanitaires', [(450, 450), (500, 500)], 1000, 1100, 600,
-      [('froide', 0.4, 1000), ('chaude', 0.6, 1000), ('evac', 0.5, 900)], 'Groupe de sécurité raccordé à l’évacuation.'),
+  ...homeAppliances,
 ];
 
 FixtureType? fixtureById(String id) => fixtureTypes.where((f) => f.id == id).firstOrNull;
@@ -83,10 +99,28 @@ class RoomObject {
   double x, y, z;
   int rot;
   int w, h, d;
-  RoomObject({required this.uid, required this.ref, required this.x, required this.y, this.z = 0, this.rot = 0, required this.w, required this.h, required this.d});
+  String? variant; // capacité choisie (80 L, 8 kg…)
+  RoomObject({required this.uid, required this.ref, required this.x, required this.y, this.z = 0, this.rot = 0, required this.w, required this.h, required this.d, this.variant});
 
   bool get isFixture => ref.startsWith('fixture:');
   FixtureType? get fixture => isFixture ? fixtureById(ref.substring(8)) : null;
+
+  /// Capacité : celle choisie, sinon celle dont les cotes correspondent.
+  FixtureVariant? get capacity {
+    final vs = fixture?.variants ?? const <FixtureVariant>[];
+    if (variant != null) return vs.where((v) => v.label == variant).firstOrNull;
+    return vs.where((v) => v.w == w && v.d == d && v.h == h).firstOrNull;
+  }
+
+  /// Prend la capacité [v] : cotes et hauteur de pose, sans dépasser le plafond.
+  void setCapacity(FixtureVariant v, double ceiling) {
+    variant = v.label;
+    w = v.w;
+    d = v.d;
+    h = v.h;
+    final at = (v.z ?? fixture?.z ?? 0).toDouble();
+    z = at <= 0 ? 0 : math.max(0, math.min(at, ceiling - h - 100));
+  }
 
   /// Emprise au sol (x0, y0, x1, y1), rotation comprise.
   (double, double, double, double) get footprint {
@@ -98,9 +132,9 @@ class RoomObject {
   /// Sens « vers l'avant » (de la face) en plan.
   (double, double) get front => switch (rot % 360) { 90 => (-1.0, 0.0), 180 => (0.0, -1.0), 270 => (1.0, 0.0), _ => (0.0, 1.0) };
 
-  RoomObject copy({String? uid}) => RoomObject(uid: uid ?? this.uid, ref: ref, x: x, y: y, z: z, rot: rot, w: w, h: h, d: d);
+  RoomObject copy({String? uid}) => RoomObject(uid: uid ?? this.uid, ref: ref, x: x, y: y, z: z, rot: rot, w: w, h: h, d: d, variant: variant);
 
-  Map<String, dynamic> toJson() => {'uid': uid, 'ref': ref, 'x': x, 'y': y, 'z': z, 'rot': rot, 'w': w, 'h': h, 'd': d};
+  Map<String, dynamic> toJson() => {'uid': uid, 'ref': ref, 'x': x, 'y': y, 'z': z, 'rot': rot, 'w': w, 'h': h, 'd': d, if (variant != null) 'variant': variant};
   factory RoomObject.fromJson(Map<String, dynamic> j) => RoomObject(
         uid: '${j['uid']}',
         ref: '${j['ref']}',
@@ -111,6 +145,7 @@ class RoomObject {
         w: (j['w'] as num).toInt(),
         h: (j['h'] as num).toInt(),
         d: (j['d'] as num).toInt(),
+        variant: j['variant'] as String?,
       );
 }
 
@@ -215,11 +250,11 @@ List<Issue> objectChecks(LayoutEngine e) {
   final p = e.project;
   final out = <Issue>[];
   bool overlap((double, double, double, double) a, (double, double, double, double) b) => a.$1 < b.$3 - 1 && b.$1 < a.$3 - 1 && a.$2 < b.$4 - 1 && b.$2 < a.$4 - 1;
-  final obstacles = <(String, (double, double, double, double))>[
+  final obstacles = <(String, (double, double, double, double), double)>[
     for (final c in p.items)
       for (final tb in e.boxesOf(c))
-        if (tb.box.z0 < 900) (c.uid, (tb.box.x0, tb.box.y0, tb.box.x1, tb.box.y1)),
-    for (final o in p.objects) if (o.h > 100) (o.uid, o.footprint),
+        if (tb.box.z0 < 900) (c.uid, (tb.box.x0, tb.box.y0, tb.box.x1, tb.box.y1), tb.box.z1),
+    for (final o in p.objects) if (o.h > 100) (o.uid, o.footprint, o.z + o.h),
   ];
   for (final o in p.objects) {
     final (ox0, oy0, ox1, oy1) = o.footprint;
@@ -234,7 +269,8 @@ List<Issue> objectChecks(LayoutEngine e) {
     final (fx, fy) = o.front;
     final c = f.clearance.toDouble();
     final zone = fx != 0 ? (fx > 0 ? (x1, y0, x1 + c, y1) : (x0 - c, y0, x0, y1)) : (fy > 0 ? (x0, y1, x1, y1 + c) : (x0, y0 - c, x1, y0));
-    final hit = obstacles.where((ob) => ob.$1 != o.uid && overlap(zone, ob.$2)).toList();
+    // chauffe-eau accroché au-dessus des meubles : ils ne gênent pas sa façade
+    final hit = obstacles.where((ob) => ob.$1 != o.uid && overlap(zone, ob.$2) && !(isHeater(f) && ob.$3 <= o.z + 60)).toList();
     if (hit.isNotEmpty) {
       out.add(Issue(Severity.warning, 'fixture_clearance', L('{0} : {1} mm libres devant conseillés', [L(f.name), f.clearance]), [o.uid, ...hit.map((h) => h.$1)]));
     }
@@ -247,7 +283,10 @@ List<Issue> objectChecks(LayoutEngine e) {
 }
 
 /// Nom lisible d'un objet posé.
-String objectName(RoomObject o) => L(o.fixture?.name ?? CatalogObject.byId[o.ref]?.name ?? 'Objet');
+String objectName(RoomObject o) {
+  final n = L(o.fixture?.name ?? CatalogObject.byId[o.ref]?.name ?? 'Objet'), v = o.capacity;
+  return v == null ? n : '$n ${v.label}';
+}
 
 /// Position d'un objet le long de son mur : (mur, début, fin) en mm depuis le départ du mur.
 (String, double, double) objectOnWall(Room room, RoomObject o) {
@@ -306,11 +345,12 @@ List<(String, double, int)> fixtureWaterLocal(RoomObject o) {
       return [
         for (final cx in [-hw + w * 0.25, -hw + w * 0.75]) ...[('froide', cx - 60, 550), ('chaude', cx + 60, 550), ('evac', cx, 500)],
       ];
-    case 'chauffe_eau':
-      // piquages sous la cuve (entraxe 140), groupe de sécurité relié à l'évacuation
-      final bottom = o.z.round();
-      return [('froide', -70, bottom - 120), ('chaude', 70, bottom - 120), ('evac', 0, bottom - 250)];
     default:
+      if (isHeater(f) && o.z > 300) {
+        // piquages sous la cuve (couché : à gauche), groupe de sécurité relié à l'évacuation
+        final bottom = o.z.round(), k = math.min(70.0, hw * 0.45), at = f.id.endsWith('_h') ? -hw + 160.0 : 0.0;
+        return [('froide', at - k, bottom - 120), ('chaude', at + k, bottom - 120), if (f.water.length > 2) ('evac', at, bottom - 250)];
+      }
       return [for (final (kind, at, z) in f.water) (kind, -hw + w * at, z)];
   }
 }

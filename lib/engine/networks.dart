@@ -12,6 +12,7 @@ import 'i18n_hook.dart';
 import 'dart:math' as math;
 
 import 'catalog.dart';
+import 'home_appliances.dart';
 import 'layout_engine.dart';
 import 'materials.dart';
 import 'project.dart';
@@ -255,7 +256,7 @@ List<NetPoint> generateNetworks(LayoutEngine e, {String hobEnergy = 'gas'}) {
   for (final (wall, s, z, kind, uid) in fixtureWaterPoints(room, p.objects)) {
     final o = p.objects.firstWhere((x) => x.uid == uid);
     final wc = o.ref == 'fixture:wc_suspendu' || o.ref == 'fixture:wc_sol';
-    final k = switch (kind) { 'froide' => NetKind.waterCold, 'chaude' => NetKind.waterHot, _ => wc ? NetKind.drainWc : NetKind.drain };
+    final k = switch (kind) { 'froide' when isWashAppliance(o.fixture) => NetKind.valveMachine, 'froide' => NetKind.waterCold, 'chaude' => NetKind.waterHot, _ => wc ? NetKind.drainWc : NetKind.drain };
     add(k, wall, s, z.toDouble(), NetUse.sanitary, forUid: uid);
   }
   // électricité des sanitaires : du côté le plus éloigné de la baignoire et de la douche (volumes 0 à 2)
@@ -275,15 +276,30 @@ List<NetPoint> generateNetworks(LayoutEngine e, {String hobEnergy = 'gas'}) {
 
   for (final o in p.objects) {
     final f = o.fixture;
-    if (f == null || !{'seche_serviettes', 'chauffe_eau', 'miroir'}.contains(f.id)) continue;
+    if (f == null || !(isHeater(f) || isWashAppliance(f) || const {'seche_serviettes', 'miroir'}.contains(f.id))) continue;
     final wall = fixtureWall(o, room);
     if (!room.isWallEnabled(wall)) continue;
     final w = room.wall(wall);
     final (_, left, right) = objectOnWall(room, o);
+    final centre = ((left + right) / 2).clamp(0, w.length).toDouble();
+    if (isWashAppliance(f)) {
+      // prise 20 A au-dessus de la machine (à côté d'une tour ou d'un appareil mural) ; gaine d'un sèche-linge à évacuation
+      add(NetKind.socket20, wall, o.z + o.h > 1050 ? beside(wall, left, right).clamp(0, w.length).toDouble() : centre, 1100, NetUse.washer, forUid: o.uid);
+      if (f.id == 'sl_evac') add(NetKind.duct, wall, centre, 300, NetUse.washer, forUid: o.uid);
+      continue;
+    }
+    if (isHeater(f)) {
+      // sortie de câble au-dessus du ballon ; à gaz : arrivée dessous et conduit de fumée au-dessus
+      final above = math.min(o.z + o.h + 150, room.height - 80);
+      if (f.id == 'chauffe_eau_gaz') {
+        add(NetKind.gas, wall, centre, math.max(200, o.z - 150), NetUse.sanitary, forUid: o.uid);
+        add(NetKind.duct, wall, centre, above, NetUse.sanitary, forUid: o.uid);
+      } else {
+        add(NetKind.cable, wall, centre, above, NetUse.sanitary, forUid: o.uid);
+      }
+      continue;
+    }
     switch (f.id) {
-      case 'chauffe_eau':
-        // sortie de câble au-dessus du ballon
-        add(NetKind.cable, wall, ((left + right) / 2).clamp(0, w.length).toDouble(), o.z + o.h + 150, NetUse.sanitary, forUid: o.uid);
       case 'seche_serviettes':
         // sortie de câble à 200 mm du sol, à côté, du côté opposé à la douche
         add(NetKind.cable, wall, beside(wall, left, right).clamp(0, w.length).toDouble(), 200, NetUse.sanitary, forUid: o.uid);
@@ -518,7 +534,7 @@ List<Issue> networkChecks(LayoutEngine e) {
   for (final o in p.objects) {
     final f = o.fixture;
     if (f == null) continue;
-    if (f.water.isNotEmpty && !has(NetUse.sanitary, o.uid, (k) => k.network == 'drain')) {
+    if (f.water.any((w) => w.$1 == 'evac') && !has(NetUse.sanitary, o.uid, (k) => k.network == 'drain')) {
       out.add(Issue(Severity.error, 'net_fixture', L('{0} : évacuation manquante', [L(f.name)]), [o.uid]));
     }
     if (f.water.any((w) => w.$1 != 'evac') && !has(NetUse.sanitary, o.uid, (k) => k.network == 'water')) {

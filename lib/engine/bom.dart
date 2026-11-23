@@ -210,7 +210,7 @@ Bom buildBom(LayoutEngine e) {
   }
   for (final (o, n) in objs.values) {
     final f = o.fixture;
-    lines.add(BomLine(f != null ? 'Sanitaires' : 'Mobilier et décoration', o.ref, objectName(o), '${o.w} x ${o.d} x ${o.h}',
+    lines.add(BomLine(f != null ? f.category : 'Mobilier et décoration', o.ref, objectName(o), '${o.w} x ${o.d} x ${o.h}',
         f != null ? [if (o.z > 0) 'pose à ${o.z.round()} mm du sol', if (f.clearance > 0) '${f.clearance} mm libres devant'].join(', ') : 'mobilier du client, pour l\'implantation',
         n));
   }

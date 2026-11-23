@@ -307,12 +307,18 @@ void _applyUppers(LayoutEngine e, Uppers u) {
     final m = e.modelOf(c);
     return m.kind == CabinetKind.wall && !m.isHoodUnit && !m.isFreeHood && m.id != 'wall_chimney_box';
   }).toList();
+  highs.sort((a, b) => a.wallId != b.wallId ? a.wallId.compareTo(b.wallId) : a.s.compareTo(b.s));
+  var rank = 0;
   for (final c in highs) {
     switch (u) {
       case Uppers.none:
         e.project.items.remove(c);
       case Uppers.open:
         // étagères ouvertes : niches larges sur toute la longueur (600 à 1200), sinon niche étroite
+        // une sur deux : les vitrines restent des vitrines, l'ensemble n'est pas vide
+        final glass = c.modelId == 'wall_glass_door' && rank.isOdd;
+        rank++;
+        if (glass) break;
         final id = c.width >= 600 ? 'wall_open_niche_wide' : 'wall_open_shelf';
         e.replace(c.uid, id);
       case Uppers.glass:

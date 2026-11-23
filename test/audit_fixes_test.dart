@@ -52,10 +52,10 @@ void main() {
 
   testWidgets('2. dossier : sanitaires dans le récapitulatif, le devis, les dessins et le PDF', (t) async {
     final st = bath();
-    expect(st.bom.lines.where((l) => l.section == 'Sanitaires').length, 4);
+    expect(st.bom.lines.where((l) => l.section == 'Sanitaires' || l.section == heaterCategory).length, 4);
     String f(String n) => File('assets/data/$n.json').readAsStringSync();
     final db = MaterialsDb.parse(appliances: f('appliances'), worktops: f('worktops'), panels: f('panels'), hardware: f('hardware'));
-    final lines = estimate(st.engine, db, st.project.specs, st.cutPlan, st.bom).where((l) => l.section == 'Sanitaires').toList();
+    final lines = estimate(st.engine, db, st.project.specs, st.cutPlan, st.bom).where((l) => l.section == 'Sanitaires' || l.section == heaterCategory).toList();
     expect(lines.length, 4);
     expect(lines.every((l) => !l.unitPrice.isZero), isTrue);
     final d = TechDrawer(st.engine);

@@ -110,12 +110,21 @@ class DecorPanel extends StatelessWidget {
   final AppState state;
   const DecorPanel({super.key, required this.state});
 
-  static const _groups = [('plan', 'Sur le plan de travail'), ('ilot', 'Sur l’îlot ou le meuble'), ('plaque', 'Sur la plaque'), ('fenetre', 'Aux fenêtres'), ('sol', 'Au sol')];
+  /// Emplacements proposés, selon la pièce : avec ou sans plan de travail.
+  List<(Set<String>, String)> get _groups => [
+        if (state.engine.hasWorktop) (const {'plan'}, 'Sur le plan de travail') else (const {'plan', 'ilot'}, 'Sur le meuble'),
+        (const {'niche'}, 'Dans les niches et les vitrines'),
+        if (state.engine.hasWorktop) (const {'ilot'}, 'Sur l’îlot ou le meuble'),
+        (const {'plaque'}, 'Sur la plaque'),
+        (const {'fenetre'}, 'Aux fenêtres'),
+        (const {'sol', 'tapis'}, 'Au sol'),
+      ];
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final st = state.project.style;
+    final items = decorFor(state.project.universe);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       SwitchListTile(
         key: const ValueKey('decor_show'),
@@ -137,11 +146,12 @@ class DecorPanel extends StatelessWidget {
         ),
         if (st.decor.isNotEmpty) TextButton(onPressed: () => state.edit(st.decor.clear), child: Text(tr('Tout retirer'))),
       ]),
-      for (final (spot, title) in _groups) ...[
+      for (final (spots, title) in _groups)
+        if (items.any((it) => spots.contains(it.spot))) ...[
         Padding(padding: const EdgeInsets.only(top: Tokens.s4, bottom: 6), child: Text(tr(title), style: t.labelLarge?.copyWith(fontWeight: FontWeight.w800))),
         Wrap(spacing: 8, runSpacing: 8, children: [
-          for (final it in decorItems)
-            if (it.spot == spot)
+          for (final it in items)
+            if (spots.contains(it.spot))
               FilterChip(
                 key: ValueKey('decor_${it.id}'),
                 label: Text(tr(it.name)),

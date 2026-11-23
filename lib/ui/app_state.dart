@@ -60,13 +60,33 @@ class AppState extends ChangeNotifier {
 
   /// Ouverture animée en 3D : progression actuelle (0..1) et éléments à ouvrir.
   final Map<String, double> openness = {};
+  /// Un uid ouvre tout le meuble ; « uid#n » n'ouvre que sa n-ième porte ou son n-ième tiroir.
   final Set<String> openTargets = {};
   bool get animating => [...openness.keys, ...openTargets].any((u) => (openness[u] ?? 0) != (openTargets.contains(u) ? 1.0 : 0.0));
-  bool isOpen(String uid) => openTargets.contains(uid);
+  static bool _of(String key, String uid) => key == uid || key.startsWith('$uid#');
+  bool isOpen(String uid) => openTargets.any((k) => _of(k, uid));
   bool get anyOpen => openTargets.isNotEmpty;
 
   void toggleOpen(String uid) {
-    if (!openTargets.remove(uid)) openTargets.add(uid);
+    if (isOpen(uid)) {
+      openTargets.removeWhere((k) => _of(k, uid));
+    } else {
+      openTargets.add(uid);
+    }
+    notifyListeners();
+  }
+
+  /// Ouvre ou ferme une seule partie ([part] sur [count]) : le tiroir ou la porte touchée.
+  void togglePart(String uid, int part, int count) {
+    if (part < 0 || part >= count) return toggleOpen(uid);
+    if (openTargets.remove(uid)) {
+      // tout était ouvert : seule la partie touchée se ferme
+      for (var k = 0; k < count; k++) {
+        if (k != part) openTargets.add('$uid#$k');
+      }
+    } else if (!openTargets.remove('$uid#$part')) {
+      openTargets.add('$uid#$part');
+    }
     notifyListeners();
   }
 
@@ -183,12 +203,14 @@ class AppState extends ChangeNotifier {
   String addObject(String ref) {
     final fx = ref.startsWith('fixture:') ? fixtureById(ref.substring(8)) : null;
     final cat = fx == null ? objectCatalog.where((o) => o.id == ref).firstOrNull : null;
-    final (w, d) = fx != null ? fx.sizes.first : (cat?.w ?? 600, cat?.d ?? 600);
-    final h = fx?.h ?? cat?.h ?? 600;
+    final dv = fx?.defaultVariant;
+    final (w, d) = dv != null ? (dv.w, dv.d) : (fx != null ? fx.sizes.first : (cat?.w ?? 600, cat?.d ?? 600));
+    final h = dv?.h ?? fx?.h ?? cat?.h ?? 600;
     final r = project.room;
     // suspension : accrochée au plafond
     final z = cat?.ceiling ?? false ? math.max(0, r.height - h).toDouble() : (fx?.z ?? 0).toDouble();
     final o = RoomObject(uid: project.newUid(), ref: ref, x: r.width / 2, y: r.depth / 2, z: z, w: w, h: h, d: d);
+    if (dv != null) o.setCapacity(dv, r.height);
     edit(() {
       if (fx != null || (cat?.wall ?? false)) {
         // contre le mur affiché (vue de face) ou le mur A
@@ -205,6 +227,7 @@ class AppState extends ChangeNotifier {
             o.y = 0;
         }
         snapToWall(r, o);
+        if (fx != null) _freeSpot(o);
       }
       project.objects.add(o);
     });
@@ -213,6 +236,52 @@ class AppState extends ChangeNotifier {
     objectsPanel = false; // posé et sélectionné : la fiche remplace le panneau
     notifyListeners();
     return trp('{0} posé', [tr(fx?.name ?? cat?.name ?? 'Objet')]);
+  }
+
+  /// Glisse un appareil posé le long de son mur (puis des autres) jusqu'à une place libre : ni dans un meuble, ni devant une porte.
+  void _freeSpot(RoomObject o) {
+    final r = project.room;
+    final taken = <Box3>[
+      for (final c in project.items)
+        for (final tb in engine.boxesOf(c)) tb.box,
+      for (final q in project.objects)
+        if (q.h > 20)
+          () {
+            final (x0, y0, x1, y1) = q.footprint;
+            return Box3(x0, y0, q.z, x1, y1, q.z + q.h);
+          }(),
+      for (final op in project.openings)
+        if (r.order.contains(op.wallId)) r.wall(op.wallId).strip(op.s, op.width, 600, op.z, op.height),
+    ];
+    bool free() {
+      final (x0, y0, x1, y1) = o.footprint;
+      final b = Box3(x0 + 1, y0 + 1, o.z + 1, x1 - 1, y1 - 1, o.z + o.h - 1);
+      return x0 > -2 && y0 > -2 && x1 < r.width + 2 && y1 < r.depth + 2 && !taken.any((t) => t.intersects(b));
+    }
+
+    if (free()) return;
+    final (x, y, rot) = (o.x, o.y, o.rot);
+    final first = fixtureWall(o, r);
+    for (final wid in [first, ...r.order.where((q) => q != first)]) {
+      final w = r.wall(wid);
+      if (!w.orthogonal || !w.enabled) continue;
+      final at = wid == first ? w.toWall(x, y).$1 : w.length / 2;
+      o.rot = w.rot;
+      for (var off = 0.0; off < w.length; off += 50) {
+        for (final s in [at + off, at - off]) {
+          if (s < o.w / 2 || s > w.length - o.w / 2) continue;
+          final (px, py) = w.toPlan(s, o.d / 2);
+          o
+            ..x = px
+            ..y = py;
+          if (free()) return;
+        }
+      }
+    }
+    o // aucune place : là où il était
+      ..x = x
+      ..y = y
+      ..rot = rot;
   }
 
   void dragObjectTo(String uid, double x, double y) {
@@ -248,6 +317,22 @@ class AppState extends ChangeNotifier {
     final o = project.objects.where((x) => x.uid == uid).firstOrNull;
     if (o == null) return;
     edit(() => change(o));
+  }
+
+  /// Remplace un appareil (chauffe-eau, machine) par un autre type, à la même place.
+  void replaceFixture(String uid, String id) {
+    final i = project.objects.indexWhere((x) => x.uid == uid);
+    final f = fixtureById(id);
+    if (i < 0 || f == null) return;
+    final old = project.objects[i];
+    edit(() {
+      final n = RoomObject(uid: old.uid, ref: 'fixture:$id', x: old.x, y: old.y, z: f.z.toDouble(), rot: old.rot, w: f.sizes.first.$1, h: f.h, d: f.sizes.first.$2);
+      // même capacité si elle existe, sinon celle par défaut
+      final v = f.variants.where((x) => x.label == old.capacity?.label).firstOrNull ?? f.defaultVariant;
+      if (v != null) n.setCapacity(v, project.room.height);
+      snapToWall(project.room, n);
+      project.objects[i] = n;
+    });
   }
 
   void rotateObject(String uid, int delta) => editObject(uid, (o) => o.rot = (o.rot + delta) % 360);
@@ -811,6 +896,7 @@ class AppState extends ChangeNotifier {
   // ---- navigation
 
   void goTo(PlanStep s) {
+    final from = step;
     step = s;
     studio = '';
     megaMenu = false;
@@ -823,6 +909,11 @@ class AppState extends ChangeNotifier {
       resetZoom(notify: false);
     }
     if (s == PlanStep.space) view = ViewMode.plan;
+    if (s == PlanStep.layout && from == PlanStep.space && view == ViewMode.front) {
+      // la vue de face servait à placer l'eau : l'implantation commence vue du dessus
+      view = ViewMode.plan;
+      resetZoom(notify: false);
+    }
     selectedOpening = s == PlanStep.space ? selectedOpening : null;
     notifyListeners();
   }
@@ -1022,6 +1113,16 @@ class AppState extends ChangeNotifier {
     panX += dx;
     panY += dy;
     notifyListeners();
+  }
+
+  /// Dernier toucher reçu par un bouton ou un panneau posé sur la vue (null : par la vue elle-même).
+  DateTime? overlayDown;
+
+  /// Recadrages demandés (bouton « Tout afficher ») : la 3D se recentre quand ce compteur change.
+  int fit3d = 0;
+  void fitView() {
+    fit3d++;
+    resetZoom();
   }
 
   void resetZoom({bool notify = true}) {

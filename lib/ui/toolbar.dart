@@ -742,7 +742,7 @@ class ZoomControls extends StatelessWidget {
         ),
         IconButton(tooltip: tr('Zoom avant'), onPressed: () => state.setZoom(state.zoom * 1.25), icon: const Icon(Icons.add)),
         IconButton(tooltip: tr('Zoom arrière'), onPressed: () => state.setZoom(state.zoom / 1.25), icon: const Icon(Icons.remove)),
-        IconButton(tooltip: tr('Tout afficher'), onPressed: state.resetZoom, icon: const Icon(Icons.fit_screen_outlined)),
+        IconButton(tooltip: tr('Tout afficher'), onPressed: state.fitView, icon: const Icon(Icons.fit_screen_outlined)),
       ]),
     );
   }

@@ -8,6 +8,7 @@ import 'dart:math' as math;
 import 'catalog.dart';
 import 'end_panels.dart';
 import 'openings_catalog.dart';
+import 'home_appliances.dart';
 import 'project.dart';
 import 'standards.dart';
 
@@ -344,19 +345,28 @@ class LayoutEngine {
   }
 
   /// Machines à laver logées dans un meuble de buanderie (et colonnes machine de salle de bain) : place de chacune.
-  List<({double s, double z, double w, double h, double d, String ref})> machinesIn(PlacedCabinet c) {
-    final id = c.modelId;
-    if (id == 'laundry_washer_dryer_side_by_side') {
-      final free = c.width - 36.0, w = math.min(600.0, free / 2), h = math.min(c.height - 40.0, 830.0);
-      return [
-        (s: c.s + 18 + free / 4, z: c.z + 18, w: w, h: h, d: math.min(560.0, c.depth - 30.0), ref: 'kenney_washer'),
-        (s: c.s + 18 + free * 3 / 4, z: c.z + 18, w: w, h: h, d: math.min(560.0, c.depth - 30.0), ref: 'kenney_dryer'),
-      ];
+  List<({double s, double z, double w, double h, double d, String ref, String cap})> machinesIn(PlacedCabinet c) {
+    final slots = machineSlots(c);
+    final stacked = c.modelId.endsWith('column');
+    final out = <({double s, double z, double w, double h, double d, String ref, String cap})>[];
+    var z = c.z + 18;
+    for (var i = 0; i < slots.length; i++) {
+      final key = c.machines != null && i < c.machines!.length ? c.machines![i] : slots[i].def;
+      final (f, v) = machineOf(key) ?? machineOf(slots[i].def)!;
+      // sous un plan, le dessus de la machine se retire : elle rentre dans la hauteur du meuble
+      final h = math.min(v.h.toDouble(), stacked ? 860.0 : c.height - 40.0);
+      out.add((
+        s: stacked ? c.s + c.width / 2 : c.s + 18 + (c.width - 36.0) * (i + 0.5) / slots.length,
+        z: z,
+        w: math.min(v.w.toDouble(), slots[i].w),
+        h: h,
+        d: math.min(v.d.toDouble(), c.depth - 30.0),
+        ref: 'fixture:${f.id}',
+        cap: v.label,
+      ));
+      if (stacked) z += h + 12;
     }
-    if (id == 'laundry_washer_dryer_column') {
-      return [(s: c.s + c.width / 2, z: c.z + 18, w: math.min(600.0, c.width - 40.0), h: 1700, d: math.min(600.0, c.depth - 30.0), ref: 'kenney_washerDryerStacked')];
-    }
-    return const [];
+    return out;
   }
 
   double defaultZ(CabinetModel m) {

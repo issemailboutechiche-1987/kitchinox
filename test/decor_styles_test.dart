@@ -76,6 +76,33 @@ void main() {
     });
   });
 
+  testWidgets('niches ouvertes : étagères, fond, même hauteur que les voisins ; vitrines gardées', (t) async {
+    await t.runAsync(() async {
+      expect((nicheLevels(300), nicheLevels(750), nicheLevels(800)), (1, 2, 2));
+      final st0 = kitchen(w: 3600, d: 3000);
+      for (final x in buildTemplates(st0.engine).where((x) => x.$1.uppers == Uppers.open)) {
+        final p = x.$2.project;
+        final e = LayoutEngine(st0.catalog, p);
+        final niches = p.items.where((c) => c.modelId.startsWith('wall_open')).toList();
+        expect(niches, isNotEmpty, reason: x.$1.id);
+        final others = p.items.where((c) => e.modelOf(c).kind == CabinetKind.wall && !e.modelOf(c).isHoodUnit && !e.modelOf(c).isFreeHood).map((c) => (c.z.round(), c.height)).toSet();
+        expect(others, hasLength(1), reason: '${x.$1.id} : hauts alignés $others');
+        final st = AppState(st0.catalog, db: st0.db, project: p)..objectCatalog = st0.objectCatalog;
+        final sc = await SceneExporter().build(st);
+        // côtés, dessus, dessous, dos, plus au moins une étagère et le fond
+        for (final c in niches) {
+          expect((sc['solids'] as List).where((s) => s['uid'] == c.uid).length, greaterThan(6), reason: x.$1.id);
+        }
+        // vitrines : toujours un cadre et une vitre
+        for (final c in p.items.where((c) => c.modelId == 'wall_glass_door')) {
+          expect([for (final fr in sc['fronts'] as List) if (fr['uid'] == c.uid) ...(fr['parts'] as List)].every((q) => q['glass'] == 60.0), isTrue);
+        }
+        st.project.style.decor.add('vaisselle');
+        expect(placeDecor(st.engine).where((q) => q.item.id == 'vaisselle'), isNotEmpty);
+      }
+    });
+  });
+
   testWidgets('façades à cadre : relief en 3D, croisillons des vitrines', (t) async {
     await t.runAsync(() async {
       final st = filled();

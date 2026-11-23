@@ -21,6 +21,7 @@ export 'stock.dart';
 export 'decor.dart';
 export 'end_panels.dart';
 export 'essentials.dart';
+export 'home_appliances.dart';
 export 'fixes.dart';
 export 'layout_engine.dart';
 export 'manual_cut.dart';

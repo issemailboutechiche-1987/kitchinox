@@ -128,10 +128,17 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
   /// (sur le web, il traverse jusqu'au canvas WebGL et changerait la sélection, ce qui ferme le menu).
   bool get _covered => mounted && !(ModalRoute.of(context)?.isCurrent ?? true);
 
+  /// Geste à ignorer : fenêtre par-dessus, ou bouton / panneau posé sur la vue (le clic lui appartient aussi).
+  bool get _blocked {
+    if (_covered) return true;
+    final t = st.overlayDown;
+    return t != null && DateTime.now().difference(t) < const Duration(milliseconds: 1200);
+  }
+
   void _installHandlers() {
     final h = JSObject();
     h.setProperty('pick'.toJS, ((JSString? uid) {
-      if (_covered) return;
+      if (_blocked) return;
       final u = uid?.toDart;
       if (u != null && u.startsWith('obj:')) {
         st.selectObject(u.substring(4));
@@ -140,22 +147,22 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
       st.select(u);
       if (u == null) st.selectObject(null);
     }).toJS);
-    h.setProperty('dbl'.toJS, ((JSString uid) {
-      if (_covered) return;
+    h.setProperty('dbl'.toJS, ((JSString uid, JSNumber? part, JSNumber? count) {
+      if (_blocked) return;
       if (uid.toDart.startsWith('obj:')) {
         st.selectObject(uid.toDart.substring(4));
         return;
       }
       st.select(uid.toDart);
-      st.toggleOpen(uid.toDart);
+      st.togglePart(uid.toDart, part?.toDartInt ?? -1, count?.toDartInt ?? 0);
     }).toJS);
     h.setProperty('dragStart'.toJS, ((JSString uid) {
-      if (_covered) return;
+      if (_blocked) return;
       st.select(uid.toDart);
       st.beginDrag();
     }).toJS);
     h.setProperty('drag'.toJS, ((JSString uid, JSNumber s, JSNumber z) {
-      if (_covered) return;
+      if (_blocked) return;
       st.dragTo(uid.toDart, s: s.toDartDouble, z: z.toDartDouble);
     }).toJS);
     h.setProperty('dragEnd'.toJS, ((JSString uid) {

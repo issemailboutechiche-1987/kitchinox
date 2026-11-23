@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'dart:ui' show PlatformDispatcher;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -347,6 +348,27 @@ class _PlannerScreenState extends State<PlannerScreen> {
   StyleSection _styleSection = StyleSection.fronts;
 
   AppState get st => widget.state;
+
+  // sur le web, un clic sur un bouton posé sur la 3D atteint aussi le canvas WebGL : on retient qui l'a reçu
+  bool _onCanvas = false;
+  void _anyPointer(PointerEvent e) {
+    if (e is! PointerDownEvent) return;
+    st.overlayDown = _onCanvas ? null : DateTime.now();
+    _onCanvas = false;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_anyPointer);
+  }
+
+  @override
+  void dispose() {
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_anyPointer);
+    super.dispose();
+  }
+
 
   void _msg(String m) {
     if (m.isEmpty) return;
@@ -1005,7 +1027,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         kxItem('Vue de face', () => st.setView(ViewMode.front), icon: Icons.crop_portrait, checked: st.view == ViewMode.front),
         kxItem('3D', () => st.setView(ViewMode.view3d), icon: Icons.view_in_ar_outlined, checked: st.view == ViewMode.view3d),
         const Divider(height: 1),
-        kxItem('Tout afficher', st.resetZoom, icon: Icons.fit_screen_outlined),
+        kxItem('Tout afficher', st.fitView, icon: Icons.fit_screen_outlined),
         kxItem('Décor du rendu', st.toggleDecor, icon: Icons.local_florist_outlined, checked: st.project.style.showDecor && st.project.style.decor.isNotEmpty, key: 'menu_decor'),
         const Divider(height: 1),
         for (final m in studioModes.entries)
@@ -1069,6 +1091,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
             autofocus: true,
             child: Listener(
               onPointerDown: (_) {
+                _onCanvas = true;
                 _canvasFocus.requestFocus();
                 if (st.megaMenu) st.toggleMegaMenu(false);
               },

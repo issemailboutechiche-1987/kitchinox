@@ -137,6 +137,9 @@ String? layoutProblem(CabinetKind kind, List<FrontRow> rows, [int? height]) {
   return null;
 }
 
+/// Niveaux d'une niche ouverte de [h] mm (étagères tous les 30 à 40 cm).
+int nicheLevels(double h) => h < 420 ? 1 : (h / 370).round().clamp(2, 8);
+
 /// Composition de départ quand on personnalise un modèle standard.
 List<FrontRow> seedRows(CabinetModel m, PlacedCabinet c) {
   final rows = rowsOf(m, c);

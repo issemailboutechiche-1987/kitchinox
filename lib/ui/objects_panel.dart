@@ -1,5 +1,7 @@
 // Panneau « Objets » : sanitaires paramétriques kitchinox et objets de décoration (catalogue libre CC0) ;
 // un clic pose l'objet. Fiche d'un objet posé : taille, rotation, plaquer au mur, dupliquer, supprimer.
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
@@ -20,11 +22,11 @@ class ObjectsPanel extends StatefulWidget {
 class _ObjectsPanelState extends State<ObjectsPanel> {
   static const Map<String, List<String>> _universeCats = {
     'dressing': ['Chambre', 'Décoration', 'Éclairage', 'Importés'],
-    'cuisine': ['Électroménager', 'Repas', 'Décoration', 'Éclairage', 'Importés'],
-    'bain': ['Sanitaires', 'Salle de bain', 'Éclairage', 'Décoration', 'Importés'],
-    'buanderie': ['Électroménager', 'Sanitaires', 'Décoration', 'Éclairage', 'Importés'],
+    'cuisine': ['Électroménager', 'Repas', 'Décoration', 'Éclairage', heaterCategory, washCategory, 'Importés'],
+    'bain': ['Sanitaires', 'Salle de bain', heaterCategory, washCategory, 'Éclairage', 'Décoration', 'Importés'],
+    'buanderie': [washCategory, heaterCategory, 'Électroménager', 'Décoration', 'Éclairage', 'Importés'],
     'tv': ['Salon', 'Décoration', 'Éclairage', 'Importés'],
-    'interieur': ['Tous', 'Salon', 'Repas', 'Bureau', 'Chambre', 'Décoration', 'Éclairage', 'Sanitaires', 'Importés'],
+    'interieur': ['Tous', 'Salon', 'Repas', 'Bureau', 'Chambre', 'Décoration', 'Éclairage', 'Sanitaires', heaterCategory, washCategory, 'Importés'],
   };
 
   String? cat;
@@ -77,7 +79,7 @@ class _ObjectsPanelState extends State<ObjectsPanel> {
       if (visible.any((o) => o.category == libraryCategory)) libraryCategory,
       if (universe == 'bain') 'Sanitaires',
       for (final c in allowedCats)
-        if (c != 'Sanitaires' && (visible.any((o) => o.category == c) || c == allowedCats.first)) c,
+        if (c != 'Sanitaires' && c != 'Importés' && (visible.any((o) => o.category == c) || fixtureTypes.any((f) => f.category == c) || c == allowedCats.first)) c,
       if (hasImported) 'Importés',
     ];
 
@@ -87,8 +89,8 @@ class _ObjectsPanelState extends State<ObjectsPanel> {
 
     final q = query.toLowerCase();
     final currentCat = cat!;
-    final fixtures = ((currentCat == 'Sanitaires' || currentCat == 'Tous') && (universe == 'bain' || universe == 'interieur'))
-        ? fixtureTypes.where((f) => q.isEmpty || f.name.toLowerCase().contains(q) || tr(f.name).toLowerCase().contains(q)).toList()
+    final fixtures = (currentCat == heaterCategory || currentCat == washCategory || ((currentCat == 'Sanitaires' || currentCat == 'Tous') && (universe == 'bain' || universe == 'interieur')))
+        ? fixtureTypes.where((f) => currentCat == 'Tous' || f.category == currentCat).where((f) => q.isEmpty || f.name.toLowerCase().contains(q) || tr(f.name).toLowerCase().contains(q)).toList()
         : <FixtureType>[];
     final objs = visible.where((o) {
       if (currentCat == 'Tous') {
@@ -192,7 +194,7 @@ class _ObjectsPanelState extends State<ObjectsPanel> {
                       tile(
                         icon: SizedBox(width: 64, height: 64, child: CustomPaint(painter: FixtureIcon(f.id))),
                         name: tr(f.name),
-                        dims: f.sizes.map((s) => '${s.$1}×${s.$2}').take(2).join(' · '),
+                        dims: f.variants.length > 1 ? '${f.variants.first.label.split(' (').first} – ${f.variants.last.label.split(' (').first}' : f.sizes.map((s) => '${s.$1}×${s.$2}').take(2).join(' · '),
                         onTap: () => add('fixture:${f.id}'),
                       ),
                     for (final o in objs)
@@ -216,6 +218,65 @@ class _ObjectsPanelState extends State<ObjectsPanel> {
       ]),
     );
   }
+}
+
+/// Silhouette de face d'un chauffe-eau, d'un lave-linge ou d'un sèche-linge dans [r] ; faux si ce n'en est pas un.
+/// [fit] : [r] est déjà aux proportions de l'appareil.
+bool paintHomeAppliance(Canvas c, Rect r, String id, Paint ink, Paint fill, {bool fit = false}) {
+  final f = fixtureById(id);
+  final v = f?.defaultVariant;
+  if (f == null || v == null) return false;
+  if (!fit) {
+    final k = math.min(r.width / v.w, r.height / v.h);
+    r = Rect.fromCenter(center: r.center, width: v.w * k, height: v.h * k);
+  }
+  final u = r.shortestSide;
+  void box(Rect q, double rad) {
+    final rr = RRect.fromRectAndRadius(q, Radius.circular(rad));
+    c.drawRRect(rr, fill);
+    c.drawRRect(rr, ink);
+  }
+
+  if (isHeater(f)) {
+    final round = switch (id) { 'chauffe_eau' || 'chauffe_eau_h' => u / 2, 'chauffe_eau_sol' || 'chauffe_eau_thermo' => u * 0.16, 'chauffe_eau_plat' || 'chauffe_eau_plat_h' => u * 0.22, _ => u * 0.1 };
+    box(r, round);
+    switch (id) {
+      case 'chauffe_eau_thermo':
+        c.drawLine(Offset(r.left, r.top + r.height * 0.28), Offset(r.right, r.top + r.height * 0.28), ink);
+      case 'chauffe_eau_gaz':
+        c.drawRect(Rect.fromCenter(center: Offset(r.center.dx, r.top + r.height * 0.62), width: r.width * 0.3, height: r.height * 0.1), ink);
+        c.drawCircle(Offset(r.center.dx, r.bottom - r.height * 0.14), u * 0.1, ink);
+        c.drawRect(Rect.fromLTWH(r.center.dx - u * 0.16, r.top - u * 0.16, u * 0.32, u * 0.16), ink);
+      case 'chauffe_eau_h' || 'chauffe_eau_plat_h':
+        c.drawCircle(Offset(r.right - u * 0.4, r.center.dy), u * 0.12, ink);
+      default:
+        c.drawCircle(Offset(r.center.dx, r.bottom - math.min(r.height * 0.22, u * 0.7)), u * 0.12, ink);
+    }
+    return true;
+  }
+  void front(Rect q, {bool dryer = false}) {
+    box(q, u * 0.04);
+    final bar = q.top + math.min(q.height * 0.16, u * 0.18);
+    c.drawLine(Offset(q.left, bar), Offset(q.right, bar), ink);
+    final o = Offset(q.center.dx, (bar + q.bottom) / 2), rad = math.min(q.width * 0.34, (q.bottom - bar) * 0.42);
+    c.drawCircle(o, rad, ink);
+    if (!dryer) c.drawCircle(o, rad * 0.72, ink);
+    c.drawCircle(Offset(q.right - u * 0.16, (q.top + bar) / 2), u * 0.04, ink);
+  }
+
+  switch (id) {
+    case 'tour_lavage':
+      front(Rect.fromLTRB(r.left, r.top, r.right, r.center.dy), dryer: true);
+      front(Rect.fromLTRB(r.left, r.center.dy, r.right, r.bottom));
+    case 'll_top' || 'll_cuve' || 'll_semi':
+      box(r, u * 0.04);
+      final bar = r.top + r.height * 0.14;
+      c.drawLine(Offset(r.left, bar), Offset(r.right, bar), ink);
+      if (id == 'll_semi') c.drawLine(Offset(r.center.dx + r.width * 0.08, bar), Offset(r.center.dx + r.width * 0.08, r.bottom), ink);
+    default:
+      front(r, dryer: id.startsWith('sl_'));
+  }
+  return true;
 }
 
 /// Icône d'un sanitaire (même symbole que sur le plan).
@@ -270,12 +331,8 @@ class FixtureIcon extends CustomPainter {
         c.drawLine(Offset(b.left + b.width * 0.25, b.bottom), Offset(b.left + b.width * 0.6, b.top), Paint()
           ..color = Colors.white
           ..strokeWidth = 3);
-      case 'chauffe_eau':
-        final b = Rect.fromLTWH(s.width * 0.28, 4, s.width * 0.44, s.height - 8);
-        c.drawRRect(RRect.fromRectAndRadius(b, const Radius.circular(14)), fill);
-        c.drawRRect(RRect.fromRectAndRadius(b, const Radius.circular(14)), ink);
       default:
-        c.drawRect(r.deflate(8), ink);
+        if (!paintHomeAppliance(c, r.deflate(4), id, ink, fill)) c.drawRect(r.deflate(8), ink);
     }
   }
 
@@ -303,7 +360,7 @@ class ObjectCard extends StatelessWidget {
             key: ValueKey('${o.uid}-$label-$v'),
             initialValue: '$v',
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: label, suffixText: 'mm', isDense: true, border: const OutlineInputBorder()),
+            decoration: InputDecoration(labelText: tr(label), suffixText: 'mm', isDense: true, border: const OutlineInputBorder()),
             onFieldSubmitted: (s) {
               final n = int.tryParse(s);
               if (n != null && n > 0) state.editObject(o.uid, (x) => on(n));
@@ -316,15 +373,43 @@ class ObjectCard extends StatelessWidget {
         margin: EdgeInsets.zero,
         child: ListView(padding: const EdgeInsets.all(Tokens.s4), children: [
           Row(children: [
-            Expanded(child: Text(name, style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
+            Expanded(child: Text(tr(name), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
             IconButton(tooltip: tr('Fermer'), onPressed: () => state.selectObject(null), icon: const Icon(Icons.close)),
           ]),
-          Text(f?.category ?? cat?.category ?? '', style: t.bodySmall),
+          Text(tr(f?.category ?? cat?.category ?? ''), style: t.bodySmall),
           if (f != null && f.note.isNotEmpty) ...[
             const SizedBox(height: Tokens.s2),
             Text(tr(f.note), style: t.bodySmall),
           ],
-          if (f != null && f.sizes.length > 1) ...[
+          if (f != null && f.variants.isNotEmpty) ...[
+            const SizedBox(height: Tokens.s3),
+            Text(tr('Capacité'), style: t.labelLarge),
+            const SizedBox(height: 4),
+            Wrap(spacing: 6, runSpacing: 6, children: [
+              for (final v in f.variants)
+                ChoiceChip(
+                  key: ValueKey('cap_${v.label}'),
+                  label: Text(tr(v.label)),
+                  selected: o.capacity?.label == v.label,
+                  onSelected: (_) => state.editObject(o.uid, (x) {
+                    x.setCapacity(v, state.project.room.height);
+                    snapToWall(state.project.room, x);
+                  }),
+                ),
+            ]),
+            const SizedBox(height: Tokens.s3),
+            Text(tr('Type'), style: t.labelLarge),
+            const SizedBox(height: 4),
+            DropdownButtonFormField<String>(
+              key: ValueKey('${o.uid}-type-${f.id}'),
+              isExpanded: true,
+              initialValue: f.id,
+              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+              items: [for (final q in fixtureTypes.where((q) => q.category == f.category)) DropdownMenuItem(value: q.id, child: Text(tr(q.name)))],
+              onChanged: (id) => state.replaceFixture(o.uid, id!),
+            ),
+          ],
+          if (f != null && f.variants.isEmpty && f.sizes.length > 1) ...[
             const SizedBox(height: Tokens.s3),
             Text(tr('Taille'), style: t.labelLarge),
             const SizedBox(height: 4),

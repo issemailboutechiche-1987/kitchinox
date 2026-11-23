@@ -378,6 +378,7 @@ class PlacedCabinet {
   List<String>? appliances; // électroménager choisi (null = celui prévu par défaut)
   String? front; // finition propre à ce caisson (null = style de la cuisine)
   List<FrontRow>? layout; // composition de façade personnalisée (null = celle du modèle)
+  List<String>? machines; // machines logées dans un meuble de buanderie : « type|capacité » (null = celles par défaut)
   bool noBack; // caisson personnalisé : sans fond arrière
   // joues (costados) de ce caisson : null automatique, 'oui' ajoutée, 'pris' ajoutée sur la largeur du caisson, 'non' sans
   String? cheekL, cheekR;
@@ -398,6 +399,7 @@ class PlacedCabinet {
     this.appliances,
     this.front,
     this.layout,
+    this.machines,
     this.noBack = false,
     this.cheekL,
     this.cheekR,
@@ -431,6 +433,7 @@ class PlacedCabinet {
         if (appliances != null) 'appliances': appliances,
         if (front != null) 'front': front,
         if (layout != null) 'layout': [for (final r in layout!) r.toJson()],
+        if (machines != null) 'machines': machines,
         if (noBack) 'no_back': true,
         if (cheekL != null) 'cheek_l': cheekL,
         if (cheekR != null) 'cheek_r': cheekR,
@@ -454,6 +457,7 @@ class PlacedCabinet {
         appliances: (j['appliances'] as List?)?.cast<String>(),
         front: j['front'] as String?,
         layout: j['layout'] == null ? null : parseRows(j['layout']),
+        machines: (j['machines'] as List?)?.cast<String>(),
         noBack: j['no_back'] == true,
       );
 }

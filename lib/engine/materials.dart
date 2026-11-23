@@ -539,7 +539,10 @@ List<SupplyLine> hardwareList(LayoutEngine e, MaterialsDb db, ProjectSpecs specs
       final above = e.project.items.any((h) => e.modelOf(h).kind == CabinetKind.wall && h.wallId == c.wallId && h.s < c.right && c.s < h.right);
       if (above) add('dish_drainer_wall_cabinet', 1, detail: 'au-dessus de l\'évier');
     }
-    if (m.kind.isLow && m.isCarcass) lowRun += c.width;
+    // le profil passe aussi sur le lave-vaisselle et tourne dans les meubles d'angle (moins l'angle caché)
+    if (m.kind.isLow && (m.isCarcass || m.id == 'base_integrated_dishwasher_door')) {
+      lowRun += m.kind.isCorner && c.widthRight != null ? math.max(0, c.width + c.widthRight! - 2 * c.depth) : c.width;
+    }
     if (m.id == 'base_drawers_multi') drawerRun += c.width;
   }
   // poignées ou profils Gola
@@ -816,16 +819,29 @@ const fixturePrices = <String, PriceRange>{
   'miroir': PriceRange(600, 2500),
 };
 
-/// Sanitaires posés dans la pièce (fourniture indicative, à confirmer avec le client).
+/// Sanitaires, chauffe-eau et machines à laver (posés ou logés dans un meuble) : fourniture indicative, à confirmer avec le client.
 List<SupplyLine> fixtureSupplyLines(LayoutEngine e) {
-  final n = <String, int>{};
+  final n = <(String, String?), int>{};
   for (final o in e.project.objects) {
     final f = o.fixture;
-    if (f != null) n[f.id] = (n[f.id] ?? 0) + 1;
+    if (f == null) continue;
+    final k = (f.id, o.capacity?.label);
+    n[k] = (n[k] ?? 0) + 1;
+  }
+  for (final c in e.project.items) {
+    for (final mc in e.machinesIn(c)) {
+      final k = (mc.ref.substring(8), mc.cap);
+      n[k] = (n[k] ?? 0) + 1;
+    }
   }
   return [
-    for (final MapEntry(key: id, value: q) in n.entries)
-      SupplyLine('Sanitaires', fixtureById(id)!.name, 'fourniture seule, prix indicatif à confirmer', q.toDouble(), 'pce', fixturePrices[id] ?? PriceRange.zero),
+    for (final MapEntry(key: (id, cap), value: q) in n.entries)
+      () {
+        final f = fixtureById(id)!;
+        final v = cap == null ? null : f.variants.where((x) => x.label == cap).firstOrNull;
+        return SupplyLine(f.category, v == null ? f.name : '${f.name} ${v.label}', 'fourniture seule, prix indicatif à confirmer', q.toDouble(), 'pce',
+            v?.price ?? fixturePrices[id] ?? PriceRange.zero);
+      }(),
   ];
 }
 

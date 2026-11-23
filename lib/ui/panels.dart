@@ -1120,7 +1120,7 @@ class _Section extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text(tr(title), style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: Tokens.s2),
         ...children,
       ],
@@ -1234,6 +1234,7 @@ class _CabinetForm extends StatelessWidget {
               label: Text(state.isOpen(item.uid) ? tr('Fermer (3D)') : tr('Ouvrir en 3D')),
             ),
           ),
+        if (machineSlots(item).isNotEmpty) _MachineSection(state: state, item: item, editable: editable || state.step == PlanStep.style),
         _Section('Largeur (mm)', [
           if (m.widths.isRange)
             _NumberField(
@@ -1770,7 +1771,7 @@ class SummaryPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(value, style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-            Text(label, style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+            Text(tr(label), style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
           ],
         ),
       ),
@@ -1780,14 +1781,15 @@ class SummaryPanel extends StatelessWidget {
       title: 'Récapitulatif · ${p.name}',
       child: ListView(
         children: [
-          Row(
-            children: [
+          // cartes d'une même rangée : toujours la même hauteur
+          IntrinsicHeight(
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               stat('${bom.cabinetCount}', 'caissons'),
               const SizedBox(width: Tokens.s2),
               stat(m(bom.worktopLength), 'plan de travail'),
               const SizedBox(width: Tokens.s2),
               stat(m(bom.plinthLength), 'plinthes'),
-            ],
+            ]),
           ),
           const SizedBox(height: Tokens.s2),
           Builder(
@@ -1799,14 +1801,14 @@ class SummaryPanel extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    children: [
+                  IntrinsicHeight(
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                       stat('${plan.partCount}', 'pièces à débiter'),
                       const SizedBox(width: Tokens.s2),
-                      stat('${plan.newSheets().length}', 'panneaux ${{for (final s in plan.newSheets()) '${s.length.round()}×${s.width.round()}'}.join(' · ')}'),
+                      stat('${plan.newSheets().length}', trp('panneaux {0}', [{for (final s in plan.newSheets()) '${s.length.round()}×${s.width.round()}'}.join(' · ')])),
                       const SizedBox(width: Tokens.s2),
                       stat('${pct.toStringAsFixed(0)} %', 'utilisation'),
-                    ],
+                    ]),
                   ),
                   if (plan.stockSheets().isNotEmpty) ...[
                     const SizedBox(height: 6),
@@ -2070,6 +2072,68 @@ class _WorktopMaterialForm extends StatelessWidget {
 
   /// « Granit Naturel (Zellijj Granit) » → « Granit Naturel ».
   static String _short(String name) => name.split(' (').first.split(' & ').first;
+}
+
+/// Machines logées dans un meuble de buanderie : type et capacité de chacune.
+class _MachineSection extends StatelessWidget {
+  final AppState state;
+  final PlacedCabinet item;
+  final bool editable;
+  const _MachineSection({required this.state, required this.item, required this.editable});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final slots = machineSlots(item);
+    final now = [for (var i = 0; i < slots.length; i++) item.machines != null && i < item.machines!.length ? item.machines![i] : slots[i].def];
+    void set(int i, String key) => state.edit(() {
+          final l = [...now];
+          l[i] = key;
+          item.machines = l;
+        });
+    return _Section('Machines', [
+      for (var i = 0; i < slots.length; i++)
+        () {
+          final (f, v) = machineOf(now[i]) ?? machineOf(slots[i].def)!;
+          final all = machinesFor(slots[i]);
+          final caps = all.where((x) => x.$1.id == f.id).firstOrNull?.$2 ?? [v];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: Tokens.s4),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              DropdownButtonFormField<String>(
+                key: ValueKey('${item.uid}-machine$i-${f.id}'),
+                isExpanded: true,
+                initialValue: f.id,
+                decoration: InputDecoration(border: const OutlineInputBorder(), isDense: true, labelText: tr(slots[i].name)),
+                items: [
+                  if (!all.any((x) => x.$1.id == f.id)) DropdownMenuItem(value: f.id, child: Text(tr(f.name))),
+                  for (final (q, _) in all) DropdownMenuItem(value: q.id, child: Text(tr(q.name))),
+                ],
+                onChanged: editable
+                    ? (id) {
+                        final ok = all.firstWhere((x) => x.$1.id == id).$2;
+                        final keep = ok.where((x) => x.label == v.label).firstOrNull ?? (ok.contains(fixtureById(id!)!.defaultVariant) ? fixtureById(id)!.defaultVariant! : ok.last);
+                        set(i, '$id|${keep.label}');
+                      }
+                    : null,
+              ),
+              const SizedBox(height: 6),
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                for (final q in caps)
+                  ChoiceChip(
+                    key: ValueKey('machine$i-${q.label}'),
+                    label: Text(tr(q.label)),
+                    selected: q.label == v.label,
+                    onSelected: editable ? (_) => set(i, '${f.id}|${q.label}') : null,
+                  ),
+              ]),
+              const SizedBox(height: 4),
+              Text(trp('{0} × {1} × H{2} mm', [v.w, v.d, v.h]), style: t.bodySmall),
+            ]),
+          );
+        }(),
+    ]);
+  }
 }
 
 class _ApplianceSection extends StatelessWidget {

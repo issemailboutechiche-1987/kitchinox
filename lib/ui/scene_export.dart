@@ -184,14 +184,21 @@ class SceneExporter {
 
           // profil Gola (sans poignée) : gorge en aluminium fixée dans le caisson, sous le plan de travail
           // (et entre deux tiroirs) ; les façades s'arrêtent dessous, en dégageant la prise de main
+          final grooves = <double>[]; // dessus de chaque gorge
           if (e.golaOn(m) && !m.kind.isFiller && !m.isHoodUnit) {
             final gc = golaColor(style, fr.color);
             final golaMat = _plain(gc, rough: 0.4, metal: golaMetal(style) ? 0.6 : 0.05);
             // gorge de 26 mm de profondeur et 33 mm de haut : fond, lèvre basse, rebord haut
+            // meuble d'angle : la gorge suit les deux bras et tourne dans l'angle rentrant
+            final ell = corner && boxes.length > 1;
+            final g0 = ell && bi == 1 ? c.depth - 20.0 : s0, g1 = ell && bi == 0 ? w.length - c.depth + 20.0 : s1;
             void channel(double zTop) {
-              solids.add({..._box(at(s0, s1, tf - 26, tf - 23, zTop - 33, zTop)), 'mat': golaMat, 'uid': c.uid});
-              solids.add({..._box(at(s0, s1, tf - 26, tf, zTop - 33, zTop - 30)), 'mat': golaMat, 'uid': c.uid});
-              solids.add({..._box(at(s0, s1, tf - 26, tf, zTop - 3, zTop)), 'mat': golaMat, 'uid': c.uid});
+              grooves.add(zTop);
+              // le fond de la gorge se prolonge de sa profondeur dans l'angle : pas de jour entre les deux bras
+              final f0 = ell && bi == 1 ? g0 - 26 : g0, f1 = ell && bi == 0 ? g1 + 26 : g1;
+              solids.add({..._box(at(f0, f1, tf - 26, tf - 23, zTop - 33, zTop)), 'mat': golaMat, 'uid': c.uid});
+              solids.add({..._box(at(f0, f1, tf - 26, tf, zTop - 33, zTop - 30)), 'mat': golaMat, 'uid': c.uid});
+              solids.add({..._box(at(f0, f1, tf - 26, tf, zTop - 3, zTop)), 'mat': golaMat, 'uid': c.uid});
             }
             if (m.kind.isLow) channel(b.z1);
             if (m.kind.isHigh) channel(b.z0 + 33); // meuble haut : gorge en bas
@@ -218,9 +225,23 @@ class SceneExporter {
           final leftSideMat = !(corner && bi == 1) && (leftExposed && c.cheekL != 'non' && (c.s > 10 || style.endPanels)) ? sideMat : carcassMat;
           final rightSideMat = !(corner && bi == 0 && m.shape != CabinetShape.blind) && (rightExposed && c.cheekR != 'non' && (c.s + c.width < w.length - 10 || style.endPanels)) ? sideMat : carcassMat;
 
-          for (final (bx, mat) in [
-            (at(s0, s0 + 18, t0, tf, b.z0, b.z1), leftSideMat), // côté gauche
-            (at(s1 - 18, s1, t0, tf, b.z0, b.z1), rightSideMat), // côté droit
+          // côtés encochés au passage des gorges : le profil file d'un meuble à l'autre sans coupure
+          List<Box3> sideBoxes(double sa, double sb) {
+            if (grooves.isEmpty) return [at(sa, sb, t0, tf, b.z0, b.z1)];
+            final cuts = [...grooves]..sort();
+            final out = [at(sa, sb, t0, tf - 26, b.z0, b.z1)];
+            var z = b.z0;
+            for (final g in [...cuts, double.infinity]) {
+              final top = g.isFinite ? g - 33 : b.z1;
+              if (top - z > 0.5) out.add(at(sa, sb, tf - 26, tf, z, top));
+              z = g;
+            }
+            return out;
+          }
+
+          for (final (bx, mat) in m.id == 'base_integrated_dishwasher_door' ? const <(Box3, Map<String, dynamic>)>[] : [
+            for (final bx in sideBoxes(s0, s0 + 18)) (bx, leftSideMat), // côté gauche
+            for (final bx in sideBoxes(s1 - 18, s1)) (bx, rightSideMat), // côté droit
             (at(s0 + 18, s1 - 18, t0, tf, b.z0, b.z0 + 18), carcassMat), // dessous
             for (final pan in topPanels) (pan, carcassMat),
             (at(s0 + 18, s1 - 18, t0, t0 + 18, b.z0 + 18, b.z1 - 18), carcassMat), // dos
@@ -234,6 +255,13 @@ class SceneExporter {
             final kz = (b.z1 - b.z0) / (total <= 0 ? 1 : total);
             final machines = e.machinesIn(c).isNotEmpty;
             final inMat = _plain(const Color(0xFFB9BDC2), rough: 0.35, metal: 0.6);
+            // fond un peu plus soutenu : la profondeur se lit, même en blanc
+            final nicheBack = _plain(shade(carcass.color, -0.07), rough: 0.8);
+            for (final cell in cellsAll) {
+              if (cell.kind != CellKind.niche) continue;
+              final z1 = b.z1 - cell.y * kz - 18, z0 = b.z1 - (cell.y + cell.h) * kz + 18;
+              if (z1 - z0 > 60) solids.add({..._box(at(s0 + 18, s1 - 18, t0 + 18, t0 + 20, z0, z1)), 'mat': nicheBack, 'uid': c.uid});
+            }
             void shelf(double z) => solids.add({..._box(at(s0 + 18, s1 - 18, t0 + 18, tf - 10, z - 9, z + 9)), 'mat': carcassMat, 'uid': c.uid});
             void rod(double z) => solids.add({..._box(at(s0 + 18, s1 - 18, (t0 + tf) / 2 - 12, (t0 + tf) / 2 + 12, z - 12, z + 12)), 'mat': inMat, 'uid': c.uid});
             for (var i = 0; i < cellsAll.length; i++) {
@@ -248,13 +276,14 @@ class SceneExporter {
                 if (m.id.contains('double') && zt - zb > 1600) rod(zb + (zt - zb - 320) / 2 - 20);
                 continue;
               }
-              final n = ((zt - zb) / 380).floor();
+              // une étagère tous les 30 à 40 cm : une niche n'est jamais une boîte vide
+              final n = nicheLevels(zt - zb);
               for (var k = 1; k < n; k++) {
                 shelf(zb + (zt - zb) * k / n);
               }
             }
           }
-          if (!niches && apps.isEmpty && !e.isWashing(m)) {
+          if (!niches && apps.isEmpty && !e.isWashing(m) && m.isCarcass) {
             final inner = b.z1 - b.z0 - 36;
             final n = m.kind == CabinetKind.cornerTall ? 5 : m.kind == CabinetKind.tall ? 4 : (m.id.contains('top') ? 0 : (inner > 600 ? 2 : (inner > 330 ? 1 : 0)));
             final drawers = openableCells(m, c).where((x) => x.kind == CellKind.drawer).fold<double>(0, (a, x) => a + x.h);
@@ -274,7 +303,8 @@ class SceneExporter {
 
       // façades
       final cells = openableCells(m, c);
-      final all = cellsOf(rowsOf(m, c) ?? seedRows(m, c), c.height);
+      final dishwasher = m.id == 'base_integrated_dishwasher_door';
+      final all = dishwasher ? cells : cellsOf(rowsOf(m, c) ?? seedRows(m, c), c.height);
       final apps = appliancesOf(m, c);
       final hs = handleSetOf(style, st.db?.handles, m, front: fr.color);
       final chant = fr.color.toARGB32() & 0xFFFFFF;
@@ -317,6 +347,7 @@ class SceneExporter {
         return img.key;
       }
 
+      var moves = 0; // parties mobiles de ce meuble, numérotées : on les ouvre une à une
       for (var bi = 0; bi < boxes.length; bi++) {
         final tb = boxes[bi];
         final w = room.wall(tb.wallId);
@@ -348,7 +379,7 @@ class SceneExporter {
                       (c.opening == 'hinged_left' || (c.opening != 'hinged_right' && cell.hinge != 'right')) ? 'left' : 'right',
                     ),
                   ];
-            final gola = e.golaOn(m) && m.isCarcass && !m.kind.isFiller;
+            final gola = e.golaOn(m) && (m.isCarcass || dishwasher) && !m.kind.isFiller;
             var fz0 = zTop - h, fz1 = zTop;
             if (gola && ((m.kind.isLow && cell.y < 0.5) || (all.indexOf(cell) > 0 && golaBetween(m, all[all.indexOf(cell) - 1], cell)))) {
               fz1 -= 30; // sous le profil : on passe les doigts dans la gorge
@@ -357,7 +388,7 @@ class SceneExporter {
             }
             for (final (ls, lw, hinge) in halves) {
               final single = FrontCell(cell.kind == CellKind.door2 ? CellKind.door : cell.kind, 0, fz1 - fz0, hinge, cell.index);
-              final m2 = m.id == 'base_integrated_dishwasher_door' ? null : [single];
+              final m2 = dishwasher ? null : [single];
               // Hauteur de poignée ergonomique :
               // - Sur meuble haut : poignée en bas (handleTop = false)
               // - Sur meuble bas : poignée en haut (handleTop = true)
@@ -368,6 +399,7 @@ class SceneExporter {
               final isLower = m.kind == CabinetKind.tall ? (cell.y + cell.h / 2 > height * 0.45) : !m.kind.isHigh;
               parts.add({
                 'kind': kind,
+                if (kind != 'static') 'k': moves++,
                 'ec': chant,
                 'hinge': hinge,
                 if (fr.gloss) 'gloss': true,
@@ -383,25 +415,29 @@ class SceneExporter {
                 // façade à cadre : vrai relief
                 if (cell.kind.hasFront && cell.kind != CellKind.glass && profileFrame(style.frontProfile, lw, fz1 - fz0) > 0)
                   'frame': {'w': profileFrame(style.frontProfile, lw, fz1 - fz0), 'raised': style.frontProfile == 'mouluree'},
-                if (kind != 'static') 'inside': await interiorImg(cell, lw, fz1 - fz0),
-                if (kind != 'static') 'insideT': 19.0,
+                if (kind != 'static' && !dishwasher) 'inside': await interiorImg(cell, lw, fz1 - fz0),
+                if (kind != 'static' && !dishwasher) 'insideT': 19.0,
               });
             }
           }
         } else if (corner) {
           // angle en L / pan coupé : une porte par bras, articulée côté extérieur ; borgne : porte d'accès + panneau fixe
-          final door = FrontCell(CellKind.door, 0, height, null, -1);
+          // profil Gola : les portes s'arrêtent sous la gorge (bas) ou au-dessus (haut), comme leurs voisines
+          final golaC = e.golaOn(m);
+          final cz0 = b.z0 + (golaC && m.kind.isHigh ? 30 : 0), cz1 = b.z1 - (golaC && m.kind.isLow ? 30 : 0);
+          final door = FrontCell(CellKind.door, 0, cz1 - cz0, null, -1);
           Future<void> addDoor(double a, double bb, String hinge) async {
             if (bb - a < 60) return;
             parts.add({
               'kind': 'door',
+              'k': moves++,
               'ec': chant,
               'hinge': hinge,
               's0': a,
               's1': bb,
-              'z0': b.z0,
-              'z1': b.z1,
-              'img': await frontImg('corner-$bi-$hinge-${(bb - a).round()}', bb - a, height, [door],
+              'z0': cz0,
+              'z1': cz1,
+              'img': await frontImg('corner-$bi-$hinge-${(bb - a).round()}', bb - a, cz1 - cz0, [door],
                   opening: hinge == 'left' ? 'hinged_left' : 'hinged_right'),
                 if (grips.isNotEmpty) 'grips': grips,
               'insideT': 19.0,
@@ -415,7 +451,7 @@ class SceneExporter {
             final (da, db) = blindAtEnd ? (s0, s0 + dw) : (s1 - dw, s1);
             await addDoor(da, db, blindAtEnd ? 'left' : 'right');
             final (pa, pb) = blindAtEnd ? (db, s1) : (s0, da);
-            parts.add({'kind': 'static', 'ec': chant, 's0': pa, 's1': pb, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('blind$bi-${(pb - pa).round()}', pb - pa, height, const []), if (grips.isNotEmpty) 'grips': grips});
+            parts.add({'kind': 'static', 'ec': chant, 's0': pa, 's1': pb, 'z0': cz0, 'z1': cz1, 'img': await frontImg('blind$bi-${(pb - pa).round()}', pb - pa, cz1 - cz0, const []), if (grips.isNotEmpty) 'grips': grips});
           } else if (bi == 0) {
             // bras le long du mur : de l'extrémité jusqu'au retour
             await addDoor(s0, math.min(s1, room.wall(c.wallId).length - c.depth), 'left');
@@ -426,7 +462,7 @@ class SceneExporter {
           parts.add({'kind': 'static', 'ec': chant, 's0': s0, 's1': s1, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('box$bi', width, height, frontCells(m, c, realistic: true)), if (grips.isNotEmpty) 'grips': grips});
         }
         if (parts.isEmpty && niches) continue;
-        fronts.add({'uid': c.uid, ..._frame(w), 't': t1, 'depth': c.depth, 'parts': parts, if (m.id.contains('mirror')) 'mirror': true});
+        fronts.add({'uid': c.uid, ..._frame(w), 't': t1, 'depth': c.depth, 'parts': parts, if (m.id.contains('mirror')) 'mirror': true, if (dishwasher) 'machine': {'s0': s0, 's1': s1, 'z0': b.z0, 'z1': b.z1 - (e.golaOn(m) ? 34 : 0), 'empty': st.studio == 'bare'}});
       }
     }
 
@@ -713,6 +749,7 @@ class SceneExporter {
       'lights': lights,
       'studio': st.studio,
       'studioDir': _studioDir(e),
+      'studioHigh': _facing(e),
       'walls': st.studio.isEmpty ? walls : const [],
       // sol : béton ciré et carrelages plus satinés que le parquet
       'floor': await _mat(floorFinish(style), rough: (floorFinish(style).tex ?? '').startsWith('parquet') ? 0.6 : 0.35),
@@ -729,8 +766,9 @@ class SceneExporter {
         for (final ob in p.objects)
           {
             'uid': ob.uid,
-            'kind': ob.isFixture ? 'fixture' : 'model',
-            'type': ob.isFixture ? ob.ref.substring(8) : ob.ref,
+            // panier à linge des modèles de buanderie : volume dessiné (pas de modèle de ce nom dans le catalogue)
+            'kind': ob.isFixture || ob.ref == 'kenney_laundryHamper' ? 'fixture' : 'model',
+            'type': ob.isFixture ? ob.ref.substring(8) : (ob.ref == 'kenney_laundryHamper' ? 'deco_panier_linge' : ob.ref),
             'file': ob.isFixture ? null : st.objectCatalog.where((c) => c.id == ob.ref).firstOrNull?.file,
             'yaw': ob.isFixture ? 0 : st.objectCatalog.where((c) => c.id == ob.ref).firstOrNull?.yaw ?? 0,
             'x': ob.x, 'y': ob.y, 'z': ob.z, 'rot': ob.rot, 'w': ob.w, 'h': ob.h, 'd': ob.d,
@@ -739,7 +777,7 @@ class SceneExporter {
         // décor du rendu (petits appareils, plantes, rideaux…), montré ou caché
         if (st.studio.isEmpty ? style.showDecor : st.studio == 'decor')
           for (final q in placeDecor(e))
-            if (st.studio.isEmpty || (q.item.spot != 'fenetre' && q.item.spot != 'sol'))
+            if (st.studio.isEmpty || !const {'fenetre', 'sol', 'tapis'}.contains(q.item.spot))
               () {
                 final model = q.item.model == null ? null : st.objectCatalog.where((o) => o.id == q.item.model).firstOrNull;
                 return {
@@ -755,10 +793,8 @@ class SceneExporter {
             () {
               final w = room.wall(c.wallId);
               final (x, y) = w.toPlan(mc.s, c.depth - mc.d / 2 - 10);
-              final model = st.objectCatalog.where((o) => o.id == mc.ref).firstOrNull;
               return {
-                'uid': 'machine-${c.uid}-$i', 'pick': c.uid, 'kind': 'model', 'type': mc.ref,
-                'file': model?.file, 'yaw': model?.yaw ?? 0,
+                'uid': 'machine-${c.uid}-$i', 'pick': c.uid, 'kind': 'fixture', 'type': mc.ref.substring(8),
                 'x': x, 'y': y, 'z': mc.z, 'rot': w.rot, 'w': mc.w, 'h': mc.h, 'd': mc.d,
               };
             }(),
@@ -806,14 +842,21 @@ class SceneExporter {
       'selected': st.selected,
       'open': {
         for (final u in st.openTargets)
-          if (p.byUid(u) != null) u: openLimit(e, p.byUid(u)!).$1,
+          if (p.byUid(u.split('#').first) case final c?) u: openLimit(e, c, part: u.contains('#') ? int.parse(u.split('#').last) : null).$1,
       },
       'yaw': st.yaw,
       'zoom': st.zoom,
+      'fit': st.fit3d,
       'cam': st.camera3d,
       'editable': !st.lockMoves && (st.step == PlanStep.layout || st.step == PlanStep.style), // verrou : la 3D navigue seulement
     };
   }
+}
+
+/// Murs meublés face à face : on regarde de plus haut, par-dessus le premier.
+bool _facing(LayoutEngine e) {
+  bool on(String w) => e.project.items.any((c) => c.wallId == w);
+  return (on('A') && on('D')) || (on('B') && on('C') && !on('A') && !on('D'));
 }
 
 /// Direction (en plan) d'où l'on voit les façades : moyenne des murs meublés, tournée de 26° s'il n'y en a qu'un.
