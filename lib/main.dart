@@ -112,6 +112,9 @@ Future<void> main() async {
   SizeCatalog.parse(await rootBundle.loadString('assets/data/sizes.json')); // dimensions types et normes
   FurnitureAccessories.parse(await rootBundle.loadString('assets/data/furniture_accessories.json')); // accessoires de meubles
   KitchenAccessoriesCatalog.parse(await rootBundle.loadString('assets/data/kitchen_accessories_catalog.json')); // équipements cuisine (INOXA, Blum...)
+  try {
+    KitchenAccessoriesCatalog.parse(await rootBundle.loadString('assets/data/klaus_ma_catalog.json'), clear: false); // Klaus Systems Maroc (140 articles)
+  } catch (_) {}
   ArtRecipes.parse(await rootBundle.loadString('assets/data/art_recipes.json')); // recettes du mode Art
   PublicPrices.parse(await rootBundle.loadString('assets/data/public_prices.json')); // prix publics des panneaux
   StockStore.instance

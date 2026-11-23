@@ -245,11 +245,13 @@ class KitchenAccessoriesCatalog {
   static bool _loaded = false;
   static bool get isLoaded => _loaded;
 
-  static void parse(String jsonString) {
-    byId.clear();
-    all.clear();
-    byBrand.clear();
-    byCategory.clear();
+  static void parse(String jsonString, {bool clear = true}) {
+    if (clear) {
+      byId.clear();
+      all.clear();
+      byBrand.clear();
+      byCategory.clear();
+    }
 
     final data = jsonDecode(jsonString) as Map<String, dynamic>;
     final accs = data['accessories'];
@@ -274,7 +276,178 @@ class KitchenAccessoriesCatalog {
         byCategory.putIfAbsent(item.category, () => []).add(item.id);
       }
     }
+
+    // Format Klaus Systems Maroc (klaus_ma_catalog.json)
+    final prods = data['products'];
+    if (prods is List) {
+      final supplierName = (data['supplier'] is Map)
+          ? ((data['supplier'] as Map)['name'] as String? ?? 'Klaus Systems')
+          : 'Klaus Systems';
+      for (final p in prods) {
+        if (p is Map) {
+          final id = p['id'] as String? ?? '';
+          if (id.isEmpty) continue;
+          final item = _parseKlausProduct(id, p.cast<String, dynamic>(), supplierName);
+          byId[id] = item;
+          all.add(item);
+          byBrand.putIfAbsent(item.brand, () => []).add(item.id);
+          byCategory.putIfAbsent(item.category, () => []).add(item.id);
+        }
+      }
+    }
+
     _loaded = true;
+  }
+
+  static KitchenAccessory _parseKlausProduct(
+    String id,
+    Map<String, dynamic> p,
+    String supplierName,
+  ) {
+    final code = id;
+    final universe = p['universe'] as String? ?? 'cuisine';
+    final rawCat = p['category'] as String? ?? 'accessoires_meuble_bas';
+    final type = p['type'] as String? ?? '';
+    final nameFr = p['name'] as String? ?? id;
+
+    // Normalisation de la catégorie et des zones de caisson
+    String category;
+    List<String> cabinetZones;
+    List<int> supportedWidths = [];
+
+    switch (universe) {
+      case 'dressing':
+        category = 'dressing';
+        cabinetZones = const ['column', 'dressing'];
+        supportedWidths = const [600, 800, 900, 1000, 1200];
+        break;
+      case 'poignees':
+        if (rawCat == 'gola') {
+          category = 'gola';
+          cabinetZones = const ['base', 'column', 'overhead'];
+        } else {
+          category = 'poignee';
+          cabinetZones = const ['base', 'column', 'overhead'];
+        }
+        break;
+      case 'cuisine':
+      default:
+        switch (rawCat) {
+          case 'accessoires_meuble_bas':
+            if (type.contains('under_sink')) {
+              category = 'under_sink';
+              cabinetZones = const ['under_sink', 'base'];
+              supportedWidths = const [600, 800, 900, 1000, 1200];
+            } else {
+              category = 'base';
+              cabinetZones = const ['base'];
+              if (type.contains('spice')) {
+                supportedWidths = const [150, 200, 300];
+              } else if (type.contains('pot_drawer')) {
+                supportedWidths = const [600, 800, 900];
+              } else if (type.contains('cleaning')) {
+                supportedWidths = const [300, 400, 450];
+              } else if (type.contains('gas_bottle')) {
+                supportedWidths = const [400, 450, 600];
+              } else {
+                supportedWidths = const [300, 400, 450, 600];
+              }
+            }
+            break;
+          case 'accessoires_meuble_colonne':
+            category = 'column';
+            cabinetZones = const ['column', 'tall'];
+            if (type.contains('slim')) {
+              supportedWidths = const [150, 200, 300];
+            } else {
+              supportedWidths = const [400, 450, 600];
+            }
+            break;
+          case 'accessoires_meuble_dangle':
+            category = 'corner';
+            cabinetZones = const ['corner'];
+            supportedWidths = const [900, 1000, 1050, 1200];
+            break;
+          case 'accessoires_meuble_haut':
+            category = 'overhead';
+            cabinetZones = const ['overhead', 'wall'];
+            supportedWidths = const [400, 450, 500, 600, 800, 900];
+            break;
+          case 'poubelle_cuisine':
+            category = 'under_sink';
+            cabinetZones = const ['under_sink', 'base'];
+            final specs = p['specs'];
+            final capL = (specs is Map) ? (specs['capacity_L'] as num?)?.toInt() : null;
+            if ((capL != null && capL >= 58) || id.contains('80l') || id.contains('64l') || id.contains('58l')) {
+              supportedWidths = const [600, 800, 900];
+            } else {
+              supportedWidths = const [400, 450, 500, 600];
+            }
+            break;
+          case 'accessoires_tiroirs':
+            category = 'drawer';
+            cabinetZones = const ['drawer', 'base'];
+            if (type.contains('table')) {
+              supportedWidths = const [600, 800, 900];
+            } else {
+              supportedWidths = const [400, 450, 500, 600, 800, 900];
+            }
+            break;
+          default:
+            category = 'base';
+            cabinetZones = const ['base'];
+            supportedWidths = const [300, 400, 450, 600];
+        }
+        break;
+    }
+
+    // Prix MAD
+    PriceRange price;
+    if (p['price_mad'] is num) {
+      final v = (p['price_mad'] as num).toDouble();
+      price = PriceRange(v, v);
+    } else if (p['price_min_mad'] is num && p['price_max_mad'] is num) {
+      final min = (p['price_min_mad'] as num).toDouble();
+      final max = (p['price_max_mad'] as num).toDouble();
+      price = PriceRange(min, max);
+    } else {
+      price = const PriceRange(350, 850);
+    }
+
+    final specs = (p['specs'] as Map?)?.cast<String, dynamic>() ?? {};
+    final dimensions = <String, dynamic>{
+      if (supportedWidths.isNotEmpty) 'cabinet_widths_L': supportedWidths,
+      ...specs,
+    };
+
+    final notesParts = <String>[];
+    if (p['discount_pct'] != null) notesParts.add('Remise : ${p['discount_pct']}');
+    if (p['in_stock'] == false) notesParts.add('Sur commande');
+    if (p['source_category_url'] != null) notesParts.add('${p['source_category_url']}');
+
+    final collection = switch (universe) {
+      'dressing' => 'Dressing',
+      'poignees' => 'Poignées & Profils',
+      _ => 'Cuisine',
+    };
+
+    return KitchenAccessory(
+      id: id,
+      code: code,
+      brand: 'Klaus Systems',
+      collection: collection,
+      category: category,
+      type: type,
+      nameFr: nameFr,
+      tiers: [if (p['specs']?['shelves'] != null) '${p['specs']['shelves']} niveaux'],
+      cabinetZones: cabinetZones,
+      dimensions: dimensions,
+      shelvesCount: (p['specs']?['shelves'] as num?)?.toInt(),
+      finishes: specs['finish'] != null ? ['${specs['finish']}'] : const [],
+      illustrations: const {},
+      notes: notesParts.isNotEmpty ? notesParts.join(' • ') : null,
+      price: price,
+    );
   }
 
   /// Retourne les accessoires compatibles avec une zone et une largeur donnée.

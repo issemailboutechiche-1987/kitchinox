@@ -114,6 +114,9 @@ class _KitchenAccessoriesDialogState extends State<_KitchenAccessoriesDialog> {
       ('Sous-évier & Tri', 'under_sink'),
       ('Tiroirs & Casseroliers', 'drawer'),
       ('Meubles hauts & Relevables', 'overhead'),
+      ('Dressing & Penderies', 'dressing'),
+      ('Profils Gola', 'gola'),
+      ('Poignées & Boutons', 'poignee'),
       ('Accessoires d’atelier', 'finish_and_opening'),
       ('Éclairage & Prises', 'lighting_and_power'),
     ];
@@ -821,8 +824,7 @@ class CabinetAccessorySection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(tr('Équipement intérieur & Accessoires'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const Spacer(),
+              Expanded(child: Text(tr('Équipement intérieur & Accessoires'), maxLines: 2, overflow: TextOverflow.ellipsis, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800))),
               TextButton.icon(
                 style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
                 icon: const Icon(Icons.menu_book, size: 15, color: _brandOrange),

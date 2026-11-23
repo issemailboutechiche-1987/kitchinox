@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kitchen_planner/engine/catalog.dart';
 import 'package:kitchen_planner/engine/kitchen_accessories.dart';
 import 'package:kitchen_planner/engine/layout_engine.dart';
-import 'package:kitchen_planner/engine/materials.dart';
 import 'package:kitchen_planner/engine/project.dart';
 
 void main() {
@@ -12,15 +11,33 @@ void main() {
     final file = File('assets/data/kitchen_accessories_catalog.json');
     expect(file.existsSync(), isTrue, reason: 'Le catalogue JSON doit être présent dans assets/data/');
     KitchenAccessoriesCatalog.parse(file.readAsStringSync());
+
+    final klausFile = File('assets/data/klaus_ma_catalog.json');
+    expect(klausFile.existsSync(), isTrue, reason: 'Le catalogue Klaus doit être présent dans assets/data/');
+    KitchenAccessoriesCatalog.parse(klausFile.readAsStringSync(), clear: false);
   });
 
-  test('catalogue : charge les 56 accessoires et leurs marques', () {
-    expect(KitchenAccessoriesCatalog.all.length, 56);
+  test('catalogue : charge les accessoires INOXA, quincaillerie et Klaus Systems', () {
+    expect(KitchenAccessoriesCatalog.all.length, 196); // 56 standard + 140 Klaus
     expect(KitchenAccessoriesCatalog.byBrand['INOXA']?.length, 30);
     expect(KitchenAccessoriesCatalog.byBrand['Blum']?.length, 8);
     expect(KitchenAccessoriesCatalog.byBrand['Kesseböhmer']?.length, 3);
     expect(KitchenAccessoriesCatalog.byBrand['Hettich']?.length, 2);
     expect(KitchenAccessoriesCatalog.byBrand['Grass']?.length, 1);
+    expect(KitchenAccessoriesCatalog.byBrand['Klaus Systems']?.length, 140);
+
+    // Vérification d'un article Klaus Systems
+    final klausSpice = KitchenAccessoriesCatalog.byId['klaus_bas_epice_01'];
+    expect(klausSpice, isNotNull);
+    expect(klausSpice!.brand, 'Klaus Systems');
+    expect(klausSpice.category, 'base');
+    expect(klausSpice.price.min, 840);
+    expect(klausSpice.price.max, 920);
+
+    final klausGola = KitchenAccessoriesCatalog.byId['klaus_gola_sup_horiz_01'];
+    expect(klausGola, isNotNull);
+    expect(klausGola!.category, 'gola');
+    expect(klausGola.price.min, 350);
 
     // Vérification d'un article INOXA Hyper avec ses 3 illustrations
     final acc = KitchenAccessoriesCatalog.byId['inoxa_8104Y'];
