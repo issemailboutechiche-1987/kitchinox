@@ -62,7 +62,9 @@ http.createServer((req, res) => {
     // cache : l'application (js, wasm, json…) est revérifiée à chaque chargement (ETag : pas de re-téléchargement
     // si rien n'a changé) ; seuls les modèles 3D, vignettes et polices restent en cache une journée
     const etag = `"${stat.size.toString(16)}-${Math.floor(stat.mtimeMs).toString(16)}-${enc}"`;
-    const longCache = /[\\/](objects|fonts)[\\/]/.test(file) || ext === '.glb' || ext === '.png' || ext === '.jpg';
+    // les polices d'icônes de Flutter changent avec chaque version de l'app : revérifiées comme elle
+    const icons = /(MaterialIcons|CupertinoIcons)/.test(file);
+    const longCache = !icons && (/[\\/](objects|fonts)[\\/]/.test(file) || ext === '.glb' || ext === '.png' || ext === '.jpg');
     if (req.headers['if-none-match'] === etag) {
       res.writeHead(304, { ETag: etag, 'Cache-Control': longCache ? 'public, max-age=86400' : 'no-cache' }).end();
       return;

@@ -48,6 +48,19 @@ void main() {
     expect(back.qr, startsWith('KXD1|$projId|'));
   });
 
+  test('atelier : chants et rainures de chaque pièce gardés et lisibles', () {
+    final st = kitchen();
+    final job = WorkshopJob.fromPlan(st.cutPlan, project: 'Essai', projId: '1234');
+    final edged = job.pieces.where((p) => p.edgeLong + p.edgeShort > 0);
+    final grooved = job.pieces.where((p) => p.grooveLong + p.grooveShort > 0);
+    expect(edged, isNotEmpty);
+    expect(grooved, isNotEmpty, reason: 'côtés rainurés pour le fond');
+    expect(edged.first.edgeText, contains('×'));
+    expect(grooved.first.grooveText, startsWith('sur la'));
+    final back = WorkshopJob.fromJson(jsonDecode(KinFormat.decode(workshopBytes(job))) as Map<String, dynamic>);
+    expect([for (final p in back.pieces) (p.edgeLong, p.edgeShort, p.grooveLong, p.grooveShort)], [for (final p in job.pieces) (p.edgeLong, p.edgeShort, p.grooveLong, p.grooveShort)]);
+  });
+
   testWidgets('atelier : toucher une pièce imprime son étiquette et la coche ; appui long la remet', (t) async {
     final st = kitchen();
     final job = WorkshopJob.fromPlan(st.cutPlan, project: 'Essai', projId: '1234');

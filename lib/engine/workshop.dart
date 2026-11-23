@@ -24,9 +24,19 @@ class WorkshopPiece {
   final double x, y; // position sur la feuille (mm)
   final int dx, dy; // cotes posées
   final bool rotated;
-  final int edgeLong, edgeShort;
+  final int edgeLong, edgeShort; // chants sur les longueurs, sur les largeurs (0, 1, 2)
+  final int grooveLong, grooveShort; // rainure (fond arrière) parallèle à la longueur, à la largeur
   const WorkshopPiece(this.code, this.part, this.copy, this.copies, this.name, this.cabinet, this.length, this.width, this.x, this.y, this.dx,
-      this.dy, this.rotated, this.edgeLong, this.edgeShort);
+      this.dy, this.rotated, this.edgeLong, this.edgeShort, [this.grooveLong = 0, this.grooveShort = 0]);
+
+  /// Les longueurs de la pièce sont-elles horizontales sur le schéma ?
+  bool get lengthAcross => (dx - length).abs() <= (dy - length).abs();
+
+  /// Chants à plaquer, ex. « 2 × 1096 + 2 × 596 » ('' : aucun).
+  String get edgeText => [if (edgeLong > 0) '$edgeLong × $length', if (edgeShort > 0) '$edgeShort × $width'].join(' + ');
+
+  /// Rainure, ex. « sur la longueur (1096) » ('' : aucune).
+  String get grooveText => [if (grooveLong > 0) 'sur la longueur ($length)', if (grooveShort > 0) 'sur la largeur ($width)'].join(', ');
 
   /// Numéro écrit sur le schéma : n° de pièce, et l'exemplaire s'il y en a plusieurs.
   String get mark => copies > 1 ? '$part.$copy' : '$part';
@@ -34,11 +44,12 @@ class WorkshopPiece {
   Map<String, dynamic> toJson() => {
         'code': code, 'p': part, 'c': copy, 'q': copies, 'n': name, 'm': cabinet, 'l': length, 'w': width,
         'x': x, 'y': y, 'dx': dx, 'dy': dy, if (rotated) 'r': true, if (edgeLong > 0) 'el': edgeLong, if (edgeShort > 0) 'es': edgeShort,
+        if (grooveLong > 0) 'gl': grooveLong, if (grooveShort > 0) 'gs': grooveShort,
       };
 
   factory WorkshopPiece.fromJson(Map<String, dynamic> j) => WorkshopPiece(
         '${j['code']}', j['p'] as int, j['c'] as int, j['q'] as int? ?? 1, '${j['n']}', '${j['m'] ?? ''}', j['l'] as int, j['w'] as int,
-        (j['x'] as num).toDouble(), (j['y'] as num).toDouble(), j['dx'] as int, j['dy'] as int, j['r'] == true, j['el'] as int? ?? 0, j['es'] as int? ?? 0);
+        (j['x'] as num).toDouble(), (j['y'] as num).toDouble(), j['dx'] as int, j['dy'] as int, j['r'] == true, j['el'] as int? ?? 0, j['es'] as int? ?? 0, j['gl'] as int? ?? 0, j['gs'] as int? ?? 0);
 }
 
 class WorkshopSheet {
@@ -83,7 +94,7 @@ class WorkshopJob {
         final copy = copies[pl.index] = (copies[pl.index] ?? 0) + 1;
         final p = pl.part;
         pieces.add(WorkshopPiece(labelCode(projId, pl.index, copy), pl.index, copy, p.qty, p.name, p.cabinet, p.length, p.width, pl.x, pl.y, pl.dx,
-            pl.dy, pl.rotated, p.edgeLong, p.edgeShort));
+            pl.dy, pl.rotated, p.edgeLong, p.edgeShort, p.grooveLong, p.grooveShort));
       }
       sheets.add(WorkshopSheet(s.number, s.material, plan.settings.thicknessFor(s.material), s.length, s.width, s.stockId, pieces));
     }

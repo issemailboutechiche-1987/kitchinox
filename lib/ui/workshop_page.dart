@@ -1,6 +1,7 @@
 // Atelier de découpe : les panneaux débités, chaque pièce numérotée comme son étiquette.
 // L'opérateur touche la pièce qu'il vient de couper : son étiquette (code-barres) s'imprime et la pièce passe en vert.
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -64,6 +65,12 @@ class _WorkshopPageState extends State<WorkshopPage> {
     });
     _keep();
   }
+
+  Widget _info(IconData icon, Color color, String text) => Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 4),
+        Flexible(child: Text(text, style: Theme.of(context).textTheme.bodySmall)),
+      ]);
 
   /// Le fichier d'atelier garde ce qui est coupé (Documents) : on peut fermer et reprendre.
   void _keep() => docPut(workshopFileName(job), workshopBytes(job));
@@ -151,6 +158,13 @@ class _WorkshopPageState extends State<WorkshopPage> {
                 style: t.bodyMedium,
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Tokens.s4, Tokens.s2, Tokens.s4, 0),
+              child: Wrap(spacing: Tokens.s4, children: [
+                _info(Icons.horizontal_rule, const Color(0xFFE8711A), tr('trait orange : chant')),
+                _info(Icons.more_horiz, const Color(0xFF2B6CB0), tr('tirets bleus : rainure du fond')),
+              ]),
+            ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(Tokens.s4),
@@ -195,6 +209,9 @@ class _WorkshopPageState extends State<WorkshopPage> {
                   const SizedBox(height: Tokens.s2),
                   Text('${selected!.length} × ${selected!.width} mm', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                   Text(trp('Exemplaire {0} / {1}', [selected!.copy, selected!.copies]), style: t.bodySmall),
+                  const SizedBox(height: Tokens.s2),
+                  _info(Icons.horizontal_rule, const Color(0xFFE8711A), selected!.edgeText.isEmpty ? tr('Sans chant') : trp('Chant : {0}', [selected!.edgeText])),
+                  _info(Icons.more_horiz, const Color(0xFF2B6CB0), selected!.grooveText.isEmpty ? tr('Sans rainure') : trp('Rainure : {0}', [tr(selected!.grooveText)])),
                   const SizedBox(height: Tokens.s3),
                   SizedBox(height: 70, width: double.infinity, child: CustomPaint(painter: BarcodePainter(pw.Barcode.code128(), selected!.code))),
                   const SizedBox(height: 4),
@@ -245,6 +262,7 @@ class _SheetPainter extends CustomPainter {
       final r = Rect.fromLTWH(p.x * k, p.y * k, p.dx * k, p.dy * k);
       final isDone = done.contains(p.code), isSel = p.code == selected;
       canvas.drawRect(r, Paint()..color = isDone ? const Color(0xFFBFE3C4) : Colors.white);
+      _edgesAndGrooves(canvas, r, p);
       canvas.drawRect(r, Paint()
         ..style = PaintingStyle.stroke
         ..color = isSel ? scheme.primary : const Color(0xFF4A4F55)
@@ -267,6 +285,41 @@ class _SheetPainter extends CustomPainter {
         )..layout();
         tick.paint(canvas, r.topRight + Offset(-tick.width - 3, 2));
       }
+    }
+  }
+
+  /// Chants : un trait orange le long de chaque chant (le 1er en bas ou à droite) ; rainure : tirets bleus.
+  void _edgesAndGrooves(Canvas canvas, Rect r, WorkshopPiece p) {
+    final edge = Paint()
+      ..color = const Color(0xFFE8711A)
+      ..strokeWidth = (r.shortestSide * 0.06).clamp(2.0, 5.0);
+    final inset = edge.strokeWidth / 2 + 1;
+    final across = p.lengthAcross;
+    // côtés « longueur » et « largeur » du rectangle posé
+    final longSides = across ? [(r.bottomLeft, r.bottomRight, const Offset(0, -1)), (r.topLeft, r.topRight, const Offset(0, 1))] : [(r.topRight, r.bottomRight, const Offset(-1, 0)), (r.topLeft, r.bottomLeft, const Offset(1, 0))];
+    final shortSides = across ? [(r.topRight, r.bottomRight, const Offset(-1, 0)), (r.topLeft, r.bottomLeft, const Offset(1, 0))] : [(r.bottomLeft, r.bottomRight, const Offset(0, -1)), (r.topLeft, r.topRight, const Offset(0, 1))];
+    for (final (sides, n) in [(longSides, p.edgeLong), (shortSides, p.edgeShort)]) {
+      for (var i = 0; i < n.clamp(0, 2); i++) {
+        final (a, b, inward) = sides[i];
+        canvas.drawLine(a + inward * inset, b + inward * inset, edge);
+      }
+    }
+    // rainure du fond : parallèle au côté, à 16 mm du bord arrière (en haut ou à gauche)
+    final groove = Paint()
+      ..color = const Color(0xFF2B6CB0)
+      ..strokeWidth = 1.6;
+    void dashed(Offset a, Offset b) {
+      final len = (b - a).distance, dir = (b - a) / len;
+      for (var t = 0.0; t < len; t += 9) {
+        canvas.drawLine(a + dir * t, a + dir * math.min(t + 5, len), groove);
+      }
+    }
+    final off = math.max(4.0, 16 * k);
+    if (p.grooveLong > 0) {
+      across ? dashed(r.topLeft + Offset(0, off), r.topRight + Offset(0, off)) : dashed(r.topLeft + Offset(off, 0), r.bottomLeft + Offset(off, 0));
+    }
+    if (p.grooveShort > 0) {
+      across ? dashed(r.topLeft + Offset(off, 0), r.bottomLeft + Offset(off, 0)) : dashed(r.topLeft + Offset(0, off), r.topRight + Offset(0, off));
     }
   }
 

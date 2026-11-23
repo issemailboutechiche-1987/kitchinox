@@ -4,4 +4,5 @@ $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 dart compile js -O2 tool/nest_worker.dart -o web/nest_worker.js
 Remove-Item web/nest_worker.js.deps, web/nest_worker.js.map -ErrorAction SilentlyContinue
-flutter build web --release --no-web-resources-cdn --no-wasm-dry-run
+# police d'icônes complète : la même d'une version à l'autre (une police mise en cache n'a jamais d'icône manquante)
+flutter build web --release --no-web-resources-cdn --no-wasm-dry-run --no-tree-shake-icons

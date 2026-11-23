@@ -5237,6 +5237,51 @@ void _paintPanels(Canvas c, ArtCamera cam, List<ArtPanel> panels, {double edge =
   }
 }
 
+/// Vue éclatée lisible : les pièces s'écartent dans le plan de la vue (face, dessus ou côté) jusqu'à ce
+/// qu'aucune n'en cache une autre, avec [gap] mm entre deux pièces. L'ordre et la disposition d'ensemble sont gardés.
+List<ArtPanel> separatePanels(List<ArtPanel> ps, V3 forward, {double gap = 60}) {
+  if (ps.length < 2) return ps;
+  // axe regardé : celui qui suit le plus la direction de la caméra ; on écarte sur les deux autres
+  final f = [forward.x.abs(), forward.y.abs(), forward.z.abs()];
+  final view = f[0] >= f[1] && f[0] >= f[2] ? 0 : (f[1] >= f[2] ? 1 : 2);
+  final axes = [for (var a = 0; a < 3; a++) if (a != view) a];
+  double lo(ArtPanel p, int a) => a == 0 ? p.x : (a == 1 ? p.y : p.z);
+  double size(ArtPanel p, int a) => a == 0 ? p.w : (a == 1 ? p.h : p.d);
+  void move(ArtPanel p, int a, double v) {
+    if (a == 0) {
+      p.x += v;
+    } else if (a == 1) {
+      p.y += v;
+    } else {
+      p.z += v;
+    }
+  }
+
+  final out = [for (final p in ps) p.copy()];
+  for (var it = 0; it < 400; it++) {
+    var moved = false;
+    for (var i = 0; i < out.length; i++) {
+      for (var j = i + 1; j < out.length; j++) {
+        final a = out[i], b = out[j];
+        // chevauchement des deux rectangles vus depuis la caméra (écart compris)
+        double over(int ax) => math.min(lo(a, ax) + size(a, ax), lo(b, ax) + size(b, ax)) + gap - math.max(lo(a, ax), lo(b, ax));
+        final o0 = over(axes[0]), o1 = over(axes[1]);
+        if (o0 <= 0 || o1 <= 0) continue;
+        // on écarte sur l'axe où il faut le moins bouger, chacune de la moitié, à l'opposé l'une de l'autre
+        final ax = o0 <= o1 ? axes[0] : axes[1];
+        final ov = ax == axes[0] ? o0 : o1;
+        final ca = lo(a, ax) + size(a, ax) / 2, cb = lo(b, ax) + size(b, ax) / 2;
+        final dir = ca == cb ? (i.isEven ? -1.0 : 1.0) : (ca < cb ? -1.0 : 1.0);
+        move(a, ax, dir * ov / 2);
+        move(b, ax, -dir * ov / 2);
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return out;
+}
+
 class _ScenePainter extends CustomPainter {
   final ArtCamera cam;
   final ArtProject art;
@@ -5367,7 +5412,7 @@ class _ScenePainter extends CustomPainter {
       }
       out.add(q);
     }
-    return out;
+    return separatePanels(out, cam.forward);
   }
 
   Offset p(V3 v) => cam.project(v).$1;
