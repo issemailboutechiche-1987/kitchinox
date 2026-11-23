@@ -1,0 +1,10 @@
+{
+"trait orange : chant": ["orange line: edge banding", "خط برتقالي: حافة"],
+"tirets bleus : rainure du fond": ["blue dashes: back panel groove", "خطوط زرقاء متقطعة: مجرى اللوح الخلفي"],
+"Chant : {0}": ["Edge banding: {0}", "الحافة: {0}"],
+"Sans chant": ["No edge banding", "بدون حافة"],
+"Sans rainure": ["No groove", "بدون مجرى"],
+"Rainure : {0}": ["Groove: {0}", "المجرى: {0}"],
+"sur la longueur ({0})": ["along the length ({0})", "على الطول ({0})"],
+"sur la largeur ({0})": ["along the width ({0})", "على العرض ({0})"]
+}

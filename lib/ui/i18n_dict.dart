@@ -3380,6 +3380,13 @@ const Map<String, String> enDict = {
   "{0} image(s) prête(s)": "{0} image(s) ready",
   "Sur iPad, choisissez « Enregistrer l’image » pour les mettre dans Photos.": "On iPad, choose “Save Image” to put them in Photos.",
   "Enregistrer les images": "Save the images",
+  "trait orange : chant": "orange line: edge banding",
+  "tirets bleus : rainure du fond": "blue dashes: back panel groove",
+  "Chant : {0}": "Edge banding: {0}",
+  "Sans rainure": "No groove",
+  "Rainure : {0}": "Groove: {0}",
+  "sur la longueur ({0})": "along the length ({0})",
+  "sur la largeur ({0})": "along the width ({0})",
 };
 
 const Map<String, String> arDict = {
@@ -6762,4 +6769,11 @@ const Map<String, String> arDict = {
   "{0} image(s) prête(s)": "{0} صورة جاهزة",
   "Sur iPad, choisissez « Enregistrer l’image » pour les mettre dans Photos.": "على iPad، اختر «حفظ الصورة» لوضعها في الصور.",
   "Enregistrer les images": "حفظ الصور",
+  "trait orange : chant": "خط برتقالي: حافة",
+  "tirets bleus : rainure du fond": "خطوط زرقاء متقطعة: مجرى اللوح الخلفي",
+  "Chant : {0}": "الحافة: {0}",
+  "Sans rainure": "بدون مجرى",
+  "Rainure : {0}": "المجرى: {0}",
+  "sur la longueur ({0})": "على الطول ({0})",
+  "sur la largeur ({0})": "على العرض ({0})",
 };
