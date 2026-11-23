@@ -382,6 +382,7 @@ class PlacedCabinet {
   bool noBack; // caisson personnalisé : sans fond arrière
   // joues (costados) de ce caisson : null automatique, 'oui' ajoutée, 'pris' ajoutée sur la largeur du caisson, 'non' sans
   String? cheekL, cheekR;
+  String? accessory; // équipement intérieur (ex: INOXA 8104Y, Blum Space Tower...)
 
   PlacedCabinet({
     required this.uid,
@@ -403,6 +404,7 @@ class PlacedCabinet {
     this.noBack = false,
     this.cheekL,
     this.cheekR,
+    this.accessory,
   });
 
   String? cheek(bool left) => left ? cheekL : cheekR;
@@ -437,6 +439,7 @@ class PlacedCabinet {
         if (noBack) 'no_back': true,
         if (cheekL != null) 'cheek_l': cheekL,
         if (cheekR != null) 'cheek_r': cheekR,
+        if (accessory != null) 'accessory': accessory,
       };
 
   factory PlacedCabinet.fromJson(Map<String, dynamic> j) => PlacedCabinet(
@@ -459,6 +462,7 @@ class PlacedCabinet {
         layout: j['layout'] == null ? null : parseRows(j['layout']),
         machines: (j['machines'] as List?)?.cast<String>(),
         noBack: j['no_back'] == true,
+        accessory: j['accessory'] as String?,
       );
 }
 

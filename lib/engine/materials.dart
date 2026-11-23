@@ -9,6 +9,7 @@ import 'dart:math' as math;
 
 import 'bom.dart';
 import 'furniture_accessories.dart';
+import 'kitchen_accessories.dart';
 import 'public_prices.dart';
 import 'brands_sizes.dart';
 import 'assembly.dart';
@@ -801,6 +802,7 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
   out.addAll(applianceList(e, db, specs));
   out.addAll(fixtureSupplyLines(e));
   out.addAll(furnitureAccessoryLines(e.project.accessories));
+  out.addAll(kitchenCabinetAccessoryLines(e.project));
   return out;
 }
 

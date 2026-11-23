@@ -19,6 +19,7 @@ import 'scene3d.dart';
 import 'diagnostic_pdf.dart';
 import 'header.dart';
 import 'kitchen_heights_dialog.dart';
+import 'kitchen_accessories_ui.dart';
 import 'hd_render.dart';
 import 'kx_choices.dart';
 import 'theme.dart';
@@ -132,6 +133,11 @@ class StepToolbar extends StatelessWidget {
             label: tr('Objets'),
             active: state.objectsPanel,
             onTap: () => state.openObjects(!state.objectsPanel),
+          ),
+          ToolTile(
+            icon: Icons.kitchen_outlined,
+            label: tr('Accessoires & Quincaillerie'),
+            onTap: () => showKitchenAccessoriesDialog(context, state, onMessage: onMessage),
           ),
           // propositions, îlot et réseaux : propres à la cuisine
           if (state.engine.kitchen)

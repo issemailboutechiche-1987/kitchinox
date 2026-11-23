@@ -15,6 +15,7 @@ import 'app_state.dart';
 import 'custom_cabinet_ui.dart';
 import 'favorites.dart';
 import 'furniture_accessories_ui.dart';
+import 'kitchen_accessories_ui.dart';
 import 'finishes.dart';
 import 'fronts.dart';
 import 'net_symbols.dart';
@@ -262,6 +263,12 @@ class _CatalogPanelState extends State<CatalogPanel> {
                       avatar: const Icon(Icons.inventory_2_outlined, size: 16),
                       label: Text(trp('Accessoires ({0})', [st.project.accessories.values.fold<int>(0, (a, b) => a + b)])),
                       onPressed: () => showFurnitureAccessoriesDialog(context, st),
+                    ),
+                    ActionChip(
+                      key: const ValueKey('tile_kitchen_accessories'),
+                      avatar: const Icon(Icons.kitchen_outlined, size: 16, color: Color(0xFFF26A1B)),
+                      label: Text(tr('Équipements (INOXA, Blum...)')),
+                      onPressed: () => showKitchenAccessoriesDialog(context, st),
                     ),
                   ],
                 ),
@@ -1366,6 +1373,8 @@ class _CabinetForm extends StatelessWidget {
         if (m.isCarcass && !m.kind.isCorner && (m.kind.isLow || m.kind.isHigh || m.kind == CabinetKind.tall) && (editable || state.step == PlanStep.style))
           _FrontLayoutEditor(state: state, item: item, model: m),
         if (!m.isFreeHood) _ItemFrontSection(state: state, item: item),
+        if (m.isCarcass && (m.kind.isLow || m.kind.isHigh || m.kind == CabinetKind.tall || m.kind.isCorner))
+          CabinetAccessorySection(state: state, item: item, model: m, editable: editable, onMessage: onMessage),
         if (editable) ...[
           _Section('Mur', [
             _wallPicker(state, item.wallId, (w) {

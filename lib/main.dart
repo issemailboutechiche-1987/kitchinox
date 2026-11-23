@@ -111,6 +111,7 @@ Future<void> main() async {
   Market.parse(await rootBundle.loadString('assets/data/market.json')); // marques mondiales, prix indicatifs, fabricants
   SizeCatalog.parse(await rootBundle.loadString('assets/data/sizes.json')); // dimensions types et normes
   FurnitureAccessories.parse(await rootBundle.loadString('assets/data/furniture_accessories.json')); // accessoires de meubles
+  KitchenAccessoriesCatalog.parse(await rootBundle.loadString('assets/data/kitchen_accessories_catalog.json')); // équipements cuisine (INOXA, Blum...)
   ArtRecipes.parse(await rootBundle.loadString('assets/data/art_recipes.json')); // recettes du mode Art
   PublicPrices.parse(await rootBundle.loadString('assets/data/public_prices.json')); // prix publics des panneaux
   StockStore.instance

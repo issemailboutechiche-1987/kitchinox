@@ -1,0 +1,2871 @@
+{
+  "schema_version": "1.0.0",
+  "units": "mm",
+  "source_documents": [
+    {
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "document": "HYPER_03.2025_compressed.pdf",
+      "articles_extracted": 30,
+      "default_finish": "Ardesia / Slate",
+      "default_slides": "Grass Nova Pro (soft-close + anti-slip mat)"
+    }
+  ],
+  "summary": {
+    "total_accessories": 56,
+    "inoxa_hyper_articles_with_illustrations": 30,
+    "brands_count": 8,
+    "brands": {
+      "INOXA": 30,
+      "Blum": 8,
+      "Kesseböhmer": 3,
+      "Hettich": 2,
+      "Grass": 1,
+      "Vauth-Sagel": 1,
+      "DTC": 2,
+      "Atelier / Générique": 9
+    }
+  },
+  "brands_index": {
+    "INOXA": [
+      "inoxa_8104Y",
+      "inoxa_8124Y",
+      "inoxa_8114Y",
+      "inoxa_8106Y",
+      "inoxa_8102Y",
+      "inoxa_8112Y",
+      "inoxa_8105Y",
+      "inoxa_8115Y",
+      "inoxa_8107Y",
+      "inoxa_8132Y",
+      "inoxa_8132YA",
+      "inoxa_8202DY",
+      "inoxa_8202Y",
+      "inoxa_8207Y",
+      "inoxa_803Y",
+      "inoxa_846BH",
+      "inoxa_839Y",
+      "inoxa_828H",
+      "inoxa_830H",
+      "inoxa_301BY",
+      "inoxa_818Y",
+      "inoxa_859Y",
+      "inoxa_852Y",
+      "inoxa_1852Y",
+      "inoxa_860XY",
+      "inoxa_861Y",
+      "inoxa_808Y",
+      "inoxa_841RY",
+      "inoxa_842RY",
+      "inoxa_8824Y"
+    ],
+    "Blum": [
+      "blum_legrabox",
+      "blum_tandembox_antaro",
+      "blum_space_tower",
+      "blum_space_corner",
+      "blum_aventos_hf",
+      "blum_aventos_hk_top",
+      "blum_clip_top_blumotion",
+      "blum_ambia_line"
+    ],
+    "Kesseböhmer": [
+      "kessebohmer_lemans_ii",
+      "kessebohmer_dispensa",
+      "kessebohmer_imove"
+    ],
+    "Hettich": [
+      "hettich_innotech_atira",
+      "hettich_sensys"
+    ],
+    "Grass": [
+      "grass_nova_pro_scala"
+    ],
+    "Vauth-Sagel": [
+      "vauth_sagel_vs_envi_space"
+    ],
+    "DTC": [
+      "dtc_dragonpro_drawer",
+      "dtc_hinge_softclose"
+    ],
+    "Atelier / Générique": [
+      "atelier_porte_bouteille_gaz",
+      "atelier_egouttoir_vaisselle_inox",
+      "atelier_profil_gola",
+      "atelier_led_profil_capteur",
+      "atelier_bloc_prises_popup",
+      "atelier_tapis_etanche_sous_evier",
+      "atelier_tiroir_plinthe",
+      "atelier_barre_credence",
+      "atelier_grille_ventilation"
+    ]
+  },
+  "categories_index": {
+    "base_and_overhead": [
+      "inoxa_8104Y",
+      "inoxa_8124Y",
+      "inoxa_8114Y"
+    ],
+    "base": [
+      "inoxa_8106Y",
+      "inoxa_8102Y",
+      "inoxa_8112Y",
+      "inoxa_8105Y",
+      "inoxa_8115Y",
+      "inoxa_8132Y",
+      "inoxa_8132YA",
+      "inoxa_861Y",
+      "atelier_porte_bouteille_gaz"
+    ],
+    "under_sink": [
+      "inoxa_8107Y",
+      "inoxa_8207Y",
+      "vauth_sagel_vs_envi_space",
+      "atelier_tapis_etanche_sous_evier"
+    ],
+    "drawer": [
+      "inoxa_8202DY",
+      "inoxa_8202Y",
+      "blum_legrabox",
+      "blum_tandembox_antaro",
+      "hettich_innotech_atira",
+      "grass_nova_pro_scala",
+      "dtc_dragonpro_drawer",
+      "atelier_tiroir_plinthe"
+    ],
+    "corner": [
+      "inoxa_803Y",
+      "inoxa_846BH",
+      "inoxa_839Y",
+      "inoxa_828H",
+      "inoxa_830H",
+      "inoxa_301BY",
+      "blum_space_corner",
+      "kessebohmer_lemans_ii"
+    ],
+    "column": [
+      "inoxa_818Y",
+      "inoxa_859Y",
+      "inoxa_852Y",
+      "inoxa_1852Y",
+      "inoxa_860XY",
+      "inoxa_808Y",
+      "inoxa_841RY",
+      "inoxa_842RY",
+      "inoxa_8824Y",
+      "blum_space_tower",
+      "kessebohmer_dispensa"
+    ],
+    "overhead": [
+      "blum_aventos_hf",
+      "blum_aventos_hk_top",
+      "kessebohmer_imove",
+      "atelier_egouttoir_vaisselle_inox"
+    ],
+    "hardware": [
+      "blum_clip_top_blumotion",
+      "hettich_sensys",
+      "dtc_hinge_softclose"
+    ],
+    "drawer_organizer": [
+      "blum_ambia_line"
+    ],
+    "finish_and_opening": [
+      "atelier_profil_gola",
+      "atelier_grille_ventilation"
+    ],
+    "lighting_and_power": [
+      "atelier_led_profil_capteur",
+      "atelier_bloc_prises_popup"
+    ],
+    "backsplash": [
+      "atelier_barre_credence"
+    ]
+  },
+  "accessories": [
+    {
+      "id": "inoxa_8104Y",
+      "code": "8104Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "base_and_overhead",
+      "type": "pull_out_spice_bottle_2_tier",
+      "name_fr": "Coulissant 2 paniers étroit (porte-épices / bouteilles) bas & haut",
+      "name_en": "Two shelves extractable basket (base & overhead)",
+      "name_it": "Estraibile due piani per base e pensile",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base",
+        "overhead"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 150,
+            "basket_width_W_mm": 110
+          },
+          {
+            "cabinet_width_L_mm": 200,
+            "basket_width_W_mm": 160
+          }
+        ],
+        "height_h": 502,
+        "depth_D_by_zone": {
+          "base": 490,
+          "overhead": 290
+        }
+      },
+      "shelves_count": 2,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "optional_accessories": [
+        {
+          "code": "DPBKYAR",
+          "name": "Séparateur porte-bouteilles (1 pcs - Ardesia)"
+        },
+        {
+          "code": "FEDPBYAR",
+          "name": "Kit 4 séparateurs porte-bouteilles (Ardesia)"
+        }
+      ],
+      "source_pdf_page": 5,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8104Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8104Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8104Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8124Y",
+      "code": "8124Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "base_and_overhead",
+      "type": "pull_out_spice_bottle_tall",
+      "name_fr": "Coulissant haut étroit 150-200 mm (bas & meuble haut)",
+      "name_en": "Tall extractable basket for 150-200 mm base & wall units",
+      "name_it": "Estraibile due piani per modulo 15-20 cm base e pensile",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base",
+        "overhead"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 150,
+            "basket_width_W_mm": 114
+          },
+          {
+            "cabinet_width_L_mm": 200,
+            "basket_width_W_mm": 164
+          }
+        ],
+        "height_h": 772,
+        "depth_D_by_zone": {
+          "base": 490,
+          "overhead": 290
+        },
+        "note": "Version pensile (D=290 mm) uniquement pour L=150 mm"
+      },
+      "shelves_count": 3,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "optional_accessories": [
+        {
+          "code": "DPBKYAR",
+          "name": "Séparateur porte-bouteilles (1 pcs)"
+        },
+        {
+          "code": "FEDPBYAR",
+          "name": "Kit 4 séparateurs porte-bouteilles"
+        }
+      ],
+      "source_pdf_page": 6,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8124Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8124Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8124Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8114Y",
+      "code": "8114Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "base_and_overhead",
+      "type": "pull_out_spice_bottle_3_tier",
+      "name_fr": "Coulissant 3 paniers étroit H800 (porte-épices / bouteilles)",
+      "name_en": "Three-shelf extractable basket for H800 cabinet (150-200 mm)",
+      "name_it": "Estraibile tre piani per modulo 15-20 cm altezza 80 cm",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base",
+        "overhead"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 150,
+            "basket_width_W_mm": 110
+          },
+          {
+            "cabinet_width_L_mm": 200,
+            "basket_width_W_mm": 160
+          }
+        ],
+        "height_h": 698,
+        "inside_cabinet_height_min": 800,
+        "depth_D_by_zone": {
+          "base": 490,
+          "overhead": 290
+        }
+      },
+      "shelves_count": 3,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "optional_accessories": [
+        {
+          "code": "DPBKYAR",
+          "name": "Séparateur porte-bouteilles (1 pcs)"
+        },
+        {
+          "code": "FEDPBYAR",
+          "name": "Kit 4 séparateurs porte-bouteilles"
+        }
+      ],
+      "source_pdf_page": 7,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8114Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8114Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8114Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8106Y",
+      "code": "8106Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "base",
+      "type": "pull_out_towel_holder",
+      "name_fr": "Porte-torchons coulissant avec panier bas (150 mm)",
+      "name_en": "Pull-out cloth/towel holder basket for 150 mm base",
+      "name_it": "Cesto estraibile porta strofinacci per base 15 cm",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 150,
+            "basket_width_W_mm": 110
+          }
+        ],
+        "height_h": 503,
+        "depth_D": 487
+      },
+      "shelves_count": 1,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 8,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8106Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8106Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8106Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8102Y",
+      "code": "8102Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "base",
+      "type": "pull_out_base_2_tier",
+      "name_fr": "Coulissant bas 2 paniers (300 à 600 mm)",
+      "name_en": "Two shelves extractable base basket (300-600 mm)",
+      "name_it": "Estraibile due piani per modulo superiore a 30 cm",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 300,
+            "basket_width_W_mm": 264
+          },
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 364
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 414
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 464
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 564
+          }
+        ],
+        "height_h": 502,
+        "depth_D": 490
+      },
+      "shelves_count": 2,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "optional_accessories": [
+        {
+          "code": "DPBKYAR",
+          "name": "Séparateur porte-bouteilles (1 pcs)"
+        },
+        {
+          "code": "FEDPBYAR",
+          "name": "Kit 4 séparateurs porte-bouteilles"
+        }
+      ],
+      "source_pdf_page": 9,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8102Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8102Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8102Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8112Y",
+      "code": "8112Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "base",
+      "type": "pull_out_base_3_tier",
+      "name_fr": "Coulissant bas 3 paniers H800 (300 à 600 mm)",
+      "name_en": "Three-shelf extractable base basket H800 (300-600 mm)",
+      "name_it": "Estraibile tre piani per modulo >30 cm altezza 80 cm",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 300,
+            "basket_width_W_mm": 264
+          },
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 364
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 414
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 464
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 564
+          }
+        ],
+        "height_h": 695,
+        "inside_cabinet_height_min": 800,
+        "depth_D": 488
+      },
+      "shelves_count": 3,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "optional_accessories": [
+        {
+          "code": "DPBKYAR",
+          "name": "Séparateur porte-bouteilles (1 pcs)"
+        },
+        {
+          "code": "FEDPBYAR",
+          "name": "Kit 4 séparateurs porte-bouteilles"
+        }
+      ],
+      "source_pdf_page": 10,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8112Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8112Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8112Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8105Y",
+      "code": "8105Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "base",
+      "type": "pull_out_bread_bottle_2_tier",
+      "name_fr": "Coulissant porte-pain & bouteilles 2 niveaux (300-450 mm)",
+      "name_en": "Extractable breadbasket 2-tier (300-450 mm)",
+      "name_it": "Estraibile portapane per modulo superiore a 30 cm",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 300,
+            "basket_width_W_mm": 264
+          },
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 364
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 414
+          }
+        ],
+        "height_h": 502,
+        "depth_D": 490
+      },
+      "shelves_count": 2,
+      "load_capacity_kg": 40,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "optional_accessories": [
+        {
+          "code": "DPBKYAR",
+          "name": "Séparateur porte-bouteilles (1 pcs)"
+        },
+        {
+          "code": "FEDPBYAR",
+          "name": "Kit 4 séparateurs porte-bouteilles"
+        }
+      ],
+      "source_pdf_page": 11,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8105Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8105Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8105Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8115Y",
+      "code": "8115Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "base",
+      "type": "pull_out_bread_bottle_3_tier",
+      "name_fr": "Coulissant porte-pain & bouteilles 3 niveaux H800 (300-450 mm)",
+      "name_en": "Three-shelf extractable breadbasket H800 (300-450 mm)",
+      "name_it": "Estraibile portapane a tre piani altezza 80 cm",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 300,
+            "basket_width_W_mm": 264
+          },
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 364
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 414
+          }
+        ],
+        "height_h": 695,
+        "inside_cabinet_height_min": 800,
+        "depth_D": 490
+      },
+      "shelves_count": 3,
+      "load_capacity_kg": 40,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 12,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8115Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8115Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8115Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8107Y",
+      "code": "8107Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "under_sink",
+      "type": "pull_out_detergent_basket",
+      "name_fr": "Panier porte-détergents sous-évier avec coulisses latérales",
+      "name_en": "Extractable detergent basket with lateral slides and spacers",
+      "name_it": "Estraibile portadetersivi con guide laterali e distanziali",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "under_sink",
+        "base"
+      ],
+      "dimensions_mm": {
+        "width_W": 366,
+        "height_h": 504,
+        "depth_D": 461,
+        "cabinet_width_L_min": 400
+      },
+      "load_capacity_kg": 40,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 13,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8107Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8107Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8107Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8132Y",
+      "code": "8132Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "base",
+      "type": "pull_out_cook_it_all_manual",
+      "name_fr": "Coulissant multifonction « Cook-it-all » (extraction manuelle, planche + couteaux + bouteilles)",
+      "name_en": "Multifunction basket 'cook-it-all' manual extraction",
+      "name_it": "Estraibile multifunzione cook-it-all estrazione manuale",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 300,
+            "basket_width_W_mm": 258
+          },
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 358
+          }
+        ],
+        "height_h": 660,
+        "depth_D": 492
+      },
+      "load_capacity_kg": 40,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 14,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8132Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8132Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8132Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8132YA",
+      "code": "8132YA",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "base",
+      "type": "pull_out_cook_it_all_door_mount",
+      "name_fr": "Coulissant multifonction « Cook-it-all » avec fixation sur façade",
+      "name_en": "Multifunction basket 'cook-it-all' with door fixing brackets",
+      "name_it": "Estraibile multifunzione cook-it-all con attacco anta",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 300,
+            "basket_width_W_mm": 258
+          },
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 358
+          }
+        ],
+        "height_h": 660,
+        "depth_D": 498
+      },
+      "load_capacity_kg": 40,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 15,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8132YA_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8132YA_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8132YA_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8202DY",
+      "code": "8202DY",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "drawer",
+      "type": "inner_drawer_manual",
+      "name_fr": "Tiroir à l'anglaise (extraction manuelle avec entretoises, 300-900 mm)",
+      "name_en": "Drawer basket with spacers - manual extraction",
+      "name_it": "Cassetto estraibile con distanziali - estrazione manuale",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base",
+        "column"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 300,
+            "basket_width_W_mm": 264
+          },
+          {
+            "cabinet_width_L_mm": 350,
+            "basket_width_W_mm": 314
+          },
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 364
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 414
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 464
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 564
+          },
+          {
+            "cabinet_width_L_mm": 750,
+            "basket_width_W_mm": 714
+          },
+          {
+            "cabinet_width_L_mm": 800,
+            "basket_width_W_mm": 764
+          },
+          {
+            "cabinet_width_L_mm": 900,
+            "basket_width_W_mm": 864
+          }
+        ],
+        "height_h": 134,
+        "depth_D": 475,
+        "spacer_width": 28
+      },
+      "load_capacity_kg": 40,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 16,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8202DY_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8202DY_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8202DY_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8202Y",
+      "code": "8202Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "drawer",
+      "type": "drawer_basket_door_mount",
+      "name_fr": "Tiroir casserolier métal avec fixations façade (600-1200 mm)",
+      "name_en": "Pull-out drawer basket with brackets for fixing to the door",
+      "name_it": "Cassetto estraibile con staffe di fissaggio all'anta",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 564
+          },
+          {
+            "cabinet_width_L_mm": 750,
+            "basket_width_W_mm": 714
+          },
+          {
+            "cabinet_width_L_mm": 800,
+            "basket_width_W_mm": 764
+          },
+          {
+            "cabinet_width_L_mm": 900,
+            "basket_width_W_mm": 864
+          },
+          {
+            "cabinet_width_L_mm": 1000,
+            "basket_width_W_mm": 964
+          },
+          {
+            "cabinet_width_L_mm": 1200,
+            "basket_width_W_mm": 1164
+          }
+        ],
+        "height_h": 133,
+        "depth_D": 463
+      },
+      "load_capacity_kg": 40,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 17,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8202Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8202Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8202Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8207Y",
+      "code": "8207Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "under_sink",
+      "type": "u_shaped_under_sink_drawer",
+      "name_fr": "Tiroir en U sous-évier découpe siphon (600-1200 mm)",
+      "name_en": "Under-sink U-shaped pull-out basket (600-1200 mm)",
+      "name_it": "Cestello sottolavello",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "under_sink"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 564
+          },
+          {
+            "cabinet_width_L_mm": 750,
+            "basket_width_W_mm": 714
+          },
+          {
+            "cabinet_width_L_mm": 800,
+            "basket_width_W_mm": 764
+          },
+          {
+            "cabinet_width_L_mm": 900,
+            "basket_width_W_mm": 864
+          },
+          {
+            "cabinet_width_L_mm": 1000,
+            "basket_width_W_mm": 964
+          },
+          {
+            "cabinet_width_L_mm": 1200,
+            "basket_width_W_mm": 1164
+          }
+        ],
+        "height_h": 133,
+        "depth_D": 463,
+        "side_arm_width": 148,
+        "front_tray_depth": 196
+      },
+      "load_capacity_kg": 40,
+      "slides": "Grass Nova Pro",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "optional_accessories": [
+        {
+          "code": "PLASTIC_TRAYS",
+          "name": "Bacs plastique modulables sur demande"
+        }
+      ],
+      "source_pdf_page": 18,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8207Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8207Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8207Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_803Y",
+      "code": "803Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "corner",
+      "type": "dynamic_corner_magic_corner",
+      "name_fr": "Angle magique « Dynamic Corner » (base & demi-colonne, porte 400-450 mm)",
+      "name_en": "Dynamic Corner mechanism with baskets (base & tall variants)",
+      "name_it": "Meccanismo d'angolo Dynamic Corner comprensivo di cesti",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "corner",
+        "column"
+      ],
+      "dimensions_mm": {
+        "door_widths_L": [
+          400,
+          450,
+          500,
+          600
+        ],
+        "recommended_door_widths_L": [
+          400,
+          450
+        ],
+        "mechanism_width_W": 846,
+        "depth_D": 485,
+        "height_variants": [
+          {
+            "code": "803B",
+            "H_min": 640,
+            "H_max": 800,
+            "baskets": 4
+          },
+          {
+            "code": "803A",
+            "H_min": 1185,
+            "H_max": 1505,
+            "baskets": 8
+          }
+        ]
+      },
+      "sub_codes": [
+        "803MADXAR",
+        "803MASXAR",
+        "803MBDXAR",
+        "803MBSXAR",
+        "1803YKITAR"
+      ],
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 19,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/803Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/803Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/803Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_846BH",
+      "code": "846BH",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "corner",
+      "type": "lemans_kidney_corner",
+      "name_fr": "Plateaux haricots pivotants sortie totale « Combi's 2 » (porte 450-600 mm)",
+      "name_en": "Combi's 2 rotating full extraction corner shelves (LeMans style)",
+      "name_it": "Combi's 2 ripiani girevoli ad estrazione totale per angolo base",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "corner"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 780
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 820
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 920
+          }
+        ],
+        "height_per_shelf_h": 183,
+        "height_2_shelves": 543,
+        "depth_D": 450,
+        "variants": [
+          {
+            "code": "846U",
+            "shelves": 1
+          },
+          {
+            "code": "846B",
+            "shelves": 2
+          }
+        ]
+      },
+      "load_capacity_kg_per_shelf": 20,
+      "soft_close": false,
+      "soft_close_optional_code": "846S/1AR",
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate (standard)",
+        "Champagne (sur demande)",
+        "Nero (sur demande)",
+        "Bianco (sur demande)"
+      ],
+      "source_pdf_page": 20,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/846BH_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/846BH_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/846BH_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_839Y",
+      "code": "839Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "corner",
+      "type": "compact_2_reversible_corner",
+      "name_fr": "Mécanisme d'angle réversible sortie totale « Compact 2 » (porte 400-600 mm)",
+      "name_en": "Compact 2 reversible corner mechanism with total extraction",
+      "name_it": "Compact 2 meccanismo angolare reversibile ad estrazione totale",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "corner"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 705
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 705
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 740
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 940
+          }
+        ],
+        "depth_D": 480,
+        "height_variants": [
+          {
+            "code": "839BY",
+            "H": 501
+          },
+          {
+            "code": "839MY",
+            "H": 682
+          },
+          {
+            "code": "839AY",
+            "H_min": 1185,
+            "H_max": 1585
+          }
+        ]
+      },
+      "load_capacity_kg": 60,
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 21,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/839Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/839Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/839Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_828H",
+      "code": "828H",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "corner",
+      "type": "carousel_3_4",
+      "name_fr": "Carrousel d'angle 3/4 (base ou colonne, Ø703 ou Ø818 mm)",
+      "name_en": "3/4 carousel for corner base & column",
+      "name_it": "Kit girevole angolo colonna/base con cesti 3/4",
+      "tiers": [
+        "eco",
+        "standard"
+      ],
+      "cabinet_zones": [
+        "corner",
+        "column"
+      ],
+      "dimensions_mm": {
+        "diameter_variants": [
+          {
+            "code": "705",
+            "diameter_mm": 703
+          },
+          {
+            "code": "820",
+            "diameter_mm": 818
+          }
+        ],
+        "height_variants": [
+          {
+            "code": "828BH",
+            "H_min": 670,
+            "H_max": 720,
+            "baskets": 2
+          },
+          {
+            "code": "828AH",
+            "H_min": 1295,
+            "H_max": 1345,
+            "baskets": 4
+          },
+          {
+            "code": "828HH",
+            "H_min": 2025,
+            "H_max": 2075,
+            "baskets": 4
+          }
+        ]
+      },
+      "load_capacity_kg_per_shelf": 15,
+      "soft_close": false,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate (standard)",
+        "Champagne",
+        "Nero",
+        "Bianco"
+      ],
+      "source_pdf_page": 22,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/828H_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/828H_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/828H_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_830H",
+      "code": "830H",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "corner",
+      "type": "carousel_4_4_full_circle",
+      "name_fr": "Carrousel d'angle 360° (4/4, Ø703 ou Ø818 mm)",
+      "name_en": "4/4 full-circle carousel for corner base & column",
+      "name_it": "Kit girevole angolo base con cesti 4/4",
+      "tiers": [
+        "eco",
+        "standard"
+      ],
+      "cabinet_zones": [
+        "corner"
+      ],
+      "dimensions_mm": {
+        "diameter_variants": [
+          {
+            "code": "705",
+            "diameter_mm": 703
+          },
+          {
+            "code": "820",
+            "diameter_mm": 818
+          }
+        ],
+        "height_variants": [
+          {
+            "code": "830BH",
+            "H_min": 670,
+            "H_max": 720,
+            "baskets": 2
+          },
+          {
+            "code": "830AH",
+            "H_min": 1295,
+            "H_max": 1345,
+            "baskets": 4
+          },
+          {
+            "code": "830HH",
+            "H_min": 2025,
+            "H_max": 2075,
+            "baskets": 4
+          }
+        ]
+      },
+      "load_capacity_kg_per_shelf": 15,
+      "soft_close": false,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate (standard)",
+        "Champagne",
+        "Nero",
+        "Bianco"
+      ],
+      "source_pdf_page": 23,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/830H_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/830H_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/830H_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_301BY",
+      "code": "301BY",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "corner",
+      "type": "half_moon_carousel",
+      "name_fr": "Plateaux demi-lune pivotants d'angle (Ø635 ou Ø745 mm)",
+      "name_en": "Half-Moon revolving kit for kitchen corner",
+      "name_it": "Mezzaluna kit girevole per angolo cucina",
+      "tiers": [
+        "eco",
+        "standard"
+      ],
+      "cabinet_zones": [
+        "corner"
+      ],
+      "dimensions_mm": {
+        "diameter_variants": [
+          {
+            "code": "66",
+            "diameter_mm": 635
+          },
+          {
+            "code": "76",
+            "diameter_mm": 745
+          }
+        ],
+        "height_h": 615
+      },
+      "shelves_count": 2,
+      "soft_close": false,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 24,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/301BY_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/301BY_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/301BY_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_818Y",
+      "code": "818Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "column",
+      "type": "pantry_column_rotating_120kg",
+      "name_fr": "Colonne pharmacie coulissante & pivotante 120 kg (200-600 mm)",
+      "name_en": "Extractable rotating pantry column with metal slides (120 kg)",
+      "name_it": "Colonna estraibile e rotante con guide metalliche 120 kg",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "column"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 200,
+            "basket_width_W_mm": 153
+          },
+          {
+            "cabinet_width_L_mm": 300,
+            "basket_width_W_mm": 253
+          },
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 353
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 383
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 453
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 553
+          }
+        ],
+        "depth_D": 496,
+        "height_variants": [
+          {
+            "code": "859B",
+            "H_min": 1260,
+            "H_max": 1620,
+            "baskets": 3
+          },
+          {
+            "code": "859M",
+            "H_min": 1610,
+            "H_max": 1980,
+            "baskets": 4
+          },
+          {
+            "code": "859A",
+            "H_min": 1960,
+            "H_max": 2280,
+            "baskets": 5
+          }
+        ]
+      },
+      "load_capacity_kg": 120,
+      "sub_codes": [
+        "818G80",
+        "818GS50",
+        "818GI50",
+        "818TA",
+        "818TM",
+        "818TB",
+        "1852Y",
+        "800ST"
+      ],
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate (paniers)",
+        "Gris RAL 7035 (coulisse 818G80)"
+      ],
+      "source_pdf_page": 25,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/818Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/818Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/818Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_859Y",
+      "code": "859Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "column",
+      "type": "pantry_column_pullout_120kg",
+      "name_fr": "Colonne pharmacie coulissante 120 kg (150-600 mm)",
+      "name_en": "Extractable pantry column with ball bearing slides (120 kg)",
+      "name_it": "Colonna estraibile con guide a sfera 120 kg",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "column"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 150,
+            "basket_width_W_mm": 103
+          },
+          {
+            "cabinet_width_L_mm": 200,
+            "basket_width_W_mm": 153
+          },
+          {
+            "cabinet_width_L_mm": 300,
+            "basket_width_W_mm": 253
+          },
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 353
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 383
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 453
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 553
+          }
+        ],
+        "depth_D": 480,
+        "height_variants": [
+          {
+            "code": "859S",
+            "H_min": 850,
+            "H_max": 1250,
+            "baskets": 2
+          },
+          {
+            "code": "859B",
+            "H_min": 1195,
+            "H_max": 1595,
+            "baskets": 3
+          },
+          {
+            "code": "859M",
+            "H_min": 1540,
+            "H_max": 1940,
+            "baskets": 4
+          },
+          {
+            "code": "859A",
+            "H_min": 1885,
+            "H_max": 2285,
+            "baskets": 5
+          },
+          {
+            "code": "859H",
+            "H_min": 2085,
+            "H_max": 2485,
+            "baskets": 6
+          }
+        ]
+      },
+      "load_capacity_kg": 120,
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 26,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/859Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/859Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/859Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_852Y",
+      "code": "852Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "column",
+      "type": "pantry_column_pullout_80kg",
+      "name_fr": "Colonne pharmacie coulissante 80 kg (200-600 mm)",
+      "name_en": "Extractable pantry column with ball bearing slides (80 kg)",
+      "name_it": "Colonna estraibile con guide a sfera 80 kg",
+      "tiers": [
+        "standard"
+      ],
+      "cabinet_zones": [
+        "column"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 200,
+            "basket_width_W_mm": 153
+          },
+          {
+            "cabinet_width_L_mm": 300,
+            "basket_width_W_mm": 253
+          },
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 353
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 383
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 453
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 553
+          }
+        ],
+        "depth_D": 480,
+        "height_variants": [
+          {
+            "code": "852S",
+            "H_min": 850,
+            "H_max": 1250,
+            "baskets": 2
+          },
+          {
+            "code": "852B",
+            "H_min": 1195,
+            "H_max": 1595,
+            "baskets": 3
+          },
+          {
+            "code": "852M",
+            "H_min": 1540,
+            "H_max": 1940,
+            "baskets": 4
+          },
+          {
+            "code": "852A",
+            "H_min": 1885,
+            "H_max": 2285,
+            "baskets": 5
+          },
+          {
+            "code": "852H",
+            "H_min": 2085,
+            "H_max": 2485,
+            "baskets": 6
+          }
+        ]
+      },
+      "load_capacity_kg": 80,
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 27,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/852Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/852Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/852Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_1852Y",
+      "code": "1852Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "column",
+      "type": "column_spare_basket",
+      "name_fr": "Panier supplémentaire Hyper pour colonnes 818 / 859 / 852 (150-600 mm)",
+      "name_en": "Individual basket for extractable columns 818 / 859 / 852",
+      "name_it": "Cestello per colonna estraibile 818-859-852",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "column"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 150,
+            "basket_width_W_mm": 80
+          },
+          {
+            "cabinet_width_L_mm": 200,
+            "basket_width_W_mm": 130
+          },
+          {
+            "cabinet_width_L_mm": 300,
+            "basket_width_W_mm": 230
+          },
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 330
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 380
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 430
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 530
+          }
+        ],
+        "height_h": 83,
+        "depth_D": 468
+      },
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 28,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/1852Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/1852Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/1852Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_860XY",
+      "code": "860XY",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "column",
+      "type": "pantry_column_maxima_reversible",
+      "name_fr": "Colonne garde-manger réversible « Maxima » (400-750 mm)",
+      "name_en": "Maxima pull-out and reversible pantry column (400-750 mm)",
+      "name_it": "Maxima colonna estraibile e reversibile per dispensa",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "column"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 335
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 385
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 435
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 535
+          },
+          {
+            "cabinet_width_L_mm": 750,
+            "basket_width_W_mm": 685
+          }
+        ],
+        "depth_D": 468,
+        "height_variants": [
+          {
+            "code": "860XBY",
+            "H": 1200,
+            "baskets": 4
+          },
+          {
+            "code": "860XAY",
+            "H": 1800,
+            "baskets": 5
+          }
+        ]
+      },
+      "load_capacity_kg_per_shelf": 10,
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 29,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/860XY_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/860XY_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/860XY_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_861Y",
+      "code": "861Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "base",
+      "type": "base_pullout_minimal_2_baskets",
+      "name_fr": "Système coulissant bas 2 paniers « Minimal » (400-750 mm)",
+      "name_en": "Minimal two-basket pull-out system for base cabinet",
+      "name_it": "Minimal sistema estraibile a due cesti per mobile base",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 360
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 410
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 460
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 560
+          },
+          {
+            "cabinet_width_L_mm": 750,
+            "basket_width_W_mm": 710
+          }
+        ],
+        "height_h": 585,
+        "depth_D": 485
+      },
+      "shelves_count": 2,
+      "load_capacity_kg_per_shelf": 12,
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 30,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/861Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/861Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/861Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_808Y",
+      "code": "808Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "column",
+      "type": "double_pantry_tandem_column",
+      "name_fr": "Colonne double Tandem (paniers porte + paniers arrière, 400-750 mm)",
+      "name_en": "Double pantry unit, extractable and reversible (Tandem style)",
+      "name_it": "Colonna attrezzata estraibile e reversibile",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "column"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 400,
+            "basket_width_W_mm": 357
+          },
+          {
+            "cabinet_width_L_mm": 450,
+            "basket_width_W_mm": 407
+          },
+          {
+            "cabinet_width_L_mm": 500,
+            "basket_width_W_mm": 457
+          },
+          {
+            "cabinet_width_L_mm": 600,
+            "basket_width_W_mm": 557
+          },
+          {
+            "cabinet_width_L_mm": 750,
+            "basket_width_W_mm": 707
+          }
+        ],
+        "depth_D": 493,
+        "height_variants": [
+          {
+            "code": "808S",
+            "H": 575,
+            "baskets": "2+2"
+          },
+          {
+            "code": "808M",
+            "H": 840,
+            "baskets": "3+3"
+          },
+          {
+            "code": "808B",
+            "H": 1140,
+            "baskets": "4+4"
+          },
+          {
+            "code": "808A",
+            "H": 1765,
+            "baskets": "6+6"
+          }
+        ]
+      },
+      "load_capacity_kg": 80,
+      "load_capacity_detail": "Panier porte: 3.5 kg/panier | Panier arrière: 10 kg/panier",
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 31,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/808Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/808Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/808Y_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_841RY",
+      "code": "841RY",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "column",
+      "type": "broom_utility_column",
+      "name_fr": "Colonne range-balais & produits ménagers réversible (60 kg)",
+      "name_en": "Reversible broom-holder pull-out column (60 kg)",
+      "name_it": "Colonna portascope reversibile",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "column",
+        "laundry"
+      ],
+      "dimensions_mm": {
+        "width_W": 108,
+        "cabinet_width_L_min": 150,
+        "height_h": 1720,
+        "depth_D": 505
+      },
+      "load_capacity_kg": 60,
+      "sub_codes": [
+        "ME841RAR",
+        "1841RYKITAR"
+      ],
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 32,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/841RY_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/841RY_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/841RY_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_842RY",
+      "code": "842RY",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "column",
+      "type": "spice_bottle_tall_column",
+      "name_fr": "Colonne porte-épices & porte-bouteilles réversible (8 niveaux, 60 kg)",
+      "name_en": "Reversible spice rack and bottle holder column (60 kg)",
+      "name_it": "Colonna portaspezie e portabottiglie reversibile",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "column"
+      ],
+      "dimensions_mm": {
+        "width_W": 110,
+        "cabinet_width_L_min": 150,
+        "height_h": 1720,
+        "depth_D": 505
+      },
+      "shelves_count": 8,
+      "load_capacity_kg": 60,
+      "sub_codes": [
+        "ME841RAR",
+        "1842RYKITAR"
+      ],
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "source_pdf_page": 33,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/842RY_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/842RY_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/842RY_blueprint.png"
+      }
+    },
+    {
+      "id": "inoxa_8824Y",
+      "code": "8824Y",
+      "brand": "INOXA",
+      "collection": "Hyper",
+      "category": "column",
+      "type": "slim_pantry_column_150_200",
+      "name_fr": "Colonne coulissante étroite réversible 150-200 mm (5 paniers, 40 kg)",
+      "name_en": "Slim extractable reversible pantry column 150-200 mm (40 kg)",
+      "name_it": "Colonna attrezzata estraibile e reversibile per modulo 15-20 cm",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "column"
+      ],
+      "dimensions_mm": {
+        "variants_L_W": [
+          {
+            "cabinet_width_L_mm": 150,
+            "basket_width_W_mm": 112
+          },
+          {
+            "cabinet_width_L_mm": 200,
+            "basket_width_W_mm": 162
+          }
+        ],
+        "height_h": 1612,
+        "depth_D": 490
+      },
+      "shelves_count": 5,
+      "load_capacity_kg": 40,
+      "soft_close": true,
+      "anti_slip_mat": true,
+      "finishes": [
+        "Ardesia / Slate"
+      ],
+      "optional_accessories": [
+        {
+          "code": "DPBKYAR",
+          "name": "Séparateur porte-bouteilles (1 pcs)"
+        },
+        {
+          "code": "FEDPBYAR",
+          "name": "Kit 4 séparateurs porte-bouteilles"
+        }
+      ],
+      "source_pdf_page": 34,
+      "illustrations": {
+        "product": "illustrations/inoxa_hyper/8824Y_product.png",
+        "lifestyle": "illustrations/inoxa_hyper/8824Y_lifestyle.jpg",
+        "blueprint": "illustrations/inoxa_hyper/8824Y_blueprint.png"
+      }
+    },
+    {
+      "id": "blum_legrabox",
+      "code": "LEGRABOX",
+      "brand": "Blum",
+      "collection": "LEGRABOX",
+      "category": "drawer",
+      "type": "metal_box_drawer_system",
+      "name_fr": "Tiroir / Casserolier métal parois fines LEGRABOX (BLUMOTION)",
+      "name_en": "LEGRABOX slim metal box drawer system",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base",
+        "column"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          300,
+          400,
+          450,
+          500,
+          600,
+          800,
+          900,
+          1000,
+          1200
+        ],
+        "side_heights": [
+          66.5,
+          90.5,
+          128.5,
+          177,
+          241
+        ],
+        "nominal_depths_NL": [
+          270,
+          300,
+          350,
+          400,
+          450,
+          500,
+          550,
+          600,
+          650
+        ]
+      },
+      "load_capacity_kg": [
+        40,
+        70
+      ],
+      "soft_close": true,
+      "finishes": [
+        "Gris Orion mat",
+        "Noir Carbone mat",
+        "Blanc Soie mat",
+        "Inox anti-traces"
+      ]
+    },
+    {
+      "id": "blum_tandembox_antaro",
+      "code": "TANDEMBOX-ANTARO",
+      "brand": "Blum",
+      "collection": "TANDEMBOX antaro",
+      "category": "drawer",
+      "type": "metal_box_drawer_system",
+      "name_fr": "Tiroir / Casserolier TANDEMBOX antaro (BLUMOTION)",
+      "name_en": "TANDEMBOX antaro drawer system",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base",
+        "column"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          300,
+          400,
+          450,
+          500,
+          600,
+          800,
+          900,
+          1000,
+          1200
+        ],
+        "side_heights": [
+          83.6,
+          192,
+          224
+        ],
+        "nominal_depths_NL": [
+          270,
+          350,
+          400,
+          450,
+          500,
+          550
+        ]
+      },
+      "load_capacity_kg": [
+        30,
+        65
+      ],
+      "soft_close": true,
+      "finishes": [
+        "Gris",
+        "Blanc Soie",
+        "Noir Terra"
+      ]
+    },
+    {
+      "id": "blum_space_tower",
+      "code": "SPACE-TOWER",
+      "brand": "Blum",
+      "collection": "SPACE TOWER",
+      "category": "column",
+      "type": "pantry_column_inner_drawers",
+      "name_fr": "Colonne provisions SPACE TOWER (5 tiroirs à l'anglaise indépendants)",
+      "name_en": "SPACE TOWER pantry column with independent inner drawers",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "column"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          450,
+          500,
+          600,
+          800,
+          900
+        ],
+        "min_height_H": 1800,
+        "depth_D": 500
+      },
+      "load_capacity_kg_per_shelf": 70,
+      "soft_close": true
+    },
+    {
+      "id": "blum_space_corner",
+      "code": "SPACE-CORNER",
+      "brand": "Blum",
+      "collection": "SPACE CORNER",
+      "category": "corner",
+      "type": "corner_drawers",
+      "name_fr": "Tiroirs d'angle SPACE CORNER (sortie totale)",
+      "name_en": "SPACE CORNER angled full-extension drawers",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "corner"
+      ],
+      "dimensions_mm": {
+        "corner_cabinet_L": [
+          900,
+          1050
+        ],
+        "depth_D": 560
+      },
+      "load_capacity_kg": 65,
+      "soft_close": true
+    },
+    {
+      "id": "blum_aventos_hf",
+      "code": "AVENTOS-HF",
+      "brand": "Blum",
+      "collection": "AVENTOS",
+      "category": "overhead",
+      "type": "lift_system_bifold",
+      "name_fr": "Ferrure porte relevable pliante AVENTOS HF (bi-fold)",
+      "name_en": "AVENTOS HF bi-fold lift system",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "overhead"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          450,
+          600,
+          800,
+          900,
+          1000,
+          1200
+        ],
+        "cabinet_height_min": 480,
+        "cabinet_height_max": 1040,
+        "min_depth_D": 278
+      },
+      "soft_close": true
+    },
+    {
+      "id": "blum_aventos_hk_top",
+      "code": "AVENTOS-HK-TOP",
+      "brand": "Blum",
+      "collection": "AVENTOS",
+      "category": "overhead",
+      "type": "lift_system_stay",
+      "name_fr": "Ferrure porte relevable pivotante AVENTOS HK top",
+      "name_en": "AVENTOS HK top stay lift system",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "overhead"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          400,
+          600,
+          800,
+          900,
+          1200
+        ],
+        "cabinet_height_min": 205,
+        "cabinet_height_max": 600,
+        "min_depth_D": 187
+      },
+      "soft_close": true
+    },
+    {
+      "id": "blum_clip_top_blumotion",
+      "code": "CLIP-TOP-BLUMOTION-110",
+      "brand": "Blum",
+      "collection": "CLIP top BLUMOTION",
+      "category": "hardware",
+      "type": "hinge_35mm_soft_close",
+      "name_fr": "Charnière invisible 35 mm 110° amortie CLIP top BLUMOTION",
+      "name_en": "110° concealed soft-close hinge 35 mm",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base",
+        "overhead",
+        "column",
+        "dressing"
+      ],
+      "dimensions_mm": {
+        "cup_diameter": 35,
+        "cup_depth": 13,
+        "edge_offset": 21.5
+      },
+      "soft_close": true
+    },
+    {
+      "id": "blum_ambia_line",
+      "code": "AMBIA-LINE",
+      "brand": "Blum",
+      "collection": "AMBIA-LINE",
+      "category": "drawer_organizer",
+      "type": "cutlery_and_pot_organizers",
+      "name_fr": "Aménagements intérieurs de tiroirs (range-couverts, porte-couteaux, dérouleur film, range-assiettes)",
+      "name_en": "Interior drawer organizer frames (cutlery, knife holder, foil dispenser, plate holder)",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          300,
+          400,
+          450,
+          600,
+          800,
+          900,
+          1200
+        ],
+        "depth_D": 472
+      }
+    },
+    {
+      "id": "kessebohmer_lemans_ii",
+      "code": "LEMANS-II",
+      "brand": "Kesseböhmer",
+      "collection": "ARENA Style",
+      "category": "corner",
+      "type": "lemans_kidney_corner",
+      "name_fr": "Plateaux d'angle LeMans II sortie indépendante (25 kg/plateau)",
+      "name_en": "LeMans II swiveling corner shelves (25 kg/tray)",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "corner"
+      ],
+      "dimensions_mm": {
+        "door_widths_L": [
+          400,
+          450,
+          500,
+          600
+        ],
+        "cabinet_width_min": 800,
+        "cabinet_width_max": 1200,
+        "min_depth_D": 500,
+        "height_H": [
+          600,
+          750
+        ]
+      },
+      "load_capacity_kg_per_shelf": 25,
+      "soft_close": true,
+      "anti_slip_mat": true
+    },
+    {
+      "id": "kessebohmer_dispensa",
+      "code": "DISPENSA",
+      "brand": "Kesseböhmer",
+      "collection": "DISPENSA",
+      "category": "column",
+      "type": "pantry_column_pullout_100kg",
+      "name_fr": "Colonne pharmacie coulissante DISPENSA (100 kg, ClickFixx)",
+      "name_en": "DISPENSA tall pull-out pantry unit (100 kg)",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "column"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          300,
+          400
+        ],
+        "height_min": 1600,
+        "height_max": 2300,
+        "min_depth_D": 500
+      },
+      "load_capacity_kg": 100,
+      "soft_close": true
+    },
+    {
+      "id": "kessebohmer_imove",
+      "code": "IMOVE",
+      "brand": "Kesseböhmer",
+      "collection": "iMove",
+      "category": "overhead",
+      "type": "pull_down_wall_shelf",
+      "name_fr": "Étagère descendeur ergonomique pour meuble haut iMove",
+      "name_en": "iMove pull-down ergonomic shelf for overhead cabinet",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "overhead"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          500,
+          600,
+          800,
+          900
+        ],
+        "min_height_H": 510,
+        "min_depth_D": 270
+      },
+      "load_capacity_kg": 8,
+      "soft_close": true
+    },
+    {
+      "id": "hettich_innotech_atira",
+      "code": "INNOTECH-ATIRA",
+      "brand": "Hettich",
+      "collection": "InnoTech Atira",
+      "category": "drawer",
+      "type": "metal_box_drawer_system",
+      "name_fr": "Tiroir / Casserolier InnoTech Atira (coulisses Quadro Silent System)",
+      "name_en": "InnoTech Atira drawer system with Quadro slides",
+      "tiers": [
+        "standard"
+      ],
+      "cabinet_zones": [
+        "base",
+        "column"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          300,
+          400,
+          450,
+          500,
+          600,
+          800,
+          900,
+          1000,
+          1200
+        ],
+        "side_heights": [
+          70,
+          144,
+          176
+        ],
+        "nominal_depths_NL": [
+          300,
+          350,
+          420,
+          470,
+          520
+        ]
+      },
+      "load_capacity_kg": [
+        30,
+        50
+      ],
+      "soft_close": true,
+      "finishes": [
+        "Anthracite",
+        "Blanc",
+        "Argent"
+      ]
+    },
+    {
+      "id": "hettich_sensys",
+      "code": "SENSYS-8645i",
+      "brand": "Hettich",
+      "collection": "Sensys",
+      "category": "hardware",
+      "type": "hinge_35mm_soft_close",
+      "name_fr": "Charnière invisible 35 mm 110° amortie Sensys",
+      "name_en": "Sensys 110° concealed soft-close hinge 35 mm",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base",
+        "overhead",
+        "column"
+      ],
+      "dimensions_mm": {
+        "cup_diameter": 35,
+        "cup_depth": 12.8,
+        "edge_offset": 21.5
+      },
+      "soft_close": true
+    },
+    {
+      "id": "grass_nova_pro_scala",
+      "code": "NOVA-PRO-SCALA",
+      "brand": "Grass",
+      "collection": "Nova Pro Scala",
+      "category": "drawer",
+      "type": "metal_box_drawer_system",
+      "name_fr": "Tiroir double paroi Nova Pro Scala (utilisé sur la gamme INOXA Hyper)",
+      "name_en": "Nova Pro Scala double-wall drawer system",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base",
+        "column"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          300,
+          400,
+          450,
+          500,
+          600,
+          800,
+          900,
+          1200
+        ],
+        "side_heights": [
+          63,
+          90,
+          122,
+          186,
+          250
+        ],
+        "nominal_depths_NL": [
+          270,
+          350,
+          400,
+          450,
+          500,
+          550
+        ]
+      },
+      "load_capacity_kg": [
+        40,
+        70
+      ],
+      "soft_close": true
+    },
+    {
+      "id": "vauth_sagel_vs_envi_space",
+      "code": "VS-ENVI-SPACE",
+      "brand": "Vauth-Sagel",
+      "collection": "VS ENVI",
+      "category": "under_sink",
+      "type": "pull_out_waste_sorting_bin",
+      "name_fr": "Poubelle coulissante tri sélectif VS ENVI Space (2 à 4 bacs)",
+      "name_en": "VS ENVI Space pull-out waste sorting system (2-4 bins)",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "under_sink",
+        "base"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          400,
+          450,
+          500,
+          600,
+          800,
+          900
+        ],
+        "height_h": [
+          370,
+          470
+        ],
+        "depth_D": 464
+      },
+      "capacity_liters": [
+        32,
+        42,
+        60,
+        84
+      ],
+      "soft_close": true
+    },
+    {
+      "id": "dtc_dragonpro_drawer",
+      "code": "DTC-DRAGONPRO",
+      "brand": "DTC",
+      "collection": "DragonPro",
+      "category": "drawer",
+      "type": "metal_box_drawer_system",
+      "name_fr": "Tiroir métal sortie totale freiné DTC DragonPro",
+      "name_en": "DTC DragonPro full-extension soft-close drawer",
+      "tiers": [
+        "eco",
+        "standard"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          400,
+          450,
+          500,
+          600,
+          800,
+          900
+        ],
+        "side_heights": [
+          89,
+          130,
+          185
+        ],
+        "nominal_depths_NL": [
+          350,
+          400,
+          450,
+          500
+        ]
+      },
+      "load_capacity_kg": 40,
+      "soft_close": true
+    },
+    {
+      "id": "dtc_hinge_softclose",
+      "code": "DTC-C80-SC",
+      "brand": "DTC",
+      "collection": "C80",
+      "category": "hardware",
+      "type": "hinge_35mm_soft_close",
+      "name_fr": "Charnière 35 mm 110° amortie DTC (Éco / Standard)",
+      "name_en": "DTC 35 mm 110° soft-close hinge",
+      "tiers": [
+        "eco",
+        "standard"
+      ],
+      "cabinet_zones": [
+        "base",
+        "overhead",
+        "column"
+      ],
+      "dimensions_mm": {
+        "cup_diameter": 35,
+        "cup_depth": 11.5,
+        "edge_offset": 21.5
+      },
+      "soft_close": true
+    },
+    {
+      "id": "atelier_porte_bouteille_gaz",
+      "code": "GAZ-PULLOUT-450",
+      "brand": "Atelier / Générique",
+      "collection": "Spécial Cuisine",
+      "category": "base",
+      "type": "gas_bottle_pullout_tray",
+      "name_fr": "Porte-bouteille de gaz coulissant renforcé (bouteille 12 kg + aération)",
+      "name_en": "Heavy-duty pull-out gas cylinder tray (12 kg bottle)",
+      "tiers": [
+        "eco",
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          400,
+          450
+        ],
+        "tray_width_W": [
+          360,
+          410
+        ],
+        "min_height_H": 650,
+        "depth_D": 480,
+        "ventilation_grid_plinth_mm": [
+          400,
+          60
+        ]
+      },
+      "load_capacity_kg": 50,
+      "soft_close": true,
+      "notes": "Prévoir découpe passe-tuyau arrière + grille d'aération en plinthe et fond ventilé."
+    },
+    {
+      "id": "atelier_egouttoir_vaisselle_inox",
+      "code": "EGOUT-INOX-304",
+      "brand": "Atelier / Générique",
+      "collection": "Meubles Hauts",
+      "category": "overhead",
+      "type": "built_in_dish_drainer",
+      "name_fr": "Égouttoir à vaisselle encastrable Inox 304 (2 niveaux + bac eau)",
+      "name_en": "Built-in stainless steel 304 dish drainer with drip tray",
+      "tiers": [
+        "eco",
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "overhead"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          600,
+          700,
+          800,
+          900
+        ],
+        "min_depth_D": 280,
+        "recommended_height_H": 720
+      },
+      "notes": "Recommander caisson haut sans fond bas ou avec cadre alu de renfort."
+    },
+    {
+      "id": "atelier_profil_gola",
+      "code": "GOLA-L-C-ALU",
+      "brand": "Atelier / Générique",
+      "collection": "Sans Poignée",
+      "category": "finish_and_opening",
+      "type": "gola_handleless_profile",
+      "name_fr": "Profils sans poignée Gola (L haut, C intermédiaire, vertical colonne)",
+      "name_en": "Handleless Gola aluminum profiles (L, C, vertical)",
+      "tiers": [
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "base",
+        "column"
+      ],
+      "dimensions_mm": {
+        "bar_length": 4000,
+        "recess_height_L": 56,
+        "recess_height_C": 73,
+        "recess_depth": 26
+      },
+      "finishes": [
+        "Noir mat",
+        "Anodisé argent",
+        "Champagne / Or brossé",
+        "Blanc mat"
+      ]
+    },
+    {
+      "id": "atelier_led_profil_capteur",
+      "code": "LED-PROFIL-SENSOR",
+      "brand": "Atelier / Générique",
+      "collection": "Éclairage",
+      "category": "lighting_and_power",
+      "type": "under_cabinet_led_profile",
+      "name_fr": "Profilé LED encastrable sous meuble haut (3000K/4000K + capteur main)",
+      "name_en": "Recessed under-cabinet LED aluminum profile with hand-wave sensor",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "overhead",
+        "dressing",
+        "tv"
+      ],
+      "dimensions_mm": {
+        "groove_width": 10,
+        "groove_depth": 10,
+        "bar_length": 2000
+      }
+    },
+    {
+      "id": "atelier_bloc_prises_popup",
+      "code": "POPUP-3P-USBC",
+      "brand": "Atelier / Générique",
+      "collection": "Électricité",
+      "category": "lighting_and_power",
+      "type": "worktop_popup_socket",
+      "name_fr": "Bloc prises escamotable plan de travail (3 prises + USB-C)",
+      "name_en": "Pop-up countertop power socket tower (3 sockets + USB-C)",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "countertop",
+        "island"
+      ],
+      "dimensions_mm": {
+        "cutout_diameter": 80,
+        "retracted_depth": 310
+      }
+    },
+    {
+      "id": "atelier_tapis_etanche_sous_evier",
+      "code": "MAT-ALU-SINK",
+      "brand": "Atelier / Générique",
+      "collection": "Protection",
+      "category": "under_sink",
+      "type": "waterproof_aluminum_mat",
+      "name_fr": "Tapis de protection aluminium étanche fond sous-évier",
+      "name_en": "Waterproof aluminum protective mat for under-sink base",
+      "tiers": [
+        "eco",
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "under_sink"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          600,
+          800,
+          900,
+          1000,
+          1200
+        ],
+        "depth_D": 560
+      }
+    },
+    {
+      "id": "atelier_tiroir_plinthe",
+      "code": "PLINTH-DRAWER-150",
+      "brand": "Atelier / Générique",
+      "collection": "Optimisation Espace",
+      "category": "drawer",
+      "type": "plinth_drawer",
+      "name_fr": "Tiroir de plinthe sur roulettes / coulisses (socle H150 mm)",
+      "name_en": "Plinth / toe-kick storage drawer (H150 mm)",
+      "tiers": [
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "plinth"
+      ],
+      "dimensions_mm": {
+        "cabinet_widths_L": [
+          600,
+          800,
+          900
+        ],
+        "min_plinth_height": 140,
+        "depth_D": 450
+      },
+      "load_capacity_kg": 20
+    },
+    {
+      "id": "atelier_barre_credence",
+      "code": "CREDENCE-RAIL-KIT",
+      "brand": "Atelier / Générique",
+      "collection": "Crédence",
+      "category": "backsplash",
+      "type": "backsplash_rail_accessories",
+      "name_fr": "Kit barre de crédence (crochets, porte-épices, dérouleur essuie-tout, barre couteaux)",
+      "name_en": "Backsplash rail organizer kit",
+      "tiers": [
+        "eco",
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "backsplash"
+      ],
+      "dimensions_mm": {
+        "rail_lengths": [
+          600,
+          900,
+          1200
+        ]
+      }
+    },
+    {
+      "id": "atelier_grille_ventilation",
+      "code": "VENT-PLINTH-480",
+      "brand": "Atelier / Générique",
+      "collection": "Ventilation",
+      "category": "finish_and_opening",
+      "type": "plinth_ventilation_grille",
+      "name_fr": "Grille d'aération plinthe aluminium (colonne frigo / four / caisson gaz)",
+      "name_en": "Aluminum plinth ventilation grille (fridge / oven / gas cabinet)",
+      "tiers": [
+        "eco",
+        "standard",
+        "luxe"
+      ],
+      "cabinet_zones": [
+        "plinth",
+        "column"
+      ],
+      "dimensions_mm": {
+        "width_W": 480,
+        "height_H": 60,
+        "cutout_W": 455,
+        "cutout_H": 48
+      }
+    }
+  ]
+}

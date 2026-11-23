@@ -1654,6 +1654,14 @@ class AppState extends ChangeNotifier {
   /// L'endroit reprend la poignée générale.
   void clearHandleZone(String zone) => edit(() => project.style.handleByZone.remove(zone));
 
+  /// Équipe un caisson d'un accessoire d'équipement (null = aucun).
+  void setCabinetAccessory(String uid, String? accessoryId) => edit(() {
+        final c = project.items.where((x) => x.uid == uid).firstOrNull;
+        if (c != null) {
+          c.accessory = (accessoryId == null || accessoryId.isEmpty) ? null : accessoryId;
+        }
+      });
+
   /// Joue (costado) d'un côté d'un caisson : null automatique, true avec, false sans. Renvoie le message à afficher.
   String? setCheek(String uid, bool left, bool? on) {
     String? msg;

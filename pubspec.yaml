@@ -71,6 +71,8 @@ flutter:
     - assets/logo.svg
     - assets/data/
     - assets/data/furniture/
+    - assets/illustrations/
+    - assets/illustrations/inoxa_hyper/
     # PDF en arabe : Noto Sans Arabic (licence OFL, OFL.txt dans le dossier)
     - assets/fonts/noto_arabic/
     # app native (iPad) : moteur 3D three.js et modeles servis a la vue 3D par l'app elle-meme
