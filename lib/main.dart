@@ -40,6 +40,7 @@ import 'ui/stock_page.dart';
 import 'ui/stock_store.dart';
 import 'ui/theme.dart';
 import 'ui/toolbar.dart';
+import 'ui/pdf_preview.dart';
 import 'ui/web_io.dart';
 import 'ui/i18n.dart';
 import 'ui/app_settings.dart';
@@ -586,8 +587,12 @@ class _PlannerScreenState extends State<PlannerScreen> {
       }, progress: progress);
       progress.dispose();
       final (pdfBytes, number) = bytes;
-      downloadBytes('${number == null ? '' : '${number}_'}${st.project.name}_plan_execution.pdf', pdfBytes, mime: 'application/pdf');
-      _msg(trp('Plan d\'exécution {0} téléchargé ({1} Ko)', [number ?? '', pdfBytes.length ~/ 1024]));
+      if (!mounted) return;
+      // aperçu dans l'application ; on n'enregistre que si on le demande
+      await showPdfPreview(context, title: tr('Plan d’exécution'), bytes: pdfBytes, onSave: () {
+        downloadBytes('${number == null ? '' : '${number}_'}${st.project.name}_plan_execution.pdf', pdfBytes, mime: 'application/pdf');
+        _msg(trp('Plan d\'exécution {0} téléchargé ({1} Ko)', [number ?? '', pdfBytes.length ~/ 1024]));
+      });
     } catch (e, st) {
       // ignore: avoid_print
       print('PDF exécution ERREUR: $e\n$st');
@@ -621,8 +626,11 @@ class _PlannerScreenState extends State<PlannerScreen> {
               info: {'feuilles': plan.sheets.length}),
           progress: progress);
       progress.dispose();
-      downloadBytes('${number == null ? '' : '${number}_'}${st.project.name}_plan_de_decoupe.pdf', bytes, mime: 'application/pdf');
-      _msg(trp('Plan de découpe : {0} pièces sur {1} panneau(x)', [plan.partCount, plan.newSheets().length]));
+      if (!mounted) return;
+      await showPdfPreview(context, title: tr('Plan de découpe'), bytes: bytes, onSave: () {
+        downloadBytes('${number == null ? '' : '${number}_'}${st.project.name}_plan_de_decoupe.pdf', bytes, mime: 'application/pdf');
+        _msg(trp('Plan de découpe : {0} pièces sur {1} panneau(x)', [plan.partCount, plan.newSheets().length]));
+      });
     } catch (e, st) {
       // ignore: avoid_print
       print('PDF découpe ERREUR: $e\n$st');
@@ -659,8 +667,11 @@ class _PlannerScreenState extends State<PlannerScreen> {
       final projId = digitsOnly.length >= 4
           ? digitsOnly.substring(digitsOnly.length - 4)
           : (st.project.name.hashCode.abs() % 9000 + 1000).toString();
-      downloadBytes('etiquettes_$projId.pdf', bytes, mime: 'application/pdf');
-      _msg(tr('Étiquettes et codes-barres générés (PDF)'));
+      if (!mounted) return;
+      await showPdfPreview(context, title: tr('Étiquettes et codes'), bytes: bytes, onSave: () {
+        downloadBytes('etiquettes_$projId.pdf', bytes, mime: 'application/pdf');
+        _msg(tr('Étiquettes et codes-barres générés (PDF)'));
+      });
     } catch (e) {
       _msg(trp('Échec de génération des codes : {0}', [e]));
     } finally {

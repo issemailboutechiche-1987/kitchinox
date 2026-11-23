@@ -168,8 +168,8 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
       if (_blocked) return;
       st.dragTo(uid.toDart, s: s.toDartDouble, z: z.toDartDouble);
     }).toJS);
-    h.setProperty('sel'.toJS, ((JSNumber? x0, JSNumber? y0, JSNumber? x1, JSNumber? y1) {
-      final r = x0 == null || y0 == null || x1 == null || y1 == null ? null : Rect.fromLTRB(x0.toDartDouble, y0.toDartDouble, x1.toDartDouble, y1.toDartDouble);
+    h.setProperty('sel'.toJS, ((JSNumber x0, JSNumber y0, JSNumber x1, JSNumber y1) {
+      final r = x0.toDartDouble < 0 ? null : Rect.fromLTRB(x0.toDartDouble, y0.toDartDouble, x1.toDartDouble, y1.toDartDouble);
       if (r == st.selRect3d) return;
       st.selRect3d = r;
       st.refresh();

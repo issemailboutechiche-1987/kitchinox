@@ -43,6 +43,7 @@ dependencies:
   share_plus: ^13.3.1
   path_provider: ^2.1.6
   archive: ^4.0.0
+  printing: 5.15.1
 
 dev_dependencies:
   flutter_test:

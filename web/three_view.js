@@ -78,7 +78,8 @@ function reportSelection() {
   }
   if (key === lastSel) return;
   lastSel = key;
-  if (key === 'none') handler('sel');
+  // toujours quatre nombres (-1 : rien de choisi) : la fonction de l'application attend quatre arguments
+  if (key === 'none') handler('sel', -1, -1, -1, -1);
   else handler('sel', ...key.split(',').map(Number));
 }
 

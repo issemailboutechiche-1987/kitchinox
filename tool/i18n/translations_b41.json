@@ -1,0 +1,9 @@
+{
+"Plan d’exécution": ["Execution plan", "مخطط التنفيذ"],
+"Plan de découpe": ["Cutting plan", "مخطط التقطيع"],
+"Étiquettes et codes": ["Labels and codes", "الملصقات والرموز"],
+"Aperçu impossible sur cet appareil : le PDF peut quand même être enregistré.": ["Preview not available on this device: the PDF can still be saved.", "المعاينة غير متاحة على هذا الجهاز: يمكن مع ذلك حفظ ملف PDF."],
+"{0} page(s) · {1} Ko": ["{0} page(s) · {1} KB", "{0} صفحة · {1} ك.ب"],
+"Préparation de l’aperçu… {0} page(s)": ["Preparing preview… {0} page(s)", "جارٍ تحضير المعاينة… {0} صفحة"],
+"Enregistrer le PDF": ["Save PDF", "حفظ PDF"]
+}

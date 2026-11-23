@@ -3345,6 +3345,13 @@ const Map<String, String> enDict = {
   "Pivoter de 90°": "Rotate 90°",
   "Stratidécor (aggloméré mélaminé)": "Stratidécor (melamine-faced chipboard)",
   "MDF laqué luxe 22 mm": "Luxury lacquered MDF 22 mm",
+  "Plan d’exécution": "Execution plan",
+  "Plan de découpe": "Cutting plan",
+  "Étiquettes et codes": "Labels and codes",
+  "Aperçu impossible sur cet appareil : le PDF peut quand même être enregistré.": "Preview not available on this device: the PDF can still be saved.",
+  "{0} page(s) · {1} Ko": "{0} page(s) · {1} KB",
+  "Préparation de l’aperçu… {0} page(s)": "Preparing preview… {0} page(s)",
+  "Enregistrer le PDF": "Save PDF",
 };
 
 const Map<String, String> arDict = {
@@ -6692,4 +6699,11 @@ const Map<String, String> arDict = {
   "Pivoter de 90°": "تدوير 90°",
   "Stratidécor (aggloméré mélaminé)": "ستراتيديكور (خشب حبيبي مغلف بالميلامين)",
   "MDF laqué luxe 22 mm": "MDF مطلي فاخر 22 مم",
+  "Plan d’exécution": "مخطط التنفيذ",
+  "Plan de découpe": "مخطط التقطيع",
+  "Étiquettes et codes": "الملصقات والرموز",
+  "Aperçu impossible sur cet appareil : le PDF peut quand même être enregistré.": "المعاينة غير متاحة على هذا الجهاز: يمكن مع ذلك حفظ ملف PDF.",
+  "{0} page(s) · {1} Ko": "{0} صفحة · {1} ك.ب",
+  "Préparation de l’aperçu… {0} page(s)": "جارٍ تحضير المعاينة… {0} صفحة",
+  "Enregistrer le PDF": "حفظ PDF",
 };
