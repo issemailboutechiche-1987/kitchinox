@@ -293,3 +293,28 @@ Future<void> docDelete(String name) async {
   final f = File('${dir.path}/${_safeDoc(name)}');
   if (await f.exists()) await f.delete();
 }
+
+/// Images (rendus, présentation) : une copie dans Kitchinox/export, puis le menu Partager
+/// (« Enregistrer l'image » les met dans Photos).
+Future<bool> saveImages(List<(String, List<int>)> images) async {
+  if (!nativeIoEnabled || images.isEmpty) return false;
+  try {
+    final tmp = await getTemporaryDirectory();
+    final files = <XFile>[];
+    for (final (name, bytes) in images) {
+      final safe = name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+      final dir = _folderFor(safe);
+      if (dir != null) await File('${dir.path}/$safe').writeAsBytes(bytes, flush: true);
+      final f = File('${tmp.path}/$safe');
+      await f.writeAsBytes(bytes, flush: true);
+      files.add(XFile(f.path, mimeType: 'image/png', name: safe));
+    }
+    final v = WidgetsBinding.instance.platformDispatcher.views.first;
+    final size = v.physicalSize / v.devicePixelRatio;
+    await SharePlus.instance.share(ShareParams(files: files, sharePositionOrigin: Rect.fromLTWH(size.width - 120, 56, 1, 1)));
+    return true;
+  } catch (e) {
+    debugPrint('images : $e');
+    return false;
+  }
+}

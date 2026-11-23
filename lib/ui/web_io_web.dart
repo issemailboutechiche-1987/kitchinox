@@ -176,3 +176,29 @@ Future<void> docDelete(String name) async {
   tx.objectStore('data').delete(name.toJS);
   await _await(tx.objectStore('meta').delete(name.toJS));
 }
+
+/// Images (rendus, présentation) : sur iPad et téléphone, le menu Partager du navigateur
+/// (« Enregistrer l'image » les met dans Photos) ; ailleurs, téléchargement.
+/// À appeler juste après le toucher de l'utilisateur (le navigateur l'exige pour partager).
+Future<bool> saveImages(List<(String, List<int>)> images) async {
+  if (images.isEmpty) return false;
+  try {
+    final files = [
+      for (final (name, bytes) in images)
+        web.File([Uint8List.fromList(bytes).toJS].toJS, name, web.FilePropertyBag(type: 'image/png')),
+    ];
+    final data = web.ShareData(files: files.toJS);
+    final nav = web.window.navigator;
+    final touch = nav.maxTouchPoints > 0;
+    if (touch && nav.canShare(data)) {
+      await nav.share(data).toDart;
+      return true;
+    }
+  } catch (_) {
+    // partage refusé ou annulé : on télécharge
+  }
+  for (final (name, bytes) in images) {
+    downloadBytes(name, bytes, mime: 'image/png');
+  }
+  return true;
+}

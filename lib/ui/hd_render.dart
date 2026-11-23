@@ -131,7 +131,7 @@ Future<void> showHdRender(BuildContext context, AppState state, void Function(St
               icon: const Icon(Icons.save_outlined, size: 18),
               label: Text(tr('Enregistrer l’image')),
               onPressed: () async {
-                await saveToKitchinox('${state.project.name}_rendu_HD.png', png!);
+                await saveImages([('${state.project.name}_rendu_HD.png', png!)]);
                 onMessage(tr('Image enregistrée'));
                 if (ctx.mounted) Navigator.pop(ctx);
               },

@@ -366,7 +366,7 @@ class Scene3dPainter {
         }
       }
       for (final (a, b) in e.runs(w.id, (m) => m.floorSupport)) {
-        solids.add(_Solid(w.strip(a, b - a, 540, 0, std.plinthHeight.toDouble()), shade(lowFront.color, -0.12)));
+        solids.add(_Solid(w.strip(a, b - a, 540, 0, std.plinthHeight.toDouble()), plinthColor(p.style, lowFront.color)));
       }
     }
     final isl = room.island;
@@ -392,7 +392,7 @@ class Scene3dPainter {
         solids.add(_Solid(box(a, b, -18, 0, 0, std.baseTop.toDouble()), lowFront.color, finish: lowFront));
       }
       for (final (a, b) in e.runs('I', (m) => m.floorSupport)) {
-        solids.add(_Solid(box(a, b, 0, 540, 0, std.plinthHeight.toDouble()), shade(lowFront.color, -0.12)));
+        solids.add(_Solid(box(a, b, 0, 540, 0, std.plinthHeight.toDouble()), plinthColor(p.style, lowFront.color)));
       }
     }
 

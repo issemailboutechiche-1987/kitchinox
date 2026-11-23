@@ -1781,7 +1781,7 @@ class _PlannerPainter extends CustomPainter {
 
     // plinthes (en retrait, plus foncées)
     for (final r in mine.where((r) => r.model.floorSupport && r.z0 > 0)) {
-      canvas.drawRect(v.rect(r.s0, 0, r.s1, r.z0), Paint()..color = shade(front.color, -0.2));
+      canvas.drawRect(v.rect(r.s0, 0, r.s1, r.z0), Paint()..color = st.project.style.plinth == null ? shade(front.color, -0.2) : plinthColor(st.project.style, front.color));
     }
 
     // plan de travail continu

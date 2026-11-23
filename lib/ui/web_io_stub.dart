@@ -60,3 +60,6 @@ Future<List<DocEntry>> docList() async =>
 Future<Uint8List?> docGet(String name) async => _docs[name]?.$1;
 
 Future<void> docDelete(String name) async => _docs.remove(name);
+
+/// Images (rendus, présentation) : enregistrées dans les Photos de l'appareil (tests : rien).
+Future<bool> saveImages(List<(String, List<int>)> images) async => true;

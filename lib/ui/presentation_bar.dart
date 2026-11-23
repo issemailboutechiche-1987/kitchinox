@@ -20,7 +20,7 @@ const studioModes = {'decor': 'Complet', 'appliances': 'Avec appareils', 'bare':
 Future<bool> _save(String name) async {
   final url = await getWeb3dSnapshotPng();
   if (url == null || !url.contains(',')) return false;
-  await saveToKitchinox(name, base64Decode(url.split(',').last));
+  await saveImages([(name, base64Decode(url.split(',').last))]);
   return true;
 }
 
@@ -35,23 +35,47 @@ class PresentationBar extends StatefulWidget {
 class _PresentationBarState extends State<PresentationBar> {
   bool busy = false;
 
+  /// Images prêtes : un bouton pour les mettre dans Photos (ou les télécharger).
+  Future<void> _offer(List<(String, List<int>)> images) => showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(trp('{0} image(s) prête(s)', [images.length])),
+          content: Text(tr('Sur iPad, choisissez « Enregistrer l’image » pour les mettre dans Photos.')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Fermer'))),
+            FilledButton.icon(
+              key: const ValueKey('save_images'),
+              icon: const Icon(Icons.photo_library_outlined, size: 18),
+              label: Text(tr('Enregistrer les images')),
+              onPressed: () async {
+                await saveImages(images);
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+            ),
+          ],
+        ),
+      );
+
   /// Les trois niveaux, l'un après l'autre : images séparées, ou réunies sur une fiche.
   Future<void> _all({required bool sheet}) async {
     final st = widget.state;
     final was = st.studio;
     setState(() => busy = true);
     final shots = <Uint8List>[];
+    final out = <(String, List<int>)>[];
     for (final m in studioModes.keys) {
       st.setStudio(m);
       await Future<void>.delayed(const Duration(milliseconds: 1400)); // la scène se reconstruit
       final png = pngOf(await getWeb3dSnapshotPng());
       if (png == null) break;
       shots.add(png);
-      if (!sheet) await saveToKitchinox('${st.project.name}_${m == 'decor' ? 'complet' : m == 'bare' ? 'meubles' : 'appareils'}.png', png);
+      if (!sheet) out.add(('${st.project.name}_${m == 'decor' ? 'complet' : m == 'bare' ? 'meubles' : 'appareils'}.png', png));
     }
-    if (sheet && shots.length == 3) await saveToKitchinox('${st.project.name}_fiche.png', await composeSheet(shots, title: st.project.name));
+    if (sheet && shots.length == 3) out.add(('${st.project.name}_fiche.png', await composeSheet(shots, title: st.project.name)));
     st.setStudio(was);
     if (mounted) setState(() => busy = false);
+    // le navigateur n'accepte d'enregistrer dans Photos que juste après un toucher : on le demande
+    if (out.isNotEmpty && mounted) await _offer(out);
     widget.onMessage(shots.length < 3 ? tr('Image impossible : ouvrez la vue 3D.') : trp('{0} image(s) enregistrée(s)', [sheet ? 1 : 3]));
   }
 

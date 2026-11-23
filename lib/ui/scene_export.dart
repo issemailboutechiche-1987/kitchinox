@@ -520,7 +520,12 @@ class SceneExporter {
 
     // plans de travail et plinthes (avec découpes réelles autour des appareils)
     final topMat = await _mat(top, rough: top.tex?.startsWith('marble') ?? false ? 0.3 : 0.55);
-    final plinthMat = _plain(shade(lowFront.color, -0.12), rough: 0.6);
+    final plf = plinthFinish(style);
+    final plinthMat = plf == null
+        ? _plain(shade(lowFront.color, -0.12), rough: 0.6)
+        : plf.tex != null
+            ? await _mat(plf, rough: 0.5)
+            : _plain(plf.color, rough: const {'alu', 'inox'}.contains(style.plinth) ? 0.35 : 0.6, metal: const {'alu', 'inox'}.contains(style.plinth) ? 0.7 : 0);
     for (final w in room.walls.where((w) => w.enabled)) {
       final cuts = (cutoutsByWall[w.id] ?? [])..sort((a, b) => a.s0.compareTo(b.s0));
       for (final (a, b) in e.runs(w.id, (m) => e.hasWorktop && m.kind.isLow)) {

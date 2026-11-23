@@ -2026,6 +2026,24 @@ class _WorktopMaterialForm extends StatelessWidget {
             ChoiceChip(label: Text(trp('{0} mm', [x])), selected: th == x, onSelected: (_) => state.edit(() => sp.worktopThickness = x)),
         ]),
       ],
+      title('Plinthes'),
+      KxChoices<String>(
+        key: const ValueKey('plinth_mode'),
+        segments: [
+          ButtonSegment(value: 'facade', label: Text(tr('Comme les façades'))),
+          ButtonSegment(value: 'plan', label: Text(tr('Comme le plan de travail'))),
+          ButtonSegment(value: 'autre', label: Text(tr('Autre matière'))),
+        ],
+        selected: {st.plinth == null ? 'facade' : (st.plinth == 'plan' ? 'plan' : 'autre')},
+        onSelectionChanged: (v) => state.edit(() => st.plinth = switch (v.first) { 'facade' => null, 'plan' => 'plan', _ => st.plinth != null && st.plinth != 'plan' ? st.plinth : 'alu' }),
+      ),
+      if (st.plinth != null && st.plinth != 'plan') ...[
+        const SizedBox(height: Tokens.s2),
+        Wrap(spacing: Tokens.s3, runSpacing: Tokens.s3, children: [
+          for (final f in plinthPlain) _Swatch(key: ValueKey('plinth_${f.id}'), finish: f, selected: st.plinth == f.id, onTap: () => state.edit(() => st.plinth = f.id)),
+          for (final f in frontFinishes(st)) _Swatch(key: ValueKey('plinth_f_${f.id}'), finish: f, selected: st.plinth == 'f:${f.id}', onTap: () => state.edit(() => st.plinth = 'f:${f.id}')),
+        ]),
+      ],
       if (p.room.island != null) ...[
         title('Plan de l’îlot'),
         KxChoices<bool>(

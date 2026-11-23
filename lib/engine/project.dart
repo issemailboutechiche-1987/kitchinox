@@ -535,6 +535,9 @@ class KitchenStyle {
   String frontProfile; // modèle de façade : 'lisse' | 'shaker' | 'shaker_fin' | 'mouluree' | 'cannelee'
   String? islandFront; // façades de l'îlot (null : comme les bas)
   String? islandTop; // plan de l'îlot (null : comme les autres)
+  /// Plinthe : null comme les façades (un ton plus foncé), 'plan' comme le plan de travail,
+  /// 'alu', 'inox', 'noir', 'blanc', ou « f:finition » un décor de façade.
+  String? plinth;
   bool islandWaterfall; // plan en cascade : jambages jusqu'au sol
   String islandBack; // dos de l'îlot : 'lisse' | 'cadre' | 'cannele'
   final Set<String> decor; // décor du rendu (voir decorItems)
@@ -576,6 +579,7 @@ class KitchenStyle {
     this.frontProfile = 'lisse',
     this.islandFront,
     this.islandTop,
+    this.plinth,
     this.islandWaterfall = false,
     this.islandBack = 'lisse',
     Set<String>? decor,
@@ -629,6 +633,7 @@ class KitchenStyle {
         if (frontProfile != 'lisse') 'front_profile': frontProfile,
         if (islandFront != null) 'island_front': islandFront,
         if (islandTop != null) 'island_top': islandTop,
+        if (plinth != null) 'plinth': plinth,
         if (islandWaterfall) 'island_waterfall': true,
         if (islandBack != 'lisse') 'island_back': islandBack,
         if (decor.isNotEmpty) 'decor': [...decor],
@@ -671,6 +676,7 @@ class KitchenStyle {
         frontProfile: j['front_profile'] as String? ?? 'lisse',
         islandFront: j['island_front'] as String?,
         islandTop: j['island_top'] as String?,
+        plinth: j['plinth'] as String?,
         islandWaterfall: j['island_waterfall'] == true,
         islandBack: j['island_back'] as String? ?? 'lisse',
         decor: {for (final x in (j['decor'] as List? ?? const [])) '$x'},

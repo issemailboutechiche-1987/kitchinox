@@ -286,3 +286,31 @@ Color shade(Color c, double amount) {
   final hsl = HSLColor.fromColor(c);
   return hsl.withLightness((hsl.lightness + amount).clamp(0.0, 1.0)).toColor();
 }
+
+/// Plinthes unies proposées en plus du plan de travail et des décors de façade.
+const plinthPlain = [
+  Finish('alu', 'Aluminium brossé', Color(0xFFB9BDC1)),
+  Finish('inox', 'Inox', Color(0xFFC9CDD0)),
+  Finish('noir', 'Noir', Color(0xFF2A2B2D)),
+  Finish('blanc', 'Blanc', Color(0xFFF2F2F0)),
+];
+
+/// Finition de la plinthe ; null : comme les façades du bas, un ton plus foncé.
+Finish? plinthFinish(KitchenStyle s) {
+  final p = s.plinth;
+  if (p == null) return null;
+  if (p == 'plan') return worktopFinish(s, s.worktop);
+  if (p.startsWith('f:')) return frontFinish(s, p.substring(2));
+  return plinthPlain.where((f) => f.id == p).firstOrNull;
+}
+
+/// Teinte de la plinthe (plans, vues de face, aperçus) sous des façades [front].
+Color plinthColor(KitchenStyle s, Color front) => plinthFinish(s)?.color ?? shade(front, -0.12);
+
+/// Nom de la matière de la plinthe (récapitulatif).
+String plinthLabel(KitchenStyle s) {
+  final p = s.plinth;
+  if (p == null) return 'comme les façades';
+  if (p == 'plan') return 'comme le plan de travail';
+  return plinthFinish(s)?.name ?? p;
+}

@@ -142,7 +142,9 @@ Bom buildBom(LayoutEngine e) {
         '${worktop.round()} × $worktopDepth × ${std.worktopThickness}', 'tronçons : ${worktopParts.join(', ')}', 1, 'lot'));
   }
   if (plinth > 0) {
-    lines.add(BomLine('Plinthes', 'plinth', 'Plinthe H${std.plinthHeight}', '${plinth.round()} mm linéaires', '', 1, 'lot'));
+    final pl = p.style.plinth;
+    final matiere = pl == null ? 'comme les façades' : pl == 'plan' ? 'comme le plan de travail' : pl.startsWith('f:') ? 'décor ${pl.substring(2)}' : pl;
+    lines.add(BomLine('Plinthes', 'plinth', 'Plinthe H${std.plinthHeight}', '${plinth.round()} mm linéaires', matiere, 1, 'lot'));
   }
 
   // ---- joues de finition : posées automatiquement aux extrémités visibles (sinon : à prévoir)

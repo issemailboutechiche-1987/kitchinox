@@ -26,7 +26,7 @@ MenuItemButton kxItem(String label, VoidCallback? on, {IconData? icon, MenuSeria
     );
 
 class KxTopBar extends StatelessWidget {
-  static const height = 48.0;
+  static const height = 56.0;
   final VoidCallback? onHome;
   final List<KxMenu> menus;
   final VoidCallback? onUndo, onRedo, onSave;
@@ -87,7 +87,7 @@ class KxTopBar extends StatelessWidget {
               key: const ValueKey('kx_logo'),
               borderRadius: BorderRadius.circular(8),
               onTap: onHome,
-              child: Tooltip(message: tr('kitchinox'), child: const SizedBox(width: 60, height: 44, child: LogoMark())),
+              child: Tooltip(message: tr('kitchinox'), child: const SizedBox(width: 84, height: 50, child: LogoMark())),
             ),
           ),
           LayoutId(

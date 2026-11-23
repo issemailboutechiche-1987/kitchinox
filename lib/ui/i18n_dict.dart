@@ -3375,6 +3375,11 @@ const Map<String, String> enDict = {
   "Imprimer l’étiquette": "Print the label",
   "Remettre à couper": "Back to cut",
   "Appui long sur une pièce : la remettre à couper.": "Long press a part: put it back to cut.",
+  "Autre matière": "Other material",
+  "Aluminium brossé": "Brushed aluminium",
+  "{0} image(s) prête(s)": "{0} image(s) ready",
+  "Sur iPad, choisissez « Enregistrer l’image » pour les mettre dans Photos.": "On iPad, choose “Save Image” to put them in Photos.",
+  "Enregistrer les images": "Save the images",
 };
 
 const Map<String, String> arDict = {
@@ -6752,4 +6757,9 @@ const Map<String, String> arDict = {
   "Imprimer l’étiquette": "طباعة الملصق",
   "Remettre à couper": "إعادة للتقطيع",
   "Appui long sur une pièce : la remettre à couper.": "ضغطة مطولة على قطعة: إعادتها للتقطيع.",
+  "Autre matière": "مادة أخرى",
+  "Aluminium brossé": "ألمنيوم مصقول",
+  "{0} image(s) prête(s)": "{0} صورة جاهزة",
+  "Sur iPad, choisissez « Enregistrer l’image » pour les mettre dans Photos.": "على iPad، اختر «حفظ الصورة» لوضعها في الصور.",
+  "Enregistrer les images": "حفظ الصور",
 };
