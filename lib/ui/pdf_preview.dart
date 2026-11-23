@@ -9,6 +9,7 @@ import 'package:printing/printing.dart';
 
 import 'i18n.dart';
 import 'theme.dart';
+import 'web_io.dart';
 
 /// Pages d'un PDF en images (remplaçable dans les tests, où il n'y a pas de moteur PDF).
 Stream<ui.Image> Function(Uint8List bytes, double dpi) pdfPageImages = (bytes, dpi) async* {
@@ -18,13 +19,17 @@ Stream<ui.Image> Function(Uint8List bytes, double dpi) pdfPageImages = (bytes, d
 };
 
 /// Montre [bytes] ; renvoie vrai si l'utilisateur a choisi d'enregistrer ([onSave] est alors appelé).
-Future<bool> showPdfPreview(BuildContext context, {required String title, required Uint8List bytes, required VoidCallback onSave}) async {
+/// [storeAs] : nom sous lequel le PDF est gardé dans Documents quand on l'enregistre.
+Future<bool> showPdfPreview(BuildContext context, {required String title, required Uint8List bytes, required VoidCallback onSave, String? storeAs}) async {
   final saved = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
     builder: (_) => _PdfPreviewDialog(title: title, bytes: bytes),
   );
-  if (saved == true) onSave();
+  if (saved == true) {
+    if (storeAs != null) await docPut(storeAs, bytes);
+    onSave();
+  }
   return saved == true;
 }
 
@@ -106,7 +111,7 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
               color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
               child: _pages.isEmpty
                   ? Center(
-                      child: _error != null
+                      child: _error != null || _done
                           ? Icon(Icons.picture_as_pdf_outlined, size: 72, color: scheme.outline)
                           : const CircularProgressIndicator(),
                     )

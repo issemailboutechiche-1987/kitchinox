@@ -30,7 +30,7 @@ class StepToolbar extends StatelessWidget {
   final StyleSection styleSection;
   final ValueChanged<StyleSection> onStyleSection;
   final VoidCallback onExportList, onExportPdf, onCutPdf, onSct, onCutSettings, onSave, onIssues;
-  final VoidCallback? onManualCut, onStock, onCutDone;
+  final VoidCallback? onManualCut, onStock, onCutDone, onWorkshop;
   final VoidCallback? onExportExcel;
   final VoidCallback? onGenerateCodes;
 
@@ -48,6 +48,7 @@ class StepToolbar extends StatelessWidget {
     this.onManualCut,
     this.onStock,
     this.onCutDone,
+    this.onWorkshop,
     this.onExportExcel,
     required this.onCutSettings,
     required this.onSave,
@@ -207,6 +208,7 @@ class StepToolbar extends StatelessWidget {
           ToolTile(icon: Icons.content_cut, label: tr('Fichiers SketchCut (.sct)'), onTap: onSct),
           if (onManualCut != null) ToolTile(icon: Icons.edit_note, label: tr('Débit manuel'), onTap: onManualCut!),
           if (onStock != null) ToolTile(icon: Icons.inventory_outlined, label: tr('Stock et chutes'), onTap: onStock!),
+          if (onWorkshop != null) ToolTile(icon: Icons.precision_manufacturing_outlined, label: tr('Atelier de découpe'), onTap: onWorkshop!),
           if (onCutDone != null) ToolTile(icon: Icons.task_alt, label: tr('Valider la découpe'), onTap: onCutDone!),
           if (onExportExcel != null) ToolTile(icon: Icons.table_chart_outlined, label: tr('Exporter vers Excel (.xlsx)'), onTap: onExportExcel!),
           ToolTile(icon: Icons.table_view_outlined, label: tr('Exporter la liste (Excel)'), onTap: onExportList),

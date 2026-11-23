@@ -239,3 +239,57 @@ void saveImportedAsset(String name, Uint8List bytes) {
     } catch (_) {}
   }
 }
+
+/// Document gardé dans le dossier « Documents » de l'app (PDF, fichier d'atelier).
+class DocEntry {
+  final String name;
+  final int size;
+  final DateTime date;
+  const DocEntry(this.name, this.size, this.date);
+}
+
+final _memDocs = <String, (Uint8List, DateTime)>{};
+
+String _safeDoc(String name) => name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+
+/// Garde un document dans Kitchinox/pdf (le même nom remplace l'ancien).
+Future<void> docPut(String name, List<int> bytes) async {
+  final dir = _pdfDir;
+  if (!nativeIoEnabled || dir == null) {
+    _memDocs[name] = (Uint8List.fromList(bytes), DateTime.now());
+    return;
+  }
+  await File('${dir.path}/${_safeDoc(name)}').writeAsBytes(bytes, flush: true);
+}
+
+/// Documents gardés, du plus récent au plus ancien.
+Future<List<DocEntry>> docList() async {
+  final dir = _pdfDir;
+  if (!nativeIoEnabled || dir == null) {
+    return [for (final e in _memDocs.entries) DocEntry(e.key, e.value.$1.length, e.value.$2)]..sort((a, b) => b.date.compareTo(a.date));
+  }
+  final out = <DocEntry>[];
+  await for (final f in dir.list()) {
+    if (f is! File) continue;
+    final st = await f.stat();
+    out.add(DocEntry(f.uri.pathSegments.last, st.size, st.modified));
+  }
+  return out..sort((a, b) => b.date.compareTo(a.date));
+}
+
+Future<Uint8List?> docGet(String name) async {
+  final dir = _pdfDir;
+  if (!nativeIoEnabled || dir == null) return _memDocs[name]?.$1;
+  final f = File('${dir.path}/${_safeDoc(name)}');
+  return await f.exists() ? f.readAsBytes() : null;
+}
+
+Future<void> docDelete(String name) async {
+  final dir = _pdfDir;
+  if (!nativeIoEnabled || dir == null) {
+    _memDocs.remove(name);
+    return;
+  }
+  final f = File('${dir.path}/${_safeDoc(name)}');
+  if (await f.exists()) await f.delete();
+}

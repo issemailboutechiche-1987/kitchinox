@@ -1,6 +1,7 @@
 // Accueil : le logo se dessine au pochoir, se remplit, puis se réduit en haut ; dessous, les univers
 // (Cuisine, Dressing, Meuble WC, Meuble TV, Art) et le mode Débitage (débit manuel, fichiers .sct / kitchinox).
 import 'package:flutter/foundation.dart';
+import 'documents_page.dart';
 import 'package:flutter/material.dart';
 
 import 'app_state.dart';
@@ -122,6 +123,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           openFurniture(context, widget.state, universe);
                         }
                       }),
+                    ),
+                    IconButton(
+                      key: const ValueKey('home_documents'),
+                      tooltip: tr('Documents'),
+                      icon: const Icon(Icons.description_outlined),
+                      onPressed: () => openDocuments(context),
                     ),
                     IconButton(
                       tooltip: tr('Marques et tarifs'),

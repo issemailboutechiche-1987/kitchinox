@@ -40,7 +40,9 @@ import 'ui/stock_page.dart';
 import 'ui/stock_store.dart';
 import 'ui/theme.dart';
 import 'ui/toolbar.dart';
+import 'ui/documents_page.dart';
 import 'ui/pdf_preview.dart';
+import 'ui/workshop_page.dart';
 import 'ui/web_io.dart';
 import 'ui/i18n.dart';
 import 'ui/app_settings.dart';
@@ -470,6 +472,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
       await openManualCut(context, st);
       return;
     }
+    // fichier d'atelier : il s'ouvre dans l'atelier de découpe
+    if (!mounted) return;
+    if (await openWorkshopFile(context, f.bytes)) return;
     try {
       final jsonStr = KinFormat.decode(f.bytes);
       st.importJson(jsonStr);
@@ -589,7 +594,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
       final (pdfBytes, number) = bytes;
       if (!mounted) return;
       // aperçu dans l'application ; on n'enregistre que si on le demande
-      await showPdfPreview(context, title: tr('Plan d’exécution'), bytes: pdfBytes, onSave: () {
+      await showPdfPreview(context, title: tr('Plan d’exécution'), bytes: pdfBytes, storeAs: '${number == null ? '' : '${number}_'}${st.project.name}_plan_execution.pdf', onSave: () {
         downloadBytes('${number == null ? '' : '${number}_'}${st.project.name}_plan_execution.pdf', pdfBytes, mime: 'application/pdf');
         _msg(trp('Plan d\'exécution {0} téléchargé ({1} Ko)', [number ?? '', pdfBytes.length ~/ 1024]));
       });
@@ -627,7 +632,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
           progress: progress);
       progress.dispose();
       if (!mounted) return;
-      await showPdfPreview(context, title: tr('Plan de découpe'), bytes: bytes, onSave: () {
+      await showPdfPreview(context, title: tr('Plan de découpe'), bytes: bytes, storeAs: '${number == null ? '' : '${number}_'}${st.project.name}_plan_de_decoupe.pdf', onSave: () {
         downloadBytes('${number == null ? '' : '${number}_'}${st.project.name}_plan_de_decoupe.pdf', bytes, mime: 'application/pdf');
         _msg(trp('Plan de découpe : {0} pièces sur {1} panneau(x)', [plan.partCount, plan.newSheets().length]));
       });
@@ -638,6 +643,29 @@ class _PlannerScreenState extends State<PlannerScreen> {
     } finally {
       if (mounted) setState(() => _pdfBusy = false);
     }
+  }
+
+  /// Atelier de découpe : les panneaux du projet, chaque pièce avec le code de son étiquette.
+  /// Le fichier est gardé dans Documents ; ce qui est déjà coupé est repris.
+  Future<void> _workshop() async {
+    final plan = await _plan();
+    if (plan.parts.isEmpty) {
+      _msg(tr('Aucune pièce à débiter'));
+      return;
+    }
+    final job = WorkshopJob.fromPlan(plan, project: st.project.name, client: st.project.client.name, projId: labelProjectId(st.project));
+    st.refresh(); // le n° du plan (et donc du projet) peut venir d'être attribué
+    final old = await docGet(workshopFileName(job));
+    if (old != null) {
+      try {
+        final prev = WorkshopJob.fromJson(jsonDecode(KinFormat.decode(old)) as Map<String, dynamic>);
+        final codes = {for (final p in job.pieces) p.code};
+        job.done.addAll(prev.done.where(codes.contains));
+      } catch (_) {}
+    }
+    await docPut(workshopFileName(job), workshopBytes(job));
+    if (!mounted) return;
+    await openWorkshop(context, job);
   }
 
   /// Découpe faite : chutes utilisées sorties du stock, restes rangés.
@@ -662,13 +690,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
         progress: progress,
       );
       progress.dispose();
-      final numSetting = AppSettings.instance.numberFor(st.project, DocKind.exec);
-      final digitsOnly = (numSetting ?? '').replaceAll(RegExp(r'\D'), '');
-      final projId = digitsOnly.length >= 4
-          ? digitsOnly.substring(digitsOnly.length - 4)
-          : (st.project.name.hashCode.abs() % 9000 + 1000).toString();
+      final projId = labelProjectId(st.project);
       if (!mounted) return;
-      await showPdfPreview(context, title: tr('Étiquettes et codes'), bytes: bytes, onSave: () {
+      await showPdfPreview(context, title: tr('Étiquettes et codes'), bytes: bytes, storeAs: 'etiquettes_$projId.pdf', onSave: () {
         downloadBytes('etiquettes_$projId.pdf', bytes, mime: 'application/pdf');
         _msg(tr('Étiquettes et codes-barres générés (PDF)'));
       });
@@ -1018,6 +1042,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
       KxMenu('Fichier', 'menu_file', [
         kxItem('Nouveau projet', _newProjectWithClient, icon: Icons.add_box_outlined),
         kxItem('Ouvrir… (.kin, .sct, Excel)', _open, icon: Icons.folder_open_outlined, key: 'menu_open'),
+        kxItem('Documents', () => openDocuments(context), icon: Icons.description_outlined, key: 'menu_documents'),
         kxItem('Projets enregistrés', () => showSavedProjectsDialog(context, st), icon: Icons.folder_special_outlined),
         const Divider(height: 1),
         kxItem('Enregistrer', _save, icon: Icons.save_outlined, key: 'menu_save'),
@@ -1084,6 +1109,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         kxItem('Contrôles', _issues, icon: Icons.rule),
         const Divider(height: 1),
         kxItem('Stock et chutes', () => openStock(context, st), icon: Icons.inventory_outlined, key: 'menu_stock'),
+        kxItem('Atelier de découpe', _workshop, icon: Icons.precision_manufacturing_outlined, key: 'menu_workshop'),
         kxItem('Valider la découpe…', _cutDone, icon: Icons.task_alt, key: 'menu_cut_done'),
       ]),
       KxMenu('Fenêtre', 'menu_window', [
@@ -1239,6 +1265,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
                 onManualCut: () => openManualCut(context, st, project: () => st.cutPlan),
                 onStock: () => openStock(context, st),
                 onCutDone: _cutDone,
+                onWorkshop: _workshop,
                 onCutSettings: _cutSettings,
                 onSave: _save,
                 onIssues: _issues,

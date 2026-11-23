@@ -23,6 +23,47 @@ String _clean(String s) => s
     .replaceAll('…', '...')
     .replaceAll(' ', ' ');
 
+/// Numéro de projet des étiquettes (4 chiffres) : la fin du n° du plan d'exécution, sinon tiré du nom.
+String labelProjectId(Project p) {
+  final digitsOnly = (AppSettings.instance.numberFor(p, DocKind.exec) ?? '').replaceAll(RegExp(r'\D'), '');
+  return digitsOnly.length >= 4 ? digitsOnly.substring(digitsOnly.length - 4) : (p.name.hashCode.abs() % 9000 + 1000).toString();
+}
+
+/// Étiquettes de quelques pièces du fichier d'atelier (même format et même code que le PDF complet) :
+/// l'opérateur imprime celle de la pièce qu'il vient de couper.
+Future<Uint8List> buildPieceLabelsPdf(List<WorkshopPiece> pieces) async {
+  const labelFormat = PdfPageFormat(50 * PdfPageFormat.mm, 30 * PdfPageFormat.mm, marginAll: 2 * PdfPageFormat.mm);
+  final doc = pw.Document(theme: await pdfTheme(), title: 'Étiquettes');
+  for (final p in pieces) {
+    doc.addPage(pw.Page(
+      pageFormat: labelFormat,
+      build: (ctx) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Expanded(child: pw.Text(_clean('${p.name} ${p.cabinet}'), style: const pw.TextStyle(fontSize: 7), maxLines: 1)),
+            pw.SizedBox(width: 2),
+            pw.Text('${p.copy}/${p.copies}', style: const pw.TextStyle(fontSize: 7)),
+          ]),
+          pw.Text('${p.length} × ${p.width} mm', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+          pw.Expanded(
+            child: pw.BarcodeWidget(
+              barcode: pw.Barcode.code128(),
+              data: p.code,
+              drawText: true,
+              textStyle: const pw.TextStyle(fontSize: 6),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+        ],
+      ),
+    ));
+  }
+  return doc.save();
+}
+
 /// Construit le PDF d'étiquettes d'atelier (50 x 30 mm paysage, marge 2 mm).
 Future<Uint8List> buildLabelsPdf(AppState state, {void Function(double, String)? onProgress}) async {
   final p = state.project;
@@ -32,12 +73,7 @@ Future<Uint8List> buildLabelsPdf(AppState state, {void Function(double, String)?
   final parts = cutList(e, cs, reps);
   final totalPartCount = parts.fold(0, (sum, pt) => sum + pt.qty);
 
-  // Numéro de projet (4 chiffres, ex: 1176)
-  final numSetting = AppSettings.instance.numberFor(p, DocKind.exec);
-  final digitsOnly = (numSetting ?? '').replaceAll(RegExp(r'\D'), '');
-  final projId = digitsOnly.length >= 4
-      ? digitsOnly.substring(digitsOnly.length - 4)
-      : (p.name.hashCode.abs() % 9000 + 1000).toString();
+  final projId = labelProjectId(p);
 
   // Format étiquette standard 50 x 30 mm paysage avec marge 2 mm
   const labelFormat = PdfPageFormat(50 * PdfPageFormat.mm, 30 * PdfPageFormat.mm, marginAll: 2 * PdfPageFormat.mm);
@@ -48,7 +84,7 @@ Future<Uint8List> buildLabelsPdf(AppState state, {void Function(double, String)?
   onProgress?.call(0.05, tr('Génération du QR code projet…'));
   final safeProj = p.name.length > 25 ? p.name.substring(0, 25) : p.name;
   final safeClient = p.client.name.length > 20 ? p.client.name.substring(0, 20) : p.client.name;
-  final qrData = 'KXD1|$projId|$safeProj|$safeClient|$totalPartCount';
+  final qrData = projectQr(projId, safeProj, safeClient, totalPartCount);
 
   doc.addPage(
     pw.Page(
@@ -107,9 +143,7 @@ Future<Uint8List> buildLabelsPdf(AppState state, {void Function(double, String)?
       onProgress?.call(0.1 + 0.8 * (i / math.max(1, totalLabels)), trp('Étiquette {0} sur {1}…', [i + 1, totalLabels]));
     }
     final item = labelItems[i];
-    final partNumStr = item.partNum.toString().padLeft(3, '0');
-    final copyStr = (item.copyIndex + 1).toString().padLeft(3, '0');
-    final barcodeValue = '$projId$partNumStr$copyStr';
+    final barcodeValue = labelCode(projId, item.partNum, item.copyIndex + 1);
 
     doc.addPage(
       pw.Page(

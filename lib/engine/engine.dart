@@ -18,6 +18,7 @@ export 'kitchen_fixtures.dart';
 export 'corners.dart';
 export 'cutting.dart';
 export 'stock.dart';
+export 'workshop.dart';
 export 'decor.dart';
 export 'end_panels.dart';
 export 'essentials.dart';
