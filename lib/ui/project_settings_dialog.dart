@@ -213,7 +213,7 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                                         if (v == null) return;
                                         setD(() {
                                           carcassMat = v;
-                                          final cat = v.contains('Latté') ? 'Latté (Blockboard)' : v.contains('Stratifié') ? 'Stratifié / Mélaminé' : 'MDF';
+                                          final cat = sheetCategoryOf(v);
                                           final p0 = woodSheetPresets[cat]?.first;
                                           if (p0 != null) {
                                             sheetLCtrl.text = '${p0.length}';
@@ -305,9 +305,9 @@ Future<void> showProjectSettingsDialog(BuildContext context, AppState state, voi
                                         if (v == null) return;
                                         setD(() {
                                           frontMat = v;
-                                          final cat = v.contains('High Gloss') || v.contains('Acrylique') || v.contains('PET')
-                                              ? 'High Gloss / Acrylique'
-                                              : 'MDF';
+                                          final th = thicknessOf(v);
+                                          if (th != null) doorThickCtrl.text = '$th';
+                                          final cat = sheetCategoryOf(v);
                                           final p0 = woodSheetPresets[cat]?.first;
                                           if (p0 != null) {
                                             frontSheetLCtrl.text = '${p0.length}';

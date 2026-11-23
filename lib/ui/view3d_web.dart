@@ -27,6 +27,7 @@ extension type _K3d._(JSObject _) implements JSObject {
   external bool hdStart(int w, int h, int n);
   external String hdState();
   external void hdStop();
+  external void input(bool on);
 }
 
 /// Capture un instantané de la vue 3D WebGL réelle (Data URL base64 PNG).
@@ -101,6 +102,7 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
     st.addListener(_schedule);
     TextureBank.instance.addListener(_schedule);
     _installHandlers();
+    st.input3d = (on) => _k3d?.input(on);
     if (_hosts.isNotEmpty) {
       _host = _hosts.values.last;
       _tryMount();
@@ -118,6 +120,7 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
   @override
   void dispose() {
     _host?.style.pointerEvents = 'auto';
+    if (st.input3d != null) st.input3d = null;
     st.removeListener(_schedule);
     TextureBank.instance.removeListener(_schedule);
     _retry?.cancel();
@@ -164,6 +167,12 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
     h.setProperty('drag'.toJS, ((JSString uid, JSNumber s, JSNumber z) {
       if (_blocked) return;
       st.dragTo(uid.toDart, s: s.toDartDouble, z: z.toDartDouble);
+    }).toJS);
+    h.setProperty('sel'.toJS, ((JSNumber? x0, JSNumber? y0, JSNumber? x1, JSNumber? y1) {
+      final r = x0 == null || y0 == null || x1 == null || y1 == null ? null : Rect.fromLTRB(x0.toDartDouble, y0.toDartDouble, x1.toDartDouble, y1.toDartDouble);
+      if (r == st.selRect3d) return;
+      st.selRect3d = r;
+      st.refresh();
     }).toJS);
     h.setProperty('dragEnd'.toJS, ((JSString uid) {
       st.endDrag();

@@ -350,11 +350,26 @@ class _PlannerScreenState extends State<PlannerScreen> {
   AppState get st => widget.state;
 
   // sur le web, un clic sur un bouton posé sur la 3D atteint aussi le canvas WebGL : on retient qui l'a reçu
-  bool _onCanvas = false;
+  bool _onCanvas = false, _hoverCanvas = false;
+  bool? _input3d;
+  void _setInput3d(bool on) {
+    if (_input3d == on) return;
+    _input3d = on;
+    st.input3d?.call(on);
+  }
+
+  // la 3D web est sous les panneaux : un geste commencé sur un panneau ne la fait ni tourner ni zoomer
   void _anyPointer(PointerEvent e) {
-    if (e is! PointerDownEvent) return;
-    st.overlayDown = _onCanvas ? null : DateTime.now();
-    _onCanvas = false;
+    if (e is PointerHoverEvent) {
+      _setInput3d(_hoverCanvas);
+      _hoverCanvas = false;
+    } else if (e is PointerDownEvent) {
+      st.overlayDown = _onCanvas ? null : DateTime.now();
+      _setInput3d(_onCanvas);
+      _onCanvas = false;
+    } else if (e is PointerUpEvent || e is PointerCancelEvent) {
+      if (e.kind != PointerDeviceKind.mouse) _setInput3d(true); // tactile : pas de survol pour rouvrir la 3D
+    }
   }
 
   @override
@@ -721,7 +736,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                   onChanged: (v) {
                     if (v == null) return;
                     carcassMat = v;
-                    final cat = v.contains('Latté') ? 'Latté (Blockboard)' : v.contains('Stratifié') ? 'Stratifié / Mélaminé' : 'MDF';
+                    final cat = sheetCategoryOf(v);
                     final p = woodSheetPresets[cat]?.first;
                     if (p != null) {
                       fields['Longueur feuille caissons (mm)']!.text = '${p.length}';
@@ -758,7 +773,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
                   onChanged: (v) {
                     if (v == null) return;
                     frontMat = v;
-                    final cat = v.contains('High Gloss') || v.contains('Acrylique') || v.contains('PET') ? 'High Gloss / Acrylique' : 'MDF';
+                    final th = thicknessOf(v);
+                    if (th != null) fields['Épaisseur porte MDF (mm)']!.text = '$th';
+                    final cat = sheetCategoryOf(v);
                     final p = woodSheetPresets[cat]?.first;
                     if (p != null) {
                       fields['Longueur feuille façades (mm)']!.text = '${p.length}';
@@ -1090,6 +1107,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
             focusNode: _canvasFocus,
             autofocus: true,
             child: Listener(
+              onPointerHover: (_) => _hoverCanvas = true,
               onPointerDown: (_) {
                 _onCanvas = true;
                 _canvasFocus.requestFocus();
@@ -1109,11 +1127,18 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
             left: 0,
             top: 0,
             bottom: 0,
-            right: side,
+            // la scène couvre toujours toute la surface : les panneaux passent par-dessus, sa taille ne change jamais
+            right: 0,
             child: st.step == PlanStep.summary ? TechPreview(state: st, real3dView: canvas) : canvas,
           ),
-          if (narrow && leftPanel != null)
-            Positioned(left: 0, top: 0, bottom: 0, width: width.clamp(0, 380).toDouble(), child: leftPanel),
+          if (leftPanel != null)
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: width.clamp(0, 380).toDouble(),
+              child: Material(elevation: 6, shadowColor: Colors.black26, child: leftPanel),
+            ),
           if (st.megaMenu)
             Positioned(
                 left: Tokens.s3, top: Tokens.s2, right: Tokens.s3, child: Align(alignment: Alignment.topLeft, child: MegaMenu(state: st, onMessage: _msg))),
@@ -1127,7 +1152,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
             Positioned(top: Tokens.s3, left: Tokens.s3, right: side + Tokens.s3, child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: PresentationBar(state: st, onMessage: _msg)))),
           if (st.step != PlanStep.summary)
             Positioned(
-                left: Tokens.s3,
+                left: (leftPanel != null && !narrow ? 380.0 : 0) + Tokens.s3,
                 right: side + (narrow ? Tokens.s3 : 90),
                 bottom: Tokens.s4,
                 child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: ViewSwitcher(state: st)))),
@@ -1210,10 +1235,6 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
               const Divider(),
               Expanded(
                 child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  if (!narrow && leftPanel != null) ...[
-                    SizedBox(width: 380, child: leftPanel),
-                    const VerticalDivider(width: 1),
-                  ],
                   Expanded(child: stage),
                   if (st.step == PlanStep.summary) ...[
                     const VerticalDivider(width: 1),

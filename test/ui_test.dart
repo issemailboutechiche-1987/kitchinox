@@ -108,7 +108,7 @@ void main() {
     // toucher une carte arme le meuble (taille au choix), puis toucher le plan le pose là
     st.setView(ViewMode.front);
     await t.pumpAndSettle();
-    await t.tap(find.byKey(const ValueKey('card_base_standard_single_door')));
+    await t.tap(find.byKey(const ValueKey('thumb_base_standard_single_door')));
     await t.pumpAndSettle();
     expect(st.armedModel, 'base_standard_single_door');
     expect(find.byKey(const ValueKey('armed_banner')), findsOneWidget);
@@ -122,10 +122,10 @@ void main() {
     await t.tapAt(Offset(canvasRect.right - 120, canvasRect.center.dy));
     await t.pumpAndSettle();
     expect(st.project.items.length, 3, reason: 'posé au toucher');
-    expect(st.armedModel, 'base_standard_single_door', reason: 'pose en série : reste armé');
-    await t.tap(find.byTooltip('Arrêter la pose (Échap)'));
+    expect(st.armedModel, isNull, reason: 'un seul meuble par toucher : un toucher de plus n’en ajoute pas');
+    await t.tapAt(Offset(canvasRect.right - 120, canvasRect.center.dy));
     await t.pumpAndSettle();
-    expect(st.armedModel, isNull);
+    expect(st.project.items.length, 3);
     st.select(st.project.items.last.uid);
     st.deleteSelected();
     st.openBrowse(const CatalogBrowse(Shelf.base));

@@ -58,6 +58,30 @@ function gestureEnd() {
   invalidate();
 }
 
+let lastSel = '';
+/** Cadre à l'écran (px de la vue) de l'élément choisi : l'application y pose ses boutons flottants. */
+function reportSelection() {
+  let key = 'none';
+  if (selBox && host) {
+    const b = new THREE.Box3().setFromObject(selBox);
+    if (!b.isEmpty()) {
+      const w = host.clientWidth, h = host.clientHeight;
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, behind = false;
+      for (let k = 0; k < 8; k++) {
+        const v = new THREE.Vector3(k & 1 ? b.max.x : b.min.x, k & 2 ? b.max.y : b.min.y, k & 4 ? b.max.z : b.min.z).project(camera);
+        if (v.z > 1) behind = true;
+        const px = (v.x + 1) / 2 * w, py = (1 - v.y) / 2 * h;
+        x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+      }
+      if (!behind && x1 > 0 && y1 > 0 && x0 < w && y0 < h) key = [x0, y0, x1, y1].map((q) => Math.round(q)).join(',');
+    }
+  }
+  if (key === lastSel) return;
+  lastSel = key;
+  if (key === 'none') handler('sel');
+  else handler('sel', ...key.split(',').map(Number));
+}
+
 function handler(name, ...args) {
   const h = window.kitchen3dHandlers;
   if (h && typeof h[name] === 'function') h[name](...args);
@@ -2839,6 +2863,7 @@ function animate() {
       }
     }
     if (selBox) selBox.update();
+    reportSelection();
     if (shadowsDirty) {
       renderer.shadowMap.needsUpdate = true;
       shadowsDirty = false;
@@ -2893,8 +2918,10 @@ function planeHit(ev, plane) {
   return ray.ray.intersectPlane(plane, p) ? p : null;
 }
 
+let blockedInput = false; // un panneau de l'application est sous le pointeur
+
 function onDown(ev) {
-  if (ev.button !== 0) return;
+  if (ev.button !== 0 || blockedInput) return;
   const h = pick(ev);
   press = { x: ev.clientX, y: ev.clientY, uid: h?.uid ?? null, moved: false };
   if (h && data?.editable) {
@@ -2934,11 +2961,12 @@ function onUp(ev) {
     handler('dragEnd', press.uid);
   }
   else if (!moved) handler('pick', press.uid);
-  controls.enabled = true;
+  controls.enabled = !blockedInput;
   press = null;
 }
 
 function onDouble(ev) {
+  if (blockedInput) return;
   const h = pick(ev);
   if (!h) return;
   const mine = doors.filter((x) => x.uid === h.uid);
@@ -3077,6 +3105,17 @@ window.kitchen3d = {
   },
   hdStop() {
     hdStop();
+  },
+  /** Gestes acceptés (false : un panneau de l'application est sous le pointeur, la 3D ne bouge pas). */
+  /** Diagnostic : la 3D accepte-t-elle les gestes ? */
+  inputOn() {
+    return !blockedInput && !!controls?.enabled;
+  },
+  input(on) {
+    blockedInput = !on;
+    if (!controls) return;
+    if (!on) press = null;
+    controls.enabled = on;
   },
   /** Monte la vue dans [el] (élément HTML fourni par Flutter). */
   mount(el) {

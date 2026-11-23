@@ -16,7 +16,7 @@ void main() {
     expect(db.appliances['oven_standard_60']!.offers.length, 3);
     expect(db.worktops.length, 7);
     expect(db.worktop('granit_naturel')!.variants.length, 6);
-    expect(db.panels.length, 8);
+    expect(db.panels.length, 10);
     expect(db.panel('mdf_melamine_hydrofuge')!.sheets, contains((2800, 2100)));
     expect(db.edgeBands.map((e) => e.thickness), [0.4, 1.0, 2.0]);
     expect(db.kerf, 3.2);

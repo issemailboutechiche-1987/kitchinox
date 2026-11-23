@@ -31,7 +31,7 @@ void main() {
 
     test('toutes les formes de dimensions sont normalisées', () {
       expect(catalog['base_sink'].widths.values, [600, 800, 1000]);
-      expect(catalog['corner_base_blind'].widths.values, [1200]);
+      expect(catalog['corner_base_blind'].widths.values, [1200, 1000, 1050]);
       expect(catalog['corner_base_blind'].shape, CabinetShape.blind);
       expect(catalog['corner_base_l_shaped'].shape, CabinetShape.lShape);
       expect(catalog['corner_base_l_shaped'].widthRight, 900);

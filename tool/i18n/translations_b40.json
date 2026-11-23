@@ -1,0 +1,16 @@
+{
+"Objet dupliqué": ["Object duplicated", "تم نسخ العنصر"],
+"Choisissez un élément": ["Select an item", "اختر عنصراً"],
+"Un meuble d’îlot reste sur l’îlot": ["An island unit stays on the island", "وحدة الجزيرة تبقى على الجزيرة"],
+"Un meuble d’angle est déjà sur deux murs": ["A corner unit already spans two walls", "وحدة الزاوية على جدارين أصلاً"],
+"Pas de place sur les murs voisins": ["No room on the neighbouring walls", "لا مكان على الجدران المجاورة"],
+"Pivoté sur le {0}": ["Turned onto the {0}", "تم التدوير إلى {0}"],
+"Mur {0} déplacé de {1}": ["Wall {0} moved by {1}", "تم تحريك الجدار {0} بمقدار {1}"],
+"mur inconnu : {0}": ["unknown wall: {0}", "جدار غير معروف: {0}"],
+"seuls les murs droits se déplacent à la main": ["only straight walls can be moved by hand", "تتحرك الجدران المستقيمة فقط يدوياً"],
+"Dupliquer": ["Duplicate", "نسخ"],
+"Pivoter de 90°": ["Rotate 90°", "تدوير 90°"],
+"Supprimer": ["Delete", "حذف"],
+"Stratidécor (aggloméré mélaminé)": ["Stratidécor (melamine-faced chipboard)", "ستراتيديكور (خشب حبيبي مغلف بالميلامين)"],
+"MDF laqué luxe 22 mm": ["Luxury lacquered MDF 22 mm", "MDF مطلي فاخر 22 مم"]
+}

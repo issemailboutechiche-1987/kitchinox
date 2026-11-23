@@ -79,7 +79,9 @@
           "available_widths": [
             150,
             200,
-            300
+            300,
+            400,
+            450
           ],
           "height": 800,
           "depth": 600,
@@ -339,7 +341,9 @@
           "available_widths": [
             150,
             200,
-            300
+            300,
+            400,
+            450
           ],
           "height": 800,
           "doors": false,
@@ -786,7 +790,9 @@
           "available_widths": [
             200,
             300,
-            400
+            400,
+            450,
+            500
           ],
           "available_heights": [
             400,
@@ -917,7 +923,10 @@
           "id": "tall_pantry",
           "name": "Colonne garde-manger",
           "available_widths": [
+            300,
             400,
+            450,
+            500,
             600
           ],
           "available_heights": [
@@ -944,7 +953,10 @@
           "id": "tall_cleaning",
           "name": "Colonne ménage (balai, aspirateur, produits)",
           "available_widths": [
+            300,
             400,
+            450,
+            500,
             600
           ],
           "available_heights": [
@@ -1039,7 +1051,9 @@
             150,
             200,
             300,
-            400
+            400,
+            450,
+            500
           ],
           "available_heights": [
             2000,
@@ -1093,7 +1107,9 @@
           "id": "tall_open_niche",
           "name": "Colonne avec niche centrale",
           "available_widths": [
+            300,
             400,
+            450,
             500,
             600
           ],
@@ -1121,7 +1137,9 @@
           "id": "tall_glass",
           "name": "Colonne vitrine",
           "available_widths": [
+            300,
             400,
+            450,
             500,
             600
           ],
@@ -1195,7 +1213,6 @@
         {
           "id": "corner_base_blind",
           "name": "Angle bas droit avec fileur (angle mort)",
-          "width": 1200,
           "height": 800,
           "depth": 600,
           "blind_overlap": 600,
@@ -1207,7 +1224,12 @@
           ],
           "snapping": {
             "corner_anchor": "blind_overlap"
-          }
+          },
+          "available_widths": [
+            1200,
+            1000,
+            1050
+          ]
         },
         {
           "id": "corner_base_diagonal",
@@ -1253,7 +1275,6 @@
         {
           "id": "corner_wall_blind",
           "name": "Angle haut droit avec fileur",
-          "width": 1000,
           "height_variants": [
             600,
             750,
@@ -1269,7 +1290,13 @@
           ],
           "snapping": {
             "corner_anchor": "blind_overlap"
-          }
+          },
+          "available_widths": [
+            1000,
+            680,
+            780,
+            980
+          ]
         },
         {
           "id": "corner_wall_diagonal",
@@ -1377,7 +1404,6 @@
         {
           "id": "corner_tall_blind",
           "name": "Colonne d'angle droite avec fileur",
-          "width": 1000,
           "available_heights": [
             2000,
             2200,
@@ -1393,7 +1419,11 @@
           "snapping": {
             "corner_anchor": "blind_overlap",
             "floor_support": true
-          }
+          },
+          "available_widths": [
+            1000,
+            1200
+          ]
         }
       ]
     },

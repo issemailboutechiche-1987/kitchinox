@@ -946,9 +946,16 @@ class LayoutEngine {
   /// Déplace le mur [wallId] de [delta] mm vers l'extérieur (négatif = vers l'intérieur).
   /// Les éléments posés contre ce mur le suivent ; ceux des autres murs gardent leur place réelle.
   /// Refuse (exception) si un élément ou une ouverture se retrouverait hors de la pièce ou en conflit.
+  /// Décalage de l'origine du plan dû au dernier déplacement de mur (x, y en mm) : la vue le compense.
+  (double, double) lastWallShift = (0, 0);
+
   void moveWall(String wallId, double delta) {
+    lastWallShift = (0, 0);
     if (delta == 0) return;
+    if (room.outline != null) return _moveOutlineWall(wallId, delta);
     final r = room;
+    if (wallId == 'A') lastWallShift = (0, delta);
+    if (wallId == 'C') lastWallShift = (delta, 0);
     final horizontal = wallId == 'A' || wallId == 'D'; // le mur se déplace en Y
     final newSize = (horizontal ? r.depth : r.width) + delta;
     if (newSize < roomMin) throw PlacementException(L('pièce trop petite ({0} mm minimum)', [roomMin.round()]));
@@ -1029,6 +1036,127 @@ class LayoutEngine {
           ..s = s0
           ..z = z0;
       }
+      throw PlacementException(L('impossible de déplacer le mur : {0}', [problem]));
+    }
+  }
+
+  /// Pièce à contour libre : un mur droit glisse vers l'extérieur de [delta] mm (vers l'intérieur si négatif) ;
+  /// ses deux voisins s'allongent ou se raccourcissent. Les meubles, ouvertures et points restent à leur place dans la pièce.
+  void _moveOutlineWall(String wallId, double delta) {
+    final r = room, ol = r.outline!;
+    final i = r.order.indexOf(wallId);
+    if (i < 0) throw PlacementException(L('mur inconnu : {0}', [wallId]));
+    final w = r.wall(wallId);
+    final prev = r.wall(r.prevOf(wallId)), next = r.wall(r.nextOf(wallId));
+    if (!w.orthogonal || !prev.straight || !next.straight) throw PlacementException(L('seuls les murs droits se déplacent à la main'));
+    final a = ol[i], b = ol[(i + 1) % ol.length];
+    final tx = -w.nx * delta, ty = -w.ny * delta;
+    // sauvegarde
+    final backupPts = [for (final p in ol) (p.x, p.y)];
+    final backupItems = [for (final c in project.items) c.copy()];
+    final backupOpenings = [for (final o in project.openings) Opening.fromJson(o.toJson())];
+    final backupPoints = [for (final x in project.points) (x, x.s, x.z)];
+    final backupObjects = [for (final o in project.objects) (o, o.x, o.y)];
+    final isl = r.island;
+    final islBackup = isl == null ? null : (isl.x0, isl.y0);
+    final (bw, bd) = (r.width, r.depth);
+    // le mur suivant commence au sommet déplacé : ses éléments gardent leur place dans la pièce
+    final shiftNext = -(tx * next.dx + ty * next.dy);
+    a
+      ..x += tx
+      ..y += ty;
+    b
+      ..x += tx
+      ..y += ty;
+    for (final c in project.items) {
+      if (c.wallId == next.id) c.s += shiftNext;
+    }
+    for (final o in project.openings) {
+      if (o.wallId == next.id) o.s += shiftNext;
+    }
+    for (final x in project.points) {
+      if (x.wallId == next.id) x.s += shiftNext;
+    }
+    // origine au coin haut-gauche de l'encombrement
+    final pts = [for (final ww in r.walls) ...ww.points(16)];
+    final minX = pts.map((p) => p.$1).reduce(math.min), minY = pts.map((p) => p.$2).reduce(math.min);
+    for (final p in ol) {
+      p
+        ..x -= minX
+        ..y -= minY;
+    }
+    for (final o in project.objects) {
+      o
+        ..x -= minX
+        ..y -= minY;
+    }
+    if (isl != null) {
+      isl
+        ..x0 -= minX
+        ..y0 -= minY;
+    }
+    final pts2 = [for (final ww in r.walls) ...ww.points(16)];
+    r.width = pts2.map((p) => p.$1).reduce(math.max);
+    r.depth = pts2.map((p) => p.$2).reduce(math.max);
+    lastWallShift = (-minX, -minY);
+
+    String? problem;
+    for (final ww in r.walls) {
+      if (ww.length < 300) problem = 'le mur ${ww.id} deviendrait trop court';
+    }
+    if (r.width < roomMin || r.depth < roomMin) problem ??= 'pièce trop petite (${roomMin.round()} mm minimum)';
+    for (final c in project.items) {
+      if (problem != null) break;
+      if (c.wallId == 'I') continue;
+      final ww = r.wall(c.wallId);
+      if (c.s < -0.5 || c.right > ww.length + 0.5) problem = '« ${modelOf(c).name} » sortirait du mur ${c.wallId}';
+    }
+    for (final o in project.openings) {
+      if (problem != null) break;
+      if (o.s < -0.5 || o.right > r.wall(o.wallId).length + 0.5) problem = '${o.isDoor ? 'la porte' : 'la fenêtre'} du mur ${o.wallId} sortirait du mur';
+    }
+    if (problem == null) {
+      final boxes = project.items.expand(boxesOf).toList();
+      outer:
+      for (var p = 0; p < boxes.length; p++) {
+        for (var q = p + 1; q < boxes.length; q++) {
+          if (boxes[p].uid != boxes[q].uid && boxes[p].box.intersects(boxes[q].box)) {
+            problem = 'des éléments se chevaucheraient dans l\'angle';
+            break outer;
+          }
+        }
+      }
+    }
+    if (problem != null) {
+      for (var k = 0; k < ol.length; k++) {
+        ol[k]
+          ..x = backupPts[k].$1
+          ..y = backupPts[k].$2;
+      }
+      r.width = bw;
+      r.depth = bd;
+      if (isl != null && islBackup != null) {
+        isl
+          ..x0 = islBackup.$1
+          ..y0 = islBackup.$2;
+      }
+      project.items
+        ..clear()
+        ..addAll(backupItems);
+      project.openings
+        ..clear()
+        ..addAll(backupOpenings);
+      for (final (x, s0, z0) in backupPoints) {
+        x
+          ..s = s0
+          ..z = z0;
+      }
+      for (final (o, x, y) in backupObjects) {
+        o
+          ..x = x
+          ..y = y;
+      }
+      lastWallShift = (0, 0);
       throw PlacementException(L('impossible de déplacer le mur : {0}', [problem]));
     }
   }

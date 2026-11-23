@@ -157,6 +157,12 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
       case 'drag':
         if (_covered || u == null || a.length < 3) return;
         st.dragTo(u, s: (a[1] as num).toDouble(), z: (a[2] as num).toDouble());
+      case 'sel':
+        final r = a.length < 4 ? null : Rect.fromLTRB((a[0] as num).toDouble(), (a[1] as num).toDouble(), (a[2] as num).toDouble(), (a[3] as num).toDouble());
+        if (r != st.selRect3d) {
+          st.selRect3d = r;
+          st.refresh();
+        }
       case 'dragEnd':
         st.endDrag();
     }

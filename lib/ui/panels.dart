@@ -354,18 +354,24 @@ class _ProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: armed ? scheme.primary : scheme.outlineVariant, width: armed ? 2.5 : 1),
       ),
-      child: InkWell(
+      // la carte défile avec la liste : seuls la vignette (glisser ou toucher) et « + » agissent
+      child: KeyedSubtree(
         key: ValueKey('card_${model.id}'),
-        onTap: toggleArm,
         child: Padding(
           padding: const EdgeInsets.all(Tokens.s3),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.all(4),
-                child: ExcludeSemantics(child: thumb),
+              Draggable<CabinetModel>(
+                data: model,
+                feedback: Material(color: Colors.transparent, child: Opacity(opacity: 0.9, child: thumb)),
+                childWhenDragging: Opacity(opacity: 0.4, child: _thumbBox(scheme, thumb)),
+                child: InkWell(
+                  key: ValueKey('thumb_${model.id}'),
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: toggleArm,
+                  child: _thumbBox(scheme, thumb),
+                ),
               ),
               const SizedBox(width: Tokens.s3),
               Expanded(
@@ -412,19 +418,14 @@ class _ProductCard extends StatelessWidget {
         ),
       ),
     );
-    return Semantics(
-      label: trp('Ajouter {0}', [tr(model.name)]),
-      child: Draggable<CabinetModel>(
-        data: model,
-        feedback: Material(
-          color: Colors.transparent,
-          child: Opacity(opacity: 0.9, child: thumb),
-        ),
-        childWhenDragging: Opacity(opacity: 0.4, child: card),
-        child: card,
-      ),
-    );
+    return Semantics(label: trp('Ajouter {0}', [tr(model.name)]), child: card);
   }
+
+  Widget _thumbBox(ColorScheme scheme, Widget thumb) => Container(
+        decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.all(4),
+        child: ExcludeSemantics(child: thumb),
+      );
 }
 
 // ================================================================== cadre commun

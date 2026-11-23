@@ -28,6 +28,65 @@
   },
   "panel_types": [
     {
+      "id": "agglo_stratidecor",
+      "name": "Stratidécor (aggloméré mélaminé)",
+      "suppliers_morocco": [
+        "Finsa",
+        "Sonae Arauco (Innovus)",
+        "Egger",
+        "Kronospan"
+      ],
+      "usage": [
+        "Caissons entrée de gamme",
+        "Façades économiques",
+        "Étagères et placards"
+      ],
+      "moisture_resistant": false,
+      "grain_direction_optional": true,
+      "note": "Panneau de particules recouvert de papier mélaminé décor : le moins cher, l'entrée de gamme des cuisines. Chant PVC sur les tranches visibles.",
+      "standard_sheets": [
+        {
+          "length": 2800,
+          "width": 2070,
+          "area_m2": 5.8
+        },
+        {
+          "length": 2850,
+          "width": 2070,
+          "area_m2": 5.9
+        },
+        {
+          "length": 2550,
+          "width": 1830,
+          "area_m2": 4.67
+        },
+        {
+          "length": 2440,
+          "width": 1700,
+          "area_m2": 4.15
+        }
+      ],
+      "available_thicknesses_mm": [
+        8,
+        16,
+        18,
+        19,
+        22,
+        25
+      ],
+      "standard_carcass_thickness": 18,
+      "pricing_mad_2440x1220_18mm": {
+        "white_matte": {
+          "min": 300,
+          "max": 430
+        },
+        "wood_decor_or_unicolor": {
+          "min": 380,
+          "max": 540
+        }
+      }
+    },
+    {
       "id": "mdf_melamine_hydrofuge",
       "name": "MDF Mélaminé Hydrofuge (Âme Verte)",
       "suppliers_morocco": [
@@ -53,7 +112,7 @@
         {
           "length": 2800,
           "width": 2070,
-          "area_m2": 5.80
+          "area_m2": 5.8
         },
         {
           "length": 2800,
@@ -63,7 +122,7 @@
         {
           "length": 3660,
           "width": 1830,
-          "area_m2": 6.70
+          "area_m2": 6.7
         }
       ],
       "available_thicknesses_mm": [
@@ -113,7 +172,7 @@
         {
           "length": 2800,
           "width": 2070,
-          "area_m2": 5.80
+          "area_m2": 5.8
         },
         {
           "length": 2440,
@@ -271,7 +330,7 @@
         {
           "length": 2800,
           "width": 2070,
-          "area_m2": 5.80
+          "area_m2": 5.8
         }
       ],
       "available_thicknesses_mm": [
@@ -312,7 +371,7 @@
         {
           "length": 2800,
           "width": 2070,
-          "area_m2": 5.80
+          "area_m2": 5.8
         }
       ],
       "available_thicknesses_mm": [
@@ -359,7 +418,7 @@
         {
           "length": 2800,
           "width": 2070,
-          "area_m2": 5.80
+          "area_m2": 5.8
         }
       ],
       "available_thicknesses_mm": [
@@ -371,6 +430,38 @@
       "pricing_mad_2440x1220_18mm": {
         "min": 950,
         "max": 1350
+      }
+    },
+    {
+      "id": "mdf_luxe_22",
+      "name": "MDF laqué luxe 22 mm (super-mat ou brillant, type Egger PerfectSense)",
+      "suppliers_morocco": [
+        "Egger (PerfectSense)",
+        "Distributeurs Egger au Maroc"
+      ],
+      "usage": [
+        "Façades haut de gamme",
+        "Portes de colonnes",
+        "Façades d'îlot"
+      ],
+      "moisture_resistant": true,
+      "grain_direction_mandatory": false,
+      "note": "MDF laqué en usine, super-mat anti-traces ou brillant. Format 2800 × 2070 ; 22 mm sur commande (18 ou 19 mm en stock). Chant assorti posé au laser.",
+      "standard_sheets": [
+        {
+          "length": 2800,
+          "width": 2070,
+          "area_m2": 5.8
+        }
+      ],
+      "available_thicknesses_mm": [
+        18,
+        19,
+        22
+      ],
+      "pricing_mad_2440x1220_22mm": {
+        "min": 1550,
+        "max": 2350
       }
     }
   ]

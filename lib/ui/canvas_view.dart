@@ -126,6 +126,88 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
     return _View(k, ox, oy, front);
   }
 
+  // ---------------------------------------------------------------- boutons flottants
+
+  /// Cadre à l'écran de l'élément choisi (meuble ou objet), dans la vue affichée.
+  Rect? _selectionRect() {
+    final uid = st.selected, ob = st.selectedObjectObj, v = _view;
+    if (uid == null && ob == null) return null;
+    Rect? r;
+    if (st.view == ViewMode.view3d) {
+      for (final h in _hits3d.where((h) => h.uid == uid)) {
+        final b = h.path.getBounds();
+        r = r == null ? b : r.expandToInclude(b);
+      }
+      return r;
+    }
+    if (v == null) return null;
+    if (ob != null) {
+      if (v.front) {
+        final (wid, a, b) = objectOnWall(st.project.room, ob);
+        return wid == st.wallId ? v.rect(a, ob.z, b, ob.z + ob.h) : null;
+      }
+      final (x0, y0, x1, y1) = ob.footprint;
+      return Rect.fromPoints(v.toScreen(x0, y0), v.toScreen(x1, y1));
+    }
+    if (v.front) {
+      for (final e in st.engine.elevation(st.wallId).where((e) => e.uid == uid && e.onThisWall)) {
+        final b = v.rect(e.s0, e.z0, e.s1, e.z1);
+        r = r == null ? b : r.expandToInclude(b);
+      }
+      return r;
+    }
+    for (final s in st.engine.planView().where((s) => s.uid == uid)) {
+      for (final (x, y) in s.points) {
+        final p = v.toScreen(x, y);
+        r = r == null ? Rect.fromLTWH(p.dx, p.dy, 0, 0) : r.expandToInclude(Rect.fromLTWH(p.dx, p.dy, 0, 0));
+      }
+    }
+    return r;
+  }
+
+  /// Trois petits boutons au-dessus de l'élément choisi : dupliquer, pivoter de 90°, supprimer.
+  List<Widget> _floating(Rect? r, Size size) {
+    if (r == null || st.step == PlanStep.summary || _dragUid != null || _dragObject != null || st.lockMoves) return const [];
+    if (st.selected == null && st.selectedObject == null) return const [];
+    const w = 132.0, h = 44.0;
+    final above = r.top - h - 10;
+    final top = above >= 4 ? above : math.min(size.height - h - 4, r.bottom + 10);
+    final left = (r.center.dx - w / 2).clamp(4.0, math.max(4.0, size.width - w - 4));
+    final scheme = Theme.of(context).colorScheme;
+    Widget b(String key, IconData icon, String tip, VoidCallback on) => IconButton(
+          key: ValueKey(key),
+          tooltip: tr(tip),
+          visualDensity: VisualDensity.compact,
+          iconSize: 20,
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          onPressed: on,
+          icon: Icon(icon),
+        );
+    return [
+      Positioned(
+        left: left.toDouble(),
+        top: top,
+        child: Material(
+          key: const ValueKey('selection_actions'),
+          elevation: 4,
+          color: scheme.surface,
+          shape: StadiumBorder(side: BorderSide(color: scheme.outlineVariant)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              b('sel_dup', Icons.copy_all_outlined, 'Dupliquer', () => widget.onMessage(st.duplicateAny() ?? '')),
+              b('sel_rot', Icons.rotate_90_degrees_cw_outlined, 'Pivoter de 90°', () {
+                final m = st.rotateSelected();
+                if (m != null) widget.onMessage(m);
+              }),
+              b('sel_del', Icons.delete_outline, 'Supprimer', st.deleteAny),
+            ]),
+          ),
+        ),
+      ),
+    ];
+  }
+
   // ---------------------------------------------------------------- sélection
 
   /// (uid, est une ouverture)
@@ -214,10 +296,10 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
 
   /// Mur sous le pointeur (bande grise du plan, avec un peu de tolérance).
   String? _hitWall(Offset p) {
-    if (st.project.room.outline != null) return null;
     final v = _view;
     if (v == null || v.front || st.view != ViewMode.plan) return null;
     for (final w in st.project.room.walls) {
+      if (!w.orthogonal) continue; // un arc ou un pan coupé ne se tire pas
       final a = w.toPlan(0, -_wallThickness), b = w.toPlan(w.length, 0);
       final r = Rect.fromPoints(v.toScreen(a.$1, a.$2), v.toScreen(b.$1, b.$2)).inflate(6);
       if (r.contains(p)) return w.id;
@@ -298,10 +380,12 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
   }
 
   void _onTapUp(TapUpDetails d) {
-    // meuble choisi dans le panneau d'ajout : on le pose là où on touche (et on peut continuer)
+    // meuble choisi dans le panneau d'ajout : on le pose là où on touche, une seule fois
+    // (sur tablette, un toucher de plus ne doit pas ajouter un meuble de plus)
     final armed = st.armedModel == null ? null : st.catalog.tryGet(st.armedModel!);
     if (armed != null && st.step == PlanStep.layout) {
       _placeModel(armed, d.localPosition, st.armedWidth);
+      st.arm(null);
       return;
     }
     if (st.browse != null && st.step == PlanStep.layout && st.view == ViewMode.plan) {
@@ -479,8 +563,9 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
         final err = st.moveWall(_dragWall!, step);
         if (err == null) {
           // murs A et C : l'origine du plan bouge avec eux, on décale la vue pour qu'ils suivent la souris
-          if (_dragWall == 'A') _frozen = _View(v.k, v.ox, v.oy - step * v.k, v.front);
-          if (_dragWall == 'C') _frozen = _View(v.k, v.ox - step * v.k, v.oy, v.front);
+          // l'origine du plan bouge (mur du haut ou de gauche) : on décale la vue pour que le mur suive la souris
+          final (sx, sy) = st.engine.lastWallShift;
+          _frozen = _View(v.k, v.ox - sx * v.k, v.oy - sy * v.k, v.front);
           _wallApplied = desired;
           _wallError = null;
         } else if (_wallError != err) {
@@ -573,8 +658,12 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
       });
       st.endDrag();
       if (_wallApplied != 0) {
-        final along = id == 'A' || id == 'D' ? 'Profondeur' : 'Largeur';
-        widget.onMessage(trp('{0} de la pièce : {1}', [along, lenText((id == 'A' || id == 'D' ? r.depth : r.width))]));
+        if (r.outline != null) {
+          widget.onMessage(trp('Mur {0} déplacé de {1}', [id, lenText(_wallApplied.abs())]));
+        } else {
+          final along = id == 'A' || id == 'D' ? 'Profondeur' : 'Largeur';
+          widget.onMessage(trp('{0} de la pièce : {1}', [along, lenText((id == 'A' || id == 'D' ? r.depth : r.width))]));
+        }
       }
       return;
     }
@@ -663,7 +752,9 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
       builder: (context, candidates, _) => LayoutBuilder(
         builder: (context, c) {
           // vraie 3D (WebGL) dans le navigateur ; la vue dessinée reste pour les tests et les PDF
-          if (st.view == ViewMode.view3d && webgl3dAvailable) return Kitchen3dView(state: st);
+          if (st.view == ViewMode.view3d && webgl3dAvailable) {
+            return Stack(fit: StackFit.expand, children: [Kitchen3dView(state: st), ..._floating(st.selRect3d, Size(c.maxWidth, c.maxHeight))]);
+          }
           final size = Size(c.maxWidth, c.maxHeight);
           if (st.view == ViewMode.view3d) {
             _cam = Camera3d.fit(st.project.room, st.yaw, size, zoom: st.zoom, panX: st.panX, panY: st.panY);
@@ -673,11 +764,12 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
             _view = _frozen ?? _computeView(size);
             _cam = null;
           }
-          return Listener(
+          final selRect = _selectionRect();
+          return Stack(fit: StackFit.expand, children: [Listener(
             onPointerSignal: _onScroll,
             child: MouseRegion(
               cursor: (_dragWall ?? _hoverWall) != null
-                  ? ((_dragWall ?? _hoverWall) == 'A' || (_dragWall ?? _hoverWall) == 'D'
+                  ? (st.project.room.wall(_dragWall ?? _hoverWall!).dx.abs() > 0.5
                         ? SystemMouseCursors.resizeUpDown
                         : SystemMouseCursors.resizeLeftRight)
                   : _dragUid != null || _panning
@@ -739,7 +831,7 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
                 ),
               ),
             ),
-          );
+          ), ..._floating(selRect, size)]);
         },
       ),
     );

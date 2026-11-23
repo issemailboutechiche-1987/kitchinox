@@ -29,6 +29,7 @@ class SheetPreset {
 
 const carcassMaterialChoices = [
   'Latté (Blockboard)',
+  stratidecor,
   'MDF Mélaminé Blanc',
   'MDF Mélaminé Hydrofuge (Âme verte)',
   'MDF Stratifié HPL',
@@ -36,6 +37,8 @@ const carcassMaterialChoices = [
 
 const frontMaterialChoices = [
   'MDF',
+  stratidecor,
+  mdfLuxe22,
   'MDF High Gloss (Brillant)',
   'MDF Acrylique / PET Ultra-Mat',
   'MDF Laqué',
@@ -48,6 +51,28 @@ const backMaterialChoices = [
   'Contreplaqué 5 mm',
   'MDF 6 mm',
 ];
+
+/// Entrée de gamme : panneau de particules mélaminé.
+const stratidecor = 'Stratidécor (aggloméré mélaminé)';
+
+/// Façades haut de gamme : MDF laqué de 22 mm.
+const mdfLuxe22 = 'MDF laqué luxe 22 mm';
+
+/// Famille de formats d'une matière (clé de [woodSheetPresets]).
+String sheetCategoryOf(String material) {
+  if (material.contains('Latté')) return 'Latté (Blockboard)';
+  if (material.contains('Stratidécor')) return stratidecor;
+  if (material.contains('luxe 22')) return mdfLuxe22;
+  if (material.contains('Stratifié')) return 'Stratifié / Mélaminé';
+  if (material.contains('High Gloss') || material.contains('Acrylique') || material.contains('PET')) return 'High Gloss / Acrylique';
+  return 'MDF';
+}
+
+/// Épaisseur habituelle d'une matière, quand elle en impose une (le MDF luxe : 22 mm).
+int? thicknessOf(String material) => material.contains('luxe 22') ? 22 : null;
+
+/// Panneau de la base de prix d'une matière qui a le sien (null : celui choisi pour la gamme).
+String? panelIdOf(String material) => material.contains('Stratidécor') ? 'agglo_stratidecor' : material.contains('luxe 22') ? 'mdf_luxe_22' : null;
 
 /// Nom du fond mis à l'épaisseur [t] : « HDF 6 mm » à 8 mm devient « HDF 8 mm ».
 String backMaterialName(String name, int t) {
@@ -81,6 +106,15 @@ const woodSheetPresets = <String, List<SheetPreset>>{
     SheetPreset('2440 × 1220 mm (Standard 8×4)', 2440, 1220),
     SheetPreset('2750 × 1220 mm', 2750, 1220),
     SheetPreset('2800 × 2100 mm (Grand format)', 2800, 2100),
+  ],
+  stratidecor: [
+    SheetPreset('2800 × 2070 mm (Standard - Plus répandu)', 2800, 2070),
+    SheetPreset('2850 × 2070 mm', 2850, 2070),
+    SheetPreset('2550 × 1830 mm', 2550, 1830),
+    SheetPreset('2440 × 1700 mm', 2440, 1700),
+  ],
+  mdfLuxe22: [
+    SheetPreset('2800 × 2070 mm (Egger PerfectSense)', 2800, 2070),
   ],
   'HDF / Fonds': [
     SheetPreset('2800 × 2100 mm (Grand format standard)', 2800, 2100),

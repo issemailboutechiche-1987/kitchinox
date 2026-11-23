@@ -680,7 +680,7 @@ List<SupplyLine> estimate(LayoutEngine e, MaterialsDb db, ProjectSpecs specs, Cu
     final pt = decor
         ? db.panel('mdf_plaque_essence_fine')
         : main
-            ? db.panel(mat == cs.frontKey && cs.frontMaterial != cs.carcassMaterial ? specs.frontPanel : specs.carcassPanel)
+            ? db.panel(panelIdOf(mat == cs.frontKey ? cs.frontMaterial : mat) ?? (mat == cs.frontKey && cs.frontMaterial != cs.carcassMaterial ? specs.frontPanel : specs.carcassPanel))
             : null;
     final (sL, sW) = cs.sheetDimensionsFor(mat);
     // prix d'une feuille fixé par l'atelier, propre à chaque type de panneau (caissons, façades, fonds)

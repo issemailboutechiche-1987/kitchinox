@@ -158,21 +158,13 @@ class _Section extends StatelessWidget {
     switch (section) {
       case 'Panneaux':
         final cs = st.project.cut;
-        final carcassCategory = cs.carcassMaterial.contains('Latté')
-            ? 'Latté (Blockboard)'
-            : cs.carcassMaterial.contains('Stratifié')
-                ? 'Stratifié / Mélaminé'
-                : 'MDF';
+        final carcassCategory = sheetCategoryOf(cs.carcassMaterial);
         final carcassPresets = woodSheetPresets[carcassCategory] ?? woodSheetPresets['MDF']!;
         final curCarcassPreset = carcassPresets
             .where((p) => p.length == cs.sheetLength && p.width == cs.sheetWidth)
             .firstOrNull ?? carcassPresets.first;
 
-        final frontCategory = cs.frontMaterial.contains('High Gloss') ||
-                cs.frontMaterial.contains('Acrylique') ||
-                cs.frontMaterial.contains('PET')
-            ? 'High Gloss / Acrylique'
-            : 'MDF';
+        final frontCategory = sheetCategoryOf(cs.frontMaterial);
         final (fL, fW) = cs.sheetDimensionsFor(cs.frontMaterial);
         final frontPresets = woodSheetPresets[frontCategory] ?? woodSheetPresets['High Gloss / Acrylique']!;
         final curFrontPreset = frontPresets
@@ -203,11 +195,7 @@ class _Section extends StatelessWidget {
                   } else if (st.project.specs.gamme == 'luxe') {
                     st.project.specs.gamme = 'standard';
                   }
-                  final cat = v.contains('Latté')
-                      ? 'Latté (Blockboard)'
-                      : v.contains('Stratifié')
-                          ? 'Stratifié / Mélaminé'
-                          : 'MDF';
+                  final cat = sheetCategoryOf(v);
                   final p0 = woodSheetPresets[cat]?.first;
                   if (p0 != null) {
                     cs.sheetLength = p0.length;
@@ -250,9 +238,8 @@ class _Section extends StatelessWidget {
                 if (v == null) return;
                 st.edit(() {
                   cs.frontMaterial = v;
-                  final cat = v.contains('High Gloss') || v.contains('Acrylique') || v.contains('PET')
-                      ? 'High Gloss / Acrylique'
-                      : 'MDF';
+                  cs.doorThickness = thicknessOf(v) ?? (cs.doorThickness == 22 ? 18 : cs.doorThickness);
+                  final cat = sheetCategoryOf(v);
                   final p0 = woodSheetPresets[cat]?.first;
                   if (p0 != null) {
                     cs.frontSheetLength = p0.length;

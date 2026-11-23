@@ -41,6 +41,7 @@ const cornerSizes = <String, List<CornerSize>>{
     CornerSize(700, 400, carcass: 680, filler: 30),
     CornerSize(800, 400, carcass: 780, filler: 30),
     CornerSize(1000, 400, carcass: 980, filler: 30),
+    CornerSize(1030, 400, carcass: 1000, filler: 30),
   ],
 };
 

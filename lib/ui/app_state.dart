@@ -5,6 +5,7 @@ import 'i18n.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:ui' show Rect;
 
 import 'package:flutter/foundation.dart';
 
@@ -1118,6 +1119,9 @@ class AppState extends ChangeNotifier {
   /// Dernier toucher reçu par un bouton ou un panneau posé sur la vue (null : par la vue elle-même).
   DateTime? overlayDown;
 
+  /// Vue 3D web : accepte ou refuse les gestes (un panneau est sous le doigt). Posé par la vue 3D.
+  void Function(bool on)? input3d;
+
   /// Recadrages demandés (bouton « Tout afficher ») : la 3D se recentre quand ce compteur change.
   int fit3d = 0;
   void fitView() {
@@ -1292,6 +1296,66 @@ class AppState extends ChangeNotifier {
   }
 
   /// Duplique l'élément sélectionné (la copie devient la sélection).
+  /// Cadre à l'écran de l'élément choisi dans la 3D web (pour ses boutons flottants) ; null : hors champ.
+  Rect? selRect3d;
+
+  /// Duplique l'élément choisi (meuble ou objet).
+  String? duplicateAny() {
+    final o = selectedObject;
+    if (o != null) {
+      duplicateObject(o);
+      return tr('Objet dupliqué');
+    }
+    return duplicateSelected() ?? tr('Élément dupliqué');
+  }
+
+  /// Supprime l'élément choisi (meuble ou objet).
+  void deleteAny() {
+    final o = selectedObject;
+    if (o != null) return deleteObject(o);
+    deleteSelected();
+  }
+
+  /// Pivote de 90° : un objet tourne sur lui-même, un meuble passe sur le mur voisin (dans l'angle).
+  String? rotateSelected() {
+    final o = selectedObject;
+    if (o != null) {
+      rotateObject(o, 90);
+      return null;
+    }
+    final c = selectedItem;
+    if (c == null) return tr('Choisissez un élément');
+    if (c.wallId == 'I') return tr('Un meuble d’îlot reste sur l’îlot');
+    final r = project.room;
+    final m = engine.modelOf(c);
+    if (m.kind.isCorner) return tr('Un meuble d’angle est déjà sur deux murs');
+    // vers le mur suivant (sens du tour) depuis la fin du mur, sinon le précédent depuis son début
+    final atEnd = c.s + c.width / 2 > r.wall(c.wallId).length / 2;
+    final order = atEnd ? [r.nextOf(c.wallId), r.prevOf(c.wallId)] : [r.prevOf(c.wallId), r.nextOf(c.wallId)];
+    String? target;
+    final err = edit(() {
+      for (final w in order) {
+        final wall = r.wall(w);
+        if (!wall.enabled) continue;
+        final fromStart = w == r.nextOf(c.wallId);
+        for (var off = 0.0; off <= wall.length - c.width; off += 50) {
+          final s = fromStart ? off : wall.length - c.width - off;
+          final res = engine.move(c.uid, wallId: w, s: s);
+          // on garde la première place libre près de l'angle (le moteur ne la décale pas trop loin)
+          if (res.moved && (project.byUid(c.uid)!.s - s).abs() <= 60) {
+            target = w;
+            return;
+          }
+        }
+      }
+      throw PlacementException(L('Pas de place sur les murs voisins'));
+    });
+    if (err != null) return err;
+    wallId = target!;
+    notifyListeners();
+    return trp('Pivoté sur le {0}', [(Room.wallNames[target] ?? target!).toLowerCase()]);
+  }
+
   String? duplicateSelected() {
     final uid = selected;
     if (uid == null) return tr('Sélectionnez un élément à dupliquer');
