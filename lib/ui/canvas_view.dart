@@ -1084,6 +1084,8 @@ class _PlannerPainter extends CustomPainter {
       final selected = st.selectedPoint == x.uid;
       if (selected) sel = x;
       paintNetSymbol(canvas, o, x.kind, r, selected: selected || hover == x.uid, behind: behind);
+      // appareil alimenté : son symbole d'installation à côté de la prise
+      if (applianceOf(x) case final a? when v.front) paintApplianceSymbol(canvas, o + Offset(r * 2.7, -r * 0.2), a, r * 0.85);
     }
     // cotes du point sélectionné : depuis la gauche du mur et depuis le sol
     if (sel != null && v.front) {
@@ -1812,6 +1814,31 @@ class _PlannerPainter extends CustomPainter {
       final rr = v.rect(r.s0, r.z0, r.s1, r.z1);
       final sel = st.selected == r.uid;
       final fr = frontOfItem(p.style, it, r.model);
+      // hotte posée librement : un appareil (cheminée et hotte), sans porte
+      if (r.model.isFreeHood) {
+        final glass = r.model.id.contains('inclined');
+        final body = Paint()..color = glass ? const Color(0xFF1F2124) : const Color(0xFFBFC4C8);
+        final ink = _stroke(const Color(0xFF4A4F55), 1);
+        final hoodH = math.min(rr.height, 420 * v.k);
+        final chimney = Rect.fromLTRB(rr.center.dx - rr.width * 0.17, v.rect(0, 0, 0, p.room.height - 10).top, rr.center.dx + rr.width * 0.17, rr.bottom - hoodH);
+        canvas.drawRect(chimney, Paint()..color = const Color(0xFFBFC4C8));
+        canvas.drawRect(chimney, ink);
+        final canopy = r.model.id.contains('box')
+            ? (Path()..addRect(Rect.fromLTRB(rr.left, rr.bottom - hoodH * 0.45, rr.right, rr.bottom)))
+            : (Path()
+              ..moveTo(chimney.left, chimney.bottom)
+              ..lineTo(chimney.right, chimney.bottom)
+              ..lineTo(rr.right, rr.bottom - hoodH * 0.18)
+              ..lineTo(rr.right, rr.bottom)
+              ..lineTo(rr.left, rr.bottom)
+              ..lineTo(rr.left, rr.bottom - hoodH * 0.18)
+              ..close());
+        if (r.model.id.contains('box')) canvas.drawRect(Rect.fromLTRB(chimney.left, chimney.bottom, chimney.right, rr.bottom - hoodH * 0.45), Paint()..color = const Color(0xFFBFC4C8));
+        canvas.drawPath(canopy, body);
+        canvas.drawPath(canopy, ink);
+        if (sel) canvas.drawRect(rr.inflate(2), _stroke(pc.selected, 2.2));
+        continue;
+      }
       // rendu réaliste dans le repère mm de la façade (texture à l'échelle)
       canvas.save();
       canvas.translate(rr.left, rr.top);

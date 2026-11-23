@@ -4,6 +4,8 @@
 import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
+import 'app_settings.dart';
+import 'scene_export.dart' show sceneBackgroundNames;
 import 'app_state.dart';
 import 'client_ui.dart';
 import 'brands_ui.dart';
@@ -702,6 +704,35 @@ class ViewSwitcher extends StatelessWidget {
               isSelected: state.project.style.showDecor && state.project.style.decor.isNotEmpty,
               onPressed: state.toggleDecor,
               icon: const Icon(Icons.local_florist_outlined),
+            ),
+            PopupMenuButton<String>(
+              key: const ValueKey('view_display'),
+              tooltip: tr('Affichage : mode, fond, réseaux'),
+              icon: const Icon(Icons.layers_outlined),
+              onSelected: (v) {
+                final s = AppSettings.instance;
+                if (v.startsWith('look:')) s.look3d = v.substring(5);
+                if (v.startsWith('bg:')) s.sceneBg = v.substring(3);
+                if (v == 'nets') {
+                  s.nets3d = !s.nets3d;
+                  if (s.nets3d && !state.project.networks) state.setNetworks(true);
+                }
+                s.save();
+                state.refresh();
+              },
+              itemBuilder: (_) {
+                final s = AppSettings.instance;
+                return [
+                  PopupMenuItem(enabled: false, height: 28, child: Text(tr('Mode d’affichage'), style: const TextStyle(fontWeight: FontWeight.w800))),
+                  CheckedPopupMenuItem(value: 'look:real', checked: s.look3d == 'real', child: Text(tr('Réaliste'))),
+                  CheckedPopupMenuItem(value: 'look:sketch', checked: s.look3d == 'sketch', child: Text(tr('Croquis (arêtes tracées)'))),
+                  const PopupMenuDivider(),
+                  CheckedPopupMenuItem(key: const ValueKey('view_nets3d'), value: 'nets', checked: s.nets3d, child: Text(tr('Réseaux : électricité, eau, gaz'))),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(enabled: false, height: 28, child: Text(tr('Fond de la scène'), style: const TextStyle(fontWeight: FontWeight.w800))),
+                  for (final e in sceneBackgroundNames.entries) CheckedPopupMenuItem(value: 'bg:${e.key}', checked: s.sceneBg == e.key, child: Text(tr(e.value))),
+                ];
+              },
             ),
             IconButton(key: const ValueKey('view_hd'), tooltip: tr('Rendu HD'), onPressed: () => showHdRender(context, state, (m) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(m)))), icon: const Icon(Icons.auto_awesome_outlined)),
             IconButton(key: const ValueKey('view_studio'), tooltip: tr('Présentation sur fond blanc'), onPressed: () => state.setStudio('decor'), icon: const Icon(Icons.photo_camera_outlined)),

@@ -1273,7 +1273,7 @@ class _CabinetForm extends StatelessWidget {
             ),
           ]),
         if (m.heights.values.length > 1) _Section('Hauteur (mm)', [chips(m.heights.values, item.height, (v) => _resize(h: v))]),
-        if (m.hasDoors || m.openingOptions.isNotEmpty || (m.isCarcass && !m.kind.isCorner && item.width <= 700))
+        if (!m.isFreeHood && (m.hasDoors || m.openingOptions.isNotEmpty || (m.isCarcass && !m.kind.isCorner && item.width <= 700)))
           _Section('Sens d’ouverture', [
             KxChoices<String>(
               segments: [
@@ -1365,7 +1365,7 @@ class _CabinetForm extends StatelessWidget {
           _ApplianceSection(state: state, item: item, model: m, editable: editable, onMessage: onMessage),
         if (m.isCarcass && !m.kind.isCorner && (m.kind.isLow || m.kind.isHigh || m.kind == CabinetKind.tall) && (editable || state.step == PlanStep.style))
           _FrontLayoutEditor(state: state, item: item, model: m),
-        _ItemFrontSection(state: state, item: item),
+        if (!m.isFreeHood) _ItemFrontSection(state: state, item: item),
         if (editable) ...[
           _Section('Mur', [
             _wallPicker(state, item.wallId, (w) {

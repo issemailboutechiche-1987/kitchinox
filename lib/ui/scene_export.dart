@@ -10,6 +10,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
+import 'app_settings.dart';
 import 'app_state.dart';
 import 'art_library.dart';
 import 'art_page.dart' show artColor;
@@ -33,6 +34,25 @@ bool golaBetween(CabinetModel m, FrontCell above, FrontCell below) {
   if (m.kind == CabinetKind.tall) return front(above) && front(below);
   return m.kind.isLow && above.kind == CellKind.drawer && below.kind == CellKind.drawer;
 }
+
+/// Fonds de la scène 3D : couleur unie, ou dégradé [haut, bas] pour le ciel.
+const sceneBackgrounds = <String, List<int>>{
+  'clair': [0xEEF1F3],
+  'blanc': [0xFFFFFF],
+  'gris': [0xC9CDD1],
+  'beige': [0xEFE6D8],
+  'sombre': [0x24272C],
+  'ciel': [0xA9CBE8, 0xF3F6F9],
+};
+
+const sceneBackgroundNames = <String, String>{
+  'clair': 'Clair (par défaut)',
+  'blanc': 'Blanc',
+  'gris': 'Gris',
+  'beige': 'Beige',
+  'sombre': 'Sombre',
+  'ciel': 'Ciel (dégradé)',
+};
 
 class SceneExporter {
   final Map<String, SceneImage> _images = {}; // déjà rendues
@@ -300,6 +320,9 @@ class SceneExporter {
       }
       final w0 = room.wall(boxes.first.wallId);
       items.add({'uid': c.uid, ..._frame(w0), 's': c.s, 'z': c.z, 'canZ': e.canMoveVertically(m), 'depth': c.depth});
+
+      // hotte posée librement : un appareil, sans porte ni façade devant
+      if (m.isFreeHood) continue;
 
       // façades
       final cells = openableCells(m, c);
@@ -753,6 +776,17 @@ class SceneExporter {
       if (room.outline != null) 'floorPoly': [for (final (x, y) in room.floorPolygon) [x, y]],
       'lights': lights,
       'studio': st.studio,
+      'bg': sceneBackgrounds[AppSettings.instance.sceneBg] ?? sceneBackgrounds['clair'],
+      'look': AppSettings.instance.look3d,
+      if (AppSettings.instance.nets3d && p.networks && st.studio.isEmpty)
+        'nets3d': () {
+          final l = netLayout(p);
+          return {
+            'runs': [for (final r in l.runs) r.toJson()],
+            'colors': {for (final e in netWireColors.entries) e.key: e.value},
+            if (l.board case (final x, final y, final z)) 'board': [x, y, z, l.boardNormal!.$1, l.boardNormal!.$2, l.boardDir!.$1, l.boardDir!.$2],
+          };
+        }(),
       'studioDir': _studioDir(e),
       'studioHigh': _facing(e),
       'walls': st.studio.isEmpty ? walls : const [],

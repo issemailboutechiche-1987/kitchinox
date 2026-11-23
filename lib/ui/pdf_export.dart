@@ -6,7 +6,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart' show Size, Color, Canvas;
+import 'package:flutter/material.dart' show Size, Canvas, Offset;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -97,6 +97,15 @@ Future<Uint8List> buildExecutionPdf(LayoutEngine e,
   };
   final netPngs = <String, Uint8List>{
     for (final w in netWalls) w: await draw('Réseaux, ${w == 'I' ? 'îlot' : 'mur $w'}', px, (c, s) => drawer.paintNetworks(c, s, w)),
+  };
+  // symboles normalisés des points et des appareils, rendus une fois pour les légendes
+  final symPngs = <NetKind, Uint8List>{
+    if (netWalls.isNotEmpty)
+      for (final k in NetKind.values) k: await renderPng(const Size(66, 44), (c, s) => paintNetSymbol(c, const Offset(30, 24), k, 12)),
+  };
+  final appPngs = <String, Uint8List>{
+    if (netWalls.isNotEmpty)
+      for (final a in applianceUses) a: await renderPng(const Size(44, 44), (c, s) => paintApplianceSymbol(c, const Offset(22, 22), a, 16)),
   };
   final coverW = format.width - 2 * margin - 330 - gap;
   Uint8List? view3d;
@@ -323,19 +332,7 @@ Future<Uint8List> buildExecutionPdf(LayoutEngine e,
   }
 
   // ---- 3 bis. réseaux : un plan coté par mur, puis circuits et matériel
-  PdfColor pdfColor(Color c) => PdfColor.fromInt(c.toARGB32());
-  pw.Widget dot(NetKind k) => pw.Container(
-        width: 22,
-        height: 14,
-        alignment: pw.Alignment.center,
-        decoration: pw.BoxDecoration(
-          color: k.network == 'elec' ? PdfColors.white : pdfColor(netColor(k)),
-          border: pw.Border.all(color: pdfColor(netColor(k)), width: 1),
-          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(7)),
-        ),
-        child: pw.Text(k.tag,
-            style: pw.TextStyle(fontSize: 6.5, fontWeight: pw.FontWeight.bold, color: k.network == 'elec' ? pdfColor(netColor(k)) : PdfColors.white)),
-      );
+  pw.Widget dot(NetKind k) => pw.Image(pw.MemoryImage(symPngs[k]!), width: 24, height: 16);
   final circuits = circuitsOf(p);
   for (final w in netWalls) {
     final pts = visiblePoints(p).where((x) => x.wallId == w).toList()..sort((a, b) => a.s.compareTo(b.s));
@@ -407,6 +404,17 @@ Future<Uint8List> buildExecutionPdf(LayoutEngine e,
             pw.Wrap(spacing: 14, runSpacing: 5, children: [
               for (final k in NetKind.values)
                 pw.Row(mainAxisSize: pw.MainAxisSize.min, children: [dot(k), pw.SizedBox(width: 4), pw.Text(_t(k.label), style: const pw.TextStyle(fontSize: 8))]),
+            ]),
+            pw.SizedBox(height: 8),
+            pw.Text(_t(tr('Appareils raccordés')), style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Wrap(spacing: 14, runSpacing: 5, children: [
+              for (final a in applianceUses)
+                pw.Row(mainAxisSize: pw.MainAxisSize.min, children: [
+                  pw.Image(pw.MemoryImage(appPngs[a]!), width: 16, height: 16),
+                  pw.SizedBox(width: 4),
+                  pw.Text(_t(tr(applianceName(a))), style: const pw.TextStyle(fontSize: 8)),
+                ]),
             ]),
             pw.SizedBox(height: 14),
             pw.Text(_t(tr('Contrôles des réseaux')), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),

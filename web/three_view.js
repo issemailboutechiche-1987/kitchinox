@@ -2487,7 +2487,8 @@ function disposeTree(root) {
   root.traverse((o) => {
     if (o.userData.cached) return;
     if (o.geometry) o.geometry.dispose();
-    const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+    const own = o.userData.sketchOrig ?? o.material;
+    const ms = Array.isArray(own) ? own : own ? [own] : [];
     for (const m of ms) {
       if (isShared(m)) continue;
       if (m.userData.ownMap && m.map) m.map.dispose();
@@ -2615,10 +2616,213 @@ function fitCamera(d) {
   camAnim = { p0: camera.position.clone(), t0: controls.target.clone(), p1: probe.position.clone(), t1: c, k: 0 };
 }
 
+// ------------------------------------------------------------------ fond, mode croquis, réseaux tracés
+
+let bgKey = null;
+/** Fond de la scène : couleur unie, ou dégradé vertical (ciel) ; blanc en présentation. */
+function applyBackground(d) {
+  const bg = d.studio ? [0xffffff] : d.bg || [0xeef1f3];
+  const key = bg.join();
+  if (key === bgKey) return;
+  bgKey = key;
+  if (scene.background && scene.background.isTexture) scene.background.dispose();
+  if (bg.length < 2) {
+    scene.background = new THREE.Color(bg[0]);
+    return;
+  }
+  const cv = document.createElement('canvas');
+  cv.width = 4;
+  cv.height = 256;
+  const ctx = cv.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 256);
+  const hex = (c) => '#' + c.toString(16).padStart(6, '0');
+  grad.addColorStop(0, hex(bg[0]));
+  grad.addColorStop(1, hex(bg[1]));
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 4, 256);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  scene.background = tex;
+}
+
+const sketchMat = new THREE.MeshLambertMaterial({ color: 0xffffff, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+const sketchGlass = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15, depthWrite: false });
+const sketchLine = new THREE.LineBasicMaterial({ color: 0x2b2f33 });
+sketchMat.userData.cached = sketchGlass.userData.cached = sketchLine.userData.cached = true;
+const edgeCache = new Map(); // géométrie → arêtes
+let lookNow = 'real';
+
+/** Mode croquis : surfaces blanches et arêtes tracées au trait ; réaliste : les matériaux reviennent. */
+function applyLook(look) {
+  const sketch = look === 'sketch';
+  if (!sketch && lookNow !== 'sketch') return;
+  lookNow = look;
+  const nodes = [];
+  scene.traverse((o) => nodes.push(o));
+  for (const o of nodes) {
+    if (!o.isMesh || o.userData.sketchEdge || o.userData.netRun) continue;
+    if (sketch) {
+      if (o.userData.sketchOrig) continue;
+      const m0 = Array.isArray(o.material) ? o.material[0] : o.material;
+      if (!m0 || m0.visible === false) continue;
+      // ombres au sol, reflets : sans objet dans un croquis
+      if (m0.isMeshBasicMaterial && m0.transparent && m0.map) {
+        o.userData.sketchOrig = o.material;
+        o.userData.sketchHidden = o.visible;
+        o.visible = false;
+        continue;
+      }
+      o.userData.sketchOrig = o.material;
+      o.material = m0.transparent && m0.opacity < 0.6 ? sketchGlass : sketchMat;
+      const geo = o.geometry;
+      if (!geo || !geo.attributes.position) continue;
+      let eg = edgeCache.get(geo.uuid);
+      if (!eg) {
+        if (geo.attributes.position.count > 120000) continue; // modèle très détaillé : surfaces seules
+        eg = new THREE.EdgesGeometry(geo, 28);
+        eg.userData.cached = true;
+        edgeCache.set(geo.uuid, eg);
+      }
+      const ln = new THREE.LineSegments(eg, sketchLine);
+      ln.userData.sketchEdge = true;
+      ln.userData.cached = true;
+      ln.raycast = () => {};
+      o.add(ln);
+    } else if (o.userData.sketchOrig) {
+      o.material = o.userData.sketchOrig;
+      delete o.userData.sketchOrig;
+      if ('sketchHidden' in o.userData) {
+        o.visible = o.userData.sketchHidden;
+        delete o.userData.sketchHidden;
+      }
+      for (const c of [...o.children]) if (c.userData.sketchEdge) o.remove(c);
+    }
+  }
+  if (!sketch) {
+    for (const eg of edgeCache.values()) eg.dispose();
+    edgeCache.clear();
+  }
+  invalidate(true);
+}
+
+const wireMats = new Map();
+function wireMat(w, color) {
+  let m = wireMats.get(w);
+  if (m) return m;
+  if (w === 'PE') {
+    // terre : rayures vert / jaune
+    const cv = document.createElement('canvas');
+    cv.width = 4;
+    cv.height = 32;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#3fa142';
+    ctx.fillRect(0, 0, 4, 32);
+    ctx.fillStyle = '#f2d21b';
+    ctx.fillRect(0, 0, 4, 12);
+    const tex = new THREE.CanvasTexture(cv);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    m = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55 });
+  } else {
+    m = new THREE.MeshStandardMaterial({ color, roughness: w === 'gas' || w === 'drain' ? 0.35 : 0.55, metalness: w === 'gas' ? 0.35 : 0 });
+  }
+  m.userData.cached = true;
+  wireMats.set(w, m);
+  return m;
+}
+
+/** Réseaux tracés : conducteurs depuis le tableau, tuyaux d'eau, évacuations et gaz le long des murs. */
+function buildNets(n) {
+  const g = new THREE.Group();
+  if (!n) return g;
+  // murs de la pièce : chaque tronçon suit la visibilité du mur qui le porte
+  const walls = [];
+  groups.get('room')?.obj.traverse((o) => {
+    if (o.userData.wall) walls.push(o.userData.wall);
+  });
+  const wallOf = (a, b) => {
+    const mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
+    let best = null, bd = 0.12;
+    for (const w of walls) {
+      const dd = Math.abs((mx - w.ox * S) * w.nx + (mz - w.oy * S) * w.ny);
+      if (dd < bd) {
+        bd = dd;
+        best = w.id;
+      }
+    }
+    return best;
+  };
+  const up = new THREE.Vector3(0, 1, 0);
+  for (const run of n.runs || []) {
+    const mat = wireMat(run.w, n.colors?.[run.w] ?? 0x888888);
+    const r = Math.max(4, run.r) * S;
+    const pts = run.p.map(([x, y, z]) => P(x, y, z));
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      const len = a.distanceTo(b);
+      if (len < 1e-4) continue;
+      const geo = new THREE.CylinderGeometry(r, r, len, 10, 1, true);
+      if (run.w === 'PE') {
+        const uv = geo.attributes.uv;
+        for (let k = 0; k < uv.count; k++) uv.setY(k, uv.getY(k) * len / 0.03);
+      }
+      const c = new THREE.Mesh(geo, mat);
+      c.position.copy(a).add(b).multiplyScalar(0.5);
+      c.quaternion.setFromUnitVectors(up, b.clone().sub(a).normalize());
+      c.userData.netRun = true;
+      c.castShadow = false;
+      c.raycast = () => {};
+      const w = wallOf(a, b);
+      if (w) c.userData.wallOf = w;
+      g.add(c);
+      if (i < pts.length - 1) {
+        const j = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), mat);
+        j.position.copy(b);
+        j.userData.netRun = true;
+        j.raycast = () => {};
+        if (w) j.userData.wallOf = w;
+        g.add(j);
+      }
+    }
+  }
+  // tableau électrique : coffret blanc à porte fumée, rangées de disjoncteurs
+  if (n.board) {
+    const [x, y, z, nx, ny, dx, dy] = n.board;
+    const box = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.46, 0.1), new THREE.MeshStandardMaterial({ color: 0xf4f5f6, roughness: 0.5 }));
+    box.add(body);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(0.27, 0.38), new THREE.MeshStandardMaterial({ color: 0x5c6670, roughness: 0.2, transparent: true, opacity: 0.55 }));
+    face.position.z = 0.0505;
+    box.add(face);
+    const brk = new THREE.MeshStandardMaterial({ color: 0x23272b, roughness: 0.5 });
+    for (let row = 0; row < 3; row++) {
+      for (let k = 0; k < 8; k++) {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.07, 0.02), k === 0 ? new THREE.MeshStandardMaterial({ color: 0x1e63c8 }) : brk);
+        b.position.set(-0.105 + k * 0.03, 0.12 - row * 0.12, 0.04);
+        box.add(b);
+      }
+    }
+    box.position.copy(P(x, y, z));
+    box.position.x += nx * 0.05;
+    box.position.z += ny * 0.05;
+    box.lookAt(box.position.clone().add(new THREE.Vector3(nx, 0, ny)));
+    const wb = wallOf(box.position, box.position);
+    box.traverse((o) => {
+      o.raycast = () => {};
+      o.userData.netRun = true;
+      if (wb) o.userData.wallOf = wb;
+    });
+    void dx;
+    void dy;
+    g.add(box);
+  }
+  return g;
+}
+
 function applyScene(d) {
   data = d;
   doors.length = 0;
-  scene.background = new THREE.Color(d.studio ? 0xffffff : 0xeef1f3);
+  applyBackground(d);
   sync('room', JSON.stringify([d.studio || '', d.room, d.walls, d.floor, d.wall, d.splashMat, d.splash]), () => buildRoom(d));
   sync('lights', JSON.stringify(d.lights || []), () => buildLights(d));
   const uids = [...new Set(d.items.map((i) => i.uid))];
@@ -2650,6 +2854,8 @@ function applyScene(d) {
   syncObjects(d);
   sync('netPoints', JSON.stringify([d.netPoints || [], d.socketFinish]), () => buildNetPoints(d));
   sync('ao', JSON.stringify([d.studio || '', d.room, d.floorPoly || null, groundFootprints(d)]), () => (d.studio ? new THREE.Group() : buildAO(d)));
+  sync('nets3d', JSON.stringify([d.nets3d || null, d.room, d.walls]), () => buildNets(d.nets3d));
+  applyLook(d.look || 'real');
   // sélection : boîte orange
   if (selBox) {
     scene.remove(selBox);
@@ -2857,12 +3063,13 @@ function animate() {
         lastWalls = sigWalls;
         shadowsDirty = true;
       }
-      for (const key of ['room', 'netPoints']) {
+      for (const key of ['room', 'netPoints', 'nets3d']) {
         groups.get(key)?.obj.traverse((o) => {
           if (o.userData.wallOf) o.visible = walls.get(o.userData.wallOf) ?? true;
         });
       }
     }
+    if (lookNow === 'sketch' && (stats.frames % 40) === 0) applyLook('sketch');
     if (selBox) selBox.update();
     reportSelection();
     if (shadowsDirty) {

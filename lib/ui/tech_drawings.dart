@@ -541,6 +541,7 @@ class TechDrawer {
     }
     for (final x in pts) {
       paintNetSymbol(c, s(x.s, x.z), x.kind, r);
+      if (applianceOf(x) case final a?) paintApplianceSymbol(c, s(x.s, x.z) + Offset(r * 2.7, -r * 0.2), a, r * 0.85);
       _text(c, trp('h {0}', [x.z.round()]), s(x.s, x.z) + Offset(0, r + 9 * u), size: 8.5, color: netColor(x.kind), weight: FontWeight.w800, bg: Colors.white);
     }
     // chaîne de cotes des positions, au-dessus du mur

@@ -61,6 +61,11 @@ class AppSettings extends ChangeNotifier {
   final Map<DocKind, int> next = {for (final k in DocKind.values) k: 1};
   int counterYear = DateTime.now().year;
 
+  /// Vue 3D : fond de scène, mode d'affichage ('real' réaliste, 'sketch' croquis), réseaux tracés.
+  String sceneBg = 'clair';
+  String look3d = 'real';
+  bool nets3d = false;
+
   /// [deviceLang] : langue de l'appareil (« fr », « en », « ar »), prise au premier lancement.
   void load({String? deviceLang}) {
     final raw = storeGet(_key);
@@ -77,6 +82,9 @@ class AppSettings extends ChangeNotifier {
       withYear = j['with_year'] as bool? ?? true;
       digits = (j['digits'] as num?)?.toInt() ?? 4;
       counterYear = (j['year'] as num?)?.toInt() ?? DateTime.now().year;
+      sceneBg = j['scene_bg'] as String? ?? 'clair';
+      look3d = j['look3d'] as String? ?? 'real';
+      nets3d = j['nets3d'] as bool? ?? false;
       for (final k in DocKind.values) {
         prefix[k] = (j['prefix'] as Map?)?[k.name] as String? ?? k.defaultPrefix;
         next[k] = ((j['next'] as Map?)?[k.name] as num?)?.toInt() ?? 1;
@@ -97,6 +105,9 @@ class AppSettings extends ChangeNotifier {
           'with_year': withYear,
           'digits': digits,
           'year': counterYear,
+          'scene_bg': sceneBg,
+          'look3d': look3d,
+          'nets3d': nets3d,
           'prefix': {for (final e in prefix.entries) e.key.name: e.value},
           'next': {for (final e in next.entries) e.key.name: e.value},
         }));
