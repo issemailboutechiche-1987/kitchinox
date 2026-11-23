@@ -355,8 +355,11 @@ class _PlannerScreenState extends State<PlannerScreen> {
   // sur le web, un clic sur un bouton posé sur la 3D atteint aussi le canvas WebGL : on retient qui l'a reçu
   bool _onCanvas = false, _hoverCanvas = false;
   bool? _input3d;
+  void Function(bool)? _lastInput3d;
   void _setInput3d(bool on) {
-    if (_input3d == on) return;
+    // la vue 3D a pu être recréée entre-temps : on renvoie l'état quand la souris entre ou sort d'un panneau
+    if (_input3d == on && st.input3d == _lastInput3d) return;
+    _lastInput3d = st.input3d;
     _input3d = on;
     st.input3d?.call(on);
   }

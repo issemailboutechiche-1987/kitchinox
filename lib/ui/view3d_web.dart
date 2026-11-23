@@ -92,6 +92,9 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
 
   AppState get st => widget.state;
 
+  /// Gestes acceptés ou non par la 3D (un panneau est sous le pointeur).
+  void _input(bool on) => _k3d?.input(on);
+
   /// Conteneur de CETTE vue (revenir à une étape recrée la vue : l'ancien conteneur n'est plus affiché).
   web.HTMLDivElement? _host;
 
@@ -102,7 +105,7 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
     st.addListener(_schedule);
     TextureBank.instance.addListener(_schedule);
     _installHandlers();
-    st.input3d = (on) => _k3d?.input(on);
+    st.input3d = _input;
     if (_hosts.isNotEmpty) {
       _host = _hosts.values.last;
       _tryMount();
@@ -120,7 +123,8 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
   @override
   void dispose() {
     _host?.style.pointerEvents = 'auto';
-    if (st.input3d != null) st.input3d = null;
+    // une nouvelle vue a pu prendre le relais (changement d'étape) : on ne débranche que la nôtre
+    if (st.input3d == _input) st.input3d = null; // même méthode du même objet : égales
     st.removeListener(_schedule);
     TextureBank.instance.removeListener(_schedule);
     _retry?.cancel();
