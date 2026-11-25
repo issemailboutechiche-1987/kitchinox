@@ -1,5 +1,5 @@
 // Étape 1 : scan complet de la pièce avec RoomPlan (LiDAR).
-// La vue de capture utilise la session partagée (iOS 17) : à la fin du scan, la session continue
+// La vue de capture utilise la session partagée : à la fin du scan, la session continue
 // (stop(pauseARSession: false)), et la pièce scannée reste dans le même repère que la cuisine posée ensuite.
 // « Terminer » n'est possible qu'une fois la pièce fermée : au moins 3 murs et le sol.
 
@@ -87,7 +87,7 @@ struct ScanView: UIViewRepresentable {
     @EnvironmentObject var model: AppModel
     let progress: ScanProgress
 
-    func makeCoordinator() -> Coordinator { Coordinator(progress: progress) }
+    func makeCoordinator() -> ScanCoordinator { ScanCoordinator(progress: progress) }
 
     func makeUIView(context: Context) -> RoomCaptureView {
         let view = RoomCaptureView(frame: .zero, arSession: model.session)
@@ -99,30 +99,32 @@ struct ScanView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: RoomCaptureView, context: Context) {}
+}
 
-    final class Coordinator: NSObject, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
-        let progress: ScanProgress
+/// Délégué du scan (au premier niveau, nom Objective-C fixe : RoomCaptureViewDelegate exige NSCoding).
+@objc(KitchinoxScanCoordinator)
+final class ScanCoordinator: NSObject, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
+    let progress: ScanProgress
 
-        init(progress: ScanProgress) {
-            self.progress = progress
-            super.init()
-        }
+    init(progress: ScanProgress) {
+        self.progress = progress
+        super.init()
+    }
 
-        // RoomCaptureViewDelegate exige NSCoding
-        required init?(coder: NSCoder) { nil }
-        func encode(with coder: NSCoder) {}
+    // RoomCaptureViewDelegate exige NSCoding
+    required init?(coder: NSCoder) { nil }
+    func encode(with coder: NSCoder) {}
 
-        func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {
-            Task { @MainActor in self.progress.update(room) }
-        }
+    func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {
+        Task { @MainActor in self.progress.update(room) }
+    }
 
-        func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool { true }
+    func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool { true }
 
-        func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
-            Task { @MainActor in
-                self.progress.processing = false
-                if error == nil { self.progress.result = processedResult }
-            }
+    func captureView(didPresent processedResult: CapturedRoom, error: Error?) {
+        Task { @MainActor in
+            self.progress.processing = false
+            if error == nil { self.progress.result = processedResult }
         }
     }
 }
