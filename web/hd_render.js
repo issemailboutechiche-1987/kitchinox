@@ -1,4 +1,8 @@
-// Rendu HD de kitchinox : accumulation de lumière, sans bibliothèque supplémentaire.
+// Rendu HD de kitchinox : de préférence un vrai lancer de rayons (three-gpu-pathtracer, web/vendor/pathtracer) :
+// reflets, lumière qui rebondit sur les murs, ombres physiques. Si l'appareil ne le permet pas
+// (WebGL 1, mémoire, erreur), on revient à l'accumulation de lumière ci-dessous, sans bibliothèque.
+//
+// Accumulation de lumière :
 // L'image est la moyenne de nombreux rendus : le soleil est une grande source douce, le ciel éclaire de partout
 // (chaque rendu a sa propre direction et ses propres ombres), la caméra est décalée d'une fraction de pixel.
 // Résultat : ombres douces, coins naturellement sombres (occlusion réelle) et contours sans escaliers.
@@ -15,7 +19,7 @@ function halton(i, b) {
   return r;
 }
 
-const state = { k: 0, n: 0, url: null, error: null, running: false };
+const state = { k: 0, n: 0, url: null, error: null, running: false, engine: '' }; // engine : 'path' ou 'raster'
 let stopAsked = false;
 
 export function hdState() {
@@ -34,8 +38,134 @@ export function hdStop() {
  */
 export function hdStart(ctx, w, h, n) {
   if (state.running) return;
-  Object.assign(state, { k: 0, n, url: null, error: null, running: true });
+  Object.assign(state, { k: 0, n, url: null, error: null, running: true, engine: 'path' });
   stopAsked = false;
+  const log = window.__kxlog || (() => {});
+  pathStart(ctx, w, h, n).catch((e) => {
+    // lancer de rayons impossible ici : l'accumulation de lumière prend le relais
+    log('rendu', 'lancer de rayons indisponible, accumulation : ' + (e?.message || e));
+    if (stopAsked) {
+      Object.assign(state, { url: null, error: 'stop', running: false });
+      ctx.done();
+      return;
+    }
+    Object.assign(state, { k: 0, engine: 'raster' });
+    rasterStart(ctx, w, h, n);
+  });
+}
+
+/**
+ * Lancer de rayons : n échantillons par pixel, quelques-uns par image affichée (la page reste vivante).
+ * Rejette la promesse (sans rien laisser modifié) si la bibliothèque ou l'appareil ne suit pas.
+ */
+async function pathStart(ctx, w, h, n) {
+  const { renderer, scene, camera } = ctx;
+  if (!renderer.capabilities.isWebGL2) throw new Error('WebGL 2 requis');
+  const { WebGLPathTracer, GradientEquirectTexture } = await import('three-gpu-pathtracer');
+  const max = renderer.capabilities.maxTextureSize;
+  w = Math.min(w, max);
+  h = Math.min(h, max);
+  const keep = {
+    size: renderer.getSize(new THREE.Vector2()),
+    dpr: renderer.getPixelRatio(),
+    aspect: camera.aspect,
+    env: scene.environment,
+    envI: scene.environmentIntensity,
+    exposure: renderer.toneMappingExposure,
+  };
+  // ombres peintes au sol, ombre de présentation, traits du croquis : la vraie lumière les remplace
+  const hidden = [];
+  scene.traverse((o) => {
+    const m = Array.isArray(o.material) ? o.material[0] : o.material;
+    const painted = m && (m.isShadowMaterial || (m.isMeshBasicMaterial && m.transparent && m.map && !m.depthWrite));
+    if ((o.isMesh && painted) || o.isLine) {
+      hidden.push([o, o.visible]);
+      o.visible = false;
+    }
+  });
+  // ciel doux tout autour (le RoomEnvironment pré-filtré ne se lit pas en lancer de rayons)
+  const sky = new GradientEquirectTexture();
+  sky.topColor.set(0xffffff);
+  sky.bottomColor.set(0x9a9a9a);
+  sky.update();
+  scene.environment = sky;
+  scene.environmentIntensity = 0.9;
+  renderer.toneMappingExposure = 1.05;
+  renderer.setPixelRatio(1);
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+
+  let pt = null;
+  const restore = () => {
+    for (const [o, v] of hidden) o.visible = v;
+    scene.environment = keep.env;
+    scene.environmentIntensity = keep.envI;
+    renderer.toneMappingExposure = keep.exposure;
+    camera.aspect = keep.aspect;
+    camera.updateProjectionMatrix();
+    renderer.setRenderTarget(null);
+    renderer.setPixelRatio(keep.dpr);
+    renderer.setSize(keep.size.x, keep.size.y, false);
+    try {
+      pt?.dispose();
+    } catch (_) {}
+    sky.dispose();
+  };
+  try {
+    pt = new WebGLPathTracer(renderer);
+    pt.renderToCanvas = true;
+    pt.rasterizeScene = false;
+    pt.synchronizeRenderSize = true;
+    pt.renderScale = 1;
+    pt.minSamples = 0;
+    pt.fadeDuration = 0;
+    pt.renderDelay = 0;
+    pt.dynamicLowRes = false;
+    pt.bounces = 6;
+    pt.filteredGlossyFactor = 0.5; // pas d'étincelles blanches sur le chrome
+    pt.tiles.set(2, 2);
+    pt.setScene(scene, camera);
+  } catch (e) {
+    restore();
+    throw e;
+  }
+  const log = window.__kxlog || (() => {});
+  log('rendu', `lancer de rayons ${w}x${h}, ${n} échantillons`);
+  const t0all = performance.now();
+  await new Promise((resolve, reject) => {
+    const step = () => {
+      if (stopAsked) {
+        restore();
+        Object.assign(state, { url: null, error: 'stop', running: false });
+        ctx.done();
+        return resolve();
+      }
+      try {
+        const t0 = performance.now();
+        // tant que les shaders compilent, renderSample n'ajoute rien : la boucle attend sans bloquer
+        while (pt.samples < n && performance.now() - t0 < 60) pt.renderSample();
+        if (performance.now() - t0all > 15 * 60 * 1000) throw new Error('lancer de rayons trop long');
+        state.k = Math.min(n, Math.floor(pt.samples));
+        if (pt.samples < n) return requestAnimationFrame(step);
+        const url = renderer.domElement.toDataURL('image/png');
+        log('rendu', `lancer de rayons terminé en ${Math.round((performance.now() - t0all) / 1000)} s`);
+        restore();
+        Object.assign(state, { url, error: null, running: false });
+        ctx.done();
+        resolve();
+      } catch (e) {
+        // panne en cours de rendu : tout est remis en place, l'accumulation prend le relais
+        restore();
+        reject(e);
+      }
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+/** Accumulation de lumière (sans bibliothèque) : le secours du lancer de rayons. */
+function rasterStart(ctx, w, h, n) {
   const { renderer, scene, camera, sun, hemi, ambient, fill } = ctx;
   const keep = {
     size: renderer.getSize(new THREE.Vector2()),

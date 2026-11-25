@@ -369,6 +369,19 @@ class _ArPageState extends State<ArPage> {
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        // l'app native : scan complet de la pièce (LiDAR), calage sur les vrais murs, puis le show
+                        OutlinedButton.icon(
+                          key: const ValueKey('ar_scan_app'),
+                          icon: const Icon(Icons.document_scanner_outlined),
+                          onPressed: () async {
+                            final ok = await sendArToApp(widget.st.project.name);
+                            if (!ok && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('Envoi impossible : l’app Kitchinox AR et le serveur du PC sont-ils prêts ?'))));
+                            }
+                          },
+                          label: Text(tr('Scanner la pièce (Kitchinox AR)')),
+                        ),
                         if (!s.quickLook) ...[
                           const SizedBox(height: 4),
                           Text(

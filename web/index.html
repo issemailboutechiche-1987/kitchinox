@@ -17,6 +17,31 @@
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
+  <!-- journal de diagnostic : erreurs envoyées au serveur local (tool/serve.mjs), ignoré ailleurs -->
+  <script>
+  (function () {
+    var n = 0;
+    function send(k, m) {
+      if (n++ > 60) return;
+      try {
+        fetch('__log', { method: 'POST', keepalive: true, body: JSON.stringify({ k: k, m: String(m).slice(0, 3000), ua: navigator.userAgent, touch: navigator.maxTouchPoints || 0 }) }).catch(function () {});
+      } catch (e) {}
+    }
+    window.__kxlog = send;
+    addEventListener('error', function (e) {
+      var t = e.target;
+      if (t && t !== window && (t.src || t.href)) send('chargement', (t.tagName || '') + ' ' + (t.src || t.href));
+      else send('erreur', (e.message || '') + ' @' + (e.filename || '') + ':' + (e.lineno || '') + ':' + (e.colno || '') + ' ' + ((e.error && e.error.stack) || ''));
+    }, true);
+    addEventListener('unhandledrejection', function (e) { send('promesse', (e.reason && (e.reason.stack || e.reason.message)) || e.reason); });
+    var ce = console.error;
+    console.error = function () {
+      try { send('console', Array.prototype.map.call(arguments, function (a) { return (a && (a.stack || a.message)) || a; }).join(' ')); } catch (e) {}
+      return ce.apply(console, arguments);
+    };
+    send('page', 'chargée ' + innerWidth + 'x' + innerHeight + ' dpr ' + devicePixelRatio);
+  })();
+  </script>
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
@@ -61,7 +86,12 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <!-- vue 3D temps réel (three.js, fourni dans web/vendor) -->
-  <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+  <script type="importmap">{ "imports": {
+    "three": "./vendor/three.module.min.js",
+    "three-mesh-bvh": "./vendor/pathtracer/three-mesh-bvh.module.js",
+    "three-gpu-pathtracer": "./vendor/pathtracer/three-gpu-pathtracer.module.js",
+    "three/examples/jsm/postprocessing/Pass.js": "./vendor/postprocessing/Pass.js"
+  } }</script>
   <script type="module" src="three_view.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

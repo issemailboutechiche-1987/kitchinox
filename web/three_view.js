@@ -3207,6 +3207,13 @@ let sun;
 function init(el) {
   host = el;
   renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: !!window.kitchen3dPreserve });
+  {
+    const gl = renderer.getContext();
+    const log = window.__kxlog || (() => {});
+    log('3d', `WebGL ${renderer.capabilities.isWebGL2 ? 2 : 1}, textures max ${renderer.capabilities.maxTextureSize}, hôte ${el?.clientWidth}x${el?.clientHeight}`);
+    renderer.domElement.addEventListener('webglcontextlost', () => log('3d', 'contexte WebGL perdu (mémoire ?)'));
+    if (gl.isContextLost && gl.isContextLost()) log('3d', 'contexte WebGL perdu dès le départ');
+  }
   // Qualité d'affichage optimisée : Retina / iPad (plafonné à 2.5 pour netteté cristalline)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5));
   renderer.shadowMap.enabled = true;
@@ -3373,6 +3380,23 @@ window.kitchen3d = {
     openUsdz(arPrepared.bytes);
     return true;
   },
+  /**
+   * Envoie le paquet préparé à l'app native Kitchinox AR (scan RoomPlan) : dépôt sur le serveur local,
+   * puis ouverture de kitchinoxar://open?src=… avec les cotes de la pièce (calage automatique). Promesse : true si envoyé.
+   */
+  async arSendToApp(name) {
+    if (!arPrepared) return false;
+    const r = await fetch('__ar/scene.usdz', { method: 'POST', body: arPrepared.bytes });
+    if (!r.ok) return false;
+    const src = new URL('__ar/scene.usdz?t=' + Date.now(), location.href).href;
+    const q = new URLSearchParams({ src, name: name || 'Cuisine' });
+    if (data?.room) {
+      q.set('w', String(Math.round(data.room.w)));
+      q.set('d', String(Math.round(data.room.d)));
+    }
+    location.href = 'kitchinoxar://open?' + q.toString();
+    return true;
+  },
   /** Taille du paquet préparé (octets), 0 sans paquet. */
   arSize() {
     return arPrepared ? arPrepared.bytes.length : 0;
@@ -3463,3 +3487,5 @@ window.kitchen3d = {
     }
   },
 };
+
+(window.__kxlog || (() => {}))('3d', 'module three_view chargé');

@@ -41,6 +41,7 @@ Future<void> stopHdRender() async => _live?.runJavaScript('window.kitchen3d.hdSt
 bool get arQuickLookAvailable => false;
 Future<String?> prepareArPackage(String optionsJson) async => null;
 bool openArPackage() => false;
+Future<bool> sendArToApp(String name) async => false;
 
 /// Image de la vue 3D affichée (Data URL PNG), ou null si elle n'est pas ouverte.
 Future<String?> getWeb3dSnapshotPng() async {

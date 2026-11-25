@@ -3475,6 +3475,8 @@ const Map<String, String> enDict = {
   "Limites de mesure": "Measurement limits",
   "Précision visuelle d’environ ±2 cm selon la détection de sol. La vue AR sert à visualiser et vérifier l’espace, pas à modifier les meubles.": "Visual accuracy of roughly ±2 cm depending on surface tracking. AR view is for previewing and checking space, not editing cabinets.",
   "Compris": "Got it",
+  "Scanner la pièce (Kitchinox AR)": "Scan the room (Kitchinox AR)",
+  "Envoi impossible : l’app Kitchinox AR et le serveur du PC sont-ils prêts ?": "Could not send: are the Kitchinox AR app and the PC server ready?",
 };
 
 const Map<String, String> arDict = {
@@ -6952,4 +6954,6 @@ const Map<String, String> arDict = {
   "Limites de mesure": "حدود القياس",
   "Précision visuelle d’environ ±2 cm selon la détection de sol. La vue AR sert à visualiser et vérifier l’espace, pas à modifier les meubles.": "دقة بصرية تقارب ±2 سم حسب تتبع السطح. عرض الواقع المعزز مخصص للمعاينة وفحص المساحة، وليس لتعديل الخزائن.",
   "Compris": "فهمت",
+  "Scanner la pièce (Kitchinox AR)": "مسح الغرفة (Kitchinox AR)",
+  "Envoi impossible : l’app Kitchinox AR et le serveur du PC sont-ils prêts ?": "تعذر الإرسال: هل تطبيق Kitchinox AR وخادم الحاسوب جاهزان؟",
 };

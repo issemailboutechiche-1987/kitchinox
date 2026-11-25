@@ -21,7 +21,7 @@ import 'view3d_stub.dart'
 
 export 'view3d_stub.dart'
     if (dart.library.js_interop) 'view3d_web.dart'
-    if (dart.library.io) 'view3d_native.dart' show arQuickLookAvailable, openArPackage;
+    if (dart.library.io) 'view3d_native.dart' show arQuickLookAvailable, openArPackage, sendArToApp;
 
 /// Ce qui part dans la pièce réelle.
 class ArOptions {

@@ -45,7 +45,50 @@ function encoded(file, ext, enc, stat) {
   return body;
 }
 
+// scène AR envoyée par la tablette, reprise par l'app Kitchinox AR (gardée en mémoire, la dernière seulement)
+let arScene = null;
+
 http.createServer((req, res) => {
+  const route = req.url.split('?')[0];
+  if (route.endsWith('/__ar/scene.usdz')) {
+    if (req.method === 'POST') {
+      const parts = [];
+      let size = 0;
+      req.on('data', (c) => {
+        size += c.length;
+        if (size <= 400 * 1024 * 1024) parts.push(c);
+      });
+      req.on('end', () => {
+        if (size > 400 * 1024 * 1024) return res.writeHead(413).end();
+        arScene = Buffer.concat(parts);
+        console.log(`[${new Date().toLocaleTimeString()}] scène AR reçue : ${(arScene.length / 1048576).toFixed(1)} Mo`);
+        res.writeHead(204).end();
+      });
+      return;
+    }
+    if (!arScene) return res.writeHead(404).end();
+    res.writeHead(200, { 'Content-Type': 'model/vnd.usdz+zip', 'Content-Length': arScene.length, 'Cache-Control': 'no-store' });
+    return res.end(req.method === 'HEAD' ? undefined : arScene);
+  }
+  // journal de la tablette : erreurs JavaScript et diagnostics de la 3D, affichés ici (aucune donnée du projet)
+  if (req.method === 'POST' && req.url.split('?')[0].endsWith('/__log')) {
+    let body = '';
+    req.on('data', (c) => {
+      if (body.length < 20000) body += c;
+    });
+    req.on('end', () => {
+      try {
+        const j = JSON.parse(body);
+        // l'iPad se présente comme un Mac : on le reconnaît à l'écran tactile
+        const dev = /iPad|iPhone/.test(j.ua || '') || (/Macintosh/.test(j.ua || '') && j.touch > 1) ? 'iPad' : /Android/.test(j.ua || '') ? 'Android' : 'PC';
+        console.log(`[${new Date().toLocaleTimeString()}] [${dev} ${req.socket.remoteAddress}] ${j.k}: ${j.m}`);
+      } catch (_) {
+        console.log('[log] ' + body.slice(0, 500));
+      }
+      res.writeHead(204).end();
+    });
+    return;
+  }
   try {
     let rel = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     if (rel.endsWith('/')) rel += 'index.html';
