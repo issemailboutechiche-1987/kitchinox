@@ -78,6 +78,7 @@ flutter:
     # app native (iPad) : moteur 3D three.js et modeles servis a la vue 3D par l'app elle-meme
     - web/three_view.js
     - web/hd_render.js
+    - web/ar_export.js
     - assets/web3d/
     - web/objects/kenney/
     - web/objects/kenney/thumbs/
@@ -147,6 +148,8 @@ flutter:
     - web/vendor/environments/
     - web/vendor/loaders/
     - web/vendor/utils/
+    - web/vendor/pathtracer/
+    - web/vendor/postprocessing/
 
   # police Plus Jakarta Sans intégrée (licence OFL, assets/fonts/OFL.txt) : rien n'est téléchargé au lancement
   fonts:

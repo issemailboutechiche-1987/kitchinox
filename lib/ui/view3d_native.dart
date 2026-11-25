@@ -15,7 +15,7 @@ import 'app_state.dart';
 import 'local_server.dart';
 import 'scene_export.dart';
 import 'textures.dart';
-import 'web_io_native.dart' show nativeIoEnabled;
+import 'web_io_native.dart' show nativeIoEnabled, downloadBytes;
 
 /// Vraie 3D (three.js) disponible : sur appareil seulement.
 bool get webgl3dAvailable => nativeIoEnabled;
@@ -37,11 +37,55 @@ Future<String?> hdRenderState() async {
 
 Future<void> stopHdRender() async => _live?.runJavaScript('window.kitchen3d.hdStop()');
 
-// Réalité augmentée : seulement dans le navigateur (AR Quick Look de Safari).
+String _jsString(Object? r) {
+  final s = '$r';
+  return s.startsWith('"') ? jsonDecode(s) as String : s; // Android renvoie la chaîne entre guillemets
+}
+
+// Réalité augmentée dans l'app native : la vue 3D (WebView) prépare le paquet USDZ comme dans Safari,
+// puis le menu Partager d'iPadOS l'envoie à Kitchinox AR (ou l'enregistre dans Fichiers).
 bool get arQuickLookAvailable => false;
-Future<String?> prepareArPackage(String optionsJson) async => null;
-bool openArPackage() => false;
-Future<bool> sendArToApp(String name) async => false;
+
+Future<String?> prepareArPackage(String optionsJson) async {
+  final c = _live;
+  if (c == null) return null;
+  try {
+    await c.runJavaScript('window.__arStats = ""; window.kitchen3d.arPrepare(${jsonEncode(optionsJson)})'
+        '.then((s) => { window.__arStats = s; }).catch((e) => { window.__arStats = "ERR " + e; });');
+    for (var i = 0; i < 600; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      final s = _jsString(await c.runJavaScriptReturningResult('window.__arStats || ""'));
+      if (s.startsWith('ERR')) return null;
+      if (s.isNotEmpty) return s;
+    }
+  } catch (_) {}
+  return null;
+}
+
+/// Partage le paquet préparé ; le nom porte les cotes de la pièce (« _3600x3000mm ») pour le calage automatique.
+Future<bool> _shareAr(String name) async {
+  final c = _live;
+  if (c == null) return false;
+  try {
+    final size = _jsString(await c.runJavaScriptReturningResult('window.kitchen3d.arRoomSize()'));
+    final waiting = LocalServer.instance.nextArUpload();
+    await c.runJavaScript('window.kitchen3d.arUpload()');
+    final bytes = await waiting.timeout(const Duration(seconds: 90));
+    final base = name.trim().isEmpty ? 'Cuisine' : name.trim();
+    downloadBytes('$base${size.isEmpty ? '' : '_${size}mm'}.usdz', bytes, mime: 'model/vnd.usdz+zip');
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+bool openArPackage() {
+  if (_live == null) return false;
+  unawaited(_shareAr('Kitchinox'));
+  return true;
+}
+
+Future<bool> sendArToApp(String name) => _shareAr(name);
 
 /// Image de la vue 3D affichée (Data URL PNG), ou null si elle n'est pas ouverte.
 Future<String?> getWeb3dSnapshotPng() async {

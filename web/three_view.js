@@ -3397,6 +3397,16 @@ window.kitchen3d = {
     location.href = 'kitchinoxar://open?' + q.toString();
     return true;
   },
+  /** App native : dépose le paquet préparé sur le serveur interne de l'app (Flutter le partage ensuite). */
+  async arUpload() {
+    if (!arPrepared) return false;
+    const r = await fetch('__ar/scene.usdz', { method: 'POST', body: arPrepared.bytes });
+    return r.ok;
+  },
+  /** Cotes de la pièce affichée, « 3600x3000 » (mm), vide sans scène. */
+  arRoomSize() {
+    return data?.room ? `${Math.round(data.room.w)}x${Math.round(data.room.d)}` : '';
+  },
   /** Taille du paquet préparé (octets), 0 sans paquet. */
   arSize() {
     return arPrepared ? arPrepared.bytes.length : 0;

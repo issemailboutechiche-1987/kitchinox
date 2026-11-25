@@ -3,6 +3,7 @@
 // Les modules JavaScript ne se chargent pas depuis des fichiers locaux : il leur faut une adresse http.
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 
@@ -13,6 +14,10 @@ class LocalServer {
   HttpServer? _server;
   Future<String>? _starting;
   final _mem = <String, Uint8List>{}; // fichiers en mémoire (images, scènes), par chemin
+  Completer<Uint8List>? _upload; // paquet AR attendu (envoyé par la vue 3D)
+
+  /// Attend le prochain paquet AR déposé par la vue 3D (POST /__ar/scene.usdz).
+  Future<Uint8List> nextArUpload() => (_upload = Completer<Uint8List>()).future;
 
   /// Adresse de base (http://127.0.0.1:port), le serveur démarre au premier appel.
   Future<String> start() => _starting ??= () async {
@@ -47,6 +52,18 @@ class LocalServer {
       var path = Uri.decodeComponent(r.uri.path);
       if (path.startsWith('/')) path = path.substring(1);
       if (path.isEmpty) path = 'index.html';
+      if (r.method == 'POST' && path == '__ar/scene.usdz') {
+        final b = BytesBuilder(copy: false);
+        await for (final c in r) {
+          b.add(c);
+        }
+        final u = _upload;
+        _upload = null;
+        if (u != null && !u.isCompleted) u.complete(b.takeBytes());
+        r.response.statusCode = HttpStatus.noContent;
+        await r.response.close();
+        return;
+      }
       var body = _mem[path];
       if (body == null && !path.contains('..')) {
         // page de la vue 3D, puis les fichiers du dossier web/ (three.js, modèles) embarqués dans l'app

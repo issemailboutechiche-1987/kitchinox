@@ -9,7 +9,12 @@
     html, body { margin: 0; height: 100%; overflow: hidden; background: #eef1f3; touch-action: none; -webkit-user-select: none; user-select: none; }
     #host { position: fixed; inset: 0; }
   </style>
-  <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+  <script type="importmap">{ "imports": {
+    "three": "./vendor/three.module.min.js",
+    "three-mesh-bvh": "./vendor/pathtracer/three-mesh-bvh.module.js",
+    "three-gpu-pathtracer": "./vendor/pathtracer/three-gpu-pathtracer.module.js",
+    "three/examples/jsm/postprocessing/Pass.js": "./vendor/postprocessing/Pass.js"
+  } }</script>
 </head>
 <body>
   <div id="host"></div>

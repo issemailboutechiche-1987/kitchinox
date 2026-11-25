@@ -104,7 +104,14 @@ final class AppModel: ObservableObject {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         do {
-            sceneName = url.deletingPathExtension().lastPathComponent
+            var name = url.deletingPathExtension().lastPathComponent
+            // « Cuisine_3600x3000mm » : les cotes de la pièce du projet, pour choisir le bon coin
+            if let m = name.range(of: #"_(\d+)x(\d+)mm$"#, options: .regularExpression) {
+                let dims = name[m].dropFirst().dropLast(2).split(separator: "x").compactMap { Float($0) }
+                if dims.count == 2 { setRoom(dims[0], dims[1]) }
+                name = String(name[..<m.lowerBound])
+            }
+            sceneName = name
             try store(url)
         } catch {
             message = "Fichier illisible : \(error.localizedDescription)"

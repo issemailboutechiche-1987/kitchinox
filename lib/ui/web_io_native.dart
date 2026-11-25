@@ -215,7 +215,7 @@ Directory? _folderFor(String name) {
   final n = name.toLowerCase();
   if (n.endsWith('.kin')) return _projectsDir;
   if (n.endsWith('.pdf')) return _pdfDir;
-  if (n.endsWith('.glb') || n.endsWith('.gltf') || n.endsWith('.obj') || n.endsWith('.dae') || n.endsWith('.skp')) return _scenesDir;
+  if (n.endsWith('.glb') || n.endsWith('.gltf') || n.endsWith('.obj') || n.endsWith('.dae') || n.endsWith('.skp') || n.endsWith('.usdz')) return _scenesDir;
   return _exportDir ?? _kitchinoxDir;
 }
 
