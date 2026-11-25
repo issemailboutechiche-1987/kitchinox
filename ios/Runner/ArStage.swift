@@ -286,7 +286,7 @@ final class StageController: NSObject, ObservableObject {
     }
 
     /// Trait (boîte fine) entre deux points.
-    private static func line(_ a: SIMD3<Float>, _ b: SIMD3<Float>, width: Float, material: Material) -> ModelEntity {
+    private static func line(_ a: SIMD3<Float>, _ b: SIMD3<Float>, width: Float, material: RealityKit.Material) -> ModelEntity {
         let len = max(simd_distance(a, b), 1e-4)
         let e = ModelEntity(mesh: .generateBox(size: [len, width, width]), materials: [material])
         e.position = (a + b) / 2
