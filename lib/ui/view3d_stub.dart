@@ -14,6 +14,7 @@ bool get arQuickLookAvailable => false;
 Future<String?> prepareArPackage(String optionsJson) async => null;
 bool openArPackage() => false;
 Future<bool> sendArToApp(String name) async => false;
+Future<bool> arScanAvailable() async => false;
 
 class Kitchen3dView extends StatelessWidget {
   final AppState state;

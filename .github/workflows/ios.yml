@@ -48,36 +48,3 @@ jobs:
           name: Kitchinox-IPA
           path: Kitchinox.ipa
           retention-days: 14
-
-  # app native Kitchinox AR (RoomPlan, ARKit, RealityKit) : IPA non signée, comme l'app principale
-  build-ar:
-    name: Build Kitchinox AR (Xcode)
-    runs-on: macos-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Xcode et SDK
-        run: xcodebuild -version && xcodebuild -showsdks | grep -i iphoneos
-
-      - name: Build Kitchinox AR (Release without codesign)
-        run: |
-          xcodebuild -project ar_ios/KitchinoxAR.xcodeproj -target KitchinoxAR \
-            -configuration Release -sdk iphoneos \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" \
-            build
-
-      - name: Package into IPA
-        run: |
-          mkdir -p Payload
-          cp -r ar_ios/build/Release-iphoneos/KitchinoxAR.app Payload/
-          zip -r -q KitchinoxAR.ipa Payload/
-          rm -rf Payload
-
-      - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: KitchinoxAR-IPA
-          path: KitchinoxAR.ipa
-          retention-days: 14

@@ -65,6 +65,8 @@ class AppSettings extends ChangeNotifier {
   String sceneBg = 'clair';
   String look3d = 'real';
   bool nets3d = false;
+  bool shadows3d = true; // ombres de la vue 3D
+  bool reflect3d = true; // reflets de la vue 3D
 
   /// [deviceLang] : langue de l'appareil (« fr », « en », « ar »), prise au premier lancement.
   void load({String? deviceLang}) {
@@ -85,6 +87,8 @@ class AppSettings extends ChangeNotifier {
       sceneBg = j['scene_bg'] as String? ?? 'clair';
       look3d = j['look3d'] as String? ?? 'real';
       nets3d = j['nets3d'] as bool? ?? false;
+      shadows3d = j['shadows3d'] as bool? ?? true;
+      reflect3d = j['reflect3d'] as bool? ?? true;
       for (final k in DocKind.values) {
         prefix[k] = (j['prefix'] as Map?)?[k.name] as String? ?? k.defaultPrefix;
         next[k] = ((j['next'] as Map?)?[k.name] as num?)?.toInt() ?? 1;
@@ -108,6 +112,8 @@ class AppSettings extends ChangeNotifier {
           'scene_bg': sceneBg,
           'look3d': look3d,
           'nets3d': nets3d,
+          'shadows3d': shadows3d,
+          'reflect3d': reflect3d,
           'prefix': {for (final e in prefix.entries) e.key.name: e.value},
           'next': {for (final e in next.entries) e.key.name: e.value},
         }));

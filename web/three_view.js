@@ -2821,10 +2821,106 @@ function buildNets(n) {
   return g;
 }
 
+// ------------------------------------------------------------------ lancer de rayons interactif (mode « ray »)
+// La vue bouge : rendu habituel (rapide). La vue s'arrête : l'image s'affine par lancer de rayons
+// (three-gpu-pathtracer), vrais reflets et vraies ombres. Chargé seulement quand on choisit ce mode.
+
+let rayMod = null; // module chargé
+let rayPt = null; // le traceur
+let rayOn = false;
+let rayDirty = true; // scène changée : à reconstruire
+const rayCam = new THREE.Matrix4();
+let rayAspect = 0;
+let raySky = null;
+let rayKeep = null; // ce qui a été masqué ou changé pour le mode
+
+async function setRay(on) {
+  if (on === rayOn) return;
+  rayOn = on;
+  const log = window.__kxlog || (() => {});
+  if (on) {
+    try {
+      rayMod = rayMod || (await import('three-gpu-pathtracer'));
+    } catch (e) {
+      log('rendu', 'lancer de rayons interactif indisponible : ' + (e?.message || e));
+      rayOn = false;
+      return;
+    }
+    if (!rayOn) return;
+    // ombres peintes au sol : la vraie lumière les remplace ; ciel doux tout autour
+    rayKeep = { hidden: [], env: scene.environment, envI: scene.environmentIntensity };
+    scene.traverse((o) => {
+      const m = Array.isArray(o.material) ? o.material[0] : o.material;
+      if (o.isMesh && m && (m.isShadowMaterial || (m.isMeshBasicMaterial && m.transparent && m.map && !m.depthWrite))) {
+        rayKeep.hidden.push([o, o.visible]);
+        o.visible = false;
+      }
+    });
+    raySky = raySky || new rayMod.GradientEquirectTexture();
+    raySky.topColor.set(0xffffff);
+    raySky.bottomColor.set(0x9a9a9a);
+    raySky.update();
+    scene.environment = raySky;
+    scene.environmentIntensity = 0.9;
+    rayDirty = true;
+  } else {
+    try {
+      rayPt?.dispose();
+    } catch (_) {}
+    rayPt = null;
+    if (rayKeep) {
+      for (const [o, v] of rayKeep.hidden) o.visible = v;
+      scene.environment = rayKeep.env;
+      scene.environmentIntensity = rayKeep.envI;
+      rayKeep = null;
+    }
+  }
+  invalidate(true);
+}
+
+/** Une passe du traceur ; faux si le rendu habituel doit dessiner l'image. */
+function rayStep() {
+  if (!rayOn || !rayMod || !rayKeep) return false;
+  try {
+    if (!rayPt) {
+      rayPt = new rayMod.WebGLPathTracer(renderer);
+      rayPt.renderToCanvas = true;
+      rayPt.rasterizeScene = true; // tant que la vue bouge : rendu habituel
+      rayPt.minSamples = 2;
+      rayPt.fadeDuration = 250;
+      rayPt.renderDelay = 120;
+      rayPt.dynamicLowRes = true;
+      rayPt.lowResScale = 0.25;
+      rayPt.bounces = 5;
+      rayPt.filteredGlossyFactor = 0.5;
+      rayPt.tiles.set(2, 2);
+      rayDirty = true;
+    }
+    if (rayDirty) {
+      rayPt.setScene(scene, camera);
+      rayDirty = false;
+      rayCam.copy(camera.matrixWorld);
+      rayAspect = camera.aspect;
+    } else if (!rayCam.equals(camera.matrixWorld) || rayAspect !== camera.aspect) {
+      rayPt.updateCamera();
+      rayCam.copy(camera.matrixWorld);
+      rayAspect = camera.aspect;
+    }
+    rayPt.renderSample();
+    if (rayPt.samples < 800) needsRender = Math.max(needsRender, 1); // l'image s'affine encore
+    return true;
+  } catch (e) {
+    console.error('lancer de rayons interactif :', e);
+    setRay(false);
+    return false;
+  }
+}
+
 function applyScene(d) {
   data = d;
   doors.length = 0;
   applyBackground(d);
+  rayDirty = true; // la scène change : le traceur la relira
   sync('room', JSON.stringify([d.studio || '', d.room, d.walls, d.floor, d.wall, d.splashMat, d.splash]), () => buildRoom(d));
   sync('lights', JSON.stringify(d.lights || []), () => buildLights(d));
   const uids = [...new Set(d.items.map((i) => i.uid))];
@@ -2857,7 +2953,8 @@ function applyScene(d) {
   sync('netPoints', JSON.stringify([d.netPoints || [], d.socketFinish]), () => buildNetPoints(d));
   sync('ao', JSON.stringify([d.studio || '', d.room, d.floorPoly || null, groundFootprints(d)]), () => (d.studio ? new THREE.Group() : buildAO(d)));
   sync('nets3d', JSON.stringify([d.nets3d || null, d.room, d.walls]), () => buildNets(d.nets3d));
-  applyLook(d.look || 'real');
+  applyLook(d.look === 'sketch' ? 'sketch' : 'real');
+  setRay(d.look === 'ray' && !d.studio);
   // sélection : boîte orange
   if (selBox) {
     scene.remove(selBox);
@@ -2958,6 +3055,16 @@ function applyScene(d) {
   fillLight.intensity = d.studio ? 0 : 0.75;
   sideLight.intensity = d.studio ? 0.55 : 0;
   rimLight.intensity = d.studio ? 0.4 : 0;
+  // ombres et reflets : à la demande
+  const shadowsOn = d.shadows !== false;
+  if (sun.castShadow !== shadowsOn) {
+    sun.castShadow = shadowsOn;
+    shadowsDirty = true;
+  }
+  const ao = groups.get('ao')?.obj;
+  if (ao) ao.visible = shadowsOn;
+  if (!rayOn) scene.environmentIntensity = d.reflect === false ? 0.12 : 0.45;
+  if (d.reflect === false) ambLight.intensity += 0.25; // la lumière douce de l'environnement compensée
   sideLight.position.set(target.x + 4, 2.6, target.z + 4);
   sideLight.target.position.copy(target);
   rimLight.position.set(target.x, 4, target.z - 5);
@@ -3080,6 +3187,7 @@ function animate() {
       stats.shadowUpdates++;
     }
     stats.frames++;
+    if (rayStep()) return; // lancer de rayons : le traceur dessine l'image
     renderer.render(scene, camera);
   } catch (err) {
     console.error('animate loop error:', err);
@@ -3378,23 +3486,6 @@ window.kitchen3d = {
   arOpen() {
     if (!arPrepared) return false;
     openUsdz(arPrepared.bytes);
-    return true;
-  },
-  /**
-   * Envoie le paquet préparé à l'app native Kitchinox AR (scan RoomPlan) : dépôt sur le serveur local,
-   * puis ouverture de kitchinoxar://open?src=… avec les cotes de la pièce (calage automatique). Promesse : true si envoyé.
-   */
-  async arSendToApp(name) {
-    if (!arPrepared) return false;
-    const r = await fetch('__ar/scene.usdz', { method: 'POST', body: arPrepared.bytes });
-    if (!r.ok) return false;
-    const src = new URL('__ar/scene.usdz?t=' + Date.now(), location.href).href;
-    const q = new URLSearchParams({ src, name: name || 'Cuisine' });
-    if (data?.room) {
-      q.set('w', String(Math.round(data.room.w)));
-      q.set('d', String(Math.round(data.room.d)));
-    }
-    location.href = 'kitchinoxar://open?' + q.toString();
     return true;
   },
   /** App native : dépose le paquet préparé sur le serveur interne de l'app (Flutter le partage ensuite). */

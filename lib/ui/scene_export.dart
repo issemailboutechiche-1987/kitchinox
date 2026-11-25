@@ -788,6 +788,8 @@ class SceneExporter {
       'studio': st.studio,
       'bg': sceneBackgrounds[AppSettings.instance.sceneBg] ?? sceneBackgrounds['clair'],
       'look': AppSettings.instance.look3d,
+      'shadows': AppSettings.instance.shadows3d,
+      'reflect': AppSettings.instance.reflect3d,
       if (AppSettings.instance.nets3d && p.networks && st.studio.isEmpty)
         'nets3d': netsSceneData(p),
       'studioDir': _studioDir(e),

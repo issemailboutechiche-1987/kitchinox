@@ -34,6 +34,15 @@ class _ArPageState extends State<ArPage> {
   ArStats? _stats;
   bool _busy = false;
   String? _error;
+  bool _scan = false; // scan de la pièce possible (app iPad avec LiDAR)
+
+  @override
+  void initState() {
+    super.initState();
+    arScanAvailable().then((v) {
+      if (mounted) setState(() => _scan = v);
+    });
+  }
 
   void _setOptions(ArOptions next) {
     setState(() {
@@ -369,18 +378,19 @@ class _ArPageState extends State<ArPage> {
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        // l'app native : scan complet de la pièce (LiDAR), calage sur les vrais murs, puis le show
-                        OutlinedButton.icon(
+                        // app iPad : scan complet de la pièce (LiDAR), calage sur les vrais murs, puis le show
+                        if (_scan) const SizedBox(height: 8),
+                        if (_scan)
+                        FilledButton.icon(
                           key: const ValueKey('ar_scan_app'),
                           icon: const Icon(Icons.document_scanner_outlined),
                           onPressed: () async {
                             final ok = await sendArToApp(widget.st.project.name);
                             if (!ok && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('Envoi impossible : l’app Kitchinox AR et le serveur du PC sont-ils prêts ?'))));
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('Le scan de la pièce n’a pas pu s’ouvrir.'))));
                             }
                           },
-                          label: Text(tr('Scanner la pièce (Kitchinox AR)')),
+                          label: Text(tr('Scanner la pièce')),
                         ),
                         if (!s.quickLook) ...[
                           const SizedBox(height: 4),

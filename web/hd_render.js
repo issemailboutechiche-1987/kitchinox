@@ -41,7 +41,10 @@ export function hdStart(ctx, w, h, n) {
   Object.assign(state, { k: 0, n, url: null, error: null, running: true, engine: 'path' });
   stopAsked = false;
   const log = window.__kxlog || (() => {});
-  pathStart(ctx, w, h, n).catch((e) => {
+  // lancer de rayons : chaque échantillon vaut bien plus qu'une passe d'accumulation
+  const np = Math.max(12, Math.round(n / 3));
+  state.n = np;
+  pathStart(ctx, w, h, np).catch((e) => {
     // lancer de rayons impossible ici : l'accumulation de lumière prend le relais
     log('rendu', 'lancer de rayons indisponible, accumulation : ' + (e?.message || e));
     if (stopAsked) {
@@ -49,7 +52,7 @@ export function hdStart(ctx, w, h, n) {
       ctx.done();
       return;
     }
-    Object.assign(state, { k: 0, engine: 'raster' });
+    Object.assign(state, { k: 0, n, engine: 'raster' });
     rasterStart(ctx, w, h, n);
   });
 }
@@ -148,7 +151,8 @@ async function pathStart(ctx, w, h, n) {
         if (performance.now() - t0all > 15 * 60 * 1000) throw new Error('lancer de rayons trop long');
         state.k = Math.min(n, Math.floor(pt.samples));
         if (pt.samples < n) return requestAnimationFrame(step);
-        const url = renderer.domElement.toDataURL('image/png');
+        // l'image est lue dans la cible du traceur (et non sur le canevas, parfois déjà effacé : image noire)
+        const url = blitToCanvas(renderer, pt.target.texture);
         log('rendu', `lancer de rayons terminé en ${Math.round((performance.now() - t0all) / 1000)} s`);
         restore();
         Object.assign(state, { url, error: null, running: false });
@@ -162,6 +166,27 @@ async function pathStart(ctx, w, h, n) {
     };
     requestAnimationFrame(step);
   });
+}
+
+/** Dessine [texture] (linéaire, HDR) sur le canevas avec la tonalité de l'affichage, et renvoie le PNG. */
+function blitToCanvas(renderer, texture) {
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { map: { value: texture } },
+    vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+    fragmentShader: 'varying vec2 vUv; uniform sampler2D map; void main() { gl_FragColor = vec4(texture2D(map, vUv).rgb, 1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}',
+    depthTest: false,
+    depthWrite: false,
+  });
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat);
+  quad.frustumCulled = false;
+  const flat = new THREE.Scene();
+  flat.add(quad);
+  renderer.setRenderTarget(null);
+  renderer.render(flat, new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1));
+  const url = renderer.domElement.toDataURL('image/png');
+  quad.geometry.dispose();
+  mat.dispose();
+  return url;
 }
 
 /** Accumulation de lumière (sans bibliothèque) : le secours du lancer de rayons. */

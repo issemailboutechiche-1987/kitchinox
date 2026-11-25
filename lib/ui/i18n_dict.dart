@@ -3477,6 +3477,11 @@ const Map<String, String> enDict = {
   "Compris": "Got it",
   "Scanner la pièce (Kitchinox AR)": "Scan the room (Kitchinox AR)",
   "Envoi impossible : l’app Kitchinox AR et le serveur du PC sont-ils prêts ?": "Could not send: are the Kitchinox AR app and the PC server ready?",
+  "Scanner la pièce": "Scan the room",
+  "Le scan de la pièce n’a pas pu s’ouvrir.": "The room scan could not open.",
+  "Lancer de rayons (reflets et ombres réels)": "Ray tracing (real reflections and shadows)",
+  "Ombres": "Shadows",
+  "Reflets": "Reflections",
 };
 
 const Map<String, String> arDict = {
@@ -6956,4 +6961,9 @@ const Map<String, String> arDict = {
   "Compris": "فهمت",
   "Scanner la pièce (Kitchinox AR)": "مسح الغرفة (Kitchinox AR)",
   "Envoi impossible : l’app Kitchinox AR et le serveur du PC sont-ils prêts ?": "تعذر الإرسال: هل تطبيق Kitchinox AR وخادم الحاسوب جاهزان؟",
+  "Scanner la pièce": "مسح الغرفة",
+  "Le scan de la pièce n’a pas pu s’ouvrir.": "تعذر فتح مسح الغرفة.",
+  "Lancer de rayons (reflets et ombres réels)": "تتبع الأشعة (انعكاسات وظلال حقيقية)",
+  "Ombres": "الظلال",
+  "Reflets": "الانعكاسات",
 };

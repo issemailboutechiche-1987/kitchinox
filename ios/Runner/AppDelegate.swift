@@ -12,5 +12,9 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    // mode AR natif (scan de la pièce, calage, show) : canal « kitchinox/ar »
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "KitchinoxArPlugin") {
+      ArPlugin.register(with: registrar)
+    }
   }
 }

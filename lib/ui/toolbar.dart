@@ -726,6 +726,8 @@ class ViewSwitcher extends StatelessWidget {
                 final s = AppSettings.instance;
                 if (v.startsWith('look:')) s.look3d = v.substring(5);
                 if (v.startsWith('bg:')) s.sceneBg = v.substring(3);
+                if (v == 'shadows') s.shadows3d = !s.shadows3d;
+                if (v == 'reflect') s.reflect3d = !s.reflect3d;
                 if (v == 'ar') {
                   showArSheet(context, state);
                   return;
@@ -743,6 +745,11 @@ class ViewSwitcher extends StatelessWidget {
                   PopupMenuItem(enabled: false, height: 28, child: Text(tr('Mode d’affichage'), style: const TextStyle(fontWeight: FontWeight.w800))),
                   CheckedPopupMenuItem(value: 'look:real', checked: s.look3d == 'real', child: Text(tr('Réaliste'))),
                   CheckedPopupMenuItem(value: 'look:sketch', checked: s.look3d == 'sketch', child: Text(tr('Croquis (arêtes tracées)'))),
+                  CheckedPopupMenuItem(
+                      key: const ValueKey('view_ray'), value: 'look:ray', checked: s.look3d == 'ray', child: Text(tr('Lancer de rayons (reflets et ombres réels)'))),
+                  const PopupMenuDivider(),
+                  CheckedPopupMenuItem(key: const ValueKey('view_shadows'), value: 'shadows', checked: s.shadows3d, child: Text(tr('Ombres'))),
+                  CheckedPopupMenuItem(key: const ValueKey('view_reflect'), value: 'reflect', checked: s.reflect3d, child: Text(tr('Reflets'))),
                   const PopupMenuDivider(),
                   PopupMenuItem(key: const ValueKey('view_ar'), value: 'ar', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.view_in_ar), title: Text(tr('Voir dans ma pièce (AR)')))),
                   const PopupMenuDivider(),

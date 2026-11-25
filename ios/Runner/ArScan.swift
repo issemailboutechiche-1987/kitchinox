@@ -8,7 +8,7 @@ import RoomPlan
 import SwiftUI
 
 struct ScanScreen: View {
-    @EnvironmentObject var model: AppModel
+    @EnvironmentObject var model: ArModel
     @StateObject private var progress = ScanProgress()
 
     var body: some View {
@@ -28,7 +28,7 @@ struct ScanScreen: View {
                 .padding(10)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
                 HStack(spacing: 14) {
-                    Button("Annuler") { progress.cancel(); model.cancelScan() }
+                    Button("Annuler") { progress.cancel(); model.close() }
                         .buttonStyle(.bordered)
                     Button {
                         progress.finish()
@@ -43,7 +43,9 @@ struct ScanScreen: View {
             }
             .padding(.bottom, 28)
         }
-        .onReceive(progress.$result.compactMap { $0 }) { model.finishScan($0) }
+        .onReceive(progress.$result.compactMap { $0 }) { room in
+            model.finishScan(room, session: progress.captureView?.captureSession.arSession)
+        }
     }
 }
 
@@ -84,13 +86,15 @@ final class ScanProgress: ObservableObject {
 }
 
 struct ScanView: UIViewRepresentable {
-    @EnvironmentObject var model: AppModel
+    @EnvironmentObject var model: ArModel
     let progress: ScanProgress
 
     func makeCoordinator() -> ScanCoordinator { ScanCoordinator(progress: progress) }
 
     func makeUIView(context: Context) -> RoomCaptureView {
-        let view = RoomCaptureView(frame: .zero, arSession: model.session)
+        // la vue de capture garde sa propre session : le scan s'affiche en direct (murs tracés au fur et à mesure) ;
+        // à la fin, la cuisine reprend cette session (même repère que la pièce scannée)
+        let view = RoomCaptureView(frame: .zero)
         view.delegate = context.coordinator
         view.captureSession.delegate = context.coordinator
         progress.captureView = view
@@ -102,7 +106,7 @@ struct ScanView: UIViewRepresentable {
 }
 
 /// Délégué du scan (au premier niveau, nom Objective-C fixe : RoomCaptureViewDelegate exige NSCoding).
-@objc(KitchinoxScanCoordinator)
+@objc(KitchinoxArScanCoordinator)
 final class ScanCoordinator: NSObject, RoomCaptureViewDelegate, RoomCaptureSessionDelegate {
     let progress: ScanProgress
 

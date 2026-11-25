@@ -32,7 +32,6 @@ extension type _K3d._(JSObject _) implements JSObject {
   external JSPromise<JSString> arPrepare(String json);
   external bool arOpen();
   external int arSize();
-  external JSPromise<JSBoolean> arSendToApp(String name);
   external void arClear();
 }
 
@@ -56,16 +55,9 @@ Future<String?> prepareArPackage(String optionsJson) async {
   }
 }
 
-/// Envoie le paquet préparé à l'app native Kitchinox AR (scan complet de la pièce, calage, show).
-Future<bool> sendArToApp(String name) async {
-  final k = _k3d;
-  if (k == null) return false;
-  try {
-    return (await k.arSendToApp(name).toDart).toDart;
-  } catch (_) {
-    return false;
-  }
-}
+/// Scan de la pièce : seulement dans l'app iPad (RoomPlan n'existe pas dans Safari).
+Future<bool> arScanAvailable() async => false;
+Future<bool> sendArToApp(String name) async => false;
 
 /// Ouvre le paquet préparé : à appeler directement dans le geste (onPressed), jamais après un await.
 bool openArPackage() {

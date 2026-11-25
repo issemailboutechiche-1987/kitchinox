@@ -5,9 +5,11 @@
 // Hors iPad/iPhone/Android (tests sur PC) : pas de WebView, la vue 3D dessinée par Flutter est utilisée.
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -15,6 +17,8 @@ import 'app_state.dart';
 import 'local_server.dart';
 import 'scene_export.dart';
 import 'textures.dart';
+import 'package:path_provider/path_provider.dart';
+
 import 'web_io_native.dart' show nativeIoEnabled, downloadBytes;
 
 /// Vraie 3D (three.js) disponible : sur appareil seulement.
@@ -62,21 +66,30 @@ Future<String?> prepareArPackage(String optionsJson) async {
   return null;
 }
 
-/// Partage le paquet préparé ; le nom porte les cotes de la pièce (« _3600x3000mm ») pour le calage automatique.
-Future<bool> _shareAr(String name) async {
+const _arChannel = MethodChannel('kitchinox/ar');
+
+/// Paquet préparé par la vue 3D, récupéré par le serveur interne ; avec les cotes de la pièce (« 3600x3000 »).
+Future<(Uint8List, String)?> _arBytes() async {
   final c = _live;
-  if (c == null) return false;
+  if (c == null) return null;
   try {
     final size = _jsString(await c.runJavaScriptReturningResult('window.kitchen3d.arRoomSize()'));
     final waiting = LocalServer.instance.nextArUpload();
     await c.runJavaScript('window.kitchen3d.arUpload()');
-    final bytes = await waiting.timeout(const Duration(seconds: 90));
-    final base = name.trim().isEmpty ? 'Cuisine' : name.trim();
-    downloadBytes('$base${size.isEmpty ? '' : '_${size}mm'}.usdz', bytes, mime: 'model/vnd.usdz+zip');
-    return true;
+    return (await waiting.timeout(const Duration(seconds: 90)), size);
   } catch (_) {
-    return false;
+    return null;
   }
+}
+
+/// Menu Partager : enregistrer le .usdz dans Fichiers ou l'ouvrir ailleurs.
+Future<bool> _shareAr(String name) async {
+  final p = await _arBytes();
+  if (p == null) return false;
+  final (bytes, size) = p;
+  final base = name.trim().isEmpty ? 'Cuisine' : name.trim();
+  downloadBytes('$base${size.isEmpty ? '' : '_${size}mm'}.usdz', bytes, mime: 'model/vnd.usdz+zip');
+  return true;
 }
 
 bool openArPackage() {
@@ -85,7 +98,36 @@ bool openArPackage() {
   return true;
 }
 
-Future<bool> sendArToApp(String name) => _shareAr(name);
+/// Le scan de la pièce est-il possible ici (app iPad avec LiDAR, iOS 18) ?
+Future<bool> arScanAvailable() async {
+  if (!nativeIoEnabled) return false;
+  try {
+    return await _arChannel.invokeMethod<bool>('supported') ?? false;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Ouvre le scan de la pièce dans kitchinox (plein écran natif) avec le paquet préparé.
+Future<bool> sendArToApp(String name) async {
+  final p = await _arBytes();
+  if (p == null) return false;
+  final (bytes, size) = p;
+  try {
+    final f = File('${(await getTemporaryDirectory()).path}/kitchinox_ar.usdz');
+    await f.writeAsBytes(bytes, flush: true);
+    final dims = size.split('x').map(double.tryParse).toList();
+    return await _arChannel.invokeMethod<bool>('open', {
+          'path': f.path,
+          'name': name.trim().isEmpty ? 'Cuisine' : name.trim(),
+          if (dims.length == 2 && dims[0] != null && dims[1] != null) 'w': dims[0],
+          if (dims.length == 2 && dims[0] != null && dims[1] != null) 'd': dims[1],
+        }) ??
+        false;
+  } catch (_) {
+    return false;
+  }
+}
 
 /// Image de la vue 3D affichée (Data URL PNG), ou null si elle n'est pas ouverte.
 Future<String?> getWeb3dSnapshotPng() async {
