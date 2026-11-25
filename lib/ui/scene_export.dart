@@ -660,7 +660,7 @@ class SceneExporter {
           final (cx, cy) = w.toPlan(c.s + c.width / 2, wd / 2);
           kitchenFixtures.add({
             'uid': 'hob:${c.uid}',
-            'pick': 'item:${c.uid}',
+            'pick': c.uid, // toucher l'appareil choisit son meuble
             'kind': 'fixture',
             'type': 'kitchen_hob',
             'x': cx, 'y': cy, 'z': topZ,
@@ -674,7 +674,7 @@ class SceneExporter {
         final (ox, oy) = w.toPlan(c.s + c.width / 2, c.depth - ovenD / 2);
         kitchenFixtures.add({
           'uid': 'oven:${c.uid}',
-          'pick': 'item:${c.uid}',
+          'pick': c.uid, // toucher l'appareil choisit son meuble
           'kind': 'fixture',
           'type': 'kitchen_oven',
           'x': ox, 'y': oy, 'z': std.plinthHeight.toDouble() + math.max(120.0, c.height - 595.0 - 20.0),
@@ -689,7 +689,7 @@ class SceneExporter {
         final (ox, oy) = w.toPlan(c.s + c.width / 2, c.depth - ovenD / 2);
         kitchenFixtures.add({
           'uid': 'oven:${c.uid}',
-          'pick': 'item:${c.uid}',
+          'pick': c.uid, // toucher l'appareil choisit son meuble
           'kind': 'fixture',
           'type': 'kitchen_oven',
           'x': ox, 'y': oy, 'z': std.plinthHeight.toDouble() + 750.0,
@@ -705,7 +705,7 @@ class SceneExporter {
         final (cx, cy) = w.toPlan(c.s + c.width / 2, wd / 2);
         kitchenFixtures.add({
           'uid': 'sink:${c.uid}',
-          'pick': 'item:${c.uid}',
+          'pick': c.uid, // toucher l'appareil choisit son meuble
           'kind': 'fixture',
           'type': 'kitchen_sink',
           'x': cx, 'y': cy, 'z': topZ,
@@ -728,7 +728,7 @@ class SceneExporter {
         final (hx, hy) = w.toPlan(c.s + c.width / 2, c.depth / 2);
         kitchenFixtures.add({
           'uid': 'hood:${c.uid}',
-          'pick': 'item:${c.uid}',
+          'pick': c.uid, // toucher l'appareil choisit son meuble
           'kind': 'fixture',
           'type': 'kitchen_hood_free',
           'hoodStyle': m.id.replaceFirst('hood_free_', ''),
@@ -742,7 +742,7 @@ class SceneExporter {
         final (hx, hy) = w.toPlan(c.s + c.width / 2, c.depth / 2);
         kitchenFixtures.add({
           'uid': 'hood:${c.uid}',
-          'pick': 'item:${c.uid}',
+          'pick': c.uid, // toucher l'appareil choisit son meuble
           'kind': 'fixture',
           'type': 'kitchen_hood',
           'x': hx, 'y': hy, 'z': c.z.toDouble(),

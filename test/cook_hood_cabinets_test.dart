@@ -64,7 +64,7 @@ void main() {
     await t.runAsync(() async {
       await TextureBank.instance.init();
       final scene = await SceneExporter().build(st);
-      final fx = [for (final f in scene['kitchenFixtures'] as List? ?? const []) if (f['pick'] == 'item:${hood.uid}') f];
+      final fx = [for (final f in scene['kitchenFixtures'] as List? ?? const []) if (f['pick'] == hood.uid) f];
       expect(fx, hasLength(1));
       expect(fx.single['type'], 'kitchen_hood_free');
       expect(fx.single['hoodStyle'], 'inclined');
