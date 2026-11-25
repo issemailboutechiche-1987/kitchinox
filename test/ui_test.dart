@@ -100,6 +100,9 @@ void main() {
     await t.pumpAndSettle();
     expect(st.project.items.single.modelId, 'base_standard_single_door');
     expect(st.browse, isNotNull, reason: 'le panneau reste ouvert pour poser en série');
+    // la vignette suivante peut être sous le pli (barre d'équipements au-dessus) : on fait défiler le panneau
+    await t.scrollUntilVisible(find.byTooltip('Ajouter Bas 2 portes'), 120,
+        scrollable: find.ancestor(of: find.byTooltip('Ajouter Bas 1 porte'), matching: find.byType(Scrollable)).first);
     await t.tap(find.byTooltip('Ajouter Bas 2 portes'));
     await t.pumpAndSettle();
     expect(st.project.items.length, 2);
@@ -108,6 +111,8 @@ void main() {
     // toucher une carte arme le meuble (taille au choix), puis toucher le plan le pose là
     st.setView(ViewMode.front);
     await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.byKey(const ValueKey('thumb_base_standard_single_door')), -120,
+        scrollable: find.ancestor(of: find.byTooltip('Ajouter Bas 2 portes'), matching: find.byType(Scrollable)).first);
     await t.tap(find.byKey(const ValueKey('thumb_base_standard_single_door')));
     await t.pumpAndSettle();
     expect(st.armedModel, 'base_standard_single_door');
@@ -132,7 +137,9 @@ void main() {
     st.setView(ViewMode.plan);
     await t.pumpAndSettle();
 
-    // recherche
+    // recherche (en haut du panneau, qui a pu défiler)
+    final panel = find.ancestor(of: find.byKey(const ValueKey('thumb_base_standard_single_door')), matching: find.byType(Scrollable)).first;
+    await t.scrollUntilVisible(find.byType(TextField), -120, scrollable: panel);
     await t.enterText(find.byType(TextField).first, 'évier');
     await t.pumpAndSettle();
     expect(st.browseModels().map((m) => m.id), containsAll(['base_sink', 'base_sink_1door', 'base_sink_2doors']));

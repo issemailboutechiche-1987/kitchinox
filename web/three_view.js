@@ -8,6 +8,7 @@ import { OrbitControls } from './vendor/OrbitControls.js';
 import { RoomEnvironment } from './vendor/environments/RoomEnvironment.js';
 import { mergeGeometries } from './vendor/utils/BufferGeometryUtils.js';
 import { hdStart, hdState, hdStop, hdRunning } from './hd_render.js';
+import { buildUsdz, openUsdz, arQuickLookSupported } from './ar_export.js';
 
 const S = 0.001; // mm → m
 const P = (x, y, z) => new THREE.Vector3(x * S, z * S, y * S);
@@ -267,6 +268,7 @@ function buildRoom(d) {
       mesh.position.copy(onWall(w, (sp.s0 + sp.s1) / 2, 2, (sp.z0 + sp.z1) / 2));
       mesh.receiveShadow = true;
       mesh.userData.wallOf = w.id;
+      mesh.userData.splash = true; // crédence : fait partie de la cuisine (AR)
       g.add(mesh);
     }
   }
@@ -3288,8 +3290,96 @@ function resize() {
   invalidate();
 }
 
+// ------------------------------------------------------------------ réalité augmentée (AR Quick Look)
+
+let arPrepared = null; // { bytes, stats }
+
+/** Repère du coin de la pièce (origine du plan) : un L rouge au sol, à poser sur le vrai coin. */
+function cornerMarker() {
+  const g = new THREE.Group();
+  const m = new THREE.MeshStandardMaterial({ color: 0xe03131, roughness: 0.5 });
+  const a = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.004, 0.03), m);
+  a.position.set(0.3, 0.002, 0.015);
+  const b = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.004, 0.6), m);
+  b.position.set(0.015, 0.002, 0.3);
+  const c = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.006, 20), m);
+  c.position.set(0.015, 0.003, 0.015);
+  g.add(a, b, c);
+  return g;
+}
+
+/**
+ * Prépare le paquet USDZ de la scène affichée.
+ * opts : { kitchen: bool (meubles, plans, crédence, objets), walls: bool (murs fantômes),
+ *          nets: objet réseaux (comme scene.nets3d) ou null, marker: bool, maxTexture, maxVertices }
+ * Renvoie les statistiques (JSON) ; le paquet est gardé pour arOpen().
+ */
+async function arPrepare(opts) {
+  if (!scene) throw new Error('vue 3D fermée');
+  const roots = [];
+  const temp = [];
+  const ghosts = new Set();
+  const room = groups.get('room')?.obj;
+  if (opts.kitchen !== false) {
+    for (const [k, v] of groups) if (k.startsWith('item:') || k === 'others') roots.push(v.obj);
+    for (const v of objectGroups.values()) roots.push(v.obj);
+    room?.children.forEach((o) => o.userData.splash && roots.push(o));
+  }
+  if (opts.walls) {
+    room?.children.forEach((o) => {
+      if ((o.userData.wall || o.userData.wallOf) && !o.userData.splash) {
+        roots.push(o);
+        ghosts.add(o);
+      }
+    });
+  }
+  if (opts.nets) {
+    const n = buildNets(opts.nets);
+    temp.push(n);
+    roots.push(n);
+    const pts = groups.get('netPoints')?.obj;
+    if (pts) roots.push(pts);
+  }
+  if (opts.marker !== false) {
+    const mk = cornerMarker();
+    temp.push(mk);
+    roots.push(mk);
+  }
+  const ghost = (o) => {
+    for (let x = o; x; x = x.parent) if (ghosts.has(x)) return true;
+    return false;
+  };
+  try {
+    arPrepared = await buildUsdz(roots, { ghost, maxTexture: opts.maxTexture, maxVertices: opts.maxVertices });
+  } finally {
+    for (const t of temp) disposeTree(t);
+  }
+  return { ...arPrepared.stats, quickLook: arQuickLookSupported() };
+}
+
 window.kitchen3d = {
   ready: true,
+  /** Réalité augmentée : l'appareil ouvre-t-il les USDZ (iPad / iPhone) ? */
+  arSupported() {
+    return arQuickLookSupported();
+  },
+  /** Prépare le paquet AR (opts en JSON) ; promesse des statistiques en JSON. */
+  arPrepare(json) {
+    return arPrepare(JSON.parse(json || '{}')).then((st) => JSON.stringify(st));
+  },
+  /** Ouvre le paquet préparé (pendant un toucher) : AR Quick Look, sinon téléchargement. */
+  arOpen() {
+    if (!arPrepared) return false;
+    openUsdz(arPrepared.bytes);
+    return true;
+  },
+  /** Taille du paquet préparé (octets), 0 sans paquet. */
+  arSize() {
+    return arPrepared ? arPrepared.bytes.length : 0;
+  },
+  arClear() {
+    arPrepared = null;
+  },
   /** Capture un instantané PNG haute résolution de la vue 3D perspective réelle. */
   capturePng() {
     if (!renderer || !scene || !camera || !host || !host.isConnected) return null; // vue fermée : pas d'image périmée

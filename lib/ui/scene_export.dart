@@ -54,6 +54,16 @@ const sceneBackgroundNames = <String, String>{
   'ciel': 'Ciel (dégradé)',
 };
 
+/// Réseaux tracés (conduits, tuyaux, tableau) au format de la vue 3D.
+Map<String, dynamic> netsSceneData(Project p) {
+  final l = netLayout(p);
+  return {
+    'runs': [for (final r in l.runs) r.toJson()],
+    'colors': {for (final e in netWireColors.entries) e.key: e.value},
+    if (l.board case (final x, final y, final z)) 'board': [x, y, z, l.boardNormal!.$1, l.boardNormal!.$2, l.boardDir!.$1, l.boardDir!.$2],
+  };
+}
+
 class SceneExporter {
   final Map<String, SceneImage> _images = {}; // déjà rendues
   final Set<String> _sent = {}; // déjà envoyées au navigateur
@@ -779,14 +789,7 @@ class SceneExporter {
       'bg': sceneBackgrounds[AppSettings.instance.sceneBg] ?? sceneBackgrounds['clair'],
       'look': AppSettings.instance.look3d,
       if (AppSettings.instance.nets3d && p.networks && st.studio.isEmpty)
-        'nets3d': () {
-          final l = netLayout(p);
-          return {
-            'runs': [for (final r in l.runs) r.toJson()],
-            'colors': {for (final e in netWireColors.entries) e.key: e.value},
-            if (l.board case (final x, final y, final z)) 'board': [x, y, z, l.boardNormal!.$1, l.boardNormal!.$2, l.boardDir!.$1, l.boardDir!.$2],
-          };
-        }(),
+        'nets3d': netsSceneData(p),
       'studioDir': _studioDir(e),
       'studioHigh': _facing(e),
       'walls': st.studio.isEmpty ? walls : const [],

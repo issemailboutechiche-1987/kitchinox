@@ -37,6 +37,11 @@ Future<String?> hdRenderState() async {
 
 Future<void> stopHdRender() async => _live?.runJavaScript('window.kitchen3d.hdStop()');
 
+// Réalité augmentée : seulement dans le navigateur (AR Quick Look de Safari).
+bool get arQuickLookAvailable => false;
+Future<String?> prepareArPackage(String optionsJson) async => null;
+bool openArPackage() => false;
+
 /// Image de la vue 3D affichée (Data URL PNG), ou null si elle n'est pas ouverte.
 Future<String?> getWeb3dSnapshotPng() async {
   try {
@@ -159,10 +164,7 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
         st.dragTo(u, s: (a[1] as num).toDouble(), z: (a[2] as num).toDouble());
       case 'sel':
         final r = a.length < 4 || (a[0] as num) < 0 ? null : Rect.fromLTRB((a[0] as num).toDouble(), (a[1] as num).toDouble(), (a[2] as num).toDouble(), (a[3] as num).toDouble());
-        if (r != st.selRect3d) {
-          st.selRect3d = r;
-          st.refresh();
-        }
+        st.selRect3dNotifier.value = r; // les boutons flottants seuls se redessinent
       case 'dragEnd':
         st.endDrag();
     }

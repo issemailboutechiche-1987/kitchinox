@@ -77,8 +77,13 @@ class KitchenAccessory {
     return 'assets/$path';
   }
 
-  /// Largeurs de caisson compatibles (mm).
-  List<int> get supportedWidths {
+  // largeurs calculées une seule fois par accessoire (la classe reste const)
+  static final _widths = Expando<List<int>>('supportedWidths');
+
+  /// Largeurs de caisson compatibles (mm), triées ; calculées au premier appel puis gardées.
+  List<int> get supportedWidths => _widths[this] ??= List.unmodifiable(_computeWidths());
+
+  List<int> _computeWidths() {
     final out = <int>{};
     final vl = dimensions['variants_L_W'];
     if (vl is List) {
@@ -296,6 +301,10 @@ class KitchenAccessoriesCatalog {
       }
     }
 
+    // largeurs compatibles calculées une fois ici, plus jamais pendant l'affichage
+    for (final a in all) {
+      a.supportedWidths;
+    }
     _loaded = true;
   }
 

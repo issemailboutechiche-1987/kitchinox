@@ -9,6 +9,11 @@ Future<bool> startHdRender(int w, int h, int n) async => false;
 Future<String?> hdRenderState() async => null;
 Future<void> stopHdRender() async {}
 
+// Réalité augmentée : seulement dans le navigateur (AR Quick Look de Safari).
+bool get arQuickLookAvailable => false;
+Future<String?> prepareArPackage(String optionsJson) async => null;
+bool openArPackage() => false;
+
 class Kitchen3dView extends StatelessWidget {
   final AppState state;
   const Kitchen3dView({super.key, required this.state});

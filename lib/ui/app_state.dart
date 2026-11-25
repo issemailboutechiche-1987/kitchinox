@@ -1297,7 +1297,10 @@ class AppState extends ChangeNotifier {
 
   /// Duplique l'élément sélectionné (la copie devient la sélection).
   /// Cadre à l'écran de l'élément choisi dans la 3D web (pour ses boutons flottants) ; null : hors champ.
-  Rect? selRect3d;
+  /// Il bouge à chaque image quand la caméra tourne : seuls les boutons flottants l'écoutent,
+  /// jamais un refresh() de toute l'application.
+  final selRect3dNotifier = ValueNotifier<Rect?>(null);
+  Rect? get selRect3d => selRect3dNotifier.value;
 
   /// Duplique l'élément choisi (meuble ou objet).
   String? duplicateAny() {

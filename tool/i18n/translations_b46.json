@@ -1,0 +1,15 @@
+{
+"Voir dans ma pièce (AR)": ["View in my room (AR)", "عرض في غرفتي (واقع معزز)"],
+"Voir dans ma pièce (réalité augmentée)": ["View in my room (augmented reality)", "عرض في غرفتي (الواقع المعزز)"],
+"Ouvrez la vue 3D pour préparer la réalité augmentée.": ["Open the 3D view to prepare augmented reality.", "افتح العرض ثلاثي الأبعاد لتحضير الواقع المعزز."],
+"Posez le L rouge sur le vrai coin de la pièce (murs A et C) : la cuisine apparaît à l’échelle 1:1.": ["Place the red L on the real corner of the room (walls A and C): the kitchen appears at 1:1 scale.", "ضع حرف L الأحمر على الزاوية الحقيقية للغرفة (الجداران A و C): يظهر المطبخ بمقياس 1:1."],
+"Cuisine": ["Kitchen", "المطبخ"],
+"Murs en transparence": ["See-through walls", "جدران شفافة"],
+"Repère du coin (L rouge)": ["Corner marker (red L)", "علامة الزاوية (L أحمر)"],
+"Prêt : {0}, {1} pièces, {2} sommets": ["Ready: {0}, {1} parts, {2} vertices", "جاهز: {0}، {1} قطعة، {2} رأس"],
+"{0} modèles trop lourds omis": ["{0} models too heavy, left out", "تم إغفال {0} نموذج ثقيل جدا"],
+"Cet appareil n’ouvre pas la réalité augmentée : le fichier USDZ sera téléchargé (à ouvrir sur iPad ou iPhone).": ["This device cannot open augmented reality: the USDZ file will be downloaded (open it on an iPad or iPhone).", "هذا الجهاز لا يفتح الواقع المعزز: سيتم تنزيل ملف USDZ (افتحه على iPad أو iPhone)."],
+"Préparer": ["Prepare", "تحضير"],
+"Ouvrir dans ma pièce": ["Open in my room", "افتح في غرفتي"],
+"Télécharger le fichier USDZ": ["Download the USDZ file", "تنزيل ملف USDZ"]
+}

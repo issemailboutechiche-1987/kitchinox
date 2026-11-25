@@ -1,0 +1,118 @@
+{
+  "Projetez votre cuisine à l’échelle 1:1 dans votre pièce réelle": [
+    "Project your kitchen at 1:1 scale into your real room",
+    "اعرض مطبخك بمقياس 1:1 في غرفتك الحقيقية"
+  ],
+  "Guide AR Quick Look": [
+    "AR Quick Look Guide",
+    "دليل الواقع المعزز AR Quick Look"
+  ],
+  "1. Quoi projeter dans votre pièce": [
+    "1. What to project into your room",
+    "1. ما الذي تريد عرضه في غرفتك"
+  ],
+  "Meubles, plans, crédence, électroménager et objets": [
+    "Cabinets, worktops, splashback, appliances and decor",
+    "الخزائن، أسطح العمل، الواقي الخلفي، الأجهزة والزينة"
+  ],
+  "Murs, portes et fenêtres en fantôme translucide": [
+    "Walls, doors and windows as translucent ghosts",
+    "الجدران والأبواب والنوافذ كشبح شبه شفاف"
+  ],
+  "Conduits d’électricité, eau, évacuation, gaz et tableau": [
+    "Pipes for electricity, water, drainage, gas and panel",
+    "أنابيب الكهرباء والماء والصرف والغاز واللوحة"
+  ],
+  "Aucun point de réseau dans le projet": [
+    "No network points in the project",
+    "لا توجد نقاط شبكات في المشروع"
+  ],
+  "Repère d’alignement au sol sur l’angle des murs A et C": [
+    "Floor alignment marker on walls A and C corner",
+    "علامة محاذاة أرضية عند زاوية الجدارين A و C"
+  ],
+  "2. Préparation du paquet 3D": [
+    "2. Preparing 3D package",
+    "2. تجهيز الحزمة ثلاثية الأبعاد"
+  ],
+  "Préparation du modèle AR en cours...": [
+    "Preparing AR model...",
+    "جارٍ تحضير نموذج الواقع المعزز..."
+  ],
+  "Paquet AR prêt": [
+    "AR package ready",
+    "حزمة الواقع المعزز جاهزة"
+  ],
+  "{0} pièces • {1} sommets • {2} textures": [
+    "{0} parts • {1} vertices • {2} textures",
+    "{0} قطعة • {1} رأس • {2} إكساء"
+  ],
+  "Cliquez sur « Préparer » pour générer le fichier 3D optimisé à partir de la vue actuelle.": [
+    "Click \"Prepare\" to generate the optimized 3D file from the current view.",
+    "انقر على \"تحضير\" لإنشاء ملف ثلاثي الأبعاد محسّن من العرض الحالي."
+  ],
+  "3. Placement dans votre pièce": [
+    "3. Placement in your room",
+    "3. التثبيت في غرفتك"
+  ],
+  "Posez le repère rouge L sur le coin réel correspondant à l’angle des murs A et C.": [
+    "Place the red L marker on the real corner corresponding to walls A and C.",
+    "ضع علامة L الحمراء على الزاوية الحقيقية المقابلة للجدارين A و C."
+  ],
+  "Mur A": [
+    "Wall A",
+    "الجدار A"
+  ],
+  "Mur C": [
+    "Wall C",
+    "الجدار C"
+  ],
+  "Posez le L sur le vrai coin": [
+    "Place the L on the real corner",
+    "ضع L على الزاوية الحقيقية"
+  ],
+  "Guide AR : Voir dans ma pièce": [
+    "AR Guide: View in my room",
+    "دليل الواقع المعزز: عرض في غرفتي"
+  ],
+  "Appareils compatibles": [
+    "Compatible devices",
+    "الأجهزة المتوافقة"
+  ],
+  "Fonctionne sur iPad et iPhone récents, directement dans Safari (AR Quick Look, sans installer d’application).": [
+    "Works on recent iPad and iPhone devices directly in Safari (AR Quick Look, no app required).",
+    "يعمل على أجهزة iPad و iPhone الحديثة مباشرة في Safari (AR Quick Look دون تثبيت أي تطبيق)."
+  ],
+  "Calage du repère L": [
+    "L marker alignment",
+    "ضبط علامة L"
+  ],
+  "Le repère rouge en L est posé sur l’angle des murs A et C. Visez le sol avec la caméra et faites glisser le L pour le superposer au vrai coin de votre pièce.": [
+    "The red L marker is located at the corner of walls A and C. Aim at the floor with your camera and drag the L to match the real corner of your room.",
+    "تقع علامة L الحمراء عند زاوية الجدارين A و C. صوّب الكاميرا نحو الأرضية واسحب علامة L لتطابق الزاوية الحقيقية لغرفتك."
+  ],
+  "Échelle réelle 1:1": [
+    "Real 1:1 scale",
+    "مقياس حقيقي 1:1"
+  ],
+  "La cuisine apparaît en taille réelle. Le pincement pour zoomer est volontairement bloqué pour conserver des cotes exactes.": [
+    "The kitchen appears at actual size. Pinch to zoom is intentionally disabled to preserve exact dimensions.",
+    "يظهر المطبخ بالحجم الحقيقي. تم تعطيل التكبير بالأصابع عن قصد للحفاظ على المقاسات الدقيقة."
+  ],
+  "Lumière recommandée": [
+    "Recommended lighting",
+    "الإضاءة الموصى بها"
+  ],
+  "La pièce doit être bien éclairée et dégagée au sol pour que la caméra détecte la surface.": [
+    "The room should be well lit and clear on the floor for the camera to track surfaces.",
+    "يجب أن تكون الغرفة مضاءة جيدا وخالية على الأرضية حتى تتمكن الكاميرا من تتبع الأسطح."
+  ],
+  "Limites de mesure": [
+    "Measurement limits",
+    "حدود القياس"
+  ],
+  "Précision visuelle d’environ ±2 cm selon la détection de sol. La vue AR sert à visualiser et vérifier l’espace, pas à modifier les meubles.": [
+    "Visual accuracy of roughly ±2 cm depending on surface tracking. AR view is for previewing and checking space, not editing cabinets.",
+    "دقة بصرية تقارب ±2 سم حسب تتبع السطح. عرض الواقع المعزز مخصص للمعاينة وفحص المساحة، وليس لتعديل الخزائن."
+  ]
+}

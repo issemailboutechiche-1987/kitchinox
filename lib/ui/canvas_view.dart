@@ -753,7 +753,15 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
         builder: (context, c) {
           // vraie 3D (WebGL) dans le navigateur ; la vue dessinée reste pour les tests et les PDF
           if (st.view == ViewMode.view3d && webgl3dAvailable) {
-            return Stack(fit: StackFit.expand, children: [Kitchen3dView(state: st), ..._floating(st.selRect3d, Size(c.maxWidth, c.maxHeight))]);
+            final size = Size(c.maxWidth, c.maxHeight);
+            return Stack(fit: StackFit.expand, children: [
+              Kitchen3dView(state: st),
+              // la caméra bouge : seuls les boutons flottants suivent, la scène n'est pas reconstruite
+              ValueListenableBuilder<Rect?>(
+                valueListenable: st.selRect3dNotifier,
+                builder: (_, r, _) => Stack(fit: StackFit.expand, children: _floating(r, size)),
+              ),
+            ]);
           }
           final size = Size(c.maxWidth, c.maxHeight);
           if (st.view == ViewMode.view3d) {

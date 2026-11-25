@@ -28,7 +28,42 @@ extension type _K3d._(JSObject _) implements JSObject {
   external String hdState();
   external void hdStop();
   external void input(bool on);
+  external bool arSupported();
+  external JSPromise<JSString> arPrepare(String json);
+  external bool arOpen();
+  external int arSize();
+  external void arClear();
 }
+
+/// Réalité augmentée : l'appareil ouvre les USDZ (AR Quick Look de l'iPad / iPhone).
+bool get arQuickLookAvailable {
+  try {
+    return _k3d?.arSupported() ?? false;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Prépare le paquet AR de la vue 3D affichée ; statistiques en JSON, null si la vue est fermée.
+Future<String?> prepareArPackage(String optionsJson) async {
+  final k = _k3d;
+  if (k == null) return null;
+  try {
+    return (await k.arPrepare(optionsJson).toDart).toDart;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Ouvre le paquet préparé : à appeler directement dans le geste (onPressed), jamais après un await.
+bool openArPackage() {
+  try {
+    return _k3d?.arOpen() ?? false;
+  } catch (_) {
+    return false;
+  }
+}
+
 
 /// Capture un instantané de la vue 3D WebGL réelle (Data URL base64 PNG).
 Future<String?> getWeb3dSnapshotPng() async {
@@ -174,9 +209,7 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
     }).toJS);
     h.setProperty('sel'.toJS, ((JSNumber x0, JSNumber y0, JSNumber x1, JSNumber y1) {
       final r = x0.toDartDouble < 0 ? null : Rect.fromLTRB(x0.toDartDouble, y0.toDartDouble, x1.toDartDouble, y1.toDartDouble);
-      if (r == st.selRect3d) return;
-      st.selRect3d = r;
-      st.refresh();
+      st.selRect3dNotifier.value = r; // les boutons flottants seuls se redessinent
     }).toJS);
     h.setProperty('dragEnd'.toJS, ((JSString uid) {
       st.endDrag();

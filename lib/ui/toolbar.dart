@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../engine/engine.dart';
 import 'app_settings.dart';
 import 'scene_export.dart' show sceneBackgroundNames;
+import 'ar_mode.dart' show showArSheet;
 import 'app_state.dart';
 import 'client_ui.dart';
 import 'brands_ui.dart';
@@ -711,6 +712,12 @@ class ViewSwitcher extends StatelessWidget {
               onPressed: state.toggleDecor,
               icon: const Icon(Icons.local_florist_outlined),
             ),
+            IconButton(
+              key: const ValueKey('view_ar_button'),
+              tooltip: tr('Voir dans ma pièce (AR)'),
+              icon: const Icon(Icons.view_in_ar),
+              onPressed: () => showArSheet(context, state),
+            ),
             PopupMenuButton<String>(
               key: const ValueKey('view_display'),
               tooltip: tr('Affichage : mode, fond, réseaux'),
@@ -719,6 +726,10 @@ class ViewSwitcher extends StatelessWidget {
                 final s = AppSettings.instance;
                 if (v.startsWith('look:')) s.look3d = v.substring(5);
                 if (v.startsWith('bg:')) s.sceneBg = v.substring(3);
+                if (v == 'ar') {
+                  showArSheet(context, state);
+                  return;
+                }
                 if (v == 'nets') {
                   s.nets3d = !s.nets3d;
                   if (s.nets3d && !state.project.networks) state.setNetworks(true);
@@ -732,6 +743,8 @@ class ViewSwitcher extends StatelessWidget {
                   PopupMenuItem(enabled: false, height: 28, child: Text(tr('Mode d’affichage'), style: const TextStyle(fontWeight: FontWeight.w800))),
                   CheckedPopupMenuItem(value: 'look:real', checked: s.look3d == 'real', child: Text(tr('Réaliste'))),
                   CheckedPopupMenuItem(value: 'look:sketch', checked: s.look3d == 'sketch', child: Text(tr('Croquis (arêtes tracées)'))),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(key: const ValueKey('view_ar'), value: 'ar', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.view_in_ar), title: Text(tr('Voir dans ma pièce (AR)')))),
                   const PopupMenuDivider(),
                   CheckedPopupMenuItem(key: const ValueKey('view_nets3d'), value: 'nets', checked: s.nets3d, child: Text(tr('Réseaux : électricité, eau, gaz'))),
                   const PopupMenuDivider(),

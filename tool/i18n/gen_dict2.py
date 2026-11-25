@@ -1,8 +1,8 @@
 """Fusionne translations*.json, signale les clés sans traduction, génère lib/ui/i18n_dict.dart."""
-import glob, io, json, re, sys
+import glob, io, json, os, re, sys
 
 SP = sys.argv[1]
-R = 'D:/kitchinox/V2/'
+R = sys.argv[2] if len(sys.argv) > 2 else os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')).replace('\\', '/') + '/'
 tr = {}
 for f in sorted(glob.glob(SP + '/translations*.json')):
     tr.update(json.load(io.open(f, encoding='utf-8')))
