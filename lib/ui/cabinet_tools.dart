@@ -138,6 +138,28 @@ class _ItemFrontSection extends StatelessWidget {
           for (final f in frontFinishes(style)) _MiniSwatch(finish: f, selected: item.front == f.id, onTap: () => state.setItemFront(item.uid, f.id)),
         ],
       ),
+      const SizedBox(height: Tokens.s3),
+      Text(tr('Modèle de façade'), style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+      const SizedBox(height: Tokens.s1),
+      Wrap(
+        spacing: Tokens.s2,
+        runSpacing: Tokens.s2,
+        children: [
+          ChoiceChip(
+            key: const ValueKey('item_profile_inherit'),
+            label: Text(trp('Comme sa zone ({0})', [tr(frontProfiles[style.profileOf(null, m.kind)]?.$1 ?? '')])),
+            selected: item.profile == null,
+            onSelected: (_) => state.setItemProfile(item.uid, null),
+          ),
+          for (final e in frontProfiles.entries)
+            ChoiceChip(
+              key: ValueKey('item_profile_${e.key}'),
+              label: Text(tr(e.value.$1)),
+              selected: item.profile == e.key,
+              onSelected: (_) => state.setItemProfile(item.uid, e.key),
+            ),
+        ],
+      ),
     ]);
   }
 }
@@ -560,6 +582,8 @@ String netHint(NetKind k, KitchenStandards std) => switch (k) {
       NetKind.tvSat => 'Prise TV / satellite à 300 mm du sol, ou juste au-dessus du meuble TV.',
       NetKind.light => 'Point lumineux au plafond (position X / Y dans la pièce).',
       NetKind.led => 'Alimentation des LED sous les éléments hauts.',
+      NetKind.board =>
+        "Tableau (TGBT) : organes de commande entre 1,00 et 1,80 m du sol, accessible, hors des volumes d'eau ; à l'extérieur, placez l'arrivée des câbles.",
     };
 
 class _PointForm extends StatelessWidget {

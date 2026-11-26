@@ -142,6 +142,9 @@ SupplierQuote supplierQuote(LayoutEngine e, SupplierTariff t, {bool gloss = fals
   for (final j in endPanels(e)) {
     add('Façades', 'Joue ${(j.height / 10).round()}x${(j.depth / 10).round()} $fam', 1, t.front(j.height * j.depth / 1e6, gloss: gloss));
   }
+  for (final cp in capPanels(e)) {
+    add('Façades', 'Panneau ${(cp.length / 10).round()}x${(cp.depth / 10).round()} $fam', 1, t.front(cp.length * cp.depth / 1e6, gloss: gloss));
+  }
   final lines = [
     for (final MapEntry(:key, :value) in groups.entries)
       SupplyLine(value.$3, key.split('|')[1], 'prix fournisseur TTC remisé', value.$1, 'pce', PriceRange(value.$2, value.$2)),

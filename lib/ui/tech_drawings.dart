@@ -386,7 +386,7 @@ class TechDrawer {
           opening: it.opening,
           variant: it.variant,
           strokeWidth: 1.5 * u,
-          profile: p.style.frontProfile,
+          profile: p.style.profileOf(it, x.model.kind),
         handles: handleSetOf(p.style, null, x.model));
       _frontSymbols(c, x, rr, k);
     }

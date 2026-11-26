@@ -1,4 +1,6 @@
 // Hors navigateur : pas de WebGL, la vue 3D dessinée (CustomPaint) est utilisée.
+import 'dart:typed_data';
+
 import 'package:flutter/widgets.dart';
 
 import 'app_state.dart';
@@ -13,6 +15,8 @@ Future<void> stopHdRender() async {}
 bool get arQuickLookAvailable => false;
 Future<String?> prepareArPackage(String optionsJson) async => null;
 bool openArPackage() => false;
+void refreshRayRender() {}
+Future<Uint8List?> fittingThumbnail(String specJson) async => null;
 Future<bool> sendArToApp(String name) async => false;
 Future<bool> arScanAvailable() async => false;
 

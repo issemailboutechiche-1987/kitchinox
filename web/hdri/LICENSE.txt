@@ -1,0 +1,3 @@
+HDRI de Poly Haven (https://polyhaven.com), licence CC0 (domaine public).
+- interieur.hdr : « Small Empty Room 1 », 1k (small_empty_room_1_1k.hdr)
+- exterieur.hdr : « Kloofendal 48d Partly Cloudy (Pure Sky) », 1k (kloofendal_48d_partly_cloudy_puresky_1k.hdr)

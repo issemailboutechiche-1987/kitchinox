@@ -155,10 +155,17 @@ NetLayout netLayout(Project p) {
   double tOf(NetPoint x) => per.start[walls.indexWhere((w) => w.id == x.wallId)] + x.s;
   bool onWall(NetPoint x) => walls.any((w) => w.id == x.wallId);
 
-  // ---- tableau électrique : à côté de la porte, à 1,40 m (bas entre 1,00 et 1,80 m)
+  // ---- tableau électrique : celui placé par l'utilisateur (TGBT), sinon à côté de la porte, à 1,40 m
   double tBoard;
+  var boardZ = 1400.0, boardTop = 1650.0;
+  final placed = pts.where((x) => x.kind == NetKind.board && walls.any((w) => w.id == x.wallId)).firstOrNull;
   final door = p.openings.where((o) => o.isDoor && walls.any((w) => w.id == o.wallId)).firstOrNull;
-  if (door != null) {
+  if (placed != null) {
+    tBoard = tOf(placed);
+    boardZ = placed.z;
+    // dans la pièce : les câbles sortent du haut du coffret ; dehors : ils entrent par le mur à cet endroit
+    boardTop = NetUse.isBoardInside(placed.use) ? placed.z + 250 : placed.z;
+  } else if (door != null) {
     final i = walls.indexWhere((w) => w.id == door.wallId);
     final w = walls[i];
     final after = door.s + door.width + 300;
@@ -166,11 +173,10 @@ NetLayout netLayout(Project p) {
   } else {
     tBoard = 350;
   }
-  const boardZ = 1400.0, boardTop = 1650.0;
   final bw = walls[per.wallAt(tBoard)];
   final (bx, by, _) = per.at(tBoard, 60, boardZ);
 
-  final elec = pts.where((x) => x.kind.network == 'elec' || x.kind.network == 'data').toList();
+  final elec = pts.where((x) => (x.kind.network == 'elec' || x.kind.network == 'data') && x.kind != NetKind.board).toList();
   for (final x in elec) {
     final ws = _wiresOf(x.kind);
     for (var k = 0; k < ws.length; k++) {
@@ -251,5 +257,7 @@ NetLayout netLayout(Project p) {
     const off = 24.0;
     runs.add(NetRun('gas', 7, _join([[per.at(src, off, 0)], per.path(src, t, off, 300), [per.at(t, off, x.z)]])));
   }
+  // le TGBT placé est dessiné comme point de réseau (coffret ou arrivée des câbles) : pas de second coffret
+  if (placed != null) return NetLayout(runs);
   return NetLayout(runs, board: (bx, by, boardZ), boardNormal: (bw.nx, bw.ny), boardDir: (bw.dx, bw.dy));
 }

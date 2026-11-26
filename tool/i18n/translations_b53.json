@@ -1,0 +1,17 @@
+{
+"Tableau (TGBT)": ["Panel (main board)", "اللوحة الكهربائية الرئيسية"],
+"TGBT encastré": ["Flush-mounted board", "لوحة مدمجة في الجدار"],
+"TGBT externe": ["Board outside", "لوحة خارجية"],
+"TGBT apparent": ["Surface-mounted board", "لوحة ظاهرة"],
+"Tableau électrique (TGBT)": ["Main electrical board", "اللوحة الكهربائية الرئيسية"],
+"Dans la pièce, apparent": ["In the room, surface-mounted", "داخل الغرفة، ظاهرة"],
+"coffret posé sur le mur": ["box fixed on the wall", "علبة مثبتة على الجدار"],
+"Dans la pièce, encastré": ["In the room, flush-mounted", "داخل الغرفة، مدمجة"],
+"coffret dans le mur, seule la porte affleure": ["box inside the wall, only the door is visible", "علبة داخل الجدار، يظهر الباب فقط"],
+"À l’extérieur de la pièce": ["Outside the room", "خارج الغرفة"],
+"rien dans la pièce : on place l’arrivée des câbles": ["nothing in the room: place where the cables come in", "لا شيء داخل الغرفة: ضع مدخل الكابلات"],
+"Retirer le tableau": ["Remove the board", "إزالة اللوحة"],
+"Tableau ajouté : glissez-le à sa place réelle (les gaines partiront de lui)": ["Board added: drag it to its real place (the conduits will start from it)", "تمت إضافة اللوحة: اسحبها إلى مكانها الحقيقي (ستنطلق الأنابيب منها)"],
+"Arrivée des câbles du tableau ajoutée : glissez-la là où ils entrent dans la pièce": ["Cable entry added: drag it to where the cables enter the room", "تمت إضافة مدخل الكابلات: اسحبه إلى حيث تدخل الكابلات الغرفة"],
+"Transparent (prises et câbles cachés)": ["Transparent (hidden sockets and cables)", "شفاف (المقابس والكابلات المخفية)"]
+}

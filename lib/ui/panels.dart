@@ -496,15 +496,35 @@ class StylePanel extends StatelessWidget {
       children: [
         Text(tr('Modèle de façade'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: Tokens.s2),
+        // portée : toute la cuisine, ou seulement les hauts, les bas, les colonnes (chaque meuble se règle dans sa fiche)
+        Wrap(spacing: 6, runSpacing: 6, children: [
+          for (final (k, label) in [
+            ('tout', state.engine.kitchen ? 'Partout' : 'Tout le projet'),
+            if (hasHigh) ('haut', 'Meubles hauts'),
+            ('bas', 'Meubles bas'),
+            if (state.project.items.any((c) => KitchenStyle.profileZone(state.engine.modelOf(c).kind) == 'colonne')) ('colonne', 'Colonnes'),
+          ])
+            ChoiceChip(
+              key: ValueKey('profile_scope_$k'),
+              label: Text(tr(label) + (k != 'tout' && st.profileByZone.containsKey(k) ? ' •' : '')),
+              selected: state.profileScope == k,
+              onSelected: (_) => state.setProfileScope(k),
+            ),
+        ]),
+        if (state.project.items.any((c) => c.profile != null)) ...[
+          const SizedBox(height: 4),
+          Text(trp('{0} meuble(s) ont leur propre modèle (dans leur fiche)', [state.project.items.where((c) => c.profile != null).length]), style: t.bodySmall),
+        ],
+        const SizedBox(height: Tokens.s2),
         Wrap(spacing: 10, runSpacing: 10, children: [
           for (final e in frontProfiles.entries)
             () {
-              final on = st.frontProfile == e.key;
+              final on = (state.profileScope == 'tout' ? st.frontProfile : (st.profileByZone[state.profileScope] ?? st.frontProfile)) == e.key;
               final f = frontFinish(st, st.frontLower ?? st.front);
               return InkWell(
                 key: ValueKey('profile_${e.key}'),
                 borderRadius: BorderRadius.circular(Tokens.radius),
-                onTap: () => state.edit(() => st.frontProfile = e.key),
+                onTap: () => state.setProfile(e.key),
                 child: SizedBox(
                   width: 78,
                   child: Column(children: [
@@ -1290,6 +1310,37 @@ class _CabinetForm extends StatelessWidget {
               selected: {item.opening == 'hinged_right' ? 'hinged_right' : 'hinged_left'},
               onSelectionChanged: editable ? (s) => state.edit(() => item.opening = s.first) : null,
             ),
+          ]),
+        if (capAllowed(m, bottom: true) || capAllowed(m, bottom: false))
+          _Section('Panneaux de finition', [
+            for (final bottom in [true, false])
+              if (capAllowed(m, bottom: bottom))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Tokens.s2),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(tr(bottom ? 'Dessous' : 'Dessus'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Wrap(spacing: Tokens.s2, runSpacing: Tokens.s2, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                      KxChoices<bool>(
+                        key: ValueKey('cap_${bottom ? 'b' : 't'}'),
+                        segments: [
+                          ButtonSegment(value: false, label: Text(tr('Sans'))),
+                          ButtonSegment(value: true, label: Text(tr('Avec panneau'))),
+                        ],
+                        selected: {bottom ? item.capBottom : item.capTop},
+                        onSelectionChanged: editable ? (v) => state.setCap(item.uid, bottom: bottom, on: v.first) : null,
+                      ),
+                      TextButton.icon(
+                        key: ValueKey('cap_run_${bottom ? 'b' : 't'}'),
+                        icon: const Icon(Icons.linear_scale, size: 16),
+                        label: Text(tr('Sur toute la rangée')),
+                        onPressed: editable ? () => state.setCap(item.uid, bottom: bottom, on: true, run: true) : null,
+                      ),
+                    ]),
+                  ]),
+                ),
+            Text(tr('18 mm dans la finition des joues ; les panneaux voisins se raccordent en un seul, joues comprises. Au débit et à la liste.'),
+                style: t.bodySmall),
           ]),
         if (state.engine.canHaveCheeks(m))
           _Section('Joues (costados)', [

@@ -648,6 +648,19 @@ List<CutPart> cutList(LayoutEngine e, CutSettings cs, Map<String, int> reperes) 
       }
     }
   }
+  // panneaux de finition dessous / dessus : finition des façades, chant devant et aux deux bouts
+  for (final cp in capPanels(e)) {
+    final finishId = cp.finishId(e.project.style);
+    final mat = frontDecorOf?.call(finishId) ?? cs.frontKey;
+    final grain = frontGrainLocked?.call(finishId) ?? false;
+    final p = CutPart(mat, 'Panneau de finition', '${cp.top ? 'Dessus' : 'Dessous'} mur ${cp.wallId}', cp.length.round(), cp.depth.round(), 1,
+        canRotate: !grain, edgeLong: 1, edgeShort: 2);
+    if (parts.containsKey(p.key)) {
+      parts[p.key]!.qty += 1;
+    } else {
+      parts[p.key] = p;
+    }
+  }
   return parts.values.toList();
 }
 

@@ -1,0 +1,6 @@
+{
+"Lumière du lancer de rayons": ["Ray tracing light", "إضاءة تتبع الأشعة"],
+"Soleil (par les fenêtres)": ["Sun (through the windows)", "الشمس (من النوافذ)"],
+"Plafonnier": ["Ceiling light", "مصباح السقف"],
+"Soleil et plafonnier": ["Sun and ceiling light", "الشمس ومصباح السقف"]
+}

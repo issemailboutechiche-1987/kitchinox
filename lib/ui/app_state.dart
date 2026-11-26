@@ -956,6 +956,9 @@ class AppState extends ChangeNotifier {
   }
 
   void select(String? uid) {
+    // pinceau « Copier le style » : chaque meuble touché prend le style du meuble source
+    if (styleSource != null && uid != null && uid != styleSource) _paintStyle(uid);
+    if (uid == null) styleSource = null; // toucher le vide : le pinceau s'arrête
     selected = uid;
     if (uid != null) selectedObject = null;
     if (uid != null) {
@@ -1284,6 +1287,35 @@ class AppState extends ChangeNotifier {
   }
 
   /// Ajoute l'arrivée d'eau ou l'évacuation existante de la pièce (sur le mur affiché).
+  /// Tableau électrique (TGBT) du projet, s'il est placé.
+  NetPoint? get boardPoint => project.points.where((x) => x.kind == NetKind.board && !x.hidden).firstOrNull;
+
+  /// Pose (ou remplace) le TGBT : [use] = NetUse.boardSurface, boardFlush ou boardOutside.
+  /// Dans la pièce : coffret à 1,40 m (organes de commande entre 1 et 1,80 m) ; dehors : arrivée des câbles à 2,20 m.
+  void setBoard(String use) {
+    final old = boardPoint;
+    if (old != null) {
+      edit(() => old.use = use);
+      selectPoint(old.uid);
+      return;
+    }
+    addPoint(NetKind.board);
+    final x = selectedPointObj;
+    if (x == null) return;
+    edit(() {
+      x
+        ..use = use
+        ..z = NetUse.isBoardInside(use) ? 1400 : 2200;
+    });
+  }
+
+  void removeBoard() {
+    final b = boardPoint;
+    if (b == null) return;
+    edit(() => project.points.remove(b));
+    selectPoint(null);
+  }
+
   void addExistingWater(NetKind kind) {
     addPoint(kind);
     final x = selectedPointObj;
@@ -1444,6 +1476,8 @@ class AppState extends ChangeNotifier {
           ..handlePos = src.handlePos
           ..handlePair = src.handlePair
           ..frontProfile = src.frontProfile
+          ..profileByZone.clear()
+          ..profileByZone.addAll(src.profileByZone)
           ..islandFront = src.islandFront
           ..islandTop = src.islandTop
           ..floor = src.floor
@@ -1486,6 +1520,50 @@ class AppState extends ChangeNotifier {
 
   /// Finition de façade propre à un caisson (null = style de la cuisine).
   void setItemFront(String uid, String? front) => edit(() => project.byUid(uid)?.front = front);
+
+  // ---------------------------------------------------------------- style d'un meuble : appliquer à tous, pinceau
+  /// Meuble dont le style est recopié sur ceux qu'on touche (pinceau actif), sinon null.
+  String? styleSource;
+
+  /// Style recopiable d'un meuble : finition et modèle de façade, panneaux de finition dessous / dessus.
+  void _copyStyle(PlacedCabinet from, PlacedCabinet to) {
+    to
+      ..front = from.front
+      ..profile = from.profile
+      ..capBottom = from.capBottom && capAllowed(engine.modelOf(to), bottom: true)
+      ..capTop = from.capTop && capAllowed(engine.modelOf(to), bottom: false);
+  }
+
+  void _paintStyle(String uid) {
+    final from = project.byUid(styleSource!), to = project.byUid(uid);
+    if (from == null || to == null || !engine.modelOf(to).isCarcass) return;
+    edit(() => _copyStyle(from, to));
+  }
+
+  /// Pinceau : active (meuble source) ou arrête la recopie du style.
+  void toggleStyleBrush(String? uid) {
+    styleSource = styleSource == null ? uid : null;
+    notifyListeners();
+  }
+
+  /// Applique le style du meuble à tous ceux de sa zone : les hauts si c'est un haut, les bas si c'est un bas
+  /// (colonnes : les colonnes). Renvoie le message à afficher.
+  String applyStyleToZone(String uid) {
+    final src = project.byUid(uid);
+    if (src == null) return '';
+    final zone = KitchenStyle.profileZone(engine.modelOf(src).kind);
+    var n = 0;
+    edit(() {
+      for (final c in project.items) {
+        final m = engine.modelOf(c);
+        if (c == src || !m.isCarcass || KitchenStyle.profileZone(m.kind) != zone) continue;
+        _copyStyle(src, c);
+        n++;
+      }
+    });
+    final what = switch (zone) { 'haut' => 'meuble(s) haut(s)', 'colonne' => 'colonne(s)', _ => 'meuble(s) bas' };
+    return trp('Style appliqué à {0} {1}', [n, tr(what)]);
+  }
 
   /// Composition de façade d'un caisson (null = celle du modèle).
   /// Format d'un meuble d'angle (W1 / W2) : le bras reste dans l'angle ; refusé s'il chevauche un voisin.
@@ -1710,6 +1788,53 @@ class AppState extends ChangeNotifier {
       });
 
   void setTallXxl(bool v) => edit(() => project.style.tallXxl = v);
+
+  /// Panneau de finition dessous ([bottom]) ou dessus d'un meuble ; [run] : aussi sur ses voisins bord à bord de même hauteur.
+  void setCap(String uid, {required bool bottom, required bool on, bool run = false}) => edit(() {
+        final c = project.byUid(uid);
+        if (c == null) return;
+        void put(PlacedCabinet x) => bottom ? x.capBottom = on : x.capTop = on;
+        put(c);
+        if (!run) return;
+        final m = engine.modelOf(c);
+        final same = project.items.where((o) => o.wallId == c.wallId && capAllowed(engine.modelOf(o), bottom: bottom) && engine.modelOf(o).kind.isHigh == m.kind.isHigh).toList()
+          ..sort((a, b) => a.s.compareTo(b.s));
+        double lv(PlacedCabinet x) => bottom ? x.z : x.top;
+        // à gauche puis à droite, tant que les meubles se touchent (au jeu d'une joue près)
+        var i = same.indexOf(c);
+        for (var k = i - 1; k >= 0 && same[k + 1].s - same[k].right <= 40 && (lv(same[k]) - lv(c)).abs() < 5; k--) {
+          put(same[k]);
+        }
+        for (var k = i + 1; k < same.length && same[k].s - same[k - 1].right <= 40 && (lv(same[k]) - lv(c)).abs() < 5; k++) {
+          put(same[k]);
+        }
+      });
+
+  /// Portée du choix de modèle de façade dans le style : 'tout', 'haut', 'bas' ou 'colonne' (affichage seulement).
+  String profileScope = 'tout';
+  void setProfileScope(String v) {
+    profileScope = v;
+    refresh();
+  }
+
+  /// Modèle de façade pour la portée choisie : partout (les réglages par zone s'effacent) ou une seule zone.
+  void setProfile(String profile) => edit(() {
+        final st = project.style;
+        if (profileScope == 'tout') {
+          st.frontProfile = profile;
+          st.profileByZone.clear();
+        } else if (profile == st.frontProfile) {
+          st.profileByZone.remove(profileScope);
+        } else {
+          st.profileByZone[profileScope] = profile;
+        }
+      });
+
+  /// Modèle de façade d'un seul meuble (null : celui de sa zone ou de la cuisine).
+  void setItemProfile(String uid, String? profile) => edit(() {
+        final c = project.byUid(uid);
+        if (c != null) c.profile = profile;
+      });
 
   /// Sol, murs et crédence ([clearSplash] : crédence comme les murs).
   void setFinishOptions({bool? endPanels, String? endPanelFinish, bool clearEndPanelFinish = false, String? lighting}) => edit(() {

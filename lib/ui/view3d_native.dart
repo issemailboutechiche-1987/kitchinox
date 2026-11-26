@@ -92,6 +92,22 @@ Future<bool> _shareAr(String name) async {
   return true;
 }
 
+/// Vignette 3D d'un aménagement (PNG), dessinée par la vue 3D ouverte ; null sans vue 3D.
+Future<Uint8List?> fittingThumbnail(String specJson) async {
+  final c = _live;
+  if (c == null) return null;
+  try {
+    final url = _jsString(await c.runJavaScriptReturningResult('window.kitchen3d.fittingThumb(${jsonEncode(specJson)}, 360, 270) || ""'));
+    if (!url.contains(',')) return null;
+    return base64Decode(url.split(',').last);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Lancer de rayons : recalcule l'image fixe de la vue (bouton « Actualiser »).
+void refreshRayRender() => _live?.runJavaScript('window.kitchen3d.rayRender()');
+
 bool openArPackage() {
   if (_live == null) return false;
   unawaited(_shareAr('Kitchinox'));

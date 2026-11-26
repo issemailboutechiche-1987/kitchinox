@@ -136,6 +136,13 @@ void paintNetSymbol(Canvas c, Offset o, NetKind k, double r, {bool selected = fa
     case NetKind.tvSat || NetKind.rj45:
       disc();
       _tag(c, o, k == NetKind.tvSat ? 'TV' : 'RJ45', r * (k == NetKind.tvSat ? 0.72 : 0.5), ink);
+    // tableau électrique : rectangle à demi noirci (symbole NF), « TGBT »
+    case NetKind.board:
+      final rr = Rect.fromCenter(center: o, width: r * 2.1, height: r * 1.6);
+      c.drawRect(rr, fill);
+      c.drawPath(Path()..moveTo(rr.left, rr.top)..lineTo(rr.right, rr.top)..lineTo(rr.left, rr.bottom)..close(), Paint()..color = ink.withValues(alpha: 0.85 * alpha));
+      c.drawRect(rr, stroke);
+      _tag(c, o + Offset(r * 0.35, r * 0.35), 'TGBT', r * 0.38, ink);
     case NetKind.drain || NetKind.drainWc:
       final path = Path()
         ..moveTo(o.dx, o.dy + r * 1.05)

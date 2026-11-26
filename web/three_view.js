@@ -9,6 +9,8 @@ import { RoomEnvironment } from './vendor/environments/RoomEnvironment.js';
 import { mergeGeometries } from './vendor/utils/BufferGeometryUtils.js';
 import { hdStart, hdState, hdStop, hdRunning } from './hd_render.js';
 import { buildUsdz, openUsdz, arQuickLookSupported } from './ar_export.js';
+import { loadHdr } from './hdr_loader.js';
+import { buildFitting } from './fittings3d.js';
 
 const S = 0.001; // mm → m
 const P = (x, y, z) => new THREE.Vector3(x * S, z * S, y * S);
@@ -589,7 +591,56 @@ function buildItem(d, uid) {
     for (const part of f.parts) g.add(buildPart(f, uid, part, f.depth, carcassColor));
     if (f.machine) g.add(buildDishwasher(f, uid));
   }
+  for (const ft of (d.fittings || []).filter((x) => x.uid === uid)) {
+    const fit = buildFittingFor(ft, uid);
+    if (fit) g.add(fit);
+  }
   return g;
+}
+
+/**
+ * Aménagement intérieur (web/fittings3d.js) posé dans le volume utile du caisson. Sa partie mobile suit
+ * le premier élément qui s'ouvre : elle sort avec le tiroir, ou une fois la porte ouverte ; un carrousel tourne.
+ */
+function buildFittingFor(ft, uid) {
+  const r = buildFitting(ft.spec, ft.w, ft.h, ft.d);
+  if (!r) return null;
+  const frame = new THREE.Group();
+  frame.applyMatrix4(wallBasis(ft));
+  frame.position.copy(P(ft.x, ft.y, ft.z));
+  const m = new THREE.Group();
+  m.scale.set(S, S, S);
+  frame.add(m);
+  m.add(r.group);
+  r.group.traverse((o) => {
+    if (o.isMesh) o.userData.uid = uid;
+  });
+  if (r.moving) {
+    // la façade de sa case (numéro d'ouverture choisi à l'export), pas forcément la première du meuble
+    const k = ft.k ?? 0;
+    const first = doors.find((x) => x.uid === uid && x.k === k);
+    let kind = r.motion, travel = r.travel;
+    if (first?.kind === 'drawer' && (kind === 'slide' || kind === 'drawer')) {
+      kind = 'fitDrawer'; // avec le tiroir : même course que sa façade
+      travel = Math.min(450, (first.depth ?? ft.d + 120) - 120);
+    } else if (kind === 'drawer') kind = 'slide';
+    let pivot = r.moving;
+    if (kind === 'spin') {
+      // rotation autour du centre du caisson : un repère au centre, le pivot dedans
+      const hub = new THREE.Group();
+      hub.position.set(ft.w / 2, 0, ft.d / 2);
+      pivot = new THREE.Group();
+      hub.add(pivot);
+      r.group.add(hub);
+      r.moving.removeFromParent();
+      r.moving.position.set(-ft.w / 2, 0, -ft.d / 2);
+      const inner = new THREE.Group();
+      inner.add(r.moving);
+      pivot.add(inner);
+    }
+    doors.push({ uid, k, pivot, kind: kind === 'slide' ? 'rack' : kind, travel, follows: true });
+  }
+  return frame;
 }
 
 // ------------------------------------------------------------------ regroupement des pièces fixes
@@ -2413,6 +2464,25 @@ function buildNetPoint(p, d) {
       cyl(10, 50, brass, 0, 0, 0);
       box(50, 12, 10, new THREE.MeshStandardMaterial({ color: 0xd9a400, roughness: 0.4 }), 0, 0, 52);
       break;
+    case 'board': {
+      // TGBT : coffret blanc à porte fumée et rangées de disjoncteurs ; encastré : seule la façade dépasse ;
+      // dehors : la gaine qui entre dans la pièce
+      if (p.use === 'tgbt_externe') {
+        cyl(28, 40, pvc, 0, 0, 0);
+        cyl(22, 42, plateDark, 0, 0, 0.5);
+        break;
+      }
+      const flush = p.use === 'tgbt_encastre';
+      const depth = flush ? 12 : 100;
+      box(flush ? 340 : 320, flush ? 480 : 460, depth, new THREE.MeshStandardMaterial({ color: 0xf4f5f6, roughness: 0.5 }), 0, 0, 0);
+      box(270, 380, 1, new THREE.MeshStandardMaterial({ color: 0x5c6670, roughness: 0.2, transparent: true, opacity: 0.55 }), 0, 0, depth);
+      const brk = new THREE.MeshStandardMaterial({ color: 0x23272b, roughness: 0.5 });
+      const diff = new THREE.MeshStandardMaterial({ color: 0x1e63c8, roughness: 0.5 });
+      for (let row = 0; row < 3; row++) {
+        for (let k = 0; k < 8; k++) box(26, 70, 14, k === 0 ? diff : brk, -105 + k * 30, 120 - row * 120, depth - 14);
+      }
+      break;
+    }
     case 'duct':
       cyl(66, 40, pvc, 0, 0, 0);
       cyl(60, 42, plateDark, 0, 0, 0.5);
@@ -2654,55 +2724,95 @@ sketchMat.userData.cached = sketchGlass.userData.cached = sketchLine.userData.ca
 const edgeCache = new Map(); // géométrie → arêtes
 let lookNow = 'real';
 
-/** Mode croquis : surfaces blanches et arêtes tracées au trait ; réaliste : les matériaux reviennent. */
-function applyLook(look) {
-  const sketch = look === 'sketch';
-  if (!sketch && lookNow !== 'sketch') return;
-  lookNow = look;
-  const nodes = [];
-  scene.traverse((o) => nodes.push(o));
-  for (const o of nodes) {
-    if (!o.isMesh || o.userData.sketchEdge || o.userData.netRun) continue;
-    if (sketch) {
-      if (o.userData.sketchOrig) continue;
-      const m0 = Array.isArray(o.material) ? o.material[0] : o.material;
-      if (!m0 || m0.visible === false) continue;
-      // ombres au sol, reflets : sans objet dans un croquis
-      if (m0.isMeshBasicMaterial && m0.transparent && m0.map) {
-        o.userData.sketchOrig = o.material;
-        o.userData.sketchHidden = o.visible;
-        o.visible = false;
-        continue;
-      }
-      o.userData.sketchOrig = o.material;
-      o.material = m0.transparent && m0.opacity < 0.6 ? sketchGlass : sketchMat;
-      const geo = o.geometry;
-      if (!geo || !geo.attributes.position) continue;
-      let eg = edgeCache.get(geo.uuid);
-      if (!eg) {
-        if (geo.attributes.position.count > 120000) continue; // modèle très détaillé : surfaces seules
-        eg = new THREE.EdgesGeometry(geo, 28);
-        eg.userData.cached = true;
-        edgeCache.set(geo.uuid, eg);
-      }
-      const ln = new THREE.LineSegments(eg, sketchLine);
-      ln.userData.sketchEdge = true;
-      ln.userData.cached = true;
-      ln.raycast = () => {};
-      o.add(ln);
-    } else if (o.userData.sketchOrig) {
-      o.material = o.userData.sketchOrig;
-      delete o.userData.sketchOrig;
-      if ('sketchHidden' in o.userData) {
-        o.visible = o.userData.sketchHidden;
-        delete o.userData.sketchHidden;
-      }
-      for (const c of [...o.children]) if (c.userData.sketchEdge) o.remove(c);
-    }
+const xrayMats = new Map(); // matériau d'origine → sa version translucide
+const xrayLine = new THREE.LineBasicMaterial({ color: 0x3a3f45, transparent: true, opacity: 0.6 });
+xrayLine.userData.cached = true;
+
+/** Version translucide d'un matériau (mode transparent), gardée pour tous les meubles qui le partagent. */
+function xrayOf(m) {
+  let x = xrayMats.get(m.uuid);
+  if (!x) {
+    x = m.clone();
+    x.transparent = true;
+    x.opacity = 0.14;
+    x.depthWrite = false;
+    x.userData.cached = true;
+    xrayMats.set(m.uuid, x);
   }
-  if (!sketch) {
-    for (const eg of edgeCache.values()) eg.dispose();
-    edgeCache.clear();
+  return x;
+}
+
+/** Meubles, plans de travail et objets : ce que le mode transparent rend translucide (murs, prises et câbles restent pleins). */
+function furnitureRoots() {
+  const out = [];
+  for (const [k, v] of groups) if (k.startsWith('item:') || k === 'others') out.push(v.obj);
+  for (const v of objectGroups.values()) out.push(v.obj);
+  return out;
+}
+
+/** Remet les vrais matériaux partout. */
+function restoreLook() {
+  scene.traverse((o) => {
+    if (!o.userData.sketchOrig) return;
+    o.material = o.userData.sketchOrig;
+    delete o.userData.sketchOrig;
+    if ('sketchHidden' in o.userData) {
+      o.visible = o.userData.sketchHidden;
+      delete o.userData.sketchHidden;
+    }
+    for (const c of [...o.children]) if (c.userData.sketchEdge) o.remove(c);
+  });
+  for (const eg of edgeCache.values()) eg.dispose();
+  edgeCache.clear();
+  for (const x of xrayMats.values()) x.dispose();
+  xrayMats.clear();
+}
+
+/**
+ * Modes d'affichage : « sketch » (croquis : surfaces blanches, arêtes au trait), « xray » (transparent :
+ * meubles translucides et leurs arêtes, pour voir les prises et les câbles cachés derrière), sinon réaliste.
+ * Appelé à chaque scène et régulièrement : les meubles ajoutés ou chargés plus tard prennent le mode aussi.
+ */
+function applyLook(look) {
+  const mode = look === 'sketch' || look === 'xray' ? look : 'real';
+  if (mode === 'real' && lookNow === 'real') return;
+  if (mode !== lookNow && lookNow !== 'real') restoreLook();
+  lookNow = mode;
+  if (mode === 'real') {
+    invalidate(true);
+    return;
+  }
+  const xray = mode === 'xray';
+  const nodes = [];
+  for (const r of xray ? furnitureRoots() : [scene]) r.traverse((o) => nodes.push(o));
+  for (const o of nodes) {
+    if (!o.isMesh || o.userData.sketchEdge || o.userData.netRun || o.userData.sketchOrig) continue;
+    const m0 = Array.isArray(o.material) ? o.material[0] : o.material;
+    if (!m0 || m0.visible === false) continue;
+    // ombres peintes au sol : sans objet dans un croquis ou en transparence
+    if (m0.isMeshBasicMaterial && m0.transparent && m0.map) {
+      o.userData.sketchOrig = o.material;
+      o.userData.sketchHidden = o.visible;
+      o.visible = false;
+      continue;
+    }
+    o.userData.sketchOrig = o.material;
+    if (xray) o.material = Array.isArray(o.material) ? o.material.map(xrayOf) : xrayOf(o.material);
+    else o.material = m0.transparent && m0.opacity < 0.6 ? sketchGlass : sketchMat;
+    const geo = o.geometry;
+    if (!geo || !geo.attributes.position) continue;
+    let eg = edgeCache.get(geo.uuid);
+    if (!eg) {
+      if (geo.attributes.position.count > 120000) continue; // modèle très détaillé : surfaces seules
+      eg = new THREE.EdgesGeometry(geo, 28);
+      eg.userData.cached = true;
+      edgeCache.set(geo.uuid, eg);
+    }
+    const ln = new THREE.LineSegments(eg, xray ? xrayLine : sketchLine);
+    ln.userData.sketchEdge = true;
+    ln.userData.cached = true;
+    ln.raycast = () => {};
+    o.add(ln);
   }
   invalidate(true);
 }
@@ -2829,10 +2939,105 @@ let rayMod = null; // module chargé
 let rayPt = null; // le traceur
 let rayOn = false;
 let rayDirty = true; // scène changée : à reconstruire
+let rayDirtySig = ''; // signature de la scène de l'image fixe
 const rayCam = new THREE.Matrix4();
 let rayAspect = 0;
 let raySky = null;
 let rayKeep = null; // ce qui a été masqué ou changé pour le mode
+let rayExtra = null; // lumières et dalle ajoutées pour le mode
+
+// ------------------------------------------------------------------ environnement (reflets) : studio ou HDRI
+// « studio » : la pièce claire pré-filtrée (rendu habituel) ou un ciel doux (lancer de rayons) ;
+// « interieur » / « exterieur » : une vraie photo HDR (web/hdri, Poly Haven CC0), pour des reflets réalistes.
+let studioEnv = null; // environnement d'origine (RoomEnvironment)
+const hdris = new Map(); // nom → texture (ou promesse en cours)
+let envChoice = 'studio';
+let envReflect = true;
+
+function hdriTexture(name) {
+  const h = hdris.get(name);
+  if (h && h.isTexture) return h;
+  if (!h) {
+    const p = loadHdr(`hdri/${name}.hdr`)
+      .then((t) => {
+        hdris.set(name, t);
+        rayDirty = true;
+        updateEnv();
+      })
+      .catch((e) => {
+        hdris.delete(name);
+        (window.__kxlog || (() => {}))('3d', 'HDRI ' + name + ' : ' + (e?.message || e));
+      });
+    hdris.set(name, p);
+  }
+  return null; // en cours de chargement : l'environnement d'avant reste
+}
+
+/** Applique l'environnement choisi et son intensité (selon le mode et l'interrupteur Reflets). */
+function updateEnv() {
+  if (!scene) return;
+  const hdr = envChoice !== 'studio' ? hdriTexture(envChoice) : null;
+  let env, k;
+  if (hdr) {
+    env = hdr;
+    k = rayOn ? 1.0 : envReflect ? 0.75 : 0.15;
+  } else if (rayOn && raySky) {
+    env = raySky;
+    k = 0.9;
+  } else {
+    env = studioEnv;
+    k = envReflect ? 0.45 : 0.12;
+  }
+  if (scene.environment !== env || scene.environmentIntensity !== k) {
+    scene.environment = env;
+    scene.environmentIntensity = k;
+    rayDirty = true;
+    invalidate(true);
+  }
+}
+let rayLightKey = '';
+
+/**
+ * Lumières du lancer de rayons : « soleil » (par les fenêtres), « plafonnier » (ampoules au plafond :
+ * les points lumineux du projet, sinon le centre de la pièce), ou « mixte ». Plus une dalle sous le sol :
+ * sans elle, le ciel passe sous les murs et dessine un trait clair au pied des murs.
+ */
+function setRayLights(d) {
+  const key = JSON.stringify([d.rayLight || 'mixte', d.room, (d.netPoints || []).filter((p) => p.ceiling && p.kind === 'light').map((p) => [p.x, p.y])]);
+  if (key === rayLightKey && rayExtra) return;
+  rayLightKey = key;
+  clearRayLights();
+  const mode = d.rayLight || 'mixte';
+  const r = d.room || { w: 3600, d: 3000, h: 2600 };
+  const g = new THREE.Group();
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(r.w * S + 0.5, 0.02, r.d * S + 0.5), new THREE.MeshStandardMaterial({ color: 0xcfcfcf, roughness: 0.95 }));
+  slab.position.set((r.w * S) / 2, -0.012, (r.d * S) / 2);
+  slab.raycast = () => {};
+  g.add(slab);
+  if (mode !== 'soleil') {
+    const pts = (d.netPoints || []).filter((p) => p.ceiling && p.kind === 'light');
+    const at = pts.length ? pts.map((p) => [p.x, p.y]) : [[r.w / 2, r.d / 2]];
+    for (const [x, y] of at) {
+      // ampoule de 800 lm environ (≈ 64 cd), blanc chaud
+      const l = new THREE.PointLight(0xfff1dc, 64 / Math.max(1, at.length * 0.6), 0, 2);
+      l.position.copy(P(x, y, r.h - 180));
+      g.add(l);
+    }
+  }
+  scene.add(g);
+  rayExtra = { group: g, sun: sun.intensity };
+  if (mode === 'plafonnier') sun.intensity = 0;
+  rayDirty = true;
+}
+
+function clearRayLights() {
+  if (!rayExtra) return;
+  scene.remove(rayExtra.group);
+  disposeTree(rayExtra.group);
+  sun.intensity = rayExtra.sun;
+  rayExtra = null;
+  rayLightKey = '';
+}
 
 async function setRay(on) {
   if (on === rayOn) return;
@@ -2848,7 +3053,7 @@ async function setRay(on) {
     }
     if (!rayOn) return;
     // ombres peintes au sol : la vraie lumière les remplace ; ciel doux tout autour
-    rayKeep = { hidden: [], env: scene.environment, envI: scene.environmentIntensity };
+    rayKeep = { hidden: [] };
     scene.traverse((o) => {
       const m = Array.isArray(o.material) ? o.material[0] : o.material;
       if (o.isMesh && m && (m.isShadowMaterial || (m.isMeshBasicMaterial && m.transparent && m.map && !m.depthWrite))) {
@@ -2860,33 +3065,154 @@ async function setRay(on) {
     raySky.topColor.set(0xffffff);
     raySky.bottomColor.set(0x9a9a9a);
     raySky.update();
-    scene.environment = raySky;
-    scene.environmentIntensity = 0.9;
+    updateEnv();
+    if (data) setRayLights(data);
     rayDirty = true;
+    setTimeout(() => rayRender(), 400); // première image fixe, dès l'entrée dans le mode
   } else {
+    clearRayStill();
     try {
       rayPt?.dispose();
     } catch (_) {}
     rayPt = null;
+    clearRayLights();
     if (rayKeep) {
       for (const [o, v] of rayKeep.hidden) o.visible = v;
-      scene.environment = rayKeep.env;
-      scene.environmentIntensity = rayKeep.envI;
       rayKeep = null;
     }
+    updateEnv(); // retour à l'environnement du rendu habituel
   }
   invalidate(true);
 }
 
+/** Murs entre la caméra et la cuisine : masqués (avec ce qu'ils portent : prises, conduits, crédence…). */
+function updateWallVisibility() {
+  const cam = camera.position;
+  for (const { obj } of groups.values()) {
+    obj.traverse((o) => {
+      const w = o.userData.wall;
+      if (w) o.visible = (cam.x - w.ox * S) * w.nx + (cam.z - w.oy * S) * w.ny > 0;
+    });
+  }
+  const walls = new Map();
+  groups.get('room')?.obj.traverse((o) => {
+    if (o.userData.wall) walls.set(o.userData.wall.id, o.visible);
+  });
+  // un mur qui apparaît ou disparaît change les ombres
+  const sigWalls = [...walls.values()].join();
+  if (sigWalls !== lastWalls) {
+    lastWalls = sigWalls;
+    shadowsDirty = true;
+  }
+  for (const key of ['room', 'netPoints', 'nets3d']) {
+    groups.get(key)?.obj.traverse((o) => {
+      if (o.userData.wallOf) o.visible = walls.get(o.userData.wallOf) ?? true;
+    });
+  }
+}
+
+// ------------------------------------------------------------------ lancer de rayons : image fixe
+// Calculée une fois aux dimensions de la vue (traceur complet, voir hd_render.js), posée par-dessus la 3D.
+// Elle se recalcule seulement avec « Actualiser » ; si la vue ou la scène change, la 3D habituelle revient.
+let rayStill = null; // { img, label, cam, sceneSig }
+let rayPoll = null;
+
+function rayOverlay() {
+  if (rayStill || !host) return rayStill;
+  const img = document.createElement('img');
+  img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;display:none;';
+  const label = document.createElement('div');
+  label.style.cssText =
+    'position:absolute;left:50%;top:14px;transform:translateX(-50%);padding:6px 14px;border-radius:16px;' +
+    'background:rgba(20,22,26,.72);color:#fff;font:600 13px system-ui,sans-serif;pointer-events:none;display:none;';
+  if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+  host.appendChild(img);
+  host.appendChild(label);
+  rayStill = { img, label, cam: new THREE.Matrix4(), aspect: 0, sig: '' };
+  return rayStill;
+}
+
+function rayLabel(text) {
+  const o = rayOverlay();
+  if (!o) return;
+  o.label.textContent = text || '';
+  o.label.style.display = text ? 'block' : 'none';
+}
+
+function hideRayStill(hint) {
+  if (!rayStill) return;
+  if (rayStill.img.style.display !== 'none') {
+    rayStill.img.style.display = 'none';
+    if (hint) rayLabel('Vue modifiée : touchez « Actualiser » pour le lancer de rayons');
+  }
+}
+
+function clearRayStill() {
+  clearInterval(rayPoll);
+  rayPoll = null;
+  if (!rayStill) return;
+  rayStill.img.remove();
+  rayStill.label.remove();
+  rayStill = null;
+}
+
+/** Calcule l'image fixe du lancer de rayons pour la vue actuelle (bouton « Actualiser »). */
+function rayRender() {
+  if (!rayOn || !renderer || !scene || !host || hdRunning()) return false;
+  const o = rayOverlay();
+  const k = Math.min(window.devicePixelRatio || 1, 1.5);
+  const w = Math.max(320, Math.round(host.clientWidth * k)), h = Math.max(240, Math.round(host.clientHeight * k));
+  o.img.style.display = 'none';
+  const box = selBox;
+  if (box) box.visible = false;
+  // le calcul part de la vue exacte : caméra à jour, murs côté caméra masqués
+  camera.updateMatrixWorld();
+  updateWallVisibility();
+  const cam = camera.matrixWorld.clone(), aspect = camera.aspect;
+  hdStart({ renderer, scene, camera, sun, hemi: hemiLight, ambient: ambLight, fill: fillLight, bg: data?.studio ? [0xffffff] : data?.bg, done: () => {
+    if (box) box.visible = true;
+    resize();
+    invalidate(true);
+  } }, w, h, 480);
+  clearInterval(rayPoll);
+  rayPoll = setInterval(() => {
+    const s = JSON.parse(hdState());
+    if (s.running) {
+      rayLabel(`Lancer de rayons… ${Math.round((100 * s.k) / Math.max(1, s.n))} %`);
+      return;
+    }
+    clearInterval(rayPoll);
+    rayPoll = null;
+    if (s.url) {
+      o.img.src = s.url;
+      o.img.style.display = 'block';
+      o.cam.copy(cam);
+      o.aspect = aspect;
+      o.sig = rayDirtySig;
+      rayLabel('');
+    } else rayLabel(s.error && s.error !== 'stop' ? 'Lancer de rayons impossible sur cet appareil' : '');
+  }, 300);
+  return true;
+}
+
+/** À chaque image : la vue ou la scène a changé depuis l'image fixe, la 3D habituelle reprend la main. */
+function checkRayStill() {
+  if (!rayStill || rayStill.img.style.display === 'none') return;
+  if (!rayStill.cam.equals(camera.matrixWorld) || rayStill.aspect !== camera.aspect || rayStill.sig !== rayDirtySig) hideRayStill(true);
+}
+
 /** Une passe du traceur ; faux si le rendu habituel doit dessiner l'image. */
 function rayStep() {
+  // le traceur interactif est remplacé par l'image fixe (rayRender) : le rendu habituel dessine toujours
+  return false;
+  // eslint-disable-next-line no-unreachable
   if (!rayOn || !rayMod || !rayKeep) return false;
   try {
     if (!rayPt) {
       rayPt = new rayMod.WebGLPathTracer(renderer);
       rayPt.renderToCanvas = true;
       rayPt.rasterizeScene = true; // tant que la vue bouge : rendu habituel
-      rayPt.minSamples = 2;
+      rayPt.minSamples = 6; // pas d'image granuleuse : le rendu habituel reste affiché jusqu'à 6 passes
       rayPt.fadeDuration = 250;
       rayPt.renderDelay = 120;
       rayPt.dynamicLowRes = true;
@@ -2921,6 +3247,7 @@ function applyScene(d) {
   doors.length = 0;
   applyBackground(d);
   rayDirty = true; // la scène change : le traceur la relira
+  rayDirtySig = JSON.stringify([d.items?.length ?? 0, d.solids?.length ?? 0, d.selected ?? '', d.open ?? {}, d.look, d.hdri, d.rayLight, d.shadows, d.reflect]);
   sync('room', JSON.stringify([d.studio || '', d.room, d.walls, d.floor, d.wall, d.splashMat, d.splash]), () => buildRoom(d));
   sync('lights', JSON.stringify(d.lights || []), () => buildLights(d));
   const uids = [...new Set(d.items.map((i) => i.uid))];
@@ -2933,7 +3260,7 @@ function applyScene(d) {
     }
   }
   for (const uid of uids) {
-    const sig = JSON.stringify([d.solids.filter((x) => x.uid === uid), d.fronts.filter((x) => x.uid === uid)]);
+    const sig = JSON.stringify([d.solids.filter((x) => x.uid === uid), d.fronts.filter((x) => x.uid === uid), (d.fittings || []).filter((x) => x.uid === uid)]);
     const cur = groups.get('item:' + uid);
     if (cur && cur.sig === sig) {
       cur.obj.traverse((o) => {
@@ -2953,8 +3280,9 @@ function applyScene(d) {
   sync('netPoints', JSON.stringify([d.netPoints || [], d.socketFinish]), () => buildNetPoints(d));
   sync('ao', JSON.stringify([d.studio || '', d.room, d.floorPoly || null, groundFootprints(d)]), () => (d.studio ? new THREE.Group() : buildAO(d)));
   sync('nets3d', JSON.stringify([d.nets3d || null, d.room, d.walls]), () => buildNets(d.nets3d));
-  applyLook(d.look === 'sketch' ? 'sketch' : 'real');
+  applyLook(d.look === 'sketch' || d.look === 'xray' ? d.look : 'real');
   setRay(d.look === 'ray' && !d.studio);
+  if (rayOn && rayKeep) setRayLights(d);
   // sélection : boîte orange
   if (selBox) {
     scene.remove(selBox);
@@ -3063,7 +3391,9 @@ function applyScene(d) {
   }
   const ao = groups.get('ao')?.obj;
   if (ao) ao.visible = shadowsOn;
-  if (!rayOn) scene.environmentIntensity = d.reflect === false ? 0.12 : 0.45;
+  envChoice = ['interieur', 'exterieur'].includes(d.hdri) ? d.hdri : 'studio';
+  envReflect = d.reflect !== false;
+  updateEnv();
   if (d.reflect === false) ambLight.intensity += 0.25; // la lumière douce de l'environnement compensée
   sideLight.position.set(target.x + 4, 2.6, target.z + 4);
   sideLight.target.position.copy(target);
@@ -3153,32 +3483,13 @@ function animate() {
         else if (dr.kind === 'flapDown') dr.pivot.rotateX(e * Math.PI * 85 / 180);
         else if (dr.kind === 'rack') dr.pivot.position.z = Math.max(0, p - 0.55) / 0.45 * dr.travel; // une fois la porte basse
         else if (dr.kind === 'drawer') dr.pivot.translateZ(e * Math.min(450, dr.depth - 120) * S);
+        else if (dr.kind === 'fitDrawer') dr.pivot.position.z = e * dr.travel; // aménagement dans un tiroir (repère en mm)
+        else if (dr.kind === 'spin') dr.pivot.rotation.y = e * 0.75; // carrousel, colonne tournante
+        else if (dr.kind === 'drop') dr.pivot.position.set(0, -e * dr.travel * 0.6, e * dr.travel * 0.5); // étagère descendante
       }
-      // murs entre la caméra et la cuisine : masqués
-      const cam = camera.position;
-      for (const { obj } of groups.values()) {
-        obj.traverse((o) => {
-          const w = o.userData.wall;
-          if (w) o.visible = (cam.x - w.ox * S) * w.nx + (cam.z - w.oy * S) * w.ny > 0;
-        });
-      }
-      const walls = new Map();
-      groups.get('room')?.obj.traverse((o) => {
-        if (o.userData.wall) walls.set(o.userData.wall.id, o.visible);
-      });
-      // un mur qui apparaît ou disparaît change les ombres
-      const sigWalls = [...walls.values()].join();
-      if (sigWalls !== lastWalls) {
-        lastWalls = sigWalls;
-        shadowsDirty = true;
-      }
-      for (const key of ['room', 'netPoints', 'nets3d']) {
-        groups.get(key)?.obj.traverse((o) => {
-          if (o.userData.wallOf) o.visible = walls.get(o.userData.wallOf) ?? true;
-        });
-      }
+      updateWallVisibility();
     }
-    if (lookNow === 'sketch' && (stats.frames % 40) === 0) applyLook('sketch');
+    if (lookNow !== 'real' && (stats.frames % 40) === 0) applyLook(lookNow);
     if (selBox) selBox.update();
     reportSelection();
     if (shadowsDirty) {
@@ -3187,6 +3498,7 @@ function animate() {
       stats.shadowUpdates++;
     }
     stats.frames++;
+    checkRayStill();
     if (rayStep()) return; // lancer de rayons : le traceur dessine l'image
     renderer.render(scene, camera);
   } catch (err) {
@@ -3342,6 +3654,7 @@ function init(el) {
   // reflets doux d'une pièce claire : le chrome et l'émail ont enfin quelque chose à refléter
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  studioEnv = scene.environment;
   scene.environmentIntensity = 0.45;
   pmrem.dispose();
   camera = new THREE.PerspectiveCamera(38, 1, 0.05, 100);
@@ -3403,6 +3716,117 @@ function resize() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   invalidate();
+}
+
+// ------------------------------------------------------------------ vignettes (catalogue des accessoires)
+
+/** Caisson-type de chaque famille pour la vignette (mm : largeur, hauteur, profondeur intérieures). */
+const THUMB_BOX = {
+  tall_pantry: [564, 1964, 522], rod: [764, 1964, 542], carousel: [864, 684, 864], corner_pullout: [1064, 684, 522],
+  lift: [864, 684, 302], pulldown_shelf: [864, 684, 302], organizer: [864, 140, 480], rack: [164, 684, 522],
+};
+
+/** Petites formes des articles sans aménagement : bouton, barre, profil Gola, charnière, profil LED. */
+function handleShape(type) {
+  const g = new THREE.Group();
+  const metal = new THREE.MeshStandardMaterial({ color: 0x8d9298, metalness: 0.75, roughness: 0.3 });
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(240, 160, 18), new THREE.MeshStandardMaterial({ color: 0xf2f1ec, roughness: 0.6 }));
+  plate.position.z = -9;
+  if (type === 'knob') {
+    g.add(plate);
+    const k = new THREE.Mesh(new THREE.CylinderGeometry(16, 13, 28, 32), metal);
+    k.rotation.x = Math.PI / 2;
+    k.position.z = 14;
+    g.add(k);
+  } else if (type === 'gola' || type === 'profile') {
+    const s = new THREE.Shape();
+    if (type === 'gola') s.moveTo(0, 0), s.lineTo(40, 0), s.lineTo(40, 6), s.lineTo(26, 6), s.lineTo(26, 54), s.lineTo(14, 54), s.lineTo(14, 6), s.lineTo(0, 6);
+    else s.moveTo(0, 0), s.lineTo(24, 0), s.lineTo(24, 10), s.lineTo(0, 10);
+    const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: 300, bevelEnabled: false }), metal);
+    m.rotation.y = Math.PI / 2;
+    m.position.set(-150, -25, 0);
+    g.add(m);
+  } else if (type === 'hinge') {
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(35, 35, 14, 32), metal);
+    cup.rotation.x = Math.PI / 2;
+    g.add(cup);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(110, 24, 12), metal);
+    arm.position.set(70, 0, 4);
+    g.add(arm);
+  } else {
+    g.add(plate);
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 180, 16), metal);
+    bar.rotation.z = Math.PI / 2;
+    bar.position.z = 30;
+    g.add(bar);
+    for (const x of [-80, 80]) {
+      const f = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 30, 12), metal);
+      f.rotation.x = Math.PI / 2;
+      f.position.set(x, 0, 15);
+      g.add(f);
+    }
+  }
+  return g;
+}
+
+let thumbRenderer = null;
+let thumbEnv = null; // reflets d'ambiance des vignettes (sans eux, le métal sort noir)
+const thumbCache = new Map();
+
+/** Vignette PNG (data URL) d'un aménagement ou d'une petite pièce, dans son caisson-type, vue de trois quarts. */
+function fittingThumb(json, w = 360, h = 270) {
+  const key = json + '|' + w + 'x' + h;
+  if (thumbCache.has(key)) return thumbCache.get(key);
+  const spec = JSON.parse(json);
+  if (!thumbRenderer) {
+    thumbRenderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+    thumbRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+    thumbRenderer.outputColorSpace = THREE.SRGBColorSpace;
+    thumbRenderer.toneMappingExposure = 1.15;
+    const pmrem = new THREE.PMREMGenerator(thumbRenderer);
+    thumbEnv = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+  }
+  thumbRenderer.setSize(w, h, false);
+  const sc = new THREE.Scene();
+  sc.background = new THREE.Color(0xffffff);
+  sc.environment = thumbEnv;
+  sc.environmentIntensity = 0.9;
+  sc.add(new THREE.HemisphereLight(0xffffff, 0x9aa0a6, 1.6));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+  sun.position.set(1, 2, 2.5);
+  sc.add(sun);
+  const root = new THREE.Group();
+  if (spec.family === 'handle') {
+    root.add(handleShape(spec.type));
+  } else {
+    const [bw, bh, bd] = THUMB_BOX[spec.family] ?? [564, 684, 522];
+    const f = buildFitting(spec, bw, bh, bd);
+    if (!f) return null;
+    root.add(f.group);
+    // caisson en filigrane : on lit la place de l'aménagement
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(bw + 36, bh + 36, bd + 18)), new THREE.LineBasicMaterial({ color: 0xc9cdd2 }));
+    edges.position.set(bw / 2, bh / 2, bd / 2 - 9);
+    root.add(edges);
+  }
+  sc.add(root);
+  const box = new THREE.Box3().setFromObject(root);
+  const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+  const cam = new THREE.PerspectiveCamera(30, w / h, 1, 20000);
+  const dir = new THREE.Vector3(0.55, 0.45, 1).normalize();
+  const dist = (Math.max(size.x / (w / h), size.y, size.z) / 2 / Math.tan((15 * Math.PI) / 180)) * 1.5;
+  cam.position.copy(c).addScaledVector(dir, dist);
+  cam.lookAt(c);
+  thumbRenderer.render(sc, cam);
+  const url = thumbRenderer.domElement.toDataURL('image/png');
+  sc.traverse((o) => {
+    if (o.isMesh || o.isLineSegments) {
+      o.geometry.dispose();
+      if (!o.material.userData?.cached) o.material.dispose();
+    }
+  });
+  thumbCache.set(key, url);
+  return url;
 }
 
 // ------------------------------------------------------------------ réalité augmentée (AR Quick Look)
@@ -3511,12 +3935,29 @@ window.kitchen3d = {
     renderer.render(scene, camera);
     return renderer.domElement.toDataURL('image/png');
   },
+  /** Vignette d'un aménagement (catalogue des accessoires) : data URL PNG, ou null. */
+  fittingThumb(json, w, h) {
+    try {
+      return fittingThumb(json, w || 360, h || 270);
+    } catch (e) {
+      console.error('vignette :', e);
+      return null;
+    }
+  },
+  /** Diagnostic : la scène, la caméra et le moteur (outils de développement uniquement). */
+  debug() {
+    return { THREE, scene, camera, renderer };
+  },
+  /** Lancer de rayons : (re)calcule l'image fixe de la vue (bouton « Actualiser »). */
+  rayRender() {
+    return rayRender();
+  },
   /** Rendu HD : démarre (w × h pixels, n passes), avancement et image (JSON), arrêt. */
   hdStart(w, h, n) {
     if (!renderer || !scene || !host || !host.isConnected) return false;
     const box = selBox;
     if (box) box.visible = false;
-    hdStart({ renderer, scene, camera, sun, hemi: hemiLight, ambient: ambLight, fill: fillLight, done: () => {
+    hdStart({ renderer, scene, camera, sun, hemi: hemiLight, ambient: ambLight, fill: fillLight, bg: data?.studio ? [0xffffff] : data?.bg, done: () => {
       if (box) box.visible = true;
       resize();
       invalidate(true);

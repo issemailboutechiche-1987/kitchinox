@@ -120,12 +120,23 @@ class LayoutEngine {
   /// Volume de la joue d'un caisson, à gauche ou à droite (un meuble d'angle finit à droite sur le mur suivant).
   TaggedBox cheekBox(PlacedCabinet c, bool left) {
     final m = modelOf(c);
-    final z0 = m.kind.isHigh ? c.z : 0.0; // une joue de bas ou de colonne descend jusqu'au sol (elle cache la plinthe)
+    // une joue de bas ou de colonne en bout de rangée descend jusqu'au sol (elle ferme la plinthe) ;
+    // entre deux meubles, elle s'arrête au bas du caisson : la plinthe passe dessous, sans « pieds » à chaque jonction
+    bool between() => project.items.any((o) =>
+        o != c &&
+        o.wallId == c.wallId &&
+        !modelOf(o).kind.isHigh &&
+        (left ? (o.right - (c.s - cheekT)).abs() < 20 || (o.right - c.s).abs() < 20 : (o.s - (c.right + cheekT)).abs() < 20 || (o.s - c.right).abs() < 20));
+    var z0 = m.kind.isHigh || between() ? c.z : 0.0;
+    var z1 = c.top;
+    // panneaux de finition : la joue descend (ou monte) de leur épaisseur, l'angle est fermé
+    if (c.capBottom && capAllowed(m, bottom: true)) z0 -= CapPanel.thickness;
+    if (c.capTop && capAllowed(m, bottom: false)) z1 += CapPanel.thickness;
     if (!left && (m.shape == CabinetShape.lShape || m.shape == CabinetShape.diagonal)) {
       final n = room.wall(room.nextOf(c.wallId));
-      return TaggedBox(n.strip((c.widthRight ?? c.width).toDouble(), cheekT, c.depth.toDouble(), z0, c.top - z0), n.id, c.uid);
+      return TaggedBox(n.strip((c.widthRight ?? c.width).toDouble(), cheekT, c.depth.toDouble(), z0, z1 - z0), n.id, c.uid);
     }
-    return TaggedBox(room.wall(c.wallId).strip(left ? c.s - cheekT : c.right, cheekT, c.depth.toDouble(), z0, c.top - z0), c.wallId, c.uid);
+    return TaggedBox(room.wall(c.wallId).strip(left ? c.s - cheekT : c.right, cheekT, c.depth.toDouble(), z0, z1 - z0), c.wallId, c.uid);
   }
 
   /// Volumes d'un caisson avec ses joues ajoutées.

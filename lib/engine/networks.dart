@@ -40,7 +40,8 @@ enum NetKind {
   cable('Sortie de câble 16 A (radiateur, chauffe-eau)', 'elec'),
   valveMachine('Robinet machine lave-vaisselle', 'water'),
   gas('Robinet gaz', 'gas'),
-  duct('Sortie de hotte Ø125', 'air');
+  duct('Sortie de hotte Ø125', 'air'),
+  board('Tableau électrique (TGBT)', 'elec');
 
   final String label;
   final String network; // elec | water | drain | gas | air
@@ -75,6 +76,7 @@ enum NetKind {
         valveMachine => 'RM',
         gas => 'G',
         duct => 'VH',
+        board => 'TGBT',
       };
 }
 
@@ -83,6 +85,10 @@ class NetUse {
   static const plan = 'plan', general = 'general', sink = 'evier', dishwasher = 'lv', oven = 'four', hob = 'plaque';
   static const fridge = 'frigo', hood = 'hotte', microwave = 'micro', lighting = 'eclairage', washer = 'll';
   static const sanitary = 'sanitaire', vanity = 'vasque', tv = 'tv', mirror = 'miroir';
+
+  /// Tableau électrique : dans la pièce (en saillie ou encastré), ou dehors (seule l'arrivée des câbles est posée).
+  static const boardSurface = 'tgbt_apparent', boardFlush = 'tgbt_encastre', boardOutside = 'tgbt_externe';
+  static bool isBoardInside(String use) => use == boardSurface || use == boardFlush;
 }
 
 class NetPoint {

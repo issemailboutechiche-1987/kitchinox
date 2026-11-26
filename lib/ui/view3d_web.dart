@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
+import 'dart:typed_data';
 import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/widgets.dart';
@@ -33,6 +34,26 @@ extension type _K3d._(JSObject _) implements JSObject {
   external bool arOpen();
   external int arSize();
   external void arClear();
+  external bool rayRender();
+  external String? fittingThumb(String json, int w, int h);
+}
+
+/// Vignette 3D d'un aménagement (PNG), dessinée par le moteur de la vue 3D ; null si indisponible.
+Future<Uint8List?> fittingThumbnail(String specJson) async {
+  try {
+    final url = _k3d?.fittingThumb(specJson, 360, 270);
+    if (url == null || !url.contains(',')) return null;
+    return base64Decode(url.split(',').last);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Lancer de rayons : recalcule l'image fixe de la vue (bouton « Actualiser »).
+void refreshRayRender() {
+  try {
+    _k3d?.rayRender();
+  } catch (_) {}
 }
 
 /// Réalité augmentée : l'appareil ouvre les USDZ (AR Quick Look de l'iPad / iPhone).

@@ -30,6 +30,7 @@ class KitchenAccessory {
   final int? sourcePdfPage;
   final String? notes;
   final PriceRange price;
+  final Map<String, dynamic>? model3d; // modèle 3D paramétrique (docs/fittings/CONTRAT_3D.md), sinon déduit du type
 
   const KitchenAccessory({
     required this.id,
@@ -54,6 +55,7 @@ class KitchenAccessory {
     this.sourcePdfPage,
     this.notes,
     required this.price,
+    this.model3d,
   });
 
   /// Chemin Flutter asset de la photo produit (détourée sur fond blanc).
@@ -200,6 +202,7 @@ class KitchenAccessory {
       sourcePdfPage: pdfPage,
       notes: notes,
       price: price,
+      model3d: (j['model3d'] as Map?)?.cast<String, dynamic>(),
     );
   }
 
@@ -456,6 +459,7 @@ class KitchenAccessoriesCatalog {
       illustrations: const {},
       notes: notesParts.isNotEmpty ? notesParts.join(' • ') : null,
       price: price,
+      model3d: (p['model3d'] as Map?)?.cast<String, dynamic>(),
     );
   }
 
@@ -510,3 +514,66 @@ List<SupplyLine> kitchenCabinetAccessoryLines(Project p) {
   }
   return out;
 }
+
+
+/// Modèle 3D d'un accessoire : celui écrit dans le catalogue (`model3d`), sinon déduit de sa catégorie et de son type
+/// (mots entiers : « bin » ne se trouve pas dans « cabinet »). Familles et paramètres : docs/fittings/CONTRAT_3D.md.
+Map<String, dynamic> model3dOf(KitchenAccessory a) {
+  if (a.model3d != null && a.model3d!['family'] is String) return a.model3d!;
+  final cat = a.category.toLowerCase();
+  final words = '${a.category} ${a.type}'.toLowerCase().split(RegExp(r'[^a-z0-9]+')).where((w) => w.isNotEmpty).toSet();
+  bool has(List<String> ks) => ks.any(words.contains);
+  final tier = RegExp(r'(\d)_tier').firstMatch(a.type.toLowerCase())?.group(1);
+  final tiers = int.tryParse(tier ?? '') ?? a.shelvesCount;
+  // quincaillerie, poignées, profils, éclairage : rien à dessiner dans le caisson
+  if (const {'hardware', 'poignee', 'gola', 'finish_and_opening', 'lighting_and_power', 'handle'}.contains(cat) || has(['hinge', 'knob', 'handle', 'gola', 'led', 'mat', 'backsplash', 'socket', 'grille', 'protector', 'hooks'])) {
+    return {'family': 'none'};
+  }
+  if (has(['carousel', 'half', 'moon'])) return {'family': 'carousel', 'shape': has(['half', 'moon']) ? 'half' : (has(['full', '4']) ? '4/4' : '3/4'), 'levels': 2};
+  if (has(['lemans', 'kidney'])) return {'family': 'corner_pullout', 'type': 'lemans', 'levels': 2};
+  if (has(['magic', 'dynamic', 'compact'])) return {'family': 'corner_pullout', 'type': has(['compact']) ? 'compact' : 'magic', 'levels': 2};
+  if (cat == 'corner' && has(['drawers'])) return {'family': 'drawer_box', 'count': 3};
+  if (cat == 'corner') return {'family': 'corner_pullout', 'type': 'magic', 'levels': 2};
+  if (cat == 'dressing') {
+    if (has(['trouser', 'pants'])) return {'family': 'rod', 'type': 'trouser'};
+    if (has(['tie', 'belt'])) return {'family': 'rod', 'type': 'tie'};
+    if (has(['shoe'])) return {'family': 'rod', 'type': 'shoe'};
+    if (has(['basket', 'drawer'])) return {'family': 'basket_pullout', 'tiers': 1};
+    if (has(['lift', 'pull', 'down']) && has(['wardrobe', 'rod', 'lift'])) return {'family': 'rod', 'type': 'pullout_rod'};
+    return {'family': 'rod', 'type': 'rod'};
+  }
+  if (has(['lift', 'bifold', 'stay'])) return {'family': 'lift', 'type': has(['bifold']) ? 'bifold' : (has(['stay']) ? 'stay' : 'up')};
+  if (has(['pull']) && has(['down'])) return {'family': 'pulldown_shelf', 'levels': 2};
+  if (has(['drainer', 'dish', 'plate', 'plates'])) return {'family': 'organizer', 'type': 'plates'};
+  if (has(['waste', 'bin', 'bins', 'pedal', 'trash', 'collector'])) return {'family': 'bins', 'count': has(['sorting']) ? 3 : 2};
+  if (cat == 'column' || has(['pantry', 'column', 'broom'])) {
+    if (has(['spare'])) return {'family': 'basket_pullout', 'tiers': 1};
+    if (has(['broom', 'utility', 'cleaning'])) return {'family': 'rack', 'type': 'towel', 'tiers': 2};
+    if (has(['drawers', 'drawer'])) return {'family': 'drawer_box', 'count': 4, 'inner': true};
+    if (has(['spice', 'bottle'])) return {'family': 'rack', 'type': 'spice', 'tiers': tiers ?? 5};
+    return {'family': 'tall_pantry', 'baskets': tiers ?? 5, 'rotating': has(['rotating', 'rotary']), 'double': has(['double', 'tandem'])};
+  }
+  if (has(['cutlery', 'organizer', 'organiser', 'tray', 'insert'])) return {'family': 'organizer', 'type': has(['pot', 'pots']) ? 'pots' : 'cutlery'};
+  if (has(['towel'])) return {'family': 'rack', 'type': 'towel', 'tiers': 2};
+  if (has(['spice', 'bottle', 'bread'])) return {'family': 'rack', 'type': has(['bottle']) && !has(['spice']) ? 'bottle' : 'spice', 'tiers': tiers ?? 2};
+  if (has(['u', 'shaped']) && has(['sink', 'drawer'])) return {'family': 'drawer_box', 'cutout': 'u', 'height': 150};
+  if (has(['inner'])) return {'family': 'drawer_box', 'inner': true, 'height': 120};
+  if (cat == 'drawer' || has(['drawer', 'box', 'legrabox', 'tandembox', 'antaro', 'merivobox'])) return {'family': 'drawer_box', 'height': has(['pot', 'deep']) ? 200 : 150};
+  if (has(['detergent'])) return {'family': 'basket_pullout', 'tiers': 2, 'mount': 'side', 'wire': 'solid'};
+  if (has(['door', 'mount', 'cook'])) return {'family': 'basket_pullout', 'tiers': tiers ?? 2, 'mount': 'door'};
+  return {'family': 'basket_pullout', 'tiers': tiers ?? 2};
+}
+
+/// Aperçu d'un article sans photo (vignette 3D du catalogue) : son aménagement, sinon une petite pièce
+/// (bouton, barre, profil Gola, charnière, profil LED).
+Map<String, dynamic> previewSpecOf(KitchenAccessory a) {
+  final m = model3dOf(a);
+  if (m['family'] != 'none') return m;
+  final t = '${a.category} ${a.type} ${a.nameFr}'.toLowerCase();
+  if (t.contains('gola')) return {'family': 'handle', 'type': 'gola'};
+  if (t.contains('bouton') || t.contains('knob')) return {'family': 'handle', 'type': 'knob'};
+  if (t.contains('hinge') || t.contains('charni')) return {'family': 'handle', 'type': 'hinge'};
+  if (t.contains('led') || t.contains('profil') || t.contains('profile')) return {'family': 'handle', 'type': 'profile'};
+  return {'family': 'handle', 'type': 'bar'};
+}
+

@@ -58,6 +58,89 @@ export function hdStart(ctx, w, h, n) {
 }
 
 /**
+ * Copie propre de la scène pour le traceur : chaque face de chaque objet visible devient un objet simple, avec
+ * un seul matériau, ses sommets déjà placés dans le monde et les mêmes attributs partout (position, normale, UV).
+ * Le traceur décalait les matériaux sur les pièces fusionnées du moteur (meubles regroupés par matière, boîtes
+ * à six faces) : un panneau blanc sortait rouge ou en bois, le sol en blanc. Avec cette copie, plus rien à deviner.
+ */
+function proxyScene(src) {
+  const out = new THREE.Scene();
+  out.environment = src.environment;
+  out.environmentIntensity = src.environmentIntensity;
+  out.background = null; // fond transparent : recomposé à sa vraie couleur, hors exposition (blitToCanvas)
+  src.updateMatrixWorld(true);
+  const geos = [];
+  const m4 = new THREE.Matrix4();
+  const addMesh = (o, world) => {
+    const g0 = o.geometry;
+    if (!g0?.attributes?.position) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    const total = g0.index ? g0.index.count : g0.attributes.position.count;
+    const groups = Array.isArray(o.material) && g0.groups.length ? g0.groups : [{ start: 0, count: total, materialIndex: 0 }];
+    const flat = g0.index ? g0.toNonIndexed() : g0;
+    const flip = world.determinant() < 0; // miroir : l'ordre des sommets s'inverse
+    for (const gr of groups) {
+      const m = mats[gr.materialIndex ?? 0];
+      if (!m || m.visible === false) continue;
+      const start = Math.max(0, gr.start), count = Math.min(gr.count, total - start);
+      if (count < 3) continue;
+      const g = new THREE.BufferGeometry();
+      for (const name of ['position', 'normal', 'uv']) {
+        const a = flat.attributes[name];
+        const size = name === 'uv' ? 2 : 3;
+        const arr = new Float32Array(count * size);
+        if (a) for (let i = 0; i < count; i++) for (let c = 0; c < size; c++) arr[i * size + c] = a.getComponent(start + i, c);
+        g.setAttribute(name, new THREE.BufferAttribute(arr, size));
+      }
+      if (!flat.attributes.normal) g.computeVertexNormals();
+      g.applyMatrix4(world);
+      if (flip) {
+        for (const name of ['position', 'normal', 'uv']) {
+          const a = g.attributes[name], sz = a.itemSize;
+          for (let t = 0; t + 2 < count; t += 3) {
+            for (let c = 0; c < sz; c++) {
+              const v1 = a.array[(t + 1) * sz + c];
+              a.array[(t + 1) * sz + c] = a.array[(t + 2) * sz + c];
+              a.array[(t + 2) * sz + c] = v1;
+            }
+          }
+        }
+      }
+      geos.push(g);
+      out.add(new THREE.Mesh(g, m));
+    }
+    if (flat !== g0) flat.dispose();
+  };
+  src.traverseVisible((o) => {
+    if (o.isLight) {
+      if (!(o.isDirectionalLight || o.isPointLight || o.isSpotLight || o.isRectAreaLight)) return;
+      const l = o.clone(false);
+      o.getWorldPosition(l.position);
+      o.getWorldQuaternion(l.quaternion);
+      if (o.target) {
+        l.target = new THREE.Object3D();
+        o.target.getWorldPosition(l.target.position);
+        out.add(l.target);
+      }
+      out.add(l);
+      return;
+    }
+    if (!o.isMesh || o.isSkinnedMesh) return;
+    if (o.isInstancedMesh) {
+      for (let i = 0; i < o.count; i++) {
+        o.getMatrixAt(i, m4);
+        addMesh(o, o.matrixWorld.clone().multiply(m4));
+      }
+      return;
+    }
+    addMesh(o, o.matrixWorld);
+  });
+  out.updateMatrixWorld(true);
+  out.userData.dispose = () => geos.forEach((g) => g.dispose());
+  return out;
+}
+
+/**
  * Lancer de rayons : n échantillons par pixel, quelques-uns par image affichée (la page reste vivante).
  * Rejette la promesse (sans rien laisser modifié) si la bibliothèque ou l'appareil ne suit pas.
  */
@@ -86,13 +169,16 @@ async function pathStart(ctx, w, h, n) {
       o.visible = false;
     }
   });
-  // ciel doux tout autour (le RoomEnvironment pré-filtré ne se lit pas en lancer de rayons)
+  // environnement : la HDRI choisie (reflets réalistes) ; sinon un ciel doux tout autour
+  // (le RoomEnvironment pré-filtré ne se lit pas en lancer de rayons)
+  const env0 = scene.environment;
+  const hdr = env0 && env0.isDataTexture && env0.mapping === THREE.EquirectangularReflectionMapping;
   const sky = new GradientEquirectTexture();
   sky.topColor.set(0xffffff);
   sky.bottomColor.set(0x9a9a9a);
   sky.update();
-  scene.environment = sky;
-  scene.environmentIntensity = 0.9;
+  scene.environment = hdr ? env0 : sky;
+  scene.environmentIntensity = hdr ? 1.0 : 0.9;
   renderer.toneMappingExposure = 1.05;
   renderer.setPixelRatio(1);
   renderer.setSize(w, h, false);
@@ -100,6 +186,7 @@ async function pathStart(ctx, w, h, n) {
   camera.updateProjectionMatrix();
 
   let pt = null;
+  let proxy = null;
   const restore = () => {
     for (const [o, v] of hidden) o.visible = v;
     scene.environment = keep.env;
@@ -113,6 +200,7 @@ async function pathStart(ctx, w, h, n) {
     try {
       pt?.dispose();
     } catch (_) {}
+    proxy?.userData.dispose?.();
     sky.dispose();
   };
   try {
@@ -125,10 +213,14 @@ async function pathStart(ctx, w, h, n) {
     pt.fadeDuration = 0;
     pt.renderDelay = 0;
     pt.dynamicLowRes = false;
-    pt.bounces = 6;
-    pt.filteredGlossyFactor = 0.5; // pas d'étincelles blanches sur le chrome
+    pt.bounces = 5;
+    pt.filteredGlossyFactor = 1; // pas d'étincelles blanches sur le chrome
+    // textures réduites : une image par façade, et la mémoire graphique de l'iPad déborde vite (façades d'une
+    // mauvaise couleur, taches) ; les façades sont des aplats, 512 px suffisent largement
+    pt.textureSize.set(512, 512);
     pt.tiles.set(2, 2);
-    pt.setScene(scene, camera);
+    proxy = proxyScene(scene);
+    pt.setScene(proxy, camera);
   } catch (e) {
     restore();
     throw e;
@@ -152,7 +244,10 @@ async function pathStart(ctx, w, h, n) {
         state.k = Math.min(n, Math.floor(pt.samples));
         if (pt.samples < n) return requestAnimationFrame(step);
         // l'image est lue dans la cible du traceur (et non sur le canevas, parfois déjà effacé : image noire)
-        const url = blitToCanvas(renderer, pt.target.texture);
+        // exposition automatique (comme un appareil photo) : une pièce blanche fermée accumule beaucoup de lumière
+        renderer.toneMappingExposure = autoExposure(renderer, pt.target);
+        log('rendu', `exposition ${renderer.toneMappingExposure.toFixed(2)}`);
+        const url = blitToCanvas(renderer, pt.target.texture, true, ctx.bg);
         log('rendu', `lancer de rayons terminé en ${Math.round((performance.now() - t0all) / 1000)} s`);
         restore();
         Object.assign(state, { url, error: null, running: false });
@@ -168,12 +263,95 @@ async function pathStart(ctx, w, h, n) {
   });
 }
 
+/**
+ * Retire le grain résiduel : un pixel nettement plus clair que tous ses voisins (étincelle isolée)
+ * prend la moyenne de ses voisins. Les arêtes et les reflets étendus ne sont pas touchés.
+ */
+function despeckle(cv) {
+  const ctx = cv.getContext('2d');
+  const img = ctx.getImageData(0, 0, cv.width, cv.height);
+  const d = img.data, w = cv.width, h = cv.height;
+  const lum = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) lum[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+  const out = new Uint8ClampedArray(d);
+  let fixed = 0;
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      let mx = 0, r = 0, g = 0, b = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (!dx && !dy) continue;
+          const j = i + dy * w + dx;
+          if (lum[j] > mx) mx = lum[j];
+          r += d[j * 4];
+          g += d[j * 4 + 1];
+          b += d[j * 4 + 2];
+        }
+      }
+      if (lum[i] > mx + 28) {
+        out[i * 4] = r / 8;
+        out[i * 4 + 1] = g / 8;
+        out[i * 4 + 2] = b / 8;
+        fixed++;
+      }
+    }
+  }
+  img.data.set(out);
+  ctx.putImageData(img, 0, 0);
+  return fixed;
+}
+
+/**
+ * Exposition pour ramener la luminance moyenne (log) de l'image linéaire [target] à un gris moyen.
+ * Les 2 % les plus clairs (fenêtres, reflets) ne comptent pas : ils ne doivent pas assombrir toute la cuisine.
+ */
+function autoExposure(renderer, target) {
+  const w = target.width, h = target.height;
+  let buf = new Float32Array(w * h * 4);
+  try {
+    if (target.texture.type === THREE.HalfFloatType) {
+      // cible en demi-flottants (iPad) : lue telle quelle puis convertie
+      const half = new Uint16Array(w * h * 4);
+      renderer.readRenderTargetPixels(target, 0, 0, w, h, half);
+      for (let i = 0; i < half.length; i++) buf[i] = THREE.DataUtils.fromHalfFloat(half[i]);
+    } else {
+      renderer.readRenderTargetPixels(target, 0, 0, w, h, buf);
+    }
+  } catch (_) {
+    return 1;
+  }
+  const lums = [];
+  for (let y = 0; y < h; y += 4) {
+    for (let x = 0; x < w; x += 4) {
+      const i = (y * w + x) * 4;
+      const a = buf[i + 3];
+      if (!(a > 0.5)) continue; // le fond ne compte pas
+      const l = (0.2126 * buf[i] + 0.7152 * buf[i + 1] + 0.0722 * buf[i + 2]) / a;
+      if (l > 1e-4 && Number.isFinite(l)) lums.push(l);
+    }
+  }
+  if (lums.length < 50) return 1;
+  lums.sort((a, b) => a - b);
+  const keep = lums.slice(0, Math.floor(lums.length * 0.98));
+  const logAvg = Math.exp(keep.reduce((a, l) => a + Math.log(l), 0) / keep.length);
+  // 0,36 : une cuisine claire reste claire après la tonalité ACES, sans blancs brûlés
+  return Math.max(0.02, Math.min(2.2, 0.36 / logAvg));
+}
+
 /** Dessine [texture] (linéaire, HDR) sur le canevas avec la tonalité de l'affichage, et renvoie le PNG. */
-function blitToCanvas(renderer, texture) {
+function blitToCanvas(renderer, texture, clean = false, bg = null) {
+  // fond : couleur unie ou dégradé [haut, bas] en sRGB, posé tel quel (pas d'exposition) là où l'image est transparente
+  const col = (hex) => new THREE.Color().setHex(hex).convertLinearToSRGB();
+  const top = col(bg?.[0] ?? 0xeef1f3), bottom = col(bg?.[1] ?? bg?.[0] ?? 0xeef1f3);
   const mat = new THREE.ShaderMaterial({
-    uniforms: { map: { value: texture } },
+    uniforms: { map: { value: texture }, bgTop: { value: top }, bgBottom: { value: bottom } },
     vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
-    fragmentShader: 'varying vec2 vUv; uniform sampler2D map; void main() { gl_FragColor = vec4(texture2D(map, vUv).rgb, 1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}',
+    fragmentShader:
+      'varying vec2 vUv; uniform sampler2D map; uniform vec3 bgTop, bgBottom; void main() {' +
+      ' vec4 c = texture2D(map, vUv); float a = clamp(c.a, 0.0, 1.0); gl_FragColor = vec4(c.rgb / max(a, 0.001), 1.0);\n' +
+      '#include <tonemapping_fragment>\n#include <colorspace_fragment>\n' +
+      ' gl_FragColor.rgb = mix(mix(bgBottom, bgTop, vUv.y), gl_FragColor.rgb, a); }',
     depthTest: false,
     depthWrite: false,
   });
@@ -183,7 +361,19 @@ function blitToCanvas(renderer, texture) {
   flat.add(quad);
   renderer.setRenderTarget(null);
   renderer.render(flat, new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1));
-  const url = renderer.domElement.toDataURL('image/png');
+  let url;
+  if (clean) {
+    // copie 2D (le canevas WebGL peut être effacé ensuite), grain retiré, puis PNG
+    const cv = document.createElement('canvas');
+    cv.width = renderer.domElement.width;
+    cv.height = renderer.domElement.height;
+    cv.getContext('2d').drawImage(renderer.domElement, 0, 0);
+    const n = despeckle(cv);
+    (window.__kxlog || (() => {}))('rendu', `grain retiré : ${n} pixels`);
+    url = cv.toDataURL('image/png');
+  } else {
+    url = renderer.domElement.toDataURL('image/png');
+  }
   quad.geometry.dispose();
   mat.dispose();
   return url;

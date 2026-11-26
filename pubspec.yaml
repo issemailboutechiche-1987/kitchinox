@@ -79,6 +79,9 @@ flutter:
     - web/three_view.js
     - web/hd_render.js
     - web/ar_export.js
+    - web/hdr_loader.js
+    - web/fittings3d.js
+    - web/hdri/
     - assets/web3d/
     - web/objects/kenney/
     - web/objects/kenney/thumbs/

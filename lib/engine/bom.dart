@@ -162,6 +162,12 @@ Bom buildBom(LayoutEngine e) {
     }
   }
 
+  // ---- panneaux de finition dessous / dessus
+  for (final cp in capPanels(e)) {
+    lines.add(BomLine('Finitions', 'cover_panel_side', 'Panneau de finition ${cp.top ? 'dessus' : 'dessous'}', '${cp.length.round()} x ${cp.depth.round()} x 18',
+        'mur ${cp.wallId}, ${cp.items.length} meuble(s), finition des joues', 1));
+  }
+
   // ---- éclairage sous les éléments hauts (et dans les plinthes)
   if (p.style.lighting != 'aucun') {
     var under = 0.0, plinthLed = 0.0;

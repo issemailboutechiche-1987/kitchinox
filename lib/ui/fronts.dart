@@ -138,13 +138,16 @@ void paintFront(
     final kind = as ?? handle;
     if (kind == 'push' || kind == 'gola') return;
     final shown = const {'bar', 'xxl', 'knob', 'cup', 'leather', 'recess', 'recessRound', 'pocket'}.contains(kind) ? kind : 'bar';
-    final barLen = math.min((kind == 'xxl' ? handleSize + 100 : (handleSize > 60 ? handleSize + 30 : 160)) * u, (kind == 'xxl' ? maxLen * 1.6 : maxLen) * 0.8);
+    // barre XXL : l'entraxe + 10 cm, jamais plus longue que la façade moins 4 cm à chaque bout
+    final barLen = kind == 'xxl'
+        ? math.max(100 * u, math.min((handleSize + 100) * u, maxLen - 80 * u))
+        : math.min((handleSize > 60 ? handleSize + 30 : 160) * u, maxLen * 0.8);
     if (relief(shown, c, vertical, shown == 'bar' || shown == 'xxl' ? barLen : 0, handleSize)) return;
     switch (kind) {
       case 'knob':
         knobReal(c);
       case 'xxl':
-        barReal(c, true, maxLen * 1.6, lengthMm: handleSize + 100, thickMm: 18);
+        barReal(c, vertical, barLen / 0.8, lengthMm: barLen / u, thickMm: 18);
       case 'cup':
         final r0 = Rect.fromCenter(center: c, width: 95 * u, height: 40 * u);
         canvas.drawRRect(RRect.fromRectAndRadius(r0.shift(Offset(0, 2 * u)), Radius.circular(20 * u)), drop);
@@ -377,7 +380,10 @@ void paintFront(
     if (handle == 'gola' || handle == 'push') return; // sans poignée : rien sur la porte
     if (tallXxl && realistic && m.kind == CabinetKind.tall && dReal.height / u > 1200) {
       final x = hingeLeft ? dReal.right - math.min(50 * u, dReal.width * 0.15) : dReal.left + math.min(50 * u, dReal.width * 0.15);
-      pointGrip(Offset(x, dReal.bottom - 950 * u), true, dReal.height, as: 'xxl');
+      // centrée vers 1,05 m du sol, sans jamais sortir de la porte
+      final half = math.min((handleSize + 100) * u, dReal.height - 80 * u) / 2;
+      final yc = (dReal.bottom - 950 * u).clamp(dReal.top + 40 * u + half, dReal.bottom - 40 * u - half).toDouble();
+      pointGrip(Offset(x, yc), true, dReal.height, as: 'xxl');
       return;
     }
     if (edgeTypes.contains(handle)) {
@@ -406,6 +412,19 @@ void paintFront(
     // porte de grande hauteur : poignée à hauteur de main (≈ 1050 mm du sol)
     if (dReal.height / u > 1200 && m.kind == CabinetKind.tall) cy = math.max(dReal.top + off, dReal.bottom - 950 * u);
     if (place == 'centre' && dReal.height / u <= 1200) cy = dReal.center.dy;
+    // barre XXL : centrée sur toute la hauteur de la porte (ou sa largeur si horizontale), le long du bord d'ouverture
+    if (handle == 'xxl') {
+      if (orient == 'h') {
+        handleH(dReal.center.dx, handleTop ? dReal.top + math.min(60 * u, dReal.height * 0.2) : dReal.bottom - math.min(60 * u, dReal.height * 0.2), dReal.width);
+      } else {
+        final tall = dReal.height / u > 1200 && m.kind == CabinetKind.tall;
+        // colonne : centrée vers 1,05 m du sol, en restant sur la porte ; sinon au milieu de la porte
+        final half = math.min((handleSize + 100) * u, dReal.height - 80 * u) / 2;
+        final yc = tall ? (dReal.bottom - 950 * u).clamp(dReal.top + 40 * u + half, dReal.bottom - 40 * u - half).toDouble() : dReal.center.dy;
+        handleV(x, yc, dReal.height);
+      }
+      return;
+    }
     final alongTop = orient == 'h' && const {'bar', 'cup', 'recess', 'pocket', 'xxl'}.contains(handle);
     if (alongTop || handle == 'cup') {
       // poignée horizontale : centrée sur la porte, à 60 mm du bord haut (bas) ou 50 mm du bas (haut)

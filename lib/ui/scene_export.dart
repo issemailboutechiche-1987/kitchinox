@@ -54,6 +54,38 @@ const sceneBackgroundNames = <String, String>{
   'ciel': 'Ciel (dégradé)',
 };
 
+/// Rattache l'aménagement intérieur d'un caisson à SA façade (numéro d'ouverture « k ») et à la hauteur de sa case :
+/// paniers, colonnes, carrousels, poubelles → la plus grande porte ; tiroirs intérieurs → le plus grand tiroir ;
+/// range-couverts → le tiroir du haut. Un caisson à tiroir en haut et porte en bas : le panier suit la porte, sous le tiroir.
+void _attachFitting(List<Map<String, dynamic>> fittings, String uid, List<Map<String, dynamic>> parts) {
+  final fit = fittings.where((f) => f['uid'] == uid).firstOrNull;
+  if (fit == null) return;
+  final spec = (fit['spec'] as Map).cast<String, dynamic>();
+  final fam = spec['family'];
+  final moving = parts.where((p) => p['kind'] != 'static' && p['k'] != null).toList();
+  if (moving.isEmpty) return;
+  double hOf(Map<String, dynamic> p) => (p['z1'] as num).toDouble() - (p['z0'] as num).toDouble();
+  final drawers = moving.where((p) => p['kind'] == 'drawer').toList();
+  final doors = moving.where((p) => p['kind'] != 'drawer').toList();
+  Map<String, dynamic> target;
+  if (fam == 'organizer' && drawers.isNotEmpty) {
+    target = drawers.reduce((a, b) => (a['z1'] as num) >= (b['z1'] as num) ? a : b); // tiroir du haut
+  } else if (fam == 'drawer_box' && spec['inner'] != true && drawers.isNotEmpty) {
+    target = drawers.reduce((a, b) => hOf(a) >= hOf(b) ? a : b);
+  } else {
+    final pool = doors.isNotEmpty ? doors : moving;
+    target = pool.reduce((a, b) => hOf(a) >= hOf(b) ? a : b);
+  }
+  fit['k'] = target['k'];
+  // volume limité à la case de cette façade (dans le volume utile du caisson)
+  final z = (fit['z'] as num).toDouble(), top = z + (fit['h'] as num).toDouble();
+  final lo = math.max(z, (target['z0'] as num).toDouble() + 4), hi = math.min(top, (target['z1'] as num).toDouble() - 4);
+  if (hi - lo > 80) {
+    fit['z'] = lo;
+    fit['h'] = hi - lo;
+  }
+}
+
 /// Réseaux tracés (conduits, tuyaux, tableau) au format de la vue 3D.
 Map<String, dynamic> netsSceneData(Project p) {
   final l = netLayout(p);
@@ -177,6 +209,7 @@ class SceneExporter {
     final tops = <Map<String, dynamic>>[];
     final fronts = <Map<String, dynamic>>[];
     final items = <Map<String, dynamic>>[];
+    final fittings = <Map<String, dynamic>>[]; // aménagements intérieurs (paniers, tiroirs, carrousels…) : web/fittings3d.js
     final carcassMat = await _mat(carcass, rough: 0.7);
 
     for (final c in p.items) {
@@ -197,6 +230,18 @@ class SceneExporter {
           final w = room.wall(boxes[bi].wallId);
           final (s0, s1, t0, t1) = w.boxToWall(b);
           final tf = t1 - 20; // face avant du caisson
+          // aménagement intérieur : son volume utile (entre les côtés, le dessous, le dessus et le dos)
+          final acc = bi == 0 && c.accessory != null ? KitchenAccessoriesCatalog.byId[c.accessory] : null;
+          final spec = acc == null ? null : model3dOf(acc);
+          if (spec != null && spec['family'] != 'none') {
+            final (ox, oy) = w.toPlan(s0 + 18, t0 + 18);
+            fittings.add({
+              'uid': c.uid, 'x': ox, 'y': oy, 'z': b.z0 + 18,
+              'dx': w.dx, 'dy': w.dy, 'nx': w.nx, 'ny': w.ny,
+              'w': s1 - s0 - 36, 'h': b.z1 - b.z0 - 36, 'd': tf - t0 - 18,
+              'spec': spec,
+            });
+          }
           Box3 at(double sa, double sb, double ta, double tb, double za, double zb) {
             final (ax, ay) = w.toPlan(sa, ta);
             final (bx, by) = w.toPlan(sb, tb);
@@ -272,7 +317,8 @@ class SceneExporter {
           for (final (bx, mat) in m.id == 'base_integrated_dishwasher_door' ? const <(Box3, Map<String, dynamic>)>[] : [
             for (final bx in sideBoxes(s0, s0 + 18)) (bx, leftSideMat), // côté gauche
             for (final bx in sideBoxes(s1 - 18, s1)) (bx, rightSideMat), // côté droit
-            (at(s0 + 18, s1 - 18, t0, tf, b.z0, b.z0 + 18), carcassMat), // dessous
+            // dessous : vu d'en bas sous les meubles hauts, il prend la finition des façades
+            (at(s0 + 18, s1 - 18, t0, tf, b.z0, b.z0 + 18), m.kind.isHigh ? sideMat : carcassMat), // dessous
             for (final pan in topPanels) (pan, carcassMat),
             (at(s0 + 18, s1 - 18, t0, t0 + 18, b.z0 + 18, b.z1 - 18), carcassMat), // dos
           ]) {
@@ -340,10 +386,11 @@ class SceneExporter {
       final all = dishwasher ? cells : cellsOf(rowsOf(m, c) ?? seedRows(m, c), c.height);
       final apps = appliancesOf(m, c);
       final hs = handleSetOf(style, st.db?.handles, m, front: fr.color);
+      final prof = style.profileOf(c, m.kind); // modèle de façade de ce meuble
       final chant = fr.color.toARGB32() & 0xFFFFFF;
       var grips = <Map<String, dynamic>>[]; // poignées en relief de la dernière façade demandée
       Future<String> frontImg(String what, double wMm, double hMm, List<FrontCell>? cs, {String? opening, bool? handleTop}) async {
-        final key = 'front|${m.id}|$what|${wMm.round()}x${hMm.round()}|${fr.id}|${hs.door.key}|${hs.drawer.key}|${style.frontProfile}|'
+        final key = 'front|${m.id}|$what|${wMm.round()}x${hMm.round()}|${fr.id}|${hs.door.key}|${hs.drawer.key}|$prof|'
             '${style.tallXxl}|${opening ?? c.opening}|${c.variant}|${apps.join(',')}|${carcass.id}|${fr.textured}|$handleTop';
         final found = <Map<String, dynamic>>[];
         void paint(Canvas cv, void Function(GripSpec) onGrip) => paintFront(cv, Rect.fromLTWH(0, 0, wMm, hMm), m,
@@ -353,7 +400,7 @@ class SceneExporter {
               opening: opening ?? c.opening,
               variant: c.variant,
               handles: hs,
-              profile: style.frontProfile,
+              profile: prof,
               onGrip: onGrip,
               tallXxl: style.tallXxl,
               fillPaint: fr.paint(vertical: true),
@@ -444,10 +491,10 @@ class SceneExporter {
                 if (grips.isNotEmpty) 'grips': grips,
                 // porte vitrée : cadre de 60 mm et vrai verre, vus des deux côtés
                 if (cell.kind == CellKind.glass && lw > 160 && fz1 - fz0 > 160) 'glass': 60.0,
-                if (cell.kind == CellKind.glass && (style.frontProfile == 'shaker' || style.frontProfile == 'mouluree')) 'muntins': true,
+                if (cell.kind == CellKind.glass && (prof == 'shaker' || prof == 'mouluree')) 'muntins': true,
                 // façade à cadre : vrai relief
-                if (cell.kind.hasFront && cell.kind != CellKind.glass && profileFrame(style.frontProfile, lw, fz1 - fz0) > 0)
-                  'frame': {'w': profileFrame(style.frontProfile, lw, fz1 - fz0), 'raised': style.frontProfile == 'mouluree'},
+                if (cell.kind.hasFront && cell.kind != CellKind.glass && profileFrame(prof, lw, fz1 - fz0) > 0)
+                  'frame': {'w': profileFrame(prof, lw, fz1 - fz0), 'raised': prof == 'mouluree'},
                 if (kind != 'static' && !dishwasher) 'inside': await interiorImg(cell, lw, fz1 - fz0),
                 if (kind != 'static' && !dishwasher) 'insideT': 19.0,
               });
@@ -495,6 +542,7 @@ class SceneExporter {
           parts.add({'kind': 'static', 'ec': chant, 's0': s0, 's1': s1, 'z0': b.z0, 'z1': b.z1, 'img': await frontImg('box$bi', width, height, frontCells(m, c, realistic: true)), if (grips.isNotEmpty) 'grips': grips});
         }
         if (parts.isEmpty && niches) continue;
+        if (bi == 0) _attachFitting(fittings, c.uid, parts);
         fronts.add({'uid': c.uid, ..._frame(w), 't': t1, 'depth': c.depth, 'parts': parts, if (m.id.contains('mirror')) 'mirror': true, if (dishwasher) 'machine': {'s0': s0, 's1': s1, 'z0': b.z0, 'z1': b.z1 - (e.golaOn(m) ? 34 : 0), 'empty': st.studio == 'bare'}});
       }
     }
@@ -752,6 +800,12 @@ class SceneExporter {
       }
     }
 
+    // panneaux de finition dessous / dessus (raccordés le long de la rangée)
+    for (final cp in capPanels(e)) {
+      final w = room.wall(cp.wallId);
+      final f = frontFinish(style, cp.finishId(style));
+      solids.add({..._box(w.strip(cp.s0, cp.length, cp.depth, cp.z, CapPanel.thickness)), 'mat': await _mat(f, rough: 0.5), 'uid': cp.items.first.uid});
+    }
     // joues de finition automatiques
     {
       for (final j in endPanels(e)) {
@@ -790,6 +844,8 @@ class SceneExporter {
       'look': AppSettings.instance.look3d,
       'shadows': AppSettings.instance.shadows3d,
       'reflect': AppSettings.instance.reflect3d,
+      'rayLight': AppSettings.instance.rayLight,
+      'hdri': AppSettings.instance.hdri,
       if (AppSettings.instance.nets3d && p.networks && st.studio.isEmpty)
         'nets3d': netsSceneData(p),
       'studioDir': _studioDir(e),
@@ -801,6 +857,7 @@ class SceneExporter {
       'splashMat': style.splash == null ? null : await _mat(splashFinish(style), rough: 0.35),
       'splash': style.splash == null || st.studio.isNotEmpty ? const [] : splash,
       'solids': solids,
+      'fittings': fittings,
       'tops': tops,
       'fronts': fronts,
       'items': items,
@@ -877,7 +934,7 @@ class SceneExporter {
                     final (px, py) = x.wallId == 'I' ? w.toPlan(x.s, -2) : w.toPlan(x.s, 0);
                     final sign = x.wallId == 'I' ? -1.0 : 1.0;
                     return {
-                      'uid': x.uid, 'kind': x.kind.name, 'x': px, 'y': py, 'z': x.z,
+                      'uid': x.uid, 'kind': x.kind.name, 'use': x.use, 'x': px, 'y': py, 'z': x.z,
                       'dx': w.dx * sign, 'dy': w.dy * sign, 'nx': w.nx * sign, 'ny': w.ny * sign, 'wall': x.wallId,
                     };
                   }(),

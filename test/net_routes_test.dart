@@ -49,4 +49,25 @@ void main() {
     final d = l.runs.firstWhere((r) => r.wire == 'drain');
     expect(d.pts[1].$3, greaterThanOrEqualTo(d.pts[d.pts.length - 2].$3));
   });
+
+  test('TGBT placé : les gaines partent de lui ; dehors : de l’arrivée des câbles, sans coffret', () {
+    final p = Project(room: Room(width: 4200, depth: 3400, height: 2600));
+    final e = LayoutEngine(cat, p);
+    e.applyShape(RoomShape.lShape);
+    e.addOpening('door', 'D', s: 2400);
+    e.autoFillWall('A', Band.low);
+    applyNetworks(e);
+    p.networks = true;
+    p.points.add(NetPoint(uid: 'tg', kind: NetKind.board, wallId: 'B', s: 1000, z: 1400, use: NetUse.boardSurface, auto: false));
+    var l = netLayout(p);
+    expect(l.board, isNull, reason: 'le coffret est dessiné par le point lui-même');
+    // mur B : x = 4200, y = 1000 ; le départ des conducteurs est au-dessus du coffret (1400 + 250)
+    final starts = l.runs.where((r) => r.wire == 'L').map((r) => r.pts.first);
+    expect(starts.every((q) => (q.$1 - 4200).abs() < 40 && (q.$2 - 1000).abs() < 40 && (q.$3 - 1650).abs() < 1), isTrue);
+    p.points.firstWhere((x) => x.uid == 'tg')
+      ..use = NetUse.boardOutside
+      ..z = 2200;
+    l = netLayout(p);
+    expect(l.runs.where((r) => r.wire == 'L').every((r) => (r.pts.first.$3 - 2200).abs() < 1), isTrue, reason: 'les câbles entrent par le mur à l’arrivée');
+  });
 }

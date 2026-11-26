@@ -169,7 +169,9 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
   List<Widget> _floating(Rect? r, Size size) {
     if (r == null || st.step == PlanStep.summary || _dragUid != null || _dragObject != null || st.lockMoves) return const [];
     if (st.selected == null && st.selectedObject == null) return const [];
-    const w = 132.0, h = 44.0;
+    final cab = st.selectedItem;
+    final zone = cab == null ? null : KitchenStyle.profileZone(st.engine.modelOf(cab).kind);
+    final w = cab == null ? 132.0 : 220.0, h = 44.0;
     final above = r.top - h - 10;
     final top = above >= 4 ? above : math.min(size.height - h - 4, r.bottom + 10);
     final left = (r.center.dx - w / 2).clamp(4.0, math.max(4.0, size.width - w - 4));
@@ -187,7 +189,8 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
       Positioned(
         left: left.toDouble(),
         top: top,
-        child: Material(
+        // semi-transparent : la 3D reste lisible dessous ; pleinement visible au survol
+        child: _HoverFade(child: Material(
           key: const ValueKey('selection_actions'),
           elevation: 4,
           color: scheme.surface,
@@ -201,9 +204,27 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
                 if (m != null) widget.onMessage(m);
               }),
               b('sel_del', Icons.delete_outline, 'Supprimer', st.deleteAny),
+              if (cab != null) ...[
+                b('sel_apply', Icons.done_all, switch (zone) { 'haut' => 'Appliquer ce style à tous les meubles hauts', 'colonne' => 'Appliquer ce style à toutes les colonnes', _ => 'Appliquer ce style à tous les meubles bas' },
+                    () => widget.onMessage(st.applyStyleToZone(cab.uid))),
+                IconButton(
+                  key: const ValueKey('sel_paint'),
+                  tooltip: tr(st.styleSource == null ? 'Copier le style : touchez ensuite les meubles à peindre' : 'Arrêter de copier le style'),
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 20,
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  isSelected: st.styleSource != null,
+                  style: IconButton.styleFrom(backgroundColor: st.styleSource != null ? scheme.primaryContainer : null),
+                  onPressed: () {
+                    st.toggleStyleBrush(cab.uid);
+                    if (st.styleSource != null) widget.onMessage(tr('Pinceau actif : touchez les meubles qui doivent prendre ce style'));
+                  },
+                  icon: const Icon(Icons.format_paint_outlined),
+                ),
+              ],
             ]),
           ),
-        ),
+        )),
       ),
     ];
   }
@@ -1751,6 +1772,12 @@ class _PlannerPainter extends CustomPainter {
       }
     }
     textured(v.rect(-300, -150, len + 300, 0), ff);
+    // panneaux de finition dessous / dessus
+    for (final cp in capPanels(st.engine).where((x) => x.wallId == st.wallId)) {
+      final cr = v.rect(cp.s0, cp.z, cp.s1, cp.z1);
+      textured(cr, frontFinish(p.style, cp.finishId(p.style)));
+      canvas.drawRect(cr, _stroke(pc.dimension.withValues(alpha: 0.45), 1));
+    }
     // joues (costados)
     for (final j in endPanels(st.engine).where((j) => j.wallId == st.wallId)) {
       final jr = v.rect(j.s, j.z0, j.s + EndPanel.thickness, j.z1);
@@ -1860,7 +1887,7 @@ class _PlannerPainter extends CustomPainter {
         line: lineOn(fr.color),
         opening: it.opening,
         variant: it.variant,
-        profile: p.style.frontProfile,
+        profile: p.style.profileOf(it, r.model.kind),
         handles: handleSetOf(p.style, st.db?.handles, r.model, front: fr.color),
 
         tallXxl: p.style.tallXxl,
@@ -2033,4 +2060,25 @@ class _GhostPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GhostPainter old) => old.rect != rect || old.color != color;
+}
+
+/// Semi-transparent au repos, pleinement visible au survol (souris) ou au toucher.
+class _HoverFade extends StatefulWidget {
+  final Widget child;
+  const _HoverFade({required this.child});
+  @override
+  State<_HoverFade> createState() => _HoverFadeState();
+}
+
+class _HoverFadeState extends State<_HoverFade> {
+  bool _on = false;
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+        onEnter: (_) => setState(() => _on = true),
+        onExit: (_) => setState(() => _on = false),
+        child: Listener(
+          onPointerDown: (_) => setState(() => _on = true),
+          child: AnimatedOpacity(opacity: _on ? 1 : 0.6, duration: const Duration(milliseconds: 140), child: widget.child),
+        ),
+      );
 }

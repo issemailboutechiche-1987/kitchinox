@@ -1,0 +1,10 @@
+{
+"Partout": ["Everywhere", "في كل مكان"],
+"Meubles hauts": ["Wall units", "الخزائن العلوية"],
+"Meubles bas": ["Base units", "الخزائن السفلية"],
+"Colonnes": ["Tall units", "الخزائن الطويلة"],
+"Tout le projet": ["Whole project", "المشروع كاملا"],
+"{0} meuble(s) ont leur propre modèle (dans leur fiche)": ["{0} unit(s) have their own style (in their sheet)", "{0} خزانة لها طرازها الخاص (في بطاقتها)"],
+"Modèle de façade": ["Front style", "طراز الواجهة"],
+"Comme sa zone ({0})": ["Like its area ({0})", "مثل منطقتها ({0})"]
+}

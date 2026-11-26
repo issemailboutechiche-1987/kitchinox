@@ -67,6 +67,8 @@ class AppSettings extends ChangeNotifier {
   bool nets3d = false;
   bool shadows3d = true; // ombres de la vue 3D
   bool reflect3d = true; // reflets de la vue 3D
+  String rayLight = 'mixte'; // lancer de rayons : soleil, plafonnier ou mixte
+  String hdri = 'studio'; // environnement des reflets : studio, interieur, exterieur (HDRI)
 
   /// [deviceLang] : langue de l'appareil (« fr », « en », « ar »), prise au premier lancement.
   void load({String? deviceLang}) {
@@ -89,6 +91,8 @@ class AppSettings extends ChangeNotifier {
       nets3d = j['nets3d'] as bool? ?? false;
       shadows3d = j['shadows3d'] as bool? ?? true;
       reflect3d = j['reflect3d'] as bool? ?? true;
+      rayLight = j['ray_light'] as String? ?? 'mixte';
+      hdri = j['hdri'] as String? ?? 'studio';
       for (final k in DocKind.values) {
         prefix[k] = (j['prefix'] as Map?)?[k.name] as String? ?? k.defaultPrefix;
         next[k] = ((j['next'] as Map?)?[k.name] as num?)?.toInt() ?? 1;
@@ -114,6 +118,8 @@ class AppSettings extends ChangeNotifier {
           'nets3d': nets3d,
           'shadows3d': shadows3d,
           'reflect3d': reflect3d,
+          'ray_light': rayLight,
+          'hdri': hdri,
           'prefix': {for (final e in prefix.entries) e.key.name: e.value},
           'next': {for (final e in next.entries) e.key.name: e.value},
         }));

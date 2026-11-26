@@ -3,7 +3,12 @@
 // - Fiche produit avec carrousel des 3 illustrations : Produit, Lifestyle en situation, et Blueprint coté.
 // - Sélection et équipement direct sur les caissons bas, hauts et colonnes.
 
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+
+import 'view3d.dart' show fittingThumbnail;
 
 import '../engine/catalog.dart';
 import '../engine/kitchen_accessories.dart';
@@ -398,13 +403,9 @@ class _AccessoryCard extends StatelessWidget {
                         ? Image.asset(
                             imgPath,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) => const Center(
-                              child: Icon(Icons.kitchen_outlined, size: 48, color: Colors.grey),
-                            ),
+                            errorBuilder: (_, _, _) => AccessoryPreview(accessory: accessory),
                           )
-                        : const Center(
-                            child: Icon(Icons.kitchen_outlined, size: 48, color: Colors.grey),
-                          ),
+                        : AccessoryPreview(accessory: accessory),
                   ),
                   // Badge marque
                   Positioned(
@@ -959,3 +960,29 @@ class CabinetAccessorySection extends StatelessWidget {
     );
   }
 }
+
+/// Aperçu d'un article sans photo : vignette 3D de son aménagement (ou de sa petite pièce), gardée en mémoire.
+class AccessoryPreview extends StatelessWidget {
+  final KitchenAccessory accessory;
+  const AccessoryPreview({super.key, required this.accessory});
+
+  static final _cache = <String, Future<Uint8List?>>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final spec = jsonEncode(previewSpecOf(accessory));
+    final f = _cache[spec] ??= fittingThumbnail(spec);
+    return FutureBuilder<Uint8List?>(
+      future: f,
+      builder: (_, snap) {
+        final b = snap.data;
+        if (b == null) {
+          if (snap.connectionState == ConnectionState.done) _cache.remove(spec); // vue 3D pas encore prête : on réessaiera
+          return const Center(child: Icon(Icons.kitchen_outlined, size: 48, color: Colors.grey));
+        }
+        return Image.memory(b, fit: BoxFit.contain, gaplessPlayback: true);
+      },
+    );
+  }
+}
+

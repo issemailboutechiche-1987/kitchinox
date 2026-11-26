@@ -23,6 +23,63 @@ class EndPanel {
       st.endPanelFinish ?? (item != null ? st.frontOf(item!, high: high) : (high ? (st.frontUpper ?? st.front) : (st.frontLower ?? st.front)));
 }
 
+/// Panneau de finition horizontal (18 mm, finition des joues) : sous les meubles hauts, ou sur les hauts et les colonnes.
+/// Les meubles voisins qui en ont un forment un seul panneau continu, joues comprises : tout se raccorde.
+class CapPanel {
+  final String wallId;
+  final double s0, s1; // le long du mur
+  final double depth;
+  final double z; // face du dessous du panneau
+  final bool top; // dessus (sinon dessous)
+  final List<PlacedCabinet> items;
+  const CapPanel(this.wallId, this.s0, this.s1, this.depth, this.z, this.top, this.items);
+
+  static const thickness = 18.0;
+  double get length => s1 - s0;
+  double get z1 => z + thickness;
+
+  String finishId(KitchenStyle st) => st.endPanelFinish ?? st.frontOf(items.first, high: true);
+}
+
+/// Le meuble peut-il recevoir un panneau dessous ([bottom]) ou dessus ?
+bool capAllowed(CabinetModel m, {required bool bottom}) =>
+    !m.kind.isFiller && m.kind != CabinetKind.coverPanel && m.kind != CabinetKind.islandPanel && !m.isFreeHood &&
+    (bottom ? m.kind.isHigh : (m.kind.isHigh || m.kind == CabinetKind.tall || m.kind == CabinetKind.cornerTall));
+
+/// Panneaux de finition dessous / dessus du projet, fusionnés par rangée.
+List<CapPanel> capPanels(LayoutEngine e) {
+  final p = e.project;
+  final out = <CapPanel>[];
+  for (final top in [false, true]) {
+    final byWall = <String, List<PlacedCabinet>>{};
+    for (final c in p.items) {
+      if (!(top ? c.capTop : c.capBottom) || !capAllowed(e.modelOf(c), bottom: !top)) continue;
+      byWall.putIfAbsent(c.wallId, () => []).add(c);
+    }
+    for (final MapEntry(key: wallId, value: list) in byWall.entries) {
+      list.sort((a, b) => a.s.compareTo(b.s));
+      double from(PlacedCabinet c) => c.s - (c.hasCheek(true) ? EndPanel.thickness : 0);
+      double to(PlacedCabinet c) => c.right + (c.hasCheek(false) ? EndPanel.thickness : 0);
+      double level(PlacedCabinet c) => top ? c.top : c.z - CapPanel.thickness;
+      var run = <PlacedCabinet>[];
+      void flush() {
+        if (run.isEmpty) return;
+        final depth = run.map((c) => c.depth.toDouble()).reduce((a, b) => a > b ? a : b);
+        out.add(CapPanel(wallId, from(run.first), to(run.last), depth, level(run.first), top, List.of(run)));
+        run = [];
+      }
+
+      for (final c in list) {
+        // même hauteur et bord à bord (au jeu d'une joue près) : le panneau continue
+        if (run.isNotEmpty && ((level(c) - level(run.last)).abs() > 5 || from(c) - to(run.last) > 20)) flush();
+        run.add(c);
+      }
+      flush();
+    }
+  }
+  return out;
+}
+
 /// Joues du projet : celles ajoutées à la main, plus les automatiques ([auto], réglage du style).
 /// Les panneaux « joue » posés comme un meuble occupent déjà la place.
 List<EndPanel> endPanels(LayoutEngine e, {bool? auto}) {

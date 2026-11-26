@@ -12,6 +12,7 @@ library;
 
 import 'dart:math' as math;
 
+import 'catalog.dart' show CabinetKind;
 import 'cutting.dart';
 import 'front_layout.dart';
 import 'art.dart';
@@ -382,6 +383,9 @@ class PlacedCabinet {
   bool noBack; // caisson personnalisé : sans fond arrière
   // joues (costados) de ce caisson : null automatique, 'oui' ajoutée, 'pris' ajoutée sur la largeur du caisson, 'non' sans
   String? cheekL, cheekR;
+  String? profile; // modèle de façade propre à ce meuble (sinon celui de sa zone ou de la cuisine)
+  bool capBottom; // panneau de finition dessous (meubles hauts)
+  bool capTop; // panneau de finition dessus (meubles hauts et colonnes)
   String? accessory; // équipement intérieur (ex: INOXA 8104Y, Blum Space Tower...)
 
   PlacedCabinet({
@@ -404,6 +408,9 @@ class PlacedCabinet {
     this.noBack = false,
     this.cheekL,
     this.cheekR,
+    this.profile,
+    this.capBottom = false,
+    this.capTop = false,
     this.accessory,
   });
 
@@ -439,6 +446,9 @@ class PlacedCabinet {
         if (noBack) 'no_back': true,
         if (cheekL != null) 'cheek_l': cheekL,
         if (cheekR != null) 'cheek_r': cheekR,
+        if (profile != null) 'profile': profile,
+        if (capBottom) 'cap_b': true,
+        if (capTop) 'cap_t': true,
         if (accessory != null) 'accessory': accessory,
       };
 
@@ -457,6 +467,9 @@ class PlacedCabinet {
         internal: j['internal'] as String?,
         cheekL: j['cheek_l'] as String?,
         cheekR: j['cheek_r'] as String?,
+        profile: j['profile'] as String?,
+        capBottom: j['cap_b'] == true,
+        capTop: j['cap_t'] == true,
         appliances: (j['appliances'] as List?)?.cast<String>(),
         front: j['front'] as String?,
         layout: j['layout'] == null ? null : parseRows(j['layout']),
@@ -537,6 +550,7 @@ class KitchenStyle {
   bool endPanels; // joues de finition posées automatiquement aux extrémités visibles
   String? endPanelFinish; // finition personnalisée des joues / côtés visibles (si null : suit les façades)
   String frontProfile; // modèle de façade : 'lisse' | 'shaker' | 'shaker_fin' | 'mouluree' | 'cannelee'
+  final Map<String, String> profileByZone; // modèle propre aux meubles hauts, bas ou colonnes ('haut' | 'bas' | 'colonne')
   String? islandFront; // façades de l'îlot (null : comme les bas)
   String? islandTop; // plan de l'îlot (null : comme les autres)
   /// Plinthe : null comme les façades (un ton plus foncé), 'plan' comme le plan de travail,
@@ -581,6 +595,7 @@ class KitchenStyle {
     this.endPanels = true,
     this.endPanelFinish,
     this.frontProfile = 'lisse',
+    Map<String, String>? profileByZone,
     this.islandFront,
     this.islandTop,
     this.plinth,
@@ -603,6 +618,7 @@ class KitchenStyle {
     List<CustomTexture>? textures,
   })  : decor = decor ?? {},
         handleByZone = handleByZone ?? {},
+        profileByZone = profileByZone ?? {},
         textures = textures ?? [];
 
   /// Poignée générale.
@@ -612,6 +628,12 @@ class KitchenStyle {
   HandleChoice handleAt(String zone) => (handle == 'gola' && zone != 'haut') ? handleChoice : (handleByZone[zone] ?? handleChoice);
 
   /// Finition des façades d'un caisson : la sienne, sinon celle des hauts / des bas, sinon la générale.
+  /// Zone d'un meuble pour le modèle de façade : 'haut', 'colonne' ou 'bas'.
+  static String profileZone(CabinetKind k) => k.isHigh ? 'haut' : (k == CabinetKind.tall || k == CabinetKind.cornerTall ? 'colonne' : 'bas');
+
+  /// Modèle de façade d'un meuble : le sien, sinon celui de sa zone, sinon celui de la cuisine.
+  String profileOf(PlacedCabinet? c, CabinetKind k) => c?.profile ?? profileByZone[profileZone(k)] ?? frontProfile;
+
   String frontOf(PlacedCabinet c, {required bool high}) => c.front ?? (c.wallId == 'I' ? islandFront : null) ?? (high ? frontUpper : frontLower) ?? front;
 
   Map<String, dynamic> toJson() => {
@@ -635,6 +657,7 @@ class KitchenStyle {
         if (!endPanels) 'end_panels': false,
         if (endPanelFinish != null) 'end_panel_finish': endPanelFinish,
         if (frontProfile != 'lisse') 'front_profile': frontProfile,
+        if (profileByZone.isNotEmpty) 'profile_zones': profileByZone,
         if (islandFront != null) 'island_front': islandFront,
         if (islandTop != null) 'island_top': islandTop,
         if (plinth != null) 'plinth': plinth,
@@ -678,6 +701,7 @@ class KitchenStyle {
         endPanels: j['end_panels'] as bool? ?? true,
         endPanelFinish: j['end_panel_finish'] as String?,
         frontProfile: j['front_profile'] as String? ?? 'lisse',
+        profileByZone: {for (final e in ((j['profile_zones'] as Map?) ?? const {}).entries) '${e.key}': '${e.value}'},
         islandFront: j['island_front'] as String?,
         islandTop: j['island_top'] as String?,
         plinth: j['plinth'] as String?,

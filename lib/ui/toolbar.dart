@@ -7,6 +7,7 @@ import '../engine/engine.dart';
 import 'app_settings.dart';
 import 'scene_export.dart' show sceneBackgroundNames;
 import 'ar_mode.dart' show showArSheet;
+import 'view3d.dart' show refreshRayRender;
 import 'app_state.dart';
 import 'client_ui.dart';
 import 'brands_ui.dart';
@@ -104,6 +105,7 @@ class StepToolbar extends StatelessWidget {
               },
             ),
           ],
+          _boardTile(context),
           ToolTile(
             icon: Icons.view_in_ar_outlined,
             label: tr('Voir en 3D'),
@@ -254,6 +256,64 @@ class StepToolbar extends StatelessWidget {
 
   Widget _openingMenu(BuildContext context) =>
       ToolTile(icon: Icons.sensor_door_outlined, label: tr('Portes et fenêtres'), onTap: () => showOpeningPicker(context, state, onMessage));
+
+  /// Tableau électrique (TGBT) : dans la pièce (en saillie ou encastré) ou dehors (arrivée des câbles seulement).
+  Widget _boardTile(BuildContext context) {
+    final b = state.boardPoint;
+    final label = b == null
+        ? tr('Tableau (TGBT)')
+        : switch (b.use) {
+            NetUse.boardFlush => tr('TGBT encastré'),
+            NetUse.boardOutside => tr('TGBT externe'),
+            _ => tr('TGBT apparent'),
+          };
+    return ToolTile(
+      key: const ValueKey('tool_board'),
+      icon: Icons.electrical_services_outlined,
+      label: label,
+      active: b != null,
+      onTap: () async {
+        final v = await showDialog<String>(
+          context: context,
+          builder: (c) => SimpleDialog(
+            title: Text(tr('Tableau électrique (TGBT)')),
+            children: [
+              for (final (use, title, sub) in [
+                (NetUse.boardSurface, tr('Dans la pièce, apparent'), tr('coffret posé sur le mur')),
+                (NetUse.boardFlush, tr('Dans la pièce, encastré'), tr('coffret dans le mur, seule la porte affleure')),
+                (NetUse.boardOutside, tr('À l’extérieur de la pièce'), tr('rien dans la pièce : on place l’arrivée des câbles')),
+              ])
+                SimpleDialogOption(
+                  key: ValueKey('board_$use'),
+                  onPressed: () => Navigator.pop(c, use),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(b?.use == use ? Icons.radio_button_checked : Icons.radio_button_off),
+                    title: Text(title),
+                    subtitle: Text(sub),
+                  ),
+                ),
+              if (b != null)
+                SimpleDialogOption(
+                  onPressed: () => Navigator.pop(c, 'remove'),
+                  child: ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.delete_outline), title: Text(tr('Retirer le tableau'))),
+                ),
+            ],
+          ),
+        );
+        if (v == null) return;
+        if (v == 'remove') {
+          state.removeBoard();
+          return;
+        }
+        state.setBoard(v);
+        if (state.view != ViewMode.front) state.setView(ViewMode.front);
+        onMessage(NetUse.isBoardInside(v)
+            ? tr('Tableau ajouté : glissez-le à sa place réelle (les gaines partiront de lui)')
+            : tr('Arrivée des câbles du tableau ajoutée : glissez-la là où ils entrent dans la pièce'));
+      },
+    );
+  }
 
   Widget _networksMenu(BuildContext context) {
     final p = state.project;
@@ -712,6 +772,13 @@ class ViewSwitcher extends StatelessWidget {
               onPressed: state.toggleDecor,
               icon: const Icon(Icons.local_florist_outlined),
             ),
+            if (AppSettings.instance.look3d == 'ray')
+              IconButton(
+                key: const ValueKey('view_ray_refresh'),
+                tooltip: tr('Actualiser le lancer de rayons'),
+                icon: const Icon(Icons.refresh),
+                onPressed: refreshRayRender,
+              ),
             IconButton(
               key: const ValueKey('view_ar_button'),
               tooltip: tr('Voir dans ma pièce (AR)'),
@@ -727,6 +794,8 @@ class ViewSwitcher extends StatelessWidget {
                 if (v.startsWith('look:')) s.look3d = v.substring(5);
                 if (v.startsWith('bg:')) s.sceneBg = v.substring(3);
                 if (v == 'shadows') s.shadows3d = !s.shadows3d;
+                if (v.startsWith('light:')) s.rayLight = v.substring(6);
+                if (v.startsWith('hdri:')) s.hdri = v.substring(5);
                 if (v == 'reflect') s.reflect3d = !s.reflect3d;
                 if (v == 'ar') {
                   showArSheet(context, state);
@@ -746,7 +815,21 @@ class ViewSwitcher extends StatelessWidget {
                   CheckedPopupMenuItem(value: 'look:real', checked: s.look3d == 'real', child: Text(tr('Réaliste'))),
                   CheckedPopupMenuItem(value: 'look:sketch', checked: s.look3d == 'sketch', child: Text(tr('Croquis (arêtes tracées)'))),
                   CheckedPopupMenuItem(
+                      key: const ValueKey('view_xray'), value: 'look:xray', checked: s.look3d == 'xray', child: Text(tr('Transparent (prises et câbles cachés)'))),
+                  CheckedPopupMenuItem(
                       key: const ValueKey('view_ray'), value: 'look:ray', checked: s.look3d == 'ray', child: Text(tr('Lancer de rayons (reflets et ombres réels)'))),
+                  const PopupMenuDivider(),
+                  if (s.look3d == 'ray') ...[
+                    PopupMenuItem(enabled: false, height: 28, child: Text(tr('Lumière du lancer de rayons'), style: const TextStyle(fontWeight: FontWeight.w800))),
+                    CheckedPopupMenuItem(value: 'light:soleil', checked: s.rayLight == 'soleil', child: Text(tr('Soleil (par les fenêtres)'))),
+                    CheckedPopupMenuItem(value: 'light:plafonnier', checked: s.rayLight == 'plafonnier', child: Text(tr('Plafonnier'))),
+                    CheckedPopupMenuItem(value: 'light:mixte', checked: s.rayLight == 'mixte', child: Text(tr('Soleil et plafonnier'))),
+                    const PopupMenuDivider(),
+                  ],
+                  PopupMenuItem(enabled: false, height: 28, child: Text(tr('Environnement (reflets)'), style: const TextStyle(fontWeight: FontWeight.w800))),
+                  CheckedPopupMenuItem(value: 'hdri:studio', checked: s.hdri == 'studio', child: Text(tr('Studio clair'))),
+                  CheckedPopupMenuItem(key: const ValueKey('view_hdri_in'), value: 'hdri:interieur', checked: s.hdri == 'interieur', child: Text(tr('Pièce intérieure (HDRI)'))),
+                  CheckedPopupMenuItem(value: 'hdri:exterieur', checked: s.hdri == 'exterieur', child: Text(tr('Ciel extérieur (HDRI)'))),
                   const PopupMenuDivider(),
                   CheckedPopupMenuItem(key: const ValueKey('view_shadows'), value: 'shadows', checked: s.shadows3d, child: Text(tr('Ombres'))),
                   CheckedPopupMenuItem(key: const ValueKey('view_reflect'), value: 'reflect', checked: s.reflect3d, child: Text(tr('Reflets'))),

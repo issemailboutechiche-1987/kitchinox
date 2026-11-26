@@ -633,7 +633,7 @@ class Scene3dPainter {
                 fill: fr.color,
                 stroke: shade(fr.color, -0.3),
                 line: lineOn(fr.color),
-                profile: p.style.frontProfile,
+                profile: p.style.profileOf(c, m.kind),
         handles: handleSetOf(p.style, handles, m, front: fr.color),
 
                 tallXxl: p.style.tallXxl,
@@ -932,7 +932,7 @@ class Scene3dPainter {
         fill: fr.color,
         stroke: shade(fr.color, -0.3),
         line: lineOn(fr.color),
-        profile: p.style.frontProfile,
+        profile: p.style.profileOf(c, m.kind),
         handles: handleSetOf(p.style, handles, m, front: fr.color),
 
         tallXxl: p.style.tallXxl,
@@ -960,7 +960,7 @@ class Scene3dPainter {
       opening: c.opening,
       variant: c.variant,
       strokeWidth: 1.1 / scale,
-      profile: p.style.frontProfile,
+      profile: p.style.profileOf(c, m.kind),
         handles: handleSetOf(p.style, handles, m, front: fr.color),
 
       tallXxl: p.style.tallXxl,

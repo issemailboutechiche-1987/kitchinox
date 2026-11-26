@@ -1,0 +1,12 @@
+{
+"Appliquer ce style à tous les meubles hauts": ["Apply this style to all wall units", "تطبيق هذا النمط على كل الخزائن العلوية"],
+"Appliquer ce style à toutes les colonnes": ["Apply this style to all tall units", "تطبيق هذا النمط على كل الخزائن الطويلة"],
+"Appliquer ce style à tous les meubles bas": ["Apply this style to all base units", "تطبيق هذا النمط على كل الخزائن السفلية"],
+"Copier le style : touchez ensuite les meubles à peindre": ["Copy style: then tap the units to paint", "نسخ النمط: ثم المس الخزائن المراد تطبيقه عليها"],
+"Arrêter de copier le style": ["Stop copying the style", "إيقاف نسخ النمط"],
+"Pinceau actif : touchez les meubles qui doivent prendre ce style": ["Style brush on: tap the units that should take this style", "فرشاة النمط مفعلة: المس الخزائن التي تأخذ هذا النمط"],
+"Style appliqué à {0} {1}": ["Style applied to {0} {1}", "تم تطبيق النمط على {0} {1}"],
+"meuble(s) haut(s)": ["wall unit(s)", "خزانة علوية"],
+"colonne(s)": ["tall unit(s)", "خزانة طويلة"],
+"meuble(s) bas": ["base unit(s)", "خزانة سفلية"]
+}
