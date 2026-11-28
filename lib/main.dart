@@ -18,6 +18,7 @@ import 'ui/furniture_accessories_ui.dart';
 import 'ui/kx_top_bar.dart';
 import 'ui/openings_ui.dart';
 import 'ui/hd_render.dart';
+import 'ui/lighting_ui.dart';
 import 'ui/presentation_bar.dart';
 import 'ui/project_settings_dialog.dart';
 import 'ui/saved_projects_dialog.dart';
@@ -1114,6 +1115,7 @@ Align(alignment: Alignment.centerLeft, child: Text(tr('Méthode de débit'), sty
         kxItem('Réglages du débit et tarifs', _cutSettings, icon: Icons.straighten),
         kxItem('Débit manuel', () => openManualCut(context, st, project: () => st.cutPlan), icon: Icons.edit_note),
         kxItem('Contrôles', _issues, icon: Icons.rule),
+        kxItem('Éclairage selon les normes', () => showLightingDialog(context, st, _msg), icon: Icons.lightbulb_outline, key: 'menu_lighting'),
         const Divider(height: 1),
         kxItem('Stock et chutes', () => openStock(context, st), icon: Icons.inventory_outlined, key: 'menu_stock'),
         kxItem('Atelier de découpe', _workshop, icon: Icons.precision_manufacturing_outlined, key: 'menu_workshop'),

@@ -989,3 +989,37 @@ void paintGolaProfile(Canvas canvas, Rect r, CabinetModel m, {List<FrontCell>? c
     canvas.drawRect(Rect.fromLTWH(g.left, g.bottom - 1, g.width, 1), Paint()..color = Colors.white24);
   }
 }
+
+/// Hotte posée librement (cheminée et hotte) : un appareil, sans porte. [ceilingY] : haut de la cheminée (écran).
+void paintFreeHood(Canvas canvas, Rect rr, CabinetModel model, double ceilingY, double k,
+    {Color? fill, Color ink = const Color(0xFF4A4F55), double strokeWidth = 1}) {
+  final glass = model.id.contains('inclined');
+  final body = Paint()..color = fill ?? (glass ? const Color(0xFF1F2124) : const Color(0xFFBFC4C8));
+  final chimFill = Paint()..color = fill ?? const Color(0xFFBFC4C8);
+  final pen = Paint()
+    ..color = ink
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = strokeWidth;
+  final hoodH = math.min(rr.height, 420 * k);
+  final chimney = Rect.fromLTRB(rr.center.dx - rr.width * 0.17, ceilingY, rr.center.dx + rr.width * 0.17, rr.bottom - hoodH);
+  canvas.drawRect(chimney, chimFill);
+  canvas.drawRect(chimney, pen);
+  final box = model.id.contains('box');
+  final canopy = box
+      ? (Path()..addRect(Rect.fromLTRB(rr.left, rr.bottom - hoodH * 0.45, rr.right, rr.bottom)))
+      : (Path()
+        ..moveTo(chimney.left, chimney.bottom)
+        ..lineTo(chimney.right, chimney.bottom)
+        ..lineTo(rr.right, rr.bottom - hoodH * 0.18)
+        ..lineTo(rr.right, rr.bottom)
+        ..lineTo(rr.left, rr.bottom)
+        ..lineTo(rr.left, rr.bottom - hoodH * 0.18)
+        ..close());
+  if (box) {
+    final neck = Rect.fromLTRB(chimney.left, chimney.bottom, chimney.right, rr.bottom - hoodH * 0.45);
+    canvas.drawRect(neck, chimFill);
+    canvas.drawRect(neck, pen);
+  }
+  canvas.drawPath(canopy, body);
+  canvas.drawPath(canopy, pen);
+}

@@ -95,6 +95,10 @@ void main() {
     await t.tap(find.byKey(const ValueKey('look_granit_rose')));
     await t.pumpAndSettle();
     expect(st.project.style.worktop, 'granit_rose');
+    // la crédence est dans sa section repliable : on la déplie
+    await t.ensureVisible(find.text('Crédence'));
+    await t.tap(find.text('Crédence'));
+    await t.pumpAndSettle();
     await t.ensureVisible(find.byKey(const ValueKey('splash_plan')));
     await t.tap(find.byKey(const ValueKey('splash_plan')));
     await t.pumpAndSettle();

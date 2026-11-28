@@ -103,6 +103,9 @@ void main() {
     // la vignette suivante peut être sous le pli (barre d'équipements au-dessus) : on fait défiler le panneau
     await t.scrollUntilVisible(find.byTooltip('Ajouter Bas 2 portes'), 120,
         scrollable: find.ancestor(of: find.byTooltip('Ajouter Bas 1 porte'), matching: find.byType(Scrollable)).first);
+    // un peu plus haut : la barre des vues, en bas de l'écran, ne doit pas la cacher
+    await t.ensureVisible(find.byTooltip('Ajouter Bas 2 portes'));
+    await t.pumpAndSettle();
     await t.tap(find.byTooltip('Ajouter Bas 2 portes'));
     await t.pumpAndSettle();
     expect(st.project.items.length, 2);

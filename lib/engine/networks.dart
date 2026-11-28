@@ -14,6 +14,7 @@ import 'dart:math' as math;
 import 'catalog.dart';
 import 'home_appliances.dart';
 import 'layout_engine.dart';
+import 'lighting.dart';
 import 'materials.dart';
 import 'project.dart';
 import 'room_objects.dart';
@@ -101,6 +102,11 @@ class NetPoint {
   bool auto; // posé par la génération automatique (remplacé à la prochaine génération)
   String? forUid; // caisson concerné
   bool hidden; // point automatique supprimé : garde la place pour qu'il ne revienne pas
+  // point lumineux du plafond : luminaire (catalogue de lighting.dart), intensité, couleur, faisceau
+  String? fix; // id du luminaire ; null : celui choisi pour la pièce
+  String? power; // 'min' | 'typical' | 'max'
+  int? cct; // K
+  int? beam; // degrés
 
   NetPoint(
       {required this.uid,
@@ -111,7 +117,11 @@ class NetPoint {
       this.use = NetUse.general,
       this.auto = true,
       this.forUid,
-      this.hidden = false});
+      this.hidden = false,
+      this.fix,
+      this.power,
+      this.cct,
+      this.beam});
 
   bool get onCeiling => wallId == 'P';
 
@@ -125,6 +135,10 @@ class NetPoint {
         if (!auto) 'auto': false,
         if (forUid != null) 'for': forUid,
         if (hidden) 'hidden': true,
+        if (fix != null) 'fix': fix,
+        if (power != null) 'power': power,
+        if (cct != null) 'cct': cct,
+        if (beam != null) 'beam': beam,
       };
 
   factory NetPoint.fromJson(Map<String, dynamic> j) => NetPoint(
@@ -137,6 +151,10 @@ class NetPoint {
         auto: j['auto'] as bool? ?? true,
         forUid: j['for'] as String?,
         hidden: j['hidden'] as bool? ?? false,
+        fix: j['fix'] as String?,
+        power: j['power'] as String?,
+        cct: (j['cct'] as num?)?.toInt(),
+        beam: (j['beam'] as num?)?.toInt(),
       );
 
   @override
@@ -416,9 +434,14 @@ List<NetPoint> generateNetworks(LayoutEngine e, {String hobEnergy = 'gas'}) {
     }
   }
 
-  // ---- éclairage : plafonnier, alimentation LED sous les hauts, interrupteur près de la porte
-  add(NetKind.light, 'P', room.width / 2, room.depth / 2, NetUse.lighting);
-  if (isl != null) add(NetKind.light, 'P', isl.x0 + isl.length / 2, isl.y0 + Island.depth / 2, NetUse.lighting);
+  // ---- éclairage : points lumineux calculés selon les normes (lighting.dart), alimentation LED sous les hauts,
+  // interrupteur près de la porte
+  // luminaires du plafond : seulement une fois posés (menu Lumière), pour une cuisine meublée ; un rail = un point
+  if (p.specs.lighting.placed) {
+    for (final sp in planLighting(e).spots) {
+      add(NetKind.light, 'P', sp.x, sp.y, NetUse.lighting).fix = sp.source;
+    }
+  }
   for (final w in room.walls.where((w) => e.kitchen && w.enabled)) {
     final runs = e.runs(w.id, (m) => m.kind.isHigh);
     for (final (a, b) in runs) {

@@ -14,9 +14,10 @@ import 'web_io.dart';
 
 /// Qualités : largeur, hauteur, passes.
 const hdQualities = <String, (String, int, int, int)>{
-  'rapide': ('Rapide', 1600, 1000, 48),
-  'belle': ('Belle', 2400, 1500, 120),
-  'max': ('Très fine', 3200, 2000, 256),
+  // passes ÷ 3 = échantillons du lancer de rayons (64 au moins : en dessous, l'image reste granuleuse)
+  'rapide': ('Rapide', 1600, 1000, 192),
+  'belle': ('Belle', 2400, 1500, 384),
+  'max': ('Très fine', 3200, 2000, 768),
 };
 
 Uint8List? pngOf(String? dataUrl) => dataUrl == null || !dataUrl.contains(',') ? null : base64Decode(dataUrl.split(',').last);
@@ -24,7 +25,18 @@ Uint8List? pngOf(String? dataUrl) => dataUrl == null || !dataUrl.contains(',') ?
 /// Lance un rendu HD de la vue affichée et attend l'image (null : impossible ou arrêté).
 Future<Uint8List?> renderHd(String quality, {void Function(double k)? onProgress}) async {
   final (_, w, h, n) = hdQualities[quality]!;
-  if (!await startHdRender(w, h, n)) return null;
+  return _trace(w, h, n, onProgress);
+}
+
+/// Image finale de la vue 3D affichée, en lancer de rayons : devis, fiches, images exportées.
+/// À défaut (vue 3D fermée, appareil trop faible), la capture habituelle de la vue.
+/// [best] : la meilleure vue de présentation de la pièce (fiche, devis), la vue de l'utilisateur revient ensuite.
+Future<Uint8List?> photo3d({int w = 1600, int h = 1000, int n = 192, bool best = false, void Function(double k)? onProgress}) async {
+  return await _trace(w, h, n, onProgress, best: best) ?? pngOf(await getWeb3dSnapshotPng());
+}
+
+Future<Uint8List?> _trace(int w, int h, int n, void Function(double k)? onProgress, {bool best = false}) async {
+  if (!await startHdRender(w, h, n, best: best)) return null;
   for (;;) {
     await Future<void>.delayed(const Duration(milliseconds: 250));
     final raw = await hdRenderState();

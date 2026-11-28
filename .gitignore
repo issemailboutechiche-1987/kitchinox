@@ -50,3 +50,6 @@ app.*.map.json
 /export/
 
 scratch/
+
+# HDRI sources 8K (trop lourdes) : les versions 2K sont dans web/hdri
+HDRI/

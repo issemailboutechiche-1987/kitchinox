@@ -33,6 +33,48 @@ export function hdStop() {
 }
 
 /**
+ * Libère vraiment un traceur : sa propre fonction dispose() plante dès sa première ligne dans cette version
+ * (objet « _renderQuad » absent) et ne libérait rien. Cibles de rendu, textures de la scène (BVH, matériaux,
+ * tableau de textures, environnement) : tout est rendu à la carte graphique. Sans cela, chaque image tracée
+ * laissait des centaines de Mo pris, et l'iPad finissait par retirer la 3D à l'application (écran vide).
+ */
+export function disposePathTracer(pt) {
+  if (!pt) return;
+  const safe = (f) => {
+    try {
+      f();
+    } catch (_) {}
+  };
+  for (const r of [pt._pathTracer, pt._lowResPathTracer]) {
+    if (!r) continue;
+    const mat = r.material;
+    if (mat?.uniforms) {
+      for (const u of Object.values(mat.uniforms)) {
+        const v = u?.value;
+        if (!v) continue;
+        // tableau de textures du traceur : la texture appartient à une cible de rendu, qu'il faut libérer aussi
+        const rt = v.kxTarget; // ajouté dans la bibliothèque (vendor/pathtracer)
+        if (rt && typeof rt.dispose === 'function') {
+          safe(() => rt.fsQuad?.dispose?.());
+          safe(() => rt.dispose());
+        }
+        if (typeof v.dispose === 'function') safe(() => v.dispose());
+        if (v.tex?.isTexture) safe(() => v.tex.dispose()); // lumières : la structure n'a pas de dispose()
+      }
+    }
+    safe(() => r.dispose());
+    safe(() => mat?.dispose());
+  }
+  for (const q of [pt._quad, pt._renderQuad]) {
+    safe(() => q?.material?.dispose());
+    safe(() => q?.dispose());
+  }
+  safe(() => pt._generator?.dispose?.());
+  safe(() => pt._colorBackground?.dispose?.());
+  safe(() => pt._internalBackground?.dispose?.());
+}
+
+/**
  * Démarre un rendu de w × h pixels en n passes. ctx : { renderer, scene, camera, sun, hemi, ambient, fill, studio, done }.
  * L'avancement et l'image (PNG) se lisent avec hdState().
  */
@@ -71,6 +113,19 @@ function proxyScene(src) {
   src.updateMatrixWorld(true);
   const geos = [];
   const m4 = new THREE.Matrix4();
+  // faces à double côté : le traceur ignore une face vue de dos, et voyait à travers le dos et le dessus des
+  // meubles (façades bleu nuit, couleur du fond). Copie du matériau, celui de la vue n'est pas touché.
+  const twoSided = new Map();
+  const sideOf = (m) => {
+    if (m.side !== THREE.FrontSide) return m;
+    let c = twoSided.get(m);
+    if (!c) {
+      c = m.clone();
+      c.side = THREE.DoubleSide;
+      twoSided.set(m, c);
+    }
+    return c;
+  };
   const addMesh = (o, world) => {
     const g0 = o.geometry;
     if (!g0?.attributes?.position) return;
@@ -107,7 +162,7 @@ function proxyScene(src) {
         }
       }
       geos.push(g);
-      out.add(new THREE.Mesh(g, m));
+      out.add(new THREE.Mesh(g, sideOf(m)));
     }
     if (flat !== g0) flat.dispose();
   };
@@ -136,7 +191,10 @@ function proxyScene(src) {
     addMesh(o, o.matrixWorld);
   });
   out.updateMatrixWorld(true);
-  out.userData.dispose = () => geos.forEach((g) => g.dispose());
+  out.userData.dispose = () => {
+    geos.forEach((g) => g.dispose());
+    twoSided.forEach((c) => c.dispose());
+  };
   return out;
 }
 
@@ -147,7 +205,7 @@ function proxyScene(src) {
 async function pathStart(ctx, w, h, n) {
   const { renderer, scene, camera } = ctx;
   if (!renderer.capabilities.isWebGL2) throw new Error('WebGL 2 requis');
-  const { WebGLPathTracer, GradientEquirectTexture } = await import('three-gpu-pathtracer');
+  const { WebGLPathTracer, GradientEquirectTexture, DenoiseMaterial } = await import('three-gpu-pathtracer');
   const max = renderer.capabilities.maxTextureSize;
   w = Math.min(w, max);
   h = Math.min(h, max);
@@ -178,7 +236,7 @@ async function pathStart(ctx, w, h, n) {
   sky.bottomColor.set(0x9a9a9a);
   sky.update();
   scene.environment = hdr ? env0 : sky;
-  scene.environmentIntensity = hdr ? 1.0 : 0.9;
+  scene.environmentIntensity = hdr ? env0.userData?.norm ?? 1.0 : 0.9;
   renderer.toneMappingExposure = 1.05;
   renderer.setPixelRatio(1);
   renderer.setSize(w, h, false);
@@ -197,9 +255,8 @@ async function pathStart(ctx, w, h, n) {
     renderer.setRenderTarget(null);
     renderer.setPixelRatio(keep.dpr);
     renderer.setSize(keep.size.x, keep.size.y, false);
-    try {
-      pt?.dispose();
-    } catch (_) {}
+    disposePathTracer(pt);
+    pt = null;
     proxy?.userData.dispose?.();
     sky.dispose();
   };
@@ -213,7 +270,7 @@ async function pathStart(ctx, w, h, n) {
     pt.fadeDuration = 0;
     pt.renderDelay = 0;
     pt.dynamicLowRes = false;
-    pt.bounces = 5;
+    pt.bounces = 4;
     pt.filteredGlossyFactor = 1; // pas d'étincelles blanches sur le chrome
     // textures réduites : une image par façade, et la mémoire graphique de l'iPad déborde vite (façades d'une
     // mauvaise couleur, taches) ; les façades sont des aplats, 512 px suffisent largement
@@ -228,6 +285,8 @@ async function pathStart(ctx, w, h, n) {
   const log = window.__kxlog || (() => {});
   log('rendu', `lancer de rayons ${w}x${h}, ${n} échantillons`);
   const t0all = performance.now();
+  let exposed = false;
+  let tFirst = 0;
   await new Promise((resolve, reject) => {
     const step = () => {
       if (stopAsked) {
@@ -240,14 +299,34 @@ async function pathStart(ctx, w, h, n) {
         const t0 = performance.now();
         // tant que les shaders compilent, renderSample n'ajoute rien : la boucle attend sans bloquer
         while (pt.samples < n && performance.now() - t0 < 60) pt.renderSample();
-        if (performance.now() - t0all > 15 * 60 * 1000) throw new Error('lancer de rayons trop long');
-        state.k = Math.min(n, Math.floor(pt.samples));
-        if (pt.samples < n) return requestAnimationFrame(step);
+        const spent = performance.now() - t0all;
+        if (spent > 15 * 60 * 1000) throw new Error('lancer de rayons trop long');
+        // l'image visible s'éclaircit au bon niveau dès les premiers échantillons (avant : blanc brûlé jusqu'à la fin)
+        if (!exposed && pt.samples >= 3) {
+          exposed = true;
+          renderer.toneMappingExposure = autoExposure(renderer, pt.target);
+        }
+        // temps limité (image de la vue), compté depuis le premier échantillon : la préparation du traceur
+        // (compilation, plusieurs secondes sur iPad) ne le mange plus. 64 échantillons au moins : en dessous,
+        // l'image reste granuleuse (16 échantillons sur iPad avant cette correction).
+        if (!tFirst && pt.samples > 0) tFirst = performance.now();
+        const run = tFirst ? performance.now() - tFirst : 0;
+        const timeUp = ctx.budget && run > ctx.budget && pt.samples >= Math.min(n, 64);
+        state.k = ctx.budget && tFirst
+          ? Math.min(n - 1, Math.max(Math.floor(pt.samples), Math.round((n * run) / ctx.budget)))
+          : Math.min(n, Math.floor(pt.samples));
+        if (pt.samples < n && !timeUp) return requestAnimationFrame(step);
         // l'image est lue dans la cible du traceur (et non sur le canevas, parfois déjà effacé : image noire)
         // exposition automatique (comme un appareil photo) : une pièce blanche fermée accumule beaucoup de lumière
         renderer.toneMappingExposure = autoExposure(renderer, pt.target);
-        log('rendu', `exposition ${renderer.toneMappingExposure.toFixed(2)}`);
-        const url = blitToCanvas(renderer, pt.target.texture, true, ctx.bg);
+        log('rendu', `exposition ${renderer.toneMappingExposure.toFixed(2)}, ${Math.floor(pt.samples)} échantillons`);
+        // deux passes de débruitage (la seconde, plus fine, reprend le grain restant)
+        const e = renderer.toneMappingExposure;
+        const c1 = denoise(renderer, pt.target, DenoiseMaterial, e, 3, 0.15);
+        const c2 = c1 && denoise(renderer, c1, DenoiseMaterial, e, 1.5, 0.08);
+        const url = blitToCanvas(renderer, (c2 || c1 || pt.target).texture, true, ctx.bg);
+        c1?.dispose();
+        c2?.dispose();
         log('rendu', `lancer de rayons terminé en ${Math.round((performance.now() - t0all) / 1000)} s`);
         restore();
         Object.assign(state, { url, error: null, running: false });
@@ -261,6 +340,31 @@ async function pathStart(ctx, w, h, n) {
     };
     requestAnimationFrame(step);
   });
+}
+
+/**
+ * Débruitage final (filtre qui lisse le grain sans flouter les arêtes) : l'image du traceur est lissée
+ * dans une cible de même taille. Le seuil suit l'exposition (le grain se juge sur l'image affichée).
+ */
+function denoise(renderer, target, DenoiseMaterial, exposure, sigma = 2.5, thr = 0.12) {
+  if (!DenoiseMaterial) return null;
+  try {
+    const out = new THREE.WebGLRenderTarget(target.width, target.height, { type: THREE.HalfFloatType, depthBuffer: false });
+    const mat = new DenoiseMaterial({ map: target.texture, sigma, kSigma: 1.5, threshold: thr / Math.max(0.05, exposure) });
+    mat.toneMapped = false;
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat);
+    quad.frustumCulled = false;
+    const flat = new THREE.Scene();
+    flat.add(quad);
+    renderer.setRenderTarget(out);
+    renderer.render(flat, new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1));
+    renderer.setRenderTarget(null);
+    quad.geometry.dispose();
+    mat.dispose();
+    return out;
+  } catch (_) {
+    return null;
+  }
 }
 
 /**
@@ -289,7 +393,7 @@ function despeckle(cv) {
           b += d[j * 4 + 2];
         }
       }
-      if (lum[i] > mx + 28) {
+      if (lum[i] > mx + 16) {
         out[i * 4] = r / 8;
         out[i * 4 + 1] = g / 8;
         out[i * 4 + 2] = b / 8;

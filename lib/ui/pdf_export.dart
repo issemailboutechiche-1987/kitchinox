@@ -3,7 +3,6 @@
 // par mur, puis nomenclature par mur et contrôles d'implantation. Chaque planche a sa légende des
 // repères et un cartouche.
 
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart' show Size, Canvas, Offset;
@@ -17,9 +16,7 @@ import 'logo.dart';
 import 'net_symbols.dart';
 import 'pdf_fonts.dart';
 import 'tech_drawings.dart';
-import 'view3d_stub.dart'
-    if (dart.library.js_interop) 'view3d_web.dart'
-    if (dart.library.io) 'view3d_native.dart';
+import 'hd_render.dart' show photo3d;
 
 const _orange = PdfColor.fromInt(0xFFB45309); // avertissements (ambre, distinct de la marque)
 const _brand = PdfColor.fromInt(0xFFF26522);
@@ -109,13 +106,8 @@ Future<Uint8List> buildExecutionPdf(LayoutEngine e,
   };
   final coverW = format.width - 2 * margin - 330 - gap;
   Uint8List? view3d;
-  final web3dData = await getWeb3dSnapshotPng();
-  if (web3dData != null && web3dData.startsWith('data:image/png;base64,')) {
-    try {
-      final b64 = web3dData.substring('data:image/png;base64,'.length);
-      view3d = base64Decode(b64);
-    } catch (_) {}
-  }
+  // couverture : image finale de la vue 3D en lancer de rayons (capture habituelle à défaut)
+  view3d = await photo3d(best: true); // meilleure vue de présentation, quelle que soit la vue affichée
   view3d ??= await draw('Vue 3D de couverture', Size(coverW * pixelRatio, bodyH * pixelRatio), (c, s) => drawer.paint3d(c, s, -0.6));
   final planThumb = await draw('Miniature du plan', Size(330 * pixelRatio, 250 * pixelRatio), drawer.paintPlan);
   await step(0.86, tr('Mise en pages')); 

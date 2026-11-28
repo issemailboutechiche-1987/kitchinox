@@ -25,6 +25,7 @@ export 'essentials.dart';
 export 'home_appliances.dart';
 export 'fixes.dart';
 export 'layout_engine.dart';
+export 'lighting.dart';
 export 'manual_cut.dart';
 export 'xlsx.dart';
 export 'market.dart';

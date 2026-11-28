@@ -54,6 +54,13 @@ class AppState extends ChangeNotifier {
 
   PlanStep step = PlanStep.space;
   ViewMode view = ViewMode.plan;
+  bool ceilingPlan = false; // vue du dessus « Plafond » : luminaires, zones éclairées, rubans LED
+  // Coupe de la 3D, réglée dans les vues 2D et fixe dans la pièce (elle ne suit pas la caméra) :
+  // verticale (vue du dessus) : un plan perpendiculaire à l'axe [cutAxis] ('x' largeur, 'y' profondeur) à [cutPos] mm,
+  // on garde le côté au-delà (ou en deçà si [cutFlip]) ; horizontale (vue de face) : on garde ce qui est sous [cutHeight].
+  bool cutV = false, cutH = false, cutFlip = false;
+  String cutAxis = 'y';
+  double cutPos = 1500, cutHeight = 1800;
   String wallId = 'A';
   String? selected; // caisson
   String? selectedOpening;
@@ -943,8 +950,9 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
-  void setView(ViewMode v) {
+  void setView(ViewMode v, {bool ceiling = false}) {
     view = v;
+    ceilingPlan = v == ViewMode.plan && ceiling;
     if (v != ViewMode.view3d) studio = '';
     resetZoom(notify: false);
     notifyListeners();
@@ -1028,6 +1036,96 @@ class AppState extends ChangeNotifier {
   }
 
   void setHobEnergy(String energy) => edit(() => project.specs.hobEnergy = energy);
+
+  /// Couleur des murs pour le calcul de l'éclairage : les points lumineux sont recalculés.
+  void setRoomTone(String tone) => edit(() {
+        project.specs.roomTone = tone;
+        if (project.networks) applyNetworks(engine);
+      });
+
+  /// Coupe verticale / horizontale : affichée et réglée dans les vues 2D, appliquée à la 3D.
+  void setCut({bool? v, bool? h, String? axis, bool? flip, double? pos, double? height}) {
+    final room = project.room;
+    if (v != null) {
+      cutV = v;
+      if (v && pos == null) cutPos = (cutAxis == 'x' ? room.width : room.depth) / 2;
+    }
+    if (h != null) cutH = h;
+    if (axis != null && axis != cutAxis) {
+      cutAxis = axis;
+      cutPos = (axis == 'x' ? room.width : room.depth) / 2;
+    }
+    if (flip != null) cutFlip = flip;
+    if (pos != null) cutPos = ((pos / 10).round() * 10.0).clamp(0.0, cutAxis == 'x' ? room.width : room.depth);
+    if (height != null) cutHeight = ((height / 10).round() * 10.0).clamp(100.0, room.height);
+    notifyListeners();
+  }
+
+  /// Choix des luminaires (menu Plafond) : les points lumineux sont recalculés.
+  void setLighting(void Function(LightingChoice c) change) => edit(() {
+        change(project.specs.lighting);
+        if (project.networks) applyNetworks(engine);
+      });
+
+  /// Réglages d'un point lumineux du plafond (luminaire, intensité, couleur, faisceau).
+  void setPointLight(String uid, {String? fix, String? power, int? cct, int? beam}) => edit(() {
+        final x = project.pointByUid(uid);
+        if (x == null) return;
+        if (fix != null) x.fix = fix;
+        if (power != null) x.power = power;
+        if (cct != null) x.cct = cct;
+        if (beam != null) x.beam = beam;
+        x.auto = false; // réglé à la main : la régénération le garde
+      });
+
+  /// Applique les réglages de [uid] à toutes les lumières du plafond du même luminaire ; renvoie leur nombre.
+  int applyLightToSameType(String uid) {
+    final x = project.pointByUid(uid);
+    if (x == null) return 0;
+    final ch = project.specs.lighting;
+    final fix = x.fix ?? ch.general;
+    var n = 0;
+    edit(() {
+      for (final o in project.points) {
+        if (o.kind != NetKind.light || !o.onCeiling || o.hidden || o.uid == uid || (o.fix ?? ch.general) != fix) continue;
+        o
+          ..power = x.power
+          ..cct = x.cct
+          ..beam = x.beam
+          ..auto = false;
+        n++;
+      }
+    });
+    return n;
+  }
+
+  /// Bouton « Auto » : les luminaires les mieux adaptés à la pièce (normes), posés au plafond ; renvoie leur nombre.
+  /// Les lumières se posent sur une cuisine meublée : leur place dépend des meubles (bord avant du plan,
+  /// îlot, hauts). Pièce vide : rien n'est posé (-1).
+  bool get lightingReady => !engine.kitchen || project.items.any((c) => engine.modelOf(c).kind.isLow);
+
+  int autoLightingForRoom() {
+    if (!lightingReady) return -1;
+    edit(() {
+      project.specs.lighting = autoLighting(engine)..placed = true;
+      project.networks = true;
+      applyNetworks(engine);
+    });
+    setView(ViewMode.plan, ceiling: true); // on voit tout de suite ce qui a été posé
+    return project.points.where((x) => x.kind == NetKind.light && x.onCeiling && !x.hidden).length;
+  }
+
+  /// Pose au plafond les points lumineux calculés selon les normes (réseaux affichés) ; renvoie leur nombre.
+  int placeLighting() {
+    if (!lightingReady) return -1;
+    edit(() {
+      project.specs.lighting.placed = true;
+      project.networks = true;
+      applyNetworks(engine);
+    });
+    setView(ViewMode.plan, ceiling: true);
+    return project.points.where((x) => x.kind == NetKind.light && x.onCeiling && !x.hidden).length;
+  }
 
   /// Ajoute un point à la main sur le mur affiché (au milieu, à la hauteur usuelle du type).
   void addPoint(NetKind kind) {

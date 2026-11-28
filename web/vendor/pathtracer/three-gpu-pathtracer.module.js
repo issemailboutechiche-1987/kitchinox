@@ -3356,6 +3356,8 @@ class RenderTarget2DArray extends WebGLArrayRenderTarget {
 		// manually assign the options because passing options into the
 		// constructor does not work
 		assignOptions( this.texture, textureOptions );
+		// kitchinox : la texture mène à sa cible, pour la libérer (sinon fuite à chaque rendu)
+		this.texture.kxTarget = this;
 
 		this.texture.setTextures = ( ...args ) => {
 
@@ -7717,6 +7719,11 @@ class PhysicalPathTracingMaterial extends MaterialBase {
 						ray.origin = hitPoint;
 
 					}
+
+					// kitchinox : un échantillon isolé très lumineux (rebond sur une tache de soleil, un reflet) fait une
+					// étincelle blanche ; sa luminance est plafonnée (l'image moyenne n'en est presque pas changée)
+					float kxLum = dot( gl_FragColor.rgb, vec3( 0.2126, 0.7152, 0.0722 ) );
+					if ( kxLum > 3.0 ) gl_FragColor.rgb *= 3.0 / kxLum;
 
 					gl_FragColor.a *= opacity;
 

@@ -25,7 +25,8 @@ extension type _K3d._(JSObject _) implements JSObject {
   external void setScene(String json);
   external bool supported();
   external String? capturePng();
-  external bool hdStart(int w, int h, int n);
+  external bool hdStart(int w, int h, int n, bool best);
+  external void setCamera(num clip, bool ortho);
   external String hdState();
   external void hdStop();
   external void input(bool on);
@@ -100,7 +101,14 @@ Future<String?> getWeb3dSnapshotPng() async {
 }
 
 /// Rendu HD de la vue affichée : démarre, avancement (JSON), arrêt.
-Future<bool> startHdRender(int w, int h, int n) async => _k3d?.hdStart(w, h, n) ?? false;
+Future<bool> startHdRender(int w, int h, int n, {bool best = false}) async => _k3d?.hdStart(w, h, n, best) ?? false;
+
+/// Coupe de la vue 3D (0 : aucune … 1) et vue orthographique, tout de suite (sans reconstruire la scène).
+void setCamera3d(double clip, bool ortho) {
+  try {
+    _k3d?.setCamera(clip, ortho);
+  } catch (_) {}
+}
 Future<String?> hdRenderState() async => _k3d?.hdState();
 Future<void> stopHdRender() async => _k3d?.hdStop();
 

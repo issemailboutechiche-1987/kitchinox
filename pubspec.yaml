@@ -96,6 +96,28 @@ flutter:
     - web/objects/polyhaven/bar_chair_round_01/textures/
     - web/objects/polyhaven/ceramic_vase_01/
     - web/objects/polyhaven/ceramic_vase_01/textures/
+    - web/objects/polyhaven/hanging_industrial_lamp/
+    - web/objects/polyhaven/hanging_industrial_lamp/textures/
+    - web/objects/polyhaven/caged_hanging_light/
+    - web/objects/polyhaven/caged_hanging_light/textures/
+    - web/objects/polyhaven/Chandelier_01/
+    - web/objects/polyhaven/Chandelier_01/textures/
+    - web/objects/polyhaven/Chandelier_02/
+    - web/objects/polyhaven/Chandelier_02/textures/
+    - web/objects/polyhaven/Chandelier_03/
+    - web/objects/polyhaven/Chandelier_03/textures/
+    - web/objects/polyhaven/lantern_chandelier_01/
+    - web/objects/polyhaven/lantern_chandelier_01/textures/
+    - web/objects/polyhaven/pull_chain_light_socket/
+    - web/objects/polyhaven/pull_chain_light_socket/textures/
+    - web/objects/polyhaven/lightbulb_01/
+    - web/objects/polyhaven/lightbulb_01/textures/
+    - web/objects/polyhaven/lightbulb_led/
+    - web/objects/polyhaven/lightbulb_led/textures/
+    - web/objects/polyhaven/industrial_wall_sconce/
+    - web/objects/polyhaven/industrial_wall_sconce/textures/
+    - web/objects/polyhaven/industrial_wall_lamp/
+    - web/objects/polyhaven/industrial_wall_lamp/textures/
     - web/objects/polyhaven/coffee_table_round_01/
     - web/objects/polyhaven/coffee_table_round_01/textures/
     - web/objects/polyhaven/dining_chair_02/

@@ -9,6 +9,7 @@ import 'catalog.dart';
 import 'end_panels.dart';
 import 'openings_catalog.dart';
 import 'home_appliances.dart';
+import 'lighting.dart';
 import 'project.dart';
 import 'standards.dart';
 
@@ -1842,6 +1843,10 @@ class LayoutEngine {
               L('espace libre de {0} mm ({1}, {2})', [g.width.round(), Room.wallNames[g.wallId], g.band == Band.low ? 'bas' : 'haut'])));
     }
     if (kitchen) issues.addAll(_normChecks());
+    // éclairage (luminaires posés au plafond) : lumière insuffisante, éblouissement, rendu des couleurs
+    for (final (code, warning, t) in lightingChecks(this)) {
+      issues.add(Issue(warning ? Severity.warning : Severity.info, code, t.fill(translateHook)));
+    }
     return issues;
   }
 

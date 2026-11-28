@@ -1,0 +1,421 @@
+{
+  "schema_version": "1.0.0",
+  "title": "Normes Internationales d'Éclairage & Ingénierie Photométrique (Cuisine, Chambre & Intérieurs)",
+  "units": {
+    "length": "mm (m for area/flux formulas)",
+    "illuminance": "lux (lx = lm/m²)",
+    "luminous_flux": "lumen (lm)",
+    "color_temperature": "Kelvin (K)",
+    "color_rendering": "CRI (Ra / R9)"
+  },
+  "international_standards": [
+    {
+      "code": "EN 12464-1",
+      "body": "CEN (Comité Européen de Normalisation)",
+      "scope": "Éclairage des lieux de travail intérieurs (référence européenne pour niveaux de lux, UGR et IRC/CRI, y compris cuisines et zones de préparation).",
+      "key_parameters": ["Em (éclairement maintenu en lux)", "UGRL (limite d'éblouissement)", "Ra (IRC minimum ≥ 80, recommandé ≥ 90 pour tâches précises)"],
+      "source_url": "https://www.ageta.lt/app/webroot/files/uploads/filemanager/File/info/EN_12464-1.pdf"
+    },
+    {
+      "code": "IES Lighting Handbook (10th Ed. / Residential Guidelines)",
+      "body": "Illuminating Engineering Society (ANSI/IES)",
+      "scope": "Recommandations d'éclairement résidentiel en foot-candles (fc) et lux par pièce et activité (ambiance générale, plan de travail cuisine, lecture chambre).",
+      "conversion": "1 fc = 10.764 lux",
+      "source_url": "https://waypointlighting.com/uploads/2/6/8/4/26847904/ies_recommended_light_levels.pdf"
+    },
+    {
+      "code": "DOE / IES High Performance Residential Lighting",
+      "body": "U.S. Department of Energy / IES",
+      "scope": "Stratégie multi-couches résidentielle (downlights, wall washers, éclairage sous-meuble 20–90 fc, corniches indirectes).",
+      "source_url": "https://www1.eere.energy.gov/buildings/publications/pdfs/building_america/strategy_guideline_high_perf_lighting.pdf"
+    },
+    {
+      "code": "IEC 60364-7-701 / NF C 15-100",
+      "body": "IEC / AFNOR",
+      "scope": "Sécurité électrique et indices de protection IP dans les pièces humides (salles de bain volumes 0, 1, 2 et zones proches points d'eau en cuisine).",
+      "zones": {
+        "zone_0": { "location": "Intérieur baignoire / receveur douche", "min_ip": "IPX7", "voltage": "12V TBTS (SELV)" },
+        "zone_1": { "location": "Au-dessus douche/baignoire jusqu'à 2250 mm", "min_ip": "IPX4 / IPX5", "voltage": "12V TBTS (SELV)" },
+        "zone_2": { "location": "600 mm autour de la zone 1", "min_ip": "IP44", "class": "Classe II" },
+        "outside_zones": { "location": "Hors volumes (> 600 mm ou plafond > 2250 mm)", "min_ip": "IP20 (IP44 recommandé si vapeur/évier)" }
+      },
+      "source_url": "https://luminoahome.com/en-ca/blogs/journal/luminaire-salle-de-bain-indice-ip"
+    }
+  ],
+  "photometric_metrics": {
+    "lumen_lm": "Quantité totale de lumière visible émise par une source dans toutes les directions.",
+    "lux_lx": "Éclairement reçu sur une surface (1 lux = 1 lumen / m²). C'est l'unité de dimensionnement réglementaire.",
+    "foot_candle_fc": "Unité anglo-saxonne (1 fc = 1 lm/ft² = 10.764 lux).",
+    "kelvin_cct": "Température de couleur corrélée (chaud 2200–3000K, neutre 3500–4500K, froid 5000–6500K).",
+    "cri_ra": "Indice de Rendu des Couleurs sur 100. ≥ 80 minimum légal, ≥ 90 recommandé en résidentiel, ≥ 95 idéal pour cuisine (aliments frais) et dressing (tissus).",
+    "r9": "Rendu du rouge saturé (critique en cuisine pour la viande, les fruits et les bois chauds). Viser R9 ≥ 50.",
+    "ugr": "Unified Glare Rating (éblouissement). Viser UGR < 19 sur plans de travail et bureaux, UGR < 22 en circulation.",
+    "luminous_efficacy_lm_per_w": "Rendement LED moderne : 90–130 lm/W (bandes LED CRI 90+ : 80–110 lm/W)."
+  },
+  "calculation_engineering": {
+    "source_url": "https://www.zgsm-china.com/blog/lighting-calculation-lumen-calculation-method-and-its-benefits.html",
+    "lumen_method": {
+      "description": "Méthode professionnelle d'ingénierie pour calculer le flux total (lumens) et le nombre de luminaires.",
+      "formula_total_lumens": "Phi_total = (E_target_lux * Area_m2) / (UF * MF)",
+      "formula_num_fixtures": "N = ceil(Phi_total / Phi_per_fixture)",
+      "quick_residential_approximation": "Lumens_requis = Surface_m2 * Lux_cible (avec marge +20% à +35% selon couleur des murs et hauteur plafond)",
+      "variables": {
+        "E_target_lux": "Éclairement moyen maintenu cible (lux)",
+        "Area_m2": "Longueur (m) × Largeur (m)",
+        "UF_utilization_factor": {
+          "light_room_white_walls": 0.75,
+          "medium_room_beige_wood": 0.65,
+          "dark_room_anthracite_black": 0.50
+        },
+        "MF_maintenance_factor": {
+          "clean_residential_led": 0.85,
+          "kitchen_grease_steam": 0.80
+        }
+      }
+    },
+    "room_cavity_ratio_and_index": {
+      "formula_RCR": "RCR = (5 * H_mounting * (L + W)) / (L * W)",
+      "formula_room_index_K": "K = (L * W) / (H_mounting * (L + W)) = 5 / RCR",
+      "H_mounting_note": "H_mounting = Hauteur luminaire - Hauteur plan utile (0.85 m en cuisine, 0.75 m sur bureau, 0 m au sol)."
+    },
+    "ceiling_height_multiplier": [
+      { "height_m": "2.40 - 2.60", "multiplier": 1.00 },
+      { "height_m": "2.60 - 3.00", "multiplier": 1.15 },
+      { "height_m": "3.00 - 3.60", "multiplier": 1.30 },
+      { "height_m": "> 3.60", "multiplier": 1.50, "note": "Utiliser des faisceaux plus étroits (24°-36°) ou suspensions abaissées." }
+    ],
+    "led_strip_and_driver_sizing": {
+      "formula_power_w": "P_strip_W = Longueur_m * Puissance_W_par_m",
+      "formula_driver_w": "P_driver_min_W = P_strip_W * 1.20",
+      "safety_margin_pct": 20,
+      "voltage_rules": {
+        "12V_DC": "Longueur max en alimentation simple : 3 m (chute de tension au-delà).",
+        "24V_DC": "Recommandé pour cuisine/dressing. Longueur max en alimentation simple : 5 m ; alimenter par les deux extrémités jusqu'à 10 m."
+      },
+      "recommended_strip_densities": {
+        "accent_plinth_cove": { "w_per_m": "4.8 - 9.6", "lm_per_m": "450 - 900", "type": "COB ou 120 LED/m" },
+        "kitchen_worktop_task": { "w_per_m": "12 - 16", "lm_per_m": "1100 - 1500", "type": "COB 480+ LED/m sans points visibles, CRI ≥ 90" }
+      }
+    },
+    "worked_examples": [
+      {
+        "scenario": "Cuisine moderne 12 m² (4 m × 3 m, plafond 2.6 m, façades claires) + 3.5 m de plan de travail",
+        "general_ambient": {
+          "target_lux": 200,
+          "UF": 0.70,
+          "MF": 0.80,
+          "calculation": "(200 * 12) / (0.70 * 0.80) = 4286 lm",
+          "recommended_setup": "6 spots LED encastrés 700–750 lm chacun (3000K, CRI 90+, faisceau 60°)"
+        },
+        "worktop_task": {
+          "target_lux": 500,
+          "worktop_area_m2": 2.1,
+          "recommended_setup": "Ruban LED COB 24V, 14 W/m (~1300 lm/m) × 3.5 m = 4550 lm (49 W) → Transformateur 24V 60 W minimum (marge 20%)."
+        }
+      },
+      {
+        "scenario": "Chambre parentale 16 m² (4 m × 4 m, plafond 2.6 m)",
+        "general_ambient": {
+          "target_lux": 100,
+          "UF": 0.65,
+          "MF": 0.85,
+          "calculation": "(100 * 16) / (0.65 * 0.85) = 2896 lm",
+          "recommended_setup": "Plafonnier / corniche indirecte 2800–3000 lm dimmable (2700K) + 2 liseuses chevet 350–400 lm chacune (400 lux localisés)."
+        }
+      }
+    ]
+  },
+  "kelvin_cct_scale": [
+    { "range_k": "1800 - 2200", "label_fr": "Ambre / Bougie (Dim-to-Warm)", "hex_preview": "#FF9E44", "best_for": ["Veilleuse chambre", "Ambiance soirée détente", "Plinthes nocturnes"] },
+    { "range_k": "2700", "label_fr": "Blanc très chaud", "hex_preview": "#FFD2A1", "best_for": ["Chambres", "Salons", "Coin repas", "Cuisines bois/chaleureuses"] },
+    { "range_k": "3000", "label_fr": "Blanc chaud architectural", "hex_preview": "#FFE4C4", "best_for": ["Standard universel cuisine moderne", "Dressing", "Salle de bain", "Îlot central"] },
+    { "range_k": "3500 - 4000", "label_fr": "Blanc neutre (Tâche / Précision)", "hex_preview": "#FFF4E8", "best_for": ["Plan de travail cuisine", "Miroir salle de bain", "Buanderie", "Bureau / Atelier"] },
+    { "range_k": "5000 - 6500", "label_fr": "Lumière du jour / Froid", "hex_preview": "#F4F8FF", "best_for": ["Ateliers menuiserie", "Garages", "Cuisines professionnelles inox (à éviter en résidentiel cosy)"] }
+  ],
+  "room_standards": {
+    "kitchen": {
+      "name_fr": "Cuisine (Priorité Kitchinox)",
+      "source_urls": [
+        "https://www.ledyilighting.com/residential-recommended-lighting-levels/",
+        "https://www1.eere.energy.gov/buildings/publications/pdfs/building_america/strategy_guideline_high_perf_lighting.pdf"
+      ],
+      "design_rule": "Toujours combiner au minimum 3 couches indépendantes (Général + Plan de travail + Accent/Îlot) sur circuits séparés et dimmables.",
+      "zones": [
+        {
+          "zone_id": "kitchen_general",
+          "name_fr": "Éclairage général (circulation & sol)",
+          "lux_min": 150,
+          "lux_recommended": 200,
+          "lux_max": 300,
+          "cct_k": [2700, 3000],
+          "cri_min": 90,
+          "ip_min": "IP20 (IP44 près cuisson/évier)",
+          "placement_mm": "Spots espacés de 1000 à 1200 mm, alignés à 550–650 mm du mur (au bord avant du plan de travail, jamais derrière la tête de l'utilisateur)."
+        },
+        {
+          "zone_id": "kitchen_worktop",
+          "name_fr": "Plan de travail (sous meubles hauts)",
+          "lux_min": 400,
+          "lux_recommended": 500,
+          "lux_max": 750,
+          "cct_k": [3000, 4000],
+          "cri_min": 90,
+          "r9_min": 50,
+          "ip_min": "IP44 (IP65 au-dessus de l'évier)",
+          "placement_mm": "Profilé alu encastré 10×10 mm avec diffuseur opale, placé à 50–100 mm du bord avant du caisson haut pour éviter toute ombre portée et reflet direct sur crédence brillante."
+        },
+        {
+          "zone_id": "kitchen_island",
+          "name_fr": "Îlot central / Bar snack",
+          "lux_min": 300,
+          "lux_recommended": 450,
+          "lux_max": 500,
+          "cct_k": [2700, 3000],
+          "cri_min": 90,
+          "placement_mm": "Suspensions positionnées à 750–850 mm au-dessus du plan de travail, espacées de 600–800 mm (ou suspension linéaire = 2/3 de la longueur de l'îlot)."
+        },
+        {
+          "zone_id": "kitchen_sink_cooktop",
+          "name_fr": "Évier & Zone cuisson",
+          "lux_min": 400,
+          "lux_recommended": 500,
+          "lux_max": 700,
+          "cct_k": [3000, 4000],
+          "cri_min": 90,
+          "ip_min": "IP44 / IP65 (évier) ; résistant chaleur (hotte)"
+        },
+        {
+          "zone_id": "kitchen_interior_cabinet",
+          "name_fr": "Intérieur vitrines, colonnes & tiroirs",
+          "lux_min": 100,
+          "lux_recommended": 150,
+          "lux_max": 200,
+          "cct_k": [2700, 3000],
+          "cri_min": 90,
+          "control": "Capteur d'ouverture de porte / IR automatique"
+        },
+        {
+          "zone_id": "kitchen_plinth",
+          "name_fr": "Plinthe (effet flottant & balisage nuit)",
+          "lux_min": 20,
+          "lux_recommended": 35,
+          "lux_max": 50,
+          "cct_k": [2700, 3000],
+          "ip_min": "IP65 (protection lavage du sol)",
+          "strip_w_per_m": 4.8
+        }
+      ]
+    },
+    "bedroom": {
+      "name_fr": "Chambre à coucher",
+      "source_url": "https://www.ledyilighting.com/residential-recommended-lighting-levels/",
+      "zones": [
+        {
+          "zone_id": "bedroom_general",
+          "name_fr": "Ambiance générale (sol)",
+          "lux_min": 50,
+          "lux_recommended": 100,
+          "lux_max": 150,
+          "cct_k": [2700],
+          "cri_min": 90,
+          "note": "Privilégier un éclairage indirect (corniche) ou plafonnier diffusant dimmable pour éviter l'éblouissement en position allongée."
+        },
+        {
+          "zone_id": "bedroom_bedside_reading",
+          "name_fr": "Liseuses / Chevets (lecture)",
+          "lux_min": 300,
+          "lux_recommended": 400,
+          "lux_max": 450,
+          "cct_k": [2700, 3000],
+          "cri_min": 90,
+          "beam_angle_deg": [24, 36],
+          "placement_mm": "Applique ou liseuse orientable à 1100–1200 mm du sol (ou 300 mm au-dessus du matelas)."
+        },
+        {
+          "zone_id": "bedroom_night_path",
+          "name_fr": "Balisage nocturne (sous lit / plinthe)",
+          "lux_min": 10,
+          "lux_recommended": 20,
+          "lux_max": 30,
+          "cct_k": [2200, 2700],
+          "control": "Détecteur de mouvement PIR au ras du sol"
+        }
+      ]
+    },
+    "dressing": {
+      "name_fr": "Dressing & Penderie",
+      "zones": [
+        {
+          "zone_id": "dressing_general",
+          "name_fr": "Général & Miroir",
+          "lux_min": 200,
+          "lux_recommended": 300,
+          "lux_max": 400,
+          "cct_k": [3000, 4000],
+          "cri_min": 95,
+          "note": "Un IRC ≥ 95 est indispensable pour distinguer le bleu marine du noir et les nuances textiles."
+        },
+        {
+          "zone_id": "dressing_interior",
+          "name_fr": "Intérieur caissons & barres penderie LED",
+          "lux_min": 150,
+          "lux_recommended": 250,
+          "lux_max": 300,
+          "cct_k": [3000],
+          "placement_mm": "Saignée verticale 10×10 mm sur montants à 40–60 mm du bord avant, orientée vers l'intérieur."
+        }
+      ]
+    },
+    "living_and_tv": {
+      "name_fr": "Salon & Mur TV",
+      "source_url": "https://www.ledyilighting.com/residential-recommended-lighting-levels/",
+      "zones": [
+        {
+          "zone_id": "living_general",
+          "name_fr": "Ambiance salon",
+          "lux_min": 100,
+          "lux_recommended": 150,
+          "lux_max": 200,
+          "cct_k": [2700, 3000],
+          "cri_min": 90
+        },
+        {
+          "zone_id": "tv_bias_lighting",
+          "name_fr": "Rétroéclairage panneau TV / Tasseaux",
+          "lux_min": 20,
+          "lux_recommended": 40,
+          "lux_max": 60,
+          "cct_k": [2700, 3000],
+          "note": "Réduit la fatigue visuelle devant l'écran sans créer de reflet direct."
+        }
+      ]
+    },
+    "bathroom": {
+      "name_fr": "Salle de bain",
+      "source_url": "https://luminoahome.com/en-ca/blogs/journal/luminaire-salle-de-bain-indice-ip",
+      "zones": [
+        {
+          "zone_id": "bathroom_general",
+          "name_fr": "Général plafond",
+          "lux_min": 200,
+          "lux_recommended": 250,
+          "lux_max": 300,
+          "cct_k": [3000, 4000],
+          "cri_min": 90,
+          "ip_min": "IP44"
+        },
+        {
+          "zone_id": "bathroom_mirror",
+          "name_fr": "Miroir / Maquillage / Rasage",
+          "lux_min": 400,
+          "lux_recommended": 500,
+          "lux_max": 600,
+          "cct_k": [3000, 4000],
+          "cri_min": 95,
+          "ip_min": "IP44 (Classe II en Zone 2)",
+          "placement_mm": "2 appliques verticales latérales à 1600–1700 mm du sol pour supprimer les ombres sous les yeux."
+        }
+      ]
+    },
+    "laundry": {
+      "name_fr": "Buanderie (Laundry)",
+      "zones": [
+        {
+          "zone_id": "laundry_work",
+          "name_fr": "Général & Plan de pliage",
+          "lux_min": 300,
+          "lux_recommended": 400,
+          "lux_max": 500,
+          "cct_k": [4000],
+          "cri_min": 85,
+          "ip_min": "IP44"
+        }
+      ]
+    }
+  },
+  "lighting_styles_and_techniques": [
+    {
+      "id": "layered_lighting",
+      "name_fr": "Éclairage multi-couches (Architecture 4 couches)",
+      "layers": ["1. Ambiance (général)", "2. Tâche / Fonctionnel (plan de travail, lecture)", "3. Accentuation (vitrines, tasseaux, niche)", "4. Décoratif (suspensions signature)"],
+      "application": "Règle d'or de tout projet haut de gamme."
+    },
+    {
+      "id": "cove_indirect",
+      "name_fr": "Éclairage indirect en corniche (Cove Lighting)",
+      "mechanism": "Ruban LED caché dans une gorge plafond/mur qui réfléchit la lumière sur le plafond.",
+      "visual_effect": "Lumière douce sans éblouissement (UGR très bas), agrandit visuellement la hauteur sous plafond.",
+      "best_for": ["Chambres", "Salons", "Cuisines ouvertes modernes"]
+    },
+    {
+      "id": "dark_light_trimless",
+      "name_fr": "Spots encastrés Trimless & Dark-Light (UGR < 19)",
+      "mechanism": "Source LED profondément reculée dans un réflecteur noir/mat, sans collerette apparente.",
+      "visual_effect": "Plafond ultra-épuré, aucun point lumineux éblouissant dans le champ de vision.",
+      "best_for": ["Cuisines Luxe", "Salons minimalistes", "Dressing"]
+    },
+    {
+      "id": "under_cabinet_linear",
+      "name_fr": "Linéaire LED encastré sous-meuble",
+      "mechanism": "Profilé aluminium 10×10 mm ou 17×8 mm fraisé dans le fond du caisson haut avec ruban COB continu et diffuseur opale.",
+      "visual_effect": "Éclairement uniforme du plan de travail sans effet 'points de LED' sur marbre/quartz brillant.",
+      "best_for": ["Cuisines", "Buanderies", "Bureaux intégrés"]
+    },
+    {
+      "id": "wall_washing",
+      "name_fr": "Lèche-mur uniforme (Wall Washing)",
+      "mechanism": "Luminaires placés à 600–900 mm du mur pour éclairer toute la surface verticale de façon homogène.",
+      "visual_effect": "Agrandit les pièces étroites et lisse les murs peints.",
+      "best_for": ["Couloirs", "Murs lisses de salon/cuisine"]
+    },
+    {
+      "id": "wall_grazing",
+      "name_fr": "Éclairage rasant (Wall Grazing)",
+      "mechanism": "Ruban LED ou spot faisceau étroit (15°–24°) placé très près du mur (50–150 mm).",
+      "visual_effect": "Révèle spectaculairement les reliefs (tasseaux bois, pierre naturelle, enduit texturé, crédence marbre).",
+      "best_for": ["Murs TV à tasseaux", "Crédences texturées", "Têtes de lit"]
+    },
+    {
+      "id": "magnetic_track_48v",
+      "name_fr": "Rail magnétique basse tension 48V",
+      "mechanism": "Rail encastré ou en saillie permettant de clipser librement spots orientables, barres linéaires et suspensions.",
+      "visual_effect": "Esthétique architecturale contemporaine et flexibilité totale.",
+      "best_for": ["Cuisines ouvertes", "Salons", "Dressing haut de gamme"]
+    },
+    {
+      "id": "pendant_focal",
+      "name_fr": "Suspensions focales (Îlot & Repas)",
+      "mechanism": "Luminaires suspendus à 750–850 mm au-dessus d'un îlot ou d'une table.",
+      "visual_effect": "Crée un point focal architectural et une bulle d'intimité.",
+      "best_for": ["Îlot de cuisine", "Table salle à manger", "Chevets suspendus"]
+    },
+    {
+      "id": "toe_kick_floating",
+      "name_fr": "Éclairage de plinthe (Effet meuble flottant)",
+      "mechanism": "Ruban LED IP65 en retrait sous le caisson bas dirigé vers le sol.",
+      "visual_effect": "Allège visuellement les volumes lourds (îlots, meubles TV suspendus) et sert de veilleuse nocturne.",
+      "best_for": ["Cuisines modernes", "Meubles TV suspendus", "Salles de bain"]
+    },
+    {
+      "id": "cabinet_display_vertical",
+      "name_fr": "Éclairage intérieur de vitrines & niches",
+      "mechanism": "Profilés verticaux fins intégrés dans les montants (saignée 10×10 mm) ou sous chaque étagère verre.",
+      "visual_effect": "Met en valeur vaisselle, verres, vêtements et objets déco façon showroom.",
+      "best_for": ["Vitrines cuisine", "Dressing Luxe", "Colonnes TV"]
+    },
+    {
+      "id": "tunable_white_circadian",
+      "name_fr": "Éclairage circadien / Tunable White (2700K–6500K)",
+      "mechanism": "Variation automatique de la température de couleur selon l'heure (neutre tonique le matin/préparation, chaud apaisant le soir).",
+      "visual_effect": "Respecte le rythme biologique (mélatonine) et adapte une même cuisine du mode travail au mode dîner.",
+      "best_for": ["Cuisines ouvertes sur salon", "Chambres", "Bureaux"]
+    },
+    {
+      "id": "dim_to_warm",
+      "name_fr": "Dim-to-Warm (3000K → 1800K)",
+      "mechanism": "La lumière devient automatiquement plus chaude (ambrée) lorsqu'on baisse l'intensité au variateur.",
+      "visual_effect": "Reproduit la chaleur naturelle d'une lampe halogène ou d'une bougie en soirée.",
+      "best_for": ["Chambres", "Salons", "Îlots de cuisine le soir"]
+    }
+  ]
+}

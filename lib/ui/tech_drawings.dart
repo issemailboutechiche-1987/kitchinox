@@ -379,6 +379,12 @@ class TechDrawer {
     for (final x in mine) {
       final it = p.byUid(x.uid)!;
       final rr = r(x.s0, x.z0, x.s1, x.z1);
+      if (x.model.isFreeHood) {
+        // hotte libre : un appareil (cheminée et hotte), pas un meuble haut à porte
+        paintFreeHood(c, rr, x.model, s(0, h).dy, k, fill: Colors.white, ink: _ink, strokeWidth: 1.5 * u);
+        _frontSymbols(c, x, rr, k);
+        continue;
+      }
       paintFront(c, rr, x.model,
           fill: Colors.white,
           stroke: _ink,

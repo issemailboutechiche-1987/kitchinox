@@ -68,7 +68,10 @@ class AppSettings extends ChangeNotifier {
   bool shadows3d = true; // ombres de la vue 3D
   bool reflect3d = true; // reflets de la vue 3D
   String rayLight = 'mixte'; // lancer de rayons : soleil, plafonnier ou mixte
-  String hdri = 'studio'; // environnement des reflets : studio, interieur, exterieur (HDRI)
+  String hdri = 'studio_loft'; // environnement des reflets : studio (neutre) ou une HDRI de web/hdri
+  double clip3d = 0; // coupe de la vue 3D (0 : aucune … 1)
+  bool ortho3d = false; // vue 3D orthographique
+  double daylight = 0.7; // lumière du jour de la vue 3D : 1 plein jour, 0 nuit (les luminaires de la pièce s'allument)
 
   /// [deviceLang] : langue de l'appareil (« fr », « en », « ar »), prise au premier lancement.
   void load({String? deviceLang}) {
@@ -88,11 +91,15 @@ class AppSettings extends ChangeNotifier {
       counterYear = (j['year'] as num?)?.toInt() ?? DateTime.now().year;
       sceneBg = j['scene_bg'] as String? ?? 'clair';
       look3d = j['look3d'] as String? ?? 'real';
+      if (look3d == 'ray') look3d = 'real'; // le lancer de rayons ne sert plus qu'aux images finales
+      daylight = ((j['daylight'] as num?)?.toDouble() ?? 0.7).clamp(0.0, 1.0);
+      clip3d = ((j['clip3d'] as num?)?.toDouble() ?? 0).clamp(0.0, 1.0);
+      ortho3d = j['ortho3d'] as bool? ?? false;
       nets3d = j['nets3d'] as bool? ?? false;
       shadows3d = j['shadows3d'] as bool? ?? true;
       reflect3d = j['reflect3d'] as bool? ?? true;
       rayLight = j['ray_light'] as String? ?? 'mixte';
-      hdri = j['hdri'] as String? ?? 'studio';
+      hdri = j['hdri'] as String? ?? 'studio_loft';
       for (final k in DocKind.values) {
         prefix[k] = (j['prefix'] as Map?)?[k.name] as String? ?? k.defaultPrefix;
         next[k] = ((j['next'] as Map?)?[k.name] as num?)?.toInt() ?? 1;
@@ -120,6 +127,9 @@ class AppSettings extends ChangeNotifier {
           'reflect3d': reflect3d,
           'ray_light': rayLight,
           'hdri': hdri,
+          'daylight': daylight,
+          'clip3d': clip3d,
+          'ortho3d': ortho3d,
           'prefix': {for (final e in prefix.entries) e.key.name: e.value},
           'next': {for (final e in next.entries) e.key.name: e.value},
         }));

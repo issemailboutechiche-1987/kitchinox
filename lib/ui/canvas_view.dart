@@ -54,6 +54,14 @@ Offset? _netPos(AppState st, _View v, NetPoint x) {
   return v.toScreen(px, py);
 }
 
+/// Position à l'écran de la poignée de la coupe (null : pas de coupe dans cette vue).
+Offset? _cutHandleOf(AppState st, _View? v) {
+  if (v == null || st.view == ViewMode.view3d) return null;
+  if (v.front) return st.cutH ? v.toScreen(-160, st.cutHeight) : null;
+  if (!st.cutV) return null;
+  return st.cutAxis == 'x' ? v.toScreen(st.cutPos, -220) : v.toScreen(-220, st.cutPos);
+}
+
 double _netRadius(_View v) => v.front ? (v.k * 42).clamp(7.0, 16.0) : (v.k * 30).clamp(5.0, 11.0);
 
 class PlannerCanvas extends StatefulWidget {
@@ -94,6 +102,8 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
   String? _dragUid;
   bool _dragOpening = false;
   String? _dragPoint;
+  bool _dragCut = false; // poignée de la coupe (vue du dessus : verticale ; vue de face : horizontale)
+  double _cutStart = 0;
   // glisser d'un mur : vue figée pendant le geste pour éviter que le plan se recentre sous la souris
   String? _dragWall, _hoverWall;
   (double, double)? _dragIsland;
@@ -472,6 +482,13 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
       _panning = true; // verrou : on navigue seulement (rien ne bouge)
       return;
     }
+    // poignée de la coupe : on la prend avant tout le reste
+    final ch = _cutHandleOf(st, _view);
+    if (ch != null && (d.localPosition - ch).distance < 26) {
+      _dragCut = true;
+      _cutStart = _view!.front ? st.cutHeight : st.cutPos;
+      return;
+    }
     final ob = st.step == PlanStep.summary || st.view != ViewMode.plan ? null : _hitObject(d.localPosition);
     if (ob != null) {
       final o = st.project.objects.firstWhere((x) => x.uid == ob);
@@ -543,6 +560,16 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
   }
 
   void _onPanUpdate(DragUpdateDetails d) {
+    if (_dragCut) {
+      final v = _view!;
+      final delta = d.localPosition - _dragStartLocal!;
+      if (v.front) {
+        st.setCut(height: _cutStart - delta.dy / v.k);
+      } else {
+        st.setCut(pos: _cutStart + (st.cutAxis == 'x' ? delta.dx : delta.dy) / v.k);
+      }
+      return;
+    }
     if (_dragObject != null) {
       final (wx, wy) = _view!.toWorld(d.localPosition);
       st.dragObjectTo(_dragObject!, wx - _objGrab.dx, wy - _objGrab.dy);
@@ -647,6 +674,10 @@ class _PlannerCanvasState extends State<PlannerCanvas> with SingleTickerProvider
   }
 
   void _onPanEnd([DragEndDetails? _]) {
+    if (_dragCut) {
+      _dragCut = false;
+      return;
+    }
     if (_dragObject != null) {
       _dragObject = null;
       st.endDrag();
@@ -1060,8 +1091,10 @@ class _PlannerPainter extends CustomPainter {
       _paintFront(canvas);
     } else {
       _paintPlan(canvas);
+      if (st.ceilingPlan) _paintCeiling(canvas);
     }
     if (view != null && p.networks) _paintNetworks(canvas);
+    if (view != null && cam == null) _paintCut(canvas);
     if (view != null && cam == null && st.guides.isNotEmpty) _paintGuides(canvas, size);
     if (dropActive) canvas.drawRect((Offset.zero & size).deflate(3), _stroke(primary, 3));
   }
@@ -1107,6 +1140,8 @@ class _PlannerPainter extends CustomPainter {
     final rects = v.front ? st.engine.elevation(st.wallId).where((e) => e.onThisWall).toList() : const <ElevationRect>[];
     NetPoint? sel;
     for (final x in p.points) {
+      // vue Plafond : les luminaires sont dessinés par _paintCeiling
+      if (st.ceilingPlan && !v.front && x.onCeiling && x.kind == NetKind.light) continue;
       final o = _netPos(st, v, x);
       if (o == null) continue;
       final behind = v.front && rects.any((e) => x.s > e.s0 && x.s < e.s1 && x.z > e.z0 && x.z < e.z1);
@@ -1142,6 +1177,210 @@ class _PlannerPainter extends CustomPainter {
         _label(canvas, '+${lenValue((sel.z - std.worktopTop))} / plan', o + Offset(0, -r - 14), bg: pc.canvas, style: text);
       }
     }
+  }
+
+  // ================================================================ coupe (vue du dessus, vue de face)
+
+  /// Ligne de coupe : tiretée rouge, poignée, flèches du côté gardé, cote.
+  void _paintCut(Canvas canvas) {
+    final v = view!;
+    final room = p.room;
+    final h = _cutHandleOf(st, v);
+    if (h == null) return;
+    const red = Color(0xFFE5484D);
+    final pen = _stroke(red, 2);
+    Offset a, b;
+    if (v.front) {
+      a = v.toScreen(-160, st.cutHeight);
+      b = v.toScreen(st.project.room.wall(st.wallId).length + 160, st.cutHeight);
+    } else if (st.cutAxis == 'x') {
+      a = v.toScreen(st.cutPos, -220);
+      b = v.toScreen(st.cutPos, room.depth + 220);
+    } else {
+      a = v.toScreen(-220, st.cutPos);
+      b = v.toScreen(room.width + 220, st.cutPos);
+    }
+    _dashed(canvas, a, b, pen);
+    // flèches : côté gardé dans la 3D
+    final dir = v.front ? const Offset(0, 1) : (st.cutAxis == 'x' ? Offset(st.cutFlip ? -1 : 1, 0) : Offset(0, st.cutFlip ? -1 : 1));
+    for (final t in [0.25, 0.75]) {
+      final m = Offset.lerp(a, b, t)!;
+      final tip = m + dir * 26;
+      canvas.drawLine(m, tip, pen);
+      final side = Offset(-dir.dy, dir.dx) * 7;
+      canvas.drawPath(Path()..moveTo(tip.dx + dir.dx * 6, tip.dy + dir.dy * 6)..lineTo(tip.dx + side.dx, tip.dy + side.dy)..lineTo(tip.dx - side.dx, tip.dy - side.dy)..close(), Paint()..color = red);
+    }
+    canvas.drawCircle(h, 13, Paint()..color = red);
+    canvas.drawCircle(h, 13, _stroke(Colors.white, 2));
+    final icon = TextPainter(
+        text: TextSpan(text: String.fromCharCode(Icons.content_cut.codePoint), style: TextStyle(fontFamily: Icons.content_cut.fontFamily, package: Icons.content_cut.fontPackage, fontSize: 15, color: Colors.white)),
+        textDirection: TextDirection.ltr)
+      ..layout();
+    icon.paint(canvas, h - Offset(icon.width / 2, icon.height / 2));
+    _label(canvas, v.front ? 'H ${lenValue(st.cutHeight)}' : lenValue(st.cutPos), h + const Offset(0, 24),
+        bg: red, style: text.copyWith(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11));
+  }
+
+  // ================================================================ plafond (vue du dessus)
+
+  /// Plan du plafond : la pièce voilée ; chaque luminaire calculé (forme selon son type, lumens), la tache
+  /// de lumière qu'il pose sur le plan de travail (faisceau), les rubans LED et un cartouche du calcul.
+  void _paintCeiling(Canvas canvas) {
+    final v = view!;
+    final room = p.room;
+    final plan = planLighting(st.engine);
+    final poly = Path()..addPolygon([for (final (x, y) in room.floorPolygon) v.toScreen(x, y)], true);
+    canvas.drawPath(poly, Paint()..color = Colors.white.withValues(alpha: 0.62));
+    const warm = Color(0xFFF59E0B);
+    const dark = Color(0xFF3F3A33);
+    final ink = _stroke(dark, 1.4);
+    final src = plan.choice.generalSource;
+    final beam = plan.choice.beam;
+    final deg = src.beams.contains(beam) ? beam! : (src.beams.isEmpty ? 120 : src.beams[src.beams.length ~/ 2]);
+    // rubans LED : sous les meubles hauts (bord avant), en corniche
+    final stripPaint = Paint()
+      ..color = warm
+      ..strokeWidth = math.max(2.5, 18 * v.k)
+      ..strokeCap = StrokeCap.round;
+    for (final w in room.walls.where((w) => w.enabled)) {
+      if (plan.strips.any((s) => s.zone == 'kitchen_worktop' && s.wallId == w.id)) {
+        for (final (a, b) in st.engine.runs(w.id, (m) => m.kind.isHigh)) {
+          if (b - a < 400) continue;
+          final (ax, ay) = w.toPlan(a + 30, 260);
+          final (bx, by) = w.toPlan(b - 30, 260);
+          canvas.drawLine(v.toScreen(ax, ay), v.toScreen(bx, by), stripPaint);
+        }
+      }
+      if (plan.strips.any((s) => s.zone == 'cove')) {
+        final (ax, ay) = w.toPlan(60, 80);
+        final (bx, by) = w.toPlan(w.length - 60, 80);
+        _dashed(canvas, v.toScreen(ax, ay), v.toScreen(bx, by), _stroke(warm, 2));
+      }
+    }
+    // les lumières : celles posées au plafond (réseaux affichés), chacune avec ses réglages ; sinon le calcul
+    final ch = plan.choice;
+    final placed = [for (final x in p.points) if (x.kind == NetKind.light && x.onCeiling && !x.hidden) x];
+    final lights = <(String? uid, double x, double y, String kind, int lm, int cct, int? beam, double len, int heads, bool alongY)>[
+      if (p.networks && placed.isNotEmpty)
+        for (final x in placed)
+          () {
+            final pl = pointLightOf(ch, fix: x.fix, power: x.power, cct: x.cct, beam: x.beam);
+            final sp = plan.spots.where((q) => (q.x - x.s).abs() < 60 && (q.y - x.z).abs() < 60).firstOrNull;
+            return (x.uid, x.s, x.z, pl.source.shape, sp?.lumens ?? pl.lumens, pl.cct, pl.beam, sp?.length ?? 1200.0, sp?.heads ?? 1, sp?.alongY ?? false);
+          }()
+      else
+        for (final q in plan.spots) (null, q.x, q.y, q.kind, q.lumens, q.cct, deg, q.length, q.heads, q.alongY),
+    ];
+    // taches de lumière au niveau du plan de travail (faisceau du luminaire)
+    final drop = math.max(300.0, room.height - 900);
+    for (final l in lights) {
+      final r = math.min(1400.0, drop * math.tan((l.$7 ?? 120) / 2 * math.pi / 180));
+      final c = Color(0xFF000000 | cctColor(l.$6));
+      for (var i = 0; i < l.$9; i++) {
+        final t = l.$9 == 1 ? 0.0 : -l.$8 / 2 + 150 + (l.$8 - 300) * i / (l.$9 - 1);
+        final o = v.toScreen(l.$2 + (l.$10 ? 0 : t), l.$3 + (l.$10 ? t : 0));
+        canvas.drawCircle(
+            o,
+            r * v.k,
+            Paint()
+              ..shader = RadialGradient(colors: [c.withValues(alpha: 0.55), c.withValues(alpha: 0)])
+                  .createShader(Rect.fromCircle(center: o, radius: r * v.k)));
+      }
+    }
+    // luminaires
+    for (final l in lights) {
+      final o = v.toScreen(l.$2, l.$3);
+      final fill = Paint()..color = Color(0xFF000000 | cctColor(l.$6));
+      final r = math.max(6.0, 60 * v.k);
+      final sel = l.$1 != null && st.selectedPoint == l.$1;
+      if (sel || (l.$1 != null && hover == l.$1)) {
+        canvas.drawCircle(o, math.max(r, 14) + 7, Paint()..color = pc.selected.withValues(alpha: sel ? 0.22 : 0.12));
+        canvas.drawCircle(o, math.max(r, 14) + 7, _stroke(pc.selected, sel ? 2.4 : 1.2));
+      }
+      switch (l.$4) {
+        case 'panel':
+          final rr = Rect.fromCenter(center: o, width: 600 * v.k, height: 600 * v.k);
+          canvas.drawRect(rr, fill);
+          canvas.drawRect(rr, ink);
+          canvas.drawLine(rr.topLeft, rr.bottomRight, ink);
+          canvas.drawLine(rr.topRight, rr.bottomLeft, ink);
+        case 'ceiling':
+          canvas.drawCircle(o, math.max(10, 200 * v.k), fill);
+          canvas.drawCircle(o, math.max(10, 200 * v.k), ink);
+        case 'linear':
+          final rr = RRect.fromRectAndRadius(Rect.fromCenter(center: o, width: l.$8 * v.k, height: math.max(6, 60 * v.k)), const Radius.circular(3));
+          canvas.drawRRect(rr, fill);
+          canvas.drawRRect(rr, ink);
+        case 'pendant':
+          canvas.drawCircle(o, math.max(8, 160 * v.k), fill);
+          canvas.drawCircle(o, math.max(8, 160 * v.k), ink);
+          canvas.drawCircle(o, 2.5, Paint()..color = dark);
+        case 'darklight':
+          canvas.drawCircle(o, r, Paint()..color = const Color(0xFF1D1F22));
+          canvas.drawCircle(o, r * 0.4, fill);
+        case 'track':
+        case 'magnetic':
+          // rail continu et ses projecteurs
+          final half = (l.$8 / 2) * v.k;
+          final axis = l.$10 ? const Offset(0, 1) : const Offset(1, 0);
+          canvas.drawLine(o - axis * half, o + axis * half, _stroke(const Color(0xFF1D1F22), math.max(3, 26 * v.k)));
+          for (var i = 0; i < l.$9; i++) {
+            final t = l.$9 == 1 ? 0.0 : -l.$8 / 2 + 150 + (l.$8 - 300) * i / (l.$9 - 1);
+            final h = o + axis * (t * v.k);
+            canvas.drawCircle(h, r * 0.75, fill);
+            canvas.drawCircle(h, r * 0.75, ink);
+          }
+        default:
+          // spot : cercle et croix (symbole d'éclairage)
+          canvas.drawCircle(o, r, fill);
+          canvas.drawCircle(o, r, ink);
+          final d = r * 0.7;
+          canvas.drawLine(o - Offset(d, d), o + Offset(d, d), ink);
+          canvas.drawLine(o - Offset(-d, d), o + Offset(-d, d), ink);
+      }
+      _label(canvas, '${l.$5} lm', o + Offset(0, math.max(r, 14) + 9),
+          style: text.copyWith(fontSize: 10, fontWeight: FontWeight.w700, color: dark), bg: Colors.white.withValues(alpha: 0.85));
+    }
+    // lumière choisie : cotes jusqu'aux deux murs les plus proches et jusqu'à la lumière voisine
+    final selL = lights.where((l) => l.$1 != null && l.$1 == st.selectedPoint).firstOrNull;
+    if (selL != null) {
+      final (x, y) = (selL.$2, selL.$3);
+      final o = v.toScreen(x, y);
+      final dp = _stroke(pc.selected, 1.3);
+      final lab = text.copyWith(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11);
+      final toLeft = x <= room.width - x;
+      final xe = toLeft ? 0.0 : room.width;
+      _dashed(canvas, o, v.toScreen(xe, y), dp);
+      _label(canvas, lenValue((x - xe).abs()), Offset.lerp(o, v.toScreen(xe, y), 0.5)! - const Offset(0, 11), bg: pc.selected, style: lab);
+      final toTop = y <= room.depth - y;
+      final ye = toTop ? 0.0 : room.depth;
+      _dashed(canvas, o, v.toScreen(x, ye), dp);
+      _label(canvas, lenValue((y - ye).abs()), Offset.lerp(o, v.toScreen(x, ye), 0.5)! + const Offset(30, 0), bg: pc.selected, style: lab);
+      final others = [for (final l in lights) if (l.$1 != selL.$1) l];
+      if (others.isNotEmpty) {
+        others.sort((a, b) => (math.pow(a.$2 - x, 2) + math.pow(a.$3 - y, 2)).compareTo(math.pow(b.$2 - x, 2) + math.pow(b.$3 - y, 2)));
+        final n = others.first;
+        final on = v.toScreen(n.$2, n.$3);
+        _dashed(canvas, o, on, _stroke(dark, 1));
+        _label(canvas, lenValue(math.sqrt(math.pow(n.$2 - x, 2) + math.pow(n.$3 - y, 2))), Offset.lerp(o, on, 0.5)!,
+            bg: Colors.white, style: text.copyWith(fontSize: 10, color: dark, fontWeight: FontWeight.w700));
+      }
+    }
+    // cartouche : ce qui est prévu et si la norme est tenue
+    final g = plan.zones.first;
+    final lines = [
+      '${tr('Plafond')} · ${g.setup.fill(tr)}',
+      '${trp('{0} / {1} lm', [g.lumensPlanned, g.lumensNeeded])}${g.ok ? '  ✓' : '  ⚠'}',
+      trp('Total : {0} lm · {1} W', [plan.totalLumens, plan.totalWatts.round()]),
+    ];
+    final xs = room.floorPolygon.map((q) => q.$1), ys = room.floorPolygon.map((q) => q.$2);
+    final tl = v.toScreen(xs.reduce(math.min), ys.reduce(math.min)) + const Offset(10, 10);
+    final tp = TextPainter(text: TextSpan(text: lines.join('\n'), style: text.copyWith(fontSize: 11, color: dark, height: 1.35)), textDirection: TextDirection.ltr)
+      ..layout(maxWidth: 360);
+    final box = (tl & tp.size).inflate(8);
+    canvas.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(8)), Paint()..color = Colors.white.withValues(alpha: 0.92));
+    canvas.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(8)), _stroke(warm, 1.2));
+    tp.paint(canvas, tl);
   }
 
   // ================================================================ vue du dessus
@@ -1851,26 +2090,7 @@ class _PlannerPainter extends CustomPainter {
       final fr = frontOfItem(p.style, it, r.model);
       // hotte posée librement : un appareil (cheminée et hotte), sans porte
       if (r.model.isFreeHood) {
-        final glass = r.model.id.contains('inclined');
-        final body = Paint()..color = glass ? const Color(0xFF1F2124) : const Color(0xFFBFC4C8);
-        final ink = _stroke(const Color(0xFF4A4F55), 1);
-        final hoodH = math.min(rr.height, 420 * v.k);
-        final chimney = Rect.fromLTRB(rr.center.dx - rr.width * 0.17, v.rect(0, 0, 0, p.room.height - 10).top, rr.center.dx + rr.width * 0.17, rr.bottom - hoodH);
-        canvas.drawRect(chimney, Paint()..color = const Color(0xFFBFC4C8));
-        canvas.drawRect(chimney, ink);
-        final canopy = r.model.id.contains('box')
-            ? (Path()..addRect(Rect.fromLTRB(rr.left, rr.bottom - hoodH * 0.45, rr.right, rr.bottom)))
-            : (Path()
-              ..moveTo(chimney.left, chimney.bottom)
-              ..lineTo(chimney.right, chimney.bottom)
-              ..lineTo(rr.right, rr.bottom - hoodH * 0.18)
-              ..lineTo(rr.right, rr.bottom)
-              ..lineTo(rr.left, rr.bottom)
-              ..lineTo(rr.left, rr.bottom - hoodH * 0.18)
-              ..close());
-        if (r.model.id.contains('box')) canvas.drawRect(Rect.fromLTRB(chimney.left, chimney.bottom, chimney.right, rr.bottom - hoodH * 0.45), Paint()..color = const Color(0xFFBFC4C8));
-        canvas.drawPath(canopy, body);
-        canvas.drawPath(canopy, ink);
+        paintFreeHood(canvas, rr, r.model, v.rect(0, 0, 0, p.room.height - 10).top, v.k);
         if (sel) canvas.drawRect(rr.inflate(2), _stroke(pc.selected, 2.2));
         continue;
       }

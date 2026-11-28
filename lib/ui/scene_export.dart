@@ -101,6 +101,9 @@ class SceneExporter {
   final Set<String> _sent = {}; // déjà envoyées au navigateur
 
   /// Images rendues pendant la dernière construction et pas encore envoyées.
+  /// La vue 3D a été rechargée (elle a tout perdu) : toutes les images seront renvoyées.
+  void forgetSent() => _sent.clear();
+
   List<SceneImage> takeNewImages() {
     final out = [for (final e in _images.entries) if (!_sent.contains(e.key)) e.value];
     _sent.addAll(out.map((x) => x.key));
@@ -835,6 +838,9 @@ class SceneExporter {
       }
     }
 
+    // lumens de chaque point lumineux du plafond (calcul selon les normes) : la nuit, chacun éclaire d'autant
+    final lightSpots = p.networks ? planLighting(e).spots : const <LightSpot>[];
+    LightSpot? spotAt(double x, double y) => lightSpots.where((sp) => (sp.x - x).abs() < 60 && (sp.y - y).abs() < 60).firstOrNull;
     return {
       'room': {'w': room.width, 'd': room.depth, 'h': room.height},
       if (room.outline != null) 'floorPoly': [for (final (x, y) in room.floorPolygon) [x, y]],
@@ -844,8 +850,16 @@ class SceneExporter {
       'look': AppSettings.instance.look3d,
       'shadows': AppSettings.instance.shadows3d,
       'reflect': AppSettings.instance.reflect3d,
-      'rayLight': AppSettings.instance.rayLight,
+      'rayLight': 'mixte', // rendu photo : toujours soleil par les fenêtres et plafonnier (plus de choix à faire)
       'hdri': AppSettings.instance.hdri,
+      'daylight': AppSettings.instance.daylight,
+      'clip': 0.0,
+      if (st.studio.isEmpty && (st.cutV || st.cutH))
+        'section': {
+          if (st.cutV) 'v': {'axis': st.cutAxis, 'pos': st.cutPos, 'flip': st.cutFlip},
+          if (st.cutH) 'h': st.cutHeight,
+        },
+      'ortho': AppSettings.instance.ortho3d,
       if (AppSettings.instance.nets3d && p.networks && st.studio.isEmpty)
         'nets3d': netsSceneData(p),
       'studioDir': _studioDir(e),
@@ -874,6 +888,8 @@ class SceneExporter {
             'yaw': ob.isFixture ? 0 : st.objectCatalog.where((c) => c.id == ob.ref).firstOrNull?.yaw ?? 0,
             'x': ob.x, 'y': ob.y, 'z': ob.z, 'rot': ob.rot, 'w': ob.w, 'h': ob.h, 'd': ob.d,
             if (ob.ref.startsWith('lib:')) 'panels': ArtLibrary.instance.panelsFor(ob, artColor),
+            // luminaire (objets « Éclairage ») : il éclaire la pièce la nuit
+            if (!ob.isFixture && st.objectCatalog.where((c) => c.id == ob.ref).firstOrNull?.category == 'Éclairage') 'lamp': lampOf(ob.ref),
           },
         // décor du rendu (petits appareils, plantes, rideaux…), montré ou caché
         if (st.studio.isEmpty ? style.showDecor : st.studio == 'decor')
@@ -926,7 +942,20 @@ class SceneExporter {
               for (final x in visiblePoints(p))
                 if (!_hiddenIn3d(p, x))
                 if (x.onCeiling)
-                  {'uid': x.uid, 'kind': x.kind.name, 'x': x.s, 'y': x.z, 'z': room.height, 'dx': 1.0, 'dy': 0.0, 'nx': 0.0, 'ny': 0.0, 'ceiling': true}
+                  {'uid': x.uid, 'kind': x.kind.name, 'x': x.s, 'y': x.z, 'z': room.height, 'dx': 1.0, 'dy': 0.0, 'nx': 0.0, 'ny': 0.0, 'ceiling': true,
+                    if (x.kind == NetKind.light) ...() {
+                      // luminaire choisi au menu Plafond : forme, flux, couleur de la lumière
+                      final sp = spotAt(x.s, x.z);
+                      final pl = pointLightOf(p.specs.lighting, fix: x.fix ?? sp?.source, power: x.power, cct: x.cct, beam: x.beam);
+                      return {
+                        'lm': x.fix != null || x.power != null ? pl.lumens : sp?.lumens ?? pl.lumens,
+                        'fix': x.fix != null ? pl.source.shape : sp?.kind ?? pl.source.shape,
+                        'cct': x.cct ?? sp?.cct ?? pl.cct,
+                        if ((sp?.length ?? 0) > 0) 'len': sp!.length,
+                        if ((sp?.heads ?? 1) > 1) 'heads': sp!.heads,
+                        if (sp?.alongY ?? false) 'alongY': true,
+                      };
+                    }()}
                 else if (x.wallId == 'I' ? room.island != null : room.order.contains(x.wallId))
                   () {
                     final w = room.wall(x.wallId);
@@ -991,4 +1020,20 @@ bool _hiddenIn3d(Project p, NetPoint x) {
   if (x.onCeiling || x.wallId == 'I') return false;
   if (x.use == existingUse) return p.points.any((y) => y.auto && y.kind.network == x.kind.network && y.forUid != null);
   return x.kind.network != 'elec' && x.kind.network != 'data' && concealedInFrame(p.room, p.objects, x.wallId, x.s, x.z);
+}
+
+/// Lumière d'un luminaire du catalogue : hauteur d'où part la lumière (0 bas, 1 haut du modèle), recul
+/// devant le mur (appliques), flux en lumens, température.
+Map<String, Object> lampOf(String id) {
+  final (at, lm, front) = switch (id) {
+    'ph_Chandelier_01' || 'ph_Chandelier_02' || 'ph_Chandelier_03' || 'ph_lantern_chandelier_01' => (0.35, 1800, 0.5),
+    'ph_caged_hanging_light' => (0.12, 1400, 0.5),
+    'ph_hanging_industrial_lamp' || 'ph_modern_ceiling_lamp_01' => (0.06, 1000, 0.5),
+    'ph_pull_chain_light_socket' => (0.0, 700, 0.5),
+    'ph_lightbulb_01' => (0.6, 450, 0.5),
+    'ph_lightbulb_led' => (0.6, 800, 0.5),
+    'ph_industrial_wall_sconce' || 'ph_industrial_wall_lamp' => (0.5, 600, 0.75),
+    _ => (0.55, 500, 0.5), // lampes à poser, lanternes
+  };
+  return {'at': at, 'lm': lm, 'front': front, 'cct': 2700};
 }

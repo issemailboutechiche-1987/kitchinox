@@ -41,6 +41,8 @@ const fronts = [
   Finish('ocre', 'Ocre', Color(0xFFC79A4B)),
   Finish('argile', 'Argile', Color(0xFFB0705A)),
   Finish('prune', 'Prune', Color(0xFF5B3A46)),
+  Finish('lavande', 'Lavande', Color(0xFFB9AFCB)),
+  Finish('rouge_carmin', 'Rouge carmin', Color(0xFFB3262A)),
   Finish('anthracite', 'Anthracite', Color(0xFF3B3E42)),
   Finish('noir_mat', 'Noir mat', Color(0xFF232325)),
   Finish('chene', 'Chêne naturel', Color(0xFFCDA77D), grain: Color(0xFFB8905F), tex: 'wood_oak', tile: 900),

@@ -21,7 +21,10 @@ import 'fronts.dart';
 import 'net_symbols.dart';
 import 'openings_ui.dart';
 import 'brands_ui.dart';
+import 'fixture_thumbs.dart';
 import 'kx_choices.dart';
+import 'kx_section.dart';
+import 'lighting_thumbs.dart';
 import 'presentation_bar.dart';
 import 'theme.dart';
 import 'textures.dart';
@@ -484,33 +487,39 @@ class StylePanel extends StatelessWidget {
     final st = state.project.style;
     final t = Theme.of(context).textTheme;
     Widget swatches(List<Finish> list, String current, void Function(String) on) => Wrap(
-      spacing: Tokens.s3,
-      runSpacing: Tokens.s3,
+      spacing: Tokens.s2,
+      runSpacing: Tokens.s2,
       children: [for (final f in list) _Swatch(finish: f, selected: f.id == current, onTap: () => on(f.id))],
     );
     final split = st.frontUpper != null || st.frontLower != null;
     final hasHigh = state.project.items.any((c) => state.engine.modelOf(c).kind.isHigh);
     final perItem = state.project.items.where((c) => c.front != null).length;
+    final curProfile = state.profileScope == 'tout' ? st.frontProfile : (st.profileByZone[state.profileScope] ?? st.frontProfile);
+    final curFront = frontFinish(st, st.frontLower ?? st.front);
     Widget frontsBody() => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(tr('Modèle de façade'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: Tokens.s2),
+        KxSection(
+          key: const ValueKey('sec_profile'),
+          initiallyOpen: true,
+          title: tr('Modèle de façade'),
+          value: tr(frontProfiles[curProfile]?.$1 ?? curProfile),
+          leading: CustomPaint(painter: _ProfilePainter(state.catalog, curFront, curProfile)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // portée : toute la cuisine, ou seulement les hauts, les bas, les colonnes (chaque meuble se règle dans sa fiche)
-        Wrap(spacing: 6, runSpacing: 6, children: [
-          for (final (k, label) in [
-            ('tout', state.engine.kitchen ? 'Partout' : 'Tout le projet'),
-            if (hasHigh) ('haut', 'Meubles hauts'),
-            ('bas', 'Meubles bas'),
-            if (state.project.items.any((c) => KitchenStyle.profileZone(state.engine.modelOf(c).kind) == 'colonne')) ('colonne', 'Colonnes'),
-          ])
-            ChoiceChip(
-              key: ValueKey('profile_scope_$k'),
-              label: Text(tr(label) + (k != 'tout' && st.profileByZone.containsKey(k) ? ' •' : '')),
-              selected: state.profileScope == k,
-              onSelected: (_) => state.setProfileScope(k),
-            ),
-        ]),
+        KxChoices<String>(
+          segments: [
+            for (final (k, label) in [
+              ('tout', state.engine.kitchen ? 'Partout' : 'Tout le projet'),
+              if (hasHigh) ('haut', 'Meubles hauts'),
+              ('bas', 'Meubles bas'),
+              if (state.project.items.any((c) => KitchenStyle.profileZone(state.engine.modelOf(c).kind) == 'colonne')) ('colonne', 'Colonnes'),
+            ])
+              ButtonSegment(value: k, label: Text(tr(label) + (k != 'tout' && st.profileByZone.containsKey(k) ? ' •' : ''))),
+          ],
+          selected: {state.profileScope},
+          onSelectionChanged: (v) => state.setProfileScope(v.first),
+        ),
         if (state.project.items.any((c) => c.profile != null)) ...[
           const SizedBox(height: 4),
           Text(trp('{0} meuble(s) ont leur propre modèle (dans leur fiche)', [state.project.items.where((c) => c.profile != null).length]), style: t.bodySmall),
@@ -542,9 +551,17 @@ class StylePanel extends StatelessWidget {
               );
             }(),
         ]),
-        const SizedBox(height: Tokens.s4),
-        Text(tr('Couleur'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: Tokens.s2),
+          ]),
+        ),
+        KxSection(
+          key: const ValueKey('sec_front_color'),
+          initiallyOpen: true,
+          title: tr('Couleur'),
+          value: split
+              ? '${tr(frontFinish(st, st.frontUpper ?? st.front).name)} / ${tr(frontFinish(st, st.frontLower ?? st.front).name)}'
+              : tr(frontFinish(st, st.front).name),
+          leading: CustomPaint(painter: _GrainPainter(curFront)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (state.engine.kitchen || hasHigh)
         KxChoices<bool>(
           showSelectedIcon: false,
@@ -556,6 +573,7 @@ class StylePanel extends StatelessWidget {
           onSelectionChanged: (v) => v.first ? state.setFrontScope(upper: st.front, lower: st.front) : state.setFrontScope(clearUpper: true, clearLower: true),
         ),
         const SizedBox(height: Tokens.s4),
+        const SizedBox(height: Tokens.s2),
         if (!split)
           swatches(frontFinishes(st), st.front, (v) => state.setStyle(front: v))
         else if (!state.engine.kitchen && !hasHigh)
@@ -573,10 +591,14 @@ class StylePanel extends StatelessWidget {
           const SizedBox(height: Tokens.s2),
           swatches(frontFinishes(st), st.frontLower ?? st.front, (v) => state.setFrontScope(lower: v)),
         ],
-        if (state.project.room.island != null) ...[
-          const SizedBox(height: Tokens.s4),
-          Text(tr('Îlot'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-          const SizedBox(height: Tokens.s2),
+          ]),
+        ),
+        if (state.project.room.island != null)
+          KxSection(
+            title: tr('Îlot'),
+            value: st.islandFront == null ? tr('Comme les bas') : tr(frontFinish(st, st.islandFront!).name),
+            leading: st.islandFront == null ? null : CustomPaint(painter: _GrainPainter(frontFinish(st, st.islandFront!))),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           KxChoices<bool>(
             key: const ValueKey('island_front_mode'),
             segments: [ButtonSegment(value: false, label: Text(tr('Comme les bas'))), ButtonSegment(value: true, label: Text(tr('Sa propre couleur')))],
@@ -584,8 +606,9 @@ class StylePanel extends StatelessWidget {
             onSelectionChanged: (v) => state.edit(() => st.islandFront = v.first ? (st.frontLower ?? st.front) : null),
           ),
           if (st.islandFront != null) ...[const SizedBox(height: Tokens.s2), swatches(frontFinishes(st), st.islandFront!, (v) => state.edit(() => st.islandFront = v))],
-        ],
-        const SizedBox(height: Tokens.s3),
+            ]),
+          ),
+        const SizedBox(height: Tokens.s2),
         Text(
           perItem == 0
               ? tr('Astuce : cliquez un meuble pour lui donner sa propre façade (fiche de l’élément).')
@@ -593,8 +616,8 @@ class StylePanel extends StatelessWidget {
           style: t.bodySmall,
         ),
         if (perItem > 0) TextButton.icon(onPressed: state.clearItemFronts, icon: const Icon(Icons.restart_alt), label: Text(tr('Tout aligner sur le style'))),
-        const SizedBox(height: Tokens.s4),
-        _TextureLibrary(state: state, target: 'front'),
+        const SizedBox(height: Tokens.s2),
+        KxSection(title: tr('Mes textures'), value: tr('Importer la photo d’un échantillon'), child: _TextureLibrary(state: state, target: 'front')),
       ],
     );
     final (title, body) = switch (section) {
@@ -605,149 +628,126 @@ class StylePanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (state.db == null) swatches(worktopFinishes(st), st.worktop, (v) => state.setStyle(worktop: v)) else _WorktopMaterialForm(state: state),
-            const SizedBox(height: Tokens.s4),
-            _TextureLibrary(state: state, target: 'worktop'),
+            const SizedBox(height: Tokens.s3),
+            KxSection(title: tr('Mes textures'), value: tr('Importer la photo d’un échantillon'), child: _TextureLibrary(state: state, target: 'worktop')),
             if (KitchenFixtures.sinks.isNotEmpty) ...[
-              const SizedBox(height: Tokens.s4),
-              Text(tr('Évier'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: Tokens.s2),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final s in KitchenFixtures.sinks)
-                    ChoiceChip(
-                      label: Text(trp('{0} · {1}×{2}', [tr(s.name), s.length, s.depth])),
-                      selected: KitchenFixtures.sink(st.sink).id == s.id,
-                      onSelected: (_) => state.edit(() => st.sink = s.id),
+              const SizedBox(height: Tokens.s3),
+              // ---- évier
+              () {
+                final sink = KitchenFixtures.sink(st.sink);
+                final mount = sink.mounting.contains(st.sinkMount) ? st.sinkMount : sink.mounting.first;
+                return KxSection(
+                  key: const ValueKey('sec_sink'),
+                  title: tr('Évier'),
+                  value: '${tr(sink.name)} · ${tr(_sinkFinishes[st.sinkFinish] ?? '')} · ${tr(mount == 'inset' ? 'À encastrer' : 'Sous plan')}',
+                  leading: SinkThumb(sink, st.sinkFinish),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    KxCarousel<String>(
+                      items: [for (final s in KitchenFixtures.sinks) (s.id, '${tr(s.name)}\n${s.length}×${s.depth}', SinkThumb(s, st.sinkFinish))],
+                      selected: sink.id,
+                      onSelected: (v) => state.edit(() => st.sink = v),
                     ),
-                ],
-              ),
-              const SizedBox(height: Tokens.s2),
-              KxChoices<String>(
-                showSelectedIcon: false,
-                segments: [
-                  if (KitchenFixtures.sink(st.sink).mounting.contains('inset')) ButtonSegment(value: 'inset', label: Text(tr('À encastrer'))),
-                  if (KitchenFixtures.sink(st.sink).mounting.contains('undermount')) ButtonSegment(value: 'undermount', label: Text(tr('Sous plan'))),
-                ],
-                selected: {KitchenFixtures.sink(st.sink).mounting.contains(st.sinkMount) ? st.sinkMount : KitchenFixtures.sink(st.sink).mounting.first},
-                onSelectionChanged: (v) => state.edit(() => st.sinkMount = v.first),
-              ),
-              const SizedBox(height: Tokens.s3),
-              Text(tr('Finition de l’évier'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: Tokens.s2),
-              KxChoices<String>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(value: 'inox', label: Text(tr('Inox brossé'))),
-                  ButtonSegment(value: 'noir_quartz', label: Text(tr('Noir quartz'))),
-                  ButtonSegment(value: 'blanc_ceramique', label: Text(tr('Blanc céramique'))),
-                ],
-                selected: {st.sinkFinish},
-                onSelectionChanged: (v) => state.edit(() => st.sinkFinish = v.first),
-              ),
-              const SizedBox(height: Tokens.s4),
-              Text(tr('Mitigeur'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: Tokens.s2),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final f in KitchenFixtures.faucets)
-                    ChoiceChip(
-                      label: Text(trp('{0} · H {1}', [tr(f.name), f.height])),
-                      selected: KitchenFixtures.faucet(st.faucet).id == f.id,
-                      onSelected: (_) => state.edit(() => st.faucet = f.id),
+                    KxLabel(tr('Pose')),
+                    KxChoices<String>(
+                      segments: [
+                        if (sink.mounting.contains('inset')) ButtonSegment(value: 'inset', label: Text(tr('À encastrer'))),
+                        if (sink.mounting.contains('undermount')) ButtonSegment(value: 'undermount', label: Text(tr('Sous plan'))),
+                      ],
+                      selected: {mount},
+                      onSelectionChanged: (v) => state.edit(() => st.sinkMount = v.first),
                     ),
-                ],
-              ),
-              const SizedBox(height: Tokens.s3),
-              Text(tr('Finition de la robinetterie'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: Tokens.s2),
-              KxChoices<String>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(value: 'chrome', label: Text(tr('Chrome poli'))),
-                  ButtonSegment(value: 'noir_mat', label: Text(tr('Noir mat'))),
-                  ButtonSegment(value: 'or_brosse', label: Text(tr('Laiton doré'))),
-                  ButtonSegment(value: 'inox_brosse', label: Text(tr('Inox brossé'))),
-                ],
-                selected: {st.faucetFinish},
-                onSelectionChanged: (v) => state.edit(() => st.faucetFinish = v.first),
-              ),
-              const SizedBox(height: Tokens.s3),
-              Text(tr('Style de levier du mitigeur'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: Tokens.s2),
-              KxChoices<String>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(value: 'side_pin', label: Text(tr('Manette fine'))),
-                  ButtonSegment(value: 'side_flat', label: Text(tr('Palette plate'))),
-                  ButtonSegment(value: 'top_lever', label: Text(tr('Levier haut'))),
-                  ButtonSegment(value: 'retro_cross', label: Text(tr('Croisillons'))),
-                ],
-                selected: {st.faucetLever},
-                onSelectionChanged: (v) => state.edit(() => st.faucetLever = v.first),
-              ),
+                    KxLabel(tr('Finition')),
+                    KxChoices<String>(
+                      segments: [
+                        for (final e in _sinkFinishes.entries)
+                          ButtonSegment(value: e.key, label: Text(tr(e.value)), icon: _dot(sinkColor(e.key))),
+                      ],
+                      selected: {st.sinkFinish},
+                      onSelectionChanged: (v) => state.edit(() => st.sinkFinish = v.first),
+                    ),
+                  ]),
+                );
+              }(),
+              // ---- robinetterie
+              () {
+                final tap = KitchenFixtures.faucet(st.faucet);
+                return KxSection(
+                  key: const ValueKey('sec_tap'),
+                  title: tr('Mitigeur'),
+                  value: '${tr(tap.name)} · ${tr(_tapFinishes[st.faucetFinish] ?? '')} · ${tr(_levers[st.faucetLever] ?? '')}',
+                  leading: FaucetThumb(tap, st.faucetFinish),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    KxCarousel<String>(
+                      items: [for (final f in KitchenFixtures.faucets) (f.id, '${tr(f.name)}\nH ${f.height}', FaucetThumb(f, st.faucetFinish))],
+                      selected: tap.id,
+                      onSelected: (v) => state.edit(() => st.faucet = v),
+                    ),
+                    KxLabel(tr('Finition')),
+                    KxChoices<String>(
+                      segments: [
+                        for (final e in _tapFinishes.entries) ButtonSegment(value: e.key, label: Text(tr(e.value)), icon: _dot(tapColor(e.key))),
+                      ],
+                      selected: {st.faucetFinish},
+                      onSelectionChanged: (v) => state.edit(() => st.faucetFinish = v.first),
+                    ),
+                    KxLabel(tr('Manette')),
+                    KxChoices<String>(
+                      segments: [for (final e in _levers.entries) ButtonSegment(value: e.key, label: Text(tr(e.value)))],
+                      selected: {st.faucetLever},
+                      onSelectionChanged: (v) => state.edit(() => st.faucetLever = v.first),
+                    ),
+                  ]),
+                );
+              }(),
               if (state.engine.kitchen) ...[
-              const SizedBox(height: Tokens.s4),
-              Text(tr('Plaque de cuisson'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: Tokens.s2),
-              KxChoices<String>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(value: 'induction', label: Text(tr('Induction'))),
-                  ButtonSegment(value: 'gaz', label: Text(tr('Gaz (grilles fonte)'))),
-                  ButtonSegment(value: 'vitro', label: Text(tr('Vitrocéramique'))),
-                ],
-                selected: {st.hobType},
-                onSelectionChanged: (v) => state.edit(() => st.hobType = v.first),
-              ),
-              const SizedBox(height: Tokens.s3),
-              Text(tr('Largeur de la plaque'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: Tokens.s2),
-              KxChoices<int>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(value: 0, label: Text(tr('Auto'))),
-                  ButtonSegment(value: 60, label: Text('60 cm')),
-                  ButtonSegment(value: 80, label: Text('80 cm')),
-                  ButtonSegment(value: 90, label: Text('90 cm')),
-                ],
-                selected: {st.hobWidth},
-                onSelectionChanged: (v) => state.edit(() => st.hobWidth = v.first),
-              ),
-              const SizedBox(height: Tokens.s4),
-              Text(tr('Four encastrable'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: Tokens.s2),
-              Text(tr('Finition'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(height: Tokens.s1),
-              KxChoices<String>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(value: 'black_inox', label: Text(tr('Inox & Verre noir'))),
-                  ButtonSegment(value: 'inox_brosse', label: Text(tr('Inox brossé'))),
-                  ButtonSegment(value: 'full_black', label: Text(tr('Full Black'))),
-                  ButtonSegment(value: 'blanc', label: Text(tr('Blanc'))),
-                  ButtonSegment(value: 'black_gold', label: Text(tr('Noir & Or'))),
-                ],
-                selected: {st.ovenFinish},
-                onSelectionChanged: (v) => state.edit(() => st.ovenFinish = v.first),
-              ),
-              const SizedBox(height: Tokens.s3),
-              Text(tr('Poignée / Levier de four'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(height: Tokens.s1),
-              KxChoices<String>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(value: 'bar', label: Text(tr('Barre ronde'))),
-                  ButtonSegment(value: 'square', label: Text(tr('Profilé carré'))),
-                  ButtonSegment(value: 'retro', label: Text(tr('Cintrée classique'))),
-                  ButtonSegment(value: 'integrated', label: Text(tr('Intégrée'))),
-                ],
-                selected: {st.ovenHandle},
-                onSelectionChanged: (v) => state.edit(() => st.ovenHandle = v.first),
-              ),
+                // ---- cuisson
+                KxSection(
+                  key: const ValueKey('sec_hob'),
+                  title: tr('Plaque de cuisson'),
+                  value: '${tr(_hobs[st.hobType] ?? '')} · ${st.hobWidth == 0 ? tr('largeur auto') : '${st.hobWidth} cm'}',
+                  leading: HobThumb(st.hobType),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    KxCarousel<String>(
+                      width: 104,
+                      items: [for (final e in _hobs.entries) (e.key, tr(e.value), HobThumb(e.key))],
+                      selected: st.hobType,
+                      onSelected: (v) => state.edit(() => st.hobType = v),
+                    ),
+                    KxLabel(tr('Largeur')),
+                    KxChoices<int>(
+                      segments: [
+                        ButtonSegment(value: 0, label: Text(tr('Auto'))),
+                        const ButtonSegment(value: 60, label: Text('60 cm')),
+                        const ButtonSegment(value: 80, label: Text('80 cm')),
+                        const ButtonSegment(value: 90, label: Text('90 cm')),
+                      ],
+                      selected: {st.hobWidth},
+                      onSelectionChanged: (v) => state.edit(() => st.hobWidth = v.first),
+                    ),
+                  ]),
+                ),
+                // ---- four
+                KxSection(
+                  key: const ValueKey('sec_oven'),
+                  title: tr('Four encastrable'),
+                  value: '${tr(_ovens[st.ovenFinish] ?? '')} · ${tr(_ovenHandles[st.ovenHandle] ?? '')}',
+                  leading: OvenThumb(st.ovenFinish, st.ovenHandle),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    KxCarousel<String>(
+                      width: 96,
+                      items: [for (final e in _ovens.entries) (e.key, tr(e.value), OvenThumb(e.key, st.ovenHandle))],
+                      selected: st.ovenFinish,
+                      onSelected: (v) => state.edit(() => st.ovenFinish = v),
+                    ),
+                    KxLabel(tr('Poignée')),
+                    KxCarousel<String>(
+                      width: 96,
+                      items: [for (final e in _ovenHandles.entries) (e.key, tr(e.value), OvenThumb(st.ovenFinish, e.key))],
+                      selected: st.ovenHandle,
+                      onSelected: (v) => state.edit(() => st.ovenHandle = v),
+                    ),
+                  ]),
+                ),
               ],
             ],
           ],
@@ -758,10 +758,17 @@ class StylePanel extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(tr('Couleur du caisson et de l’intérieur'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: Tokens.s2),
-            swatches(carcasses, st.carcass, (v) => state.setStyle(carcass: v)),
-            const SizedBox(height: Tokens.s5),
+            KxSection(
+              initiallyOpen: true,
+              title: tr('Couleur du caisson et de l’intérieur'),
+              value: tr(finishById(carcasses, st.carcass).name),
+              leading: CustomPaint(painter: _GrainPainter(finishById(carcasses, st.carcass))),
+              child: swatches(carcasses, st.carcass, (v) => state.setStyle(carcass: v)),
+            ),
+            KxSection(
+              title: tr('Joues (costados)'),
+              value: st.endPanels ? tr('Joues de finition automatiques') : tr('Sans joues automatiques'),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: st.endPanels,
@@ -846,24 +853,27 @@ class StylePanel extends StatelessWidget {
                 swatches(frontFinishes(st), st.endPanelFinish ?? st.front, (v) => state.setFinishOptions(endPanelFinish: v)),
               ],
             ],
-            const SizedBox(height: Tokens.s4),
-            Text(tr('Éclairage'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: Tokens.s2),
-            for (final (id, name, icon) in const [
-              ('aucun', 'Aucun éclairage', Icons.lightbulb_outline),
-              ('led_hauts', 'LED sous les éléments hauts', Icons.light_outlined),
-              ('led_hauts_plinthes', 'LED sous les hauts et dans les plinthes', Icons.highlight_outlined),
-            ])
-              Padding(
-                padding: const EdgeInsets.only(bottom: Tokens.s2),
-                child: _ChoiceRow(
-                  icon: icon,
-                  label: name,
-                  selected: st.lighting == id,
-                  onTap: () => state.setFinishOptions(lighting: id),
+              ]),
+            ),
+            KxSection(
+              title: tr('Éclairage des meubles'),
+              value: tr(const {'aucun': 'Aucun éclairage', 'led_hauts': 'LED sous les éléments hauts', 'led_hauts_plinthes': 'LED sous les hauts et dans les plinthes'}[st.lighting] ?? ''),
+              leading: LightThumb(kind: st.lighting == 'aucun' ? 'none' : (st.lighting == 'led_hauts_plinthes' ? 'plinth' : 'strip')),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                KxCarousel<String>(
+                  width: 120,
+                  items: [
+                    ('aucun', tr('Aucun éclairage'), const LightThumb(kind: 'none')),
+                    ('led_hauts', tr('LED sous les éléments hauts'), const LightThumb(kind: 'strip')),
+                    ('led_hauts_plinthes', tr('LED sous les hauts et dans les plinthes'), const LightThumb(kind: 'plinth')),
+                  ],
+                  selected: st.lighting,
+                  onSelected: (v) => state.setFinishOptions(lighting: v),
                 ),
-              ),
-            Text(tr('L’alimentation 24 V et les rubans sont ajoutés à la liste ; une prise ou une boîte de connexion est à prévoir.'), style: t.bodySmall),
+                const SizedBox(height: 6),
+                Text(tr('L’alimentation 24 V et les rubans sont ajoutés à la liste ; une prise ou une boîte de connexion est à prévoir.'), style: t.bodySmall),
+              ]),
+            ),
           ],
         ),
       ),
@@ -872,41 +882,52 @@ class StylePanel extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(tr('Sol'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: Tokens.s2),
-            swatches(floorFinishes(st), st.floor, (v) => state.setRoomFinish(floor: v)),
-            const SizedBox(height: Tokens.s3),
-            _TextureLibrary(state: state, target: 'floor'),
-            const SizedBox(height: Tokens.s5),
-            Text(tr('Murs'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: Tokens.s2),
-            swatches(wallFinishes(st), st.wall, (v) => state.setRoomFinish(wall: v)),
-            const SizedBox(height: Tokens.s5),
-            if (state.engine.kitchen) ...[
-            Text(tr('Crédence (entre le plan de travail et les hauts)'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: Tokens.s2),
-            _SplashChoices(state: state),
-            const SizedBox(height: Tokens.s2),
-            swatches(splashFinishes(st), st.splash ?? '', (v) => state.setRoomFinish(splash: v)),
-            const SizedBox(height: Tokens.s3),
-            ],
-            _TextureLibrary(state: state, target: 'wall'),
-            const SizedBox(height: Tokens.s5),
-            Text(tr('Appareillage électrique (Prises & Interrupteurs)'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: Tokens.s1),
-            Text(tr('Finition des plaques et mécanismes'), style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: Tokens.s2),
-            KxChoices<String>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(value: 'blanc', label: Text(tr('Blanc'))),
-                ButtonSegment(value: 'noir_mat', label: Text(tr('Noir mat'))),
-                ButtonSegment(value: 'anthracite', label: Text(tr('Anthracite'))),
-                ButtonSegment(value: 'alu_brosse', label: Text(tr('Alu'))),
-                ButtonSegment(value: 'or_brosse', label: Text(tr('Laiton/Or'))),
-              ],
-              selected: {st.socketFinish},
-              onSelectionChanged: (v) => state.edit(() => st.socketFinish = v.first),
+            KxSection(
+              initiallyOpen: true,
+              title: tr('Sol'),
+              value: tr(finishById(floorFinishes(st), st.floor).name),
+              leading: CustomPaint(painter: _GrainPainter(finishById(floorFinishes(st), st.floor))),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                swatches(floorFinishes(st), st.floor, (v) => state.setRoomFinish(floor: v)),
+                const SizedBox(height: Tokens.s2),
+                _TextureLibrary(state: state, target: 'floor'),
+              ]),
+            ),
+            KxSection(
+              initiallyOpen: true,
+              title: tr('Murs'),
+              value: tr(finishById(wallFinishes(st), st.wall).name),
+              leading: CustomPaint(painter: _GrainPainter(finishById(wallFinishes(st), st.wall))),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                swatches(wallFinishes(st), st.wall, (v) => state.setRoomFinish(wall: v)),
+                const SizedBox(height: Tokens.s2),
+                _TextureLibrary(state: state, target: 'wall'),
+              ]),
+            ),
+            if (state.engine.kitchen)
+              KxSection(
+                title: tr('Crédence (entre le plan de travail et les hauts)'),
+                value: st.splash == null || st.splash!.isEmpty ? tr('Comme les murs') : tr(finishById(splashFinishes(st), st.splash!).name),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _SplashChoices(state: state),
+                  const SizedBox(height: Tokens.s2),
+                  swatches(splashFinishes(st), st.splash ?? '', (v) => state.setRoomFinish(splash: v)),
+                ]),
+              ),
+            KxSection(
+              title: tr('Appareillage électrique (Prises & Interrupteurs)'),
+              value: tr(const {'blanc': 'Blanc', 'noir_mat': 'Noir mat', 'anthracite': 'Anthracite', 'alu_brosse': 'Alu', 'or_brosse': 'Laiton/Or'}[st.socketFinish] ?? ''),
+              child: KxChoices<String>(
+                segments: [
+                  ButtonSegment(value: 'blanc', label: Text(tr('Blanc'))),
+                  ButtonSegment(value: 'noir_mat', label: Text(tr('Noir mat'))),
+                  ButtonSegment(value: 'anthracite', label: Text(tr('Anthracite'))),
+                  ButtonSegment(value: 'alu_brosse', label: Text(tr('Alu'))),
+                  ButtonSegment(value: 'or_brosse', label: Text(tr('Laiton/Or'))),
+                ],
+                selected: {st.socketFinish},
+                onSelectionChanged: (v) => state.edit(() => st.socketFinish = v.first),
+              ),
             ),
           ],
         ),
@@ -1005,13 +1026,13 @@ class _Swatch extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(Tokens.radius),
         child: SizedBox(
-          width: 96,
+          width: 76,
           child: Column(
             children: [
               AnimatedContainer(
                 duration: Tokens.fast,
-                width: 88,
-                height: 88,
+                width: 68,
+                height: 68,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(Tokens.radius),
                   border: Border.all(color: selected ? scheme.primary : scheme.outlineVariant, width: selected ? 3 : 1),
@@ -1023,7 +1044,7 @@ class _Swatch extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(tr(finish.name), textAlign: TextAlign.center, style: Theme.of(context).textTheme.labelMedium),
+              Text(tr(finish.name), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelSmall),
             ],
           ),
         ),
@@ -2065,6 +2086,8 @@ class _WorktopMaterialForm extends StatelessWidget {
           ChoiceChip(
             key: ValueKey('wt_${w.id}'),
             label: Text(tr(_short(w.name))),
+            visualDensity: VisualDensity.compact,
+            showCheckmark: false,
             selected: w.id == mat.id,
             onSelected: (_) => state.setWorktopMaterial(w.id),
           ),
@@ -2081,12 +2104,17 @@ class _WorktopMaterialForm extends StatelessWidget {
       ],
       if (mat.thicknesses.isNotEmpty) ...[
         title('3. Épaisseur'),
-        Wrap(spacing: Tokens.s2, children: [
-          for (final x in mat.thicknesses)
-            ChoiceChip(label: Text(trp('{0} mm', [x])), selected: th == x, onSelected: (_) => state.edit(() => sp.worktopThickness = x)),
-        ]),
+        KxChoices<int>(
+          segments: [for (final x in mat.thicknesses) ButtonSegment(value: x, label: Text(trp('{0} mm', [x])))],
+          selected: {th},
+          onSelectionChanged: (v) => state.edit(() => sp.worktopThickness = v.first),
+        ),
       ],
-      title('Plinthes'),
+      const SizedBox(height: Tokens.s3),
+      KxSection(
+        title: tr('Plinthes'),
+        value: tr(st.plinth == null ? 'Comme les façades' : (st.plinth == 'plan' ? 'Comme le plan de travail' : 'Autre matière')),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       KxChoices<String>(
         key: const ValueKey('plinth_mode'),
         segments: [
@@ -2104,8 +2132,13 @@ class _WorktopMaterialForm extends StatelessWidget {
           for (final f in frontFinishes(st)) _Swatch(key: ValueKey('plinth_f_${f.id}'), finish: f, selected: st.plinth == 'f:${f.id}', onTap: () => state.edit(() => st.plinth = 'f:${f.id}')),
         ]),
       ],
-      if (p.room.island != null) ...[
-        title('Plan de l’îlot'),
+        ]),
+      ),
+      if (p.room.island != null)
+        KxSection(
+          title: tr('Plan de l’îlot'),
+          value: tr(st.islandTop == null ? 'Comme les autres' : 'Son propre plan') + (st.islandWaterfall ? ' · ${tr('cascade')}' : ''),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         KxChoices<bool>(
           key: const ValueKey('island_top_mode'),
           segments: [ButtonSegment(value: false, label: Text(tr('Comme les autres'))), ButtonSegment(value: true, label: Text(tr('Son propre plan')))],
@@ -2123,12 +2156,17 @@ class _WorktopMaterialForm extends StatelessWidget {
           value: st.islandWaterfall,
           onChanged: (v) => state.edit(() => st.islandWaterfall = v),
         ),
-      ],
-      if (state.engine.kitchen) ...[
-        title('4. Crédence'),
-        _SplashChoices(state: state),
-        if (!splashMatchesTop(st)) Text(tr('Autres crédences (carreaux, zellige…) : « Sol et murs ».'), style: t.bodySmall),
-      ],
+          ]),
+        ),
+      if (state.engine.kitchen)
+        KxSection(
+          title: tr('Crédence'),
+          value: tr(!splashMatchesTop(st) ? 'Comme les murs' : (st.splash == splashUpstand ? 'Relevé de 10 cm, comme le plan' : 'Comme le plan de travail')),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _SplashChoices(state: state),
+            if (!splashMatchesTop(st)) Text(tr('Autres crédences (carreaux, zellige…) : « Sol et murs ».'), style: t.bodySmall),
+          ]),
+        ),
       const SizedBox(height: Tokens.s3),
       Container(
         width: double.infinity,
@@ -2139,13 +2177,22 @@ class _WorktopMaterialForm extends StatelessWidget {
           if (v != null) Text(tr(v.label), style: t.bodySmall),
           if (splashMatchesTop(st)) Text(trp(st.splash == splashUpstand ? 'Relevé de 10 cm assorti : {0} m²' : 'Crédence assortie : {0} m²', [splashArea(state.engine).toStringAsFixed(2)]), style: t.bodySmall),
           const SizedBox(height: 4),
-          Text(v == null || v.price.isZero ? tr('Prix à demander') : trp('{0} le mètre linéaire', [_mad(v.price)]), style: t.titleSmall?.copyWith(color: scheme.primary, fontWeight: FontWeight.w800)),
+          Row(children: [
+            Expanded(
+              child: Text(v == null || v.price.isZero ? tr('Prix à demander') : trp('{0} le mètre linéaire', [_mad(v.price)]),
+                  style: t.titleSmall?.copyWith(color: scheme.primary, fontWeight: FontWeight.w800)),
+            ),
+            Tooltip(
+              message: [
+                for (final n in mat.notes) note(n),
+                if (mat.edgeProfiles.isNotEmpty) trp('Chants : {0}', [mat.edgeProfiles.map(tr).join(', ')]),
+                trp('La hauteur du plan reste à {0} mm (norme).', [p.standards.worktopTop]),
+              ].join('\n'),
+              child: Icon(Icons.info_outline, size: 18, color: scheme.onSurfaceVariant),
+            ),
+          ]),
         ]),
       ),
-      const SizedBox(height: Tokens.s2),
-      for (final n in mat.notes) Text(note(n), style: t.bodySmall),
-      if (mat.edgeProfiles.isNotEmpty) Text(trp('Chants : {0}', [mat.edgeProfiles.map(tr).join(', ')]), style: t.bodySmall),
-      Text(trp('La hauteur du plan reste à {0} mm (norme).', [p.standards.worktopTop]), style: t.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
     ]);
   }
 
@@ -2533,3 +2580,15 @@ class _SupplierCompare extends StatelessWidget {
     );
   }
 }
+
+// ------------------------------------------------------------------ libellés des équipements du plan de travail
+const _sinkFinishes = {'inox': 'Inox brossé', 'noir_quartz': 'Noir quartz', 'blanc_ceramique': 'Blanc céramique'};
+const _tapFinishes = {'chrome': 'Chrome poli', 'noir_mat': 'Noir mat', 'or_brosse': 'Laiton doré', 'inox_brosse': 'Inox brossé'};
+const _levers = {'side_pin': 'Manette fine', 'side_flat': 'Palette plate', 'top_lever': 'Levier haut', 'retro_cross': 'Croisillons'};
+const _hobs = {'induction': 'Induction', 'gaz': 'Gaz (grilles fonte)', 'vitro': 'Vitrocéramique'};
+const _ovens = {'black_inox': 'Inox & Verre noir', 'inox_brosse': 'Inox brossé', 'full_black': 'Full Black', 'blanc': 'Blanc', 'black_gold': 'Noir & Or'};
+const _ovenHandles = {'bar': 'Barre ronde', 'square': 'Profilé carré', 'retro': 'Cintrée classique', 'integrated': 'Intégrée'};
+
+/// Pastille de couleur d'une finition (dans un choix).
+Widget _dot(Color c) => Container(
+    width: 14, height: 14, decoration: BoxDecoration(color: c, shape: BoxShape.circle, border: Border.all(color: Colors.black26)));

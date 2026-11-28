@@ -26,11 +26,14 @@ bool get webgl3dAvailable => nativeIoEnabled;
 WebViewController? _live; // vue 3D affichée
 
 /// Rendu HD de la vue affichée : démarre, avancement (JSON), arrêt.
-Future<bool> startHdRender(int w, int h, int n) async {
+Future<bool> startHdRender(int w, int h, int n, {bool best = false}) async {
   if (_live == null) return false;
-  await _live!.runJavaScript('window.kitchen3d.hdStart($w, $h, $n)');
+  await _live!.runJavaScript('window.kitchen3d.hdStart($w, $h, $n, $best)');
   return true;
 }
+
+/// Coupe de la vue 3D (0 : aucune … 1) et vue orthographique, tout de suite (sans reconstruire la scène).
+void setCamera3d(double clip, bool ortho) => _live?.runJavaScript('window.kitchen3d.setCamera($clip, $ortho)');
 
 Future<String?> hdRenderState() async {
   final r = await _live?.runJavaScriptReturningResult('window.kitchen3d.hdState()');
@@ -199,6 +202,17 @@ class _Kitchen3dViewState extends State<Kitchen3dView> {
       ..setNavigationDelegate(NavigationDelegate(
         onWebResourceError: (err) {
           debugPrint('3D web resource error: ${err.description}');
+          // iPadOS a arrêté le moteur web de la vue 3D (mémoire) : écran vide. On la recharge,
+          // et la scène entière (images comprises) lui est renvoyée dès qu'elle est prête.
+          if (err.errorType == WebResourceErrorType.webContentProcessTerminated && mounted) {
+            _ready = false;
+            _exporter.forgetSent();
+            for (final files in _pending.values) {
+              files.forEach(LocalServer.instance.remove);
+            }
+            _pending.clear();
+            unawaited(_c?.reload());
+          }
         },
         onPageFinished: (_) {
           if (mounted && _ready) _schedule();

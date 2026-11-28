@@ -1,3 +1,6 @@
 HDRI de Poly Haven (https://polyhaven.com), licence CC0 (domaine public).
 - interieur.hdr : « Small Empty Room 1 », 1k (small_empty_room_1_1k.hdr)
 - exterieur.hdr : « Kloofendal 48d Partly Cloudy (Pure Sky) », 1k (kloofendal_48d_partly_cloudy_puresky_1k.hdr)
+- studio_loft.hdr : « Photo Studio Loft Hall », réduite en 2k (photo_studio_loft_hall_8k.exr)
+- studio_hall.hdr : « Photo Studio London Hall », réduite en 2k (photo_studio_london_hall_8k.exr)
+- ciel_verger.hdr : « Citrus Orchard Road (Pure Sky) », réduite en 2k (citrus_orchard_road_puresky_8k.exr)

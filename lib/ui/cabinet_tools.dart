@@ -621,6 +621,7 @@ class _PointForm extends StatelessWidget {
           onChanged: editable ? (k) => state.updatePoint(x.uid, kind: k) : null,
         ),
       ]),
+      if (x.kind == NetKind.light && x.onCeiling) _LightPointSection(state: state, x: x, editable: editable),
       if (x.kind == NetKind.socket || x.kind == NetKind.socketDouble || x.kind == NetKind.socketTriple || x.kind == NetKind.socketQuad)
         _Section('Nombre de prises', [
           KxChoices<int>(
@@ -1055,4 +1056,107 @@ class _HandlePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_HandlePainter o) => o.look.key != look.key || o.front.id != front.id || o.zone != zone || o.big != big || o.profile != profile;
+}
+
+/// Une lumière du plafond touchée : ce qu'elle est, ce qu'elle éclaire, et ses réglages. « Appliquer à toutes »
+/// recopie l'intensité, la couleur et le faisceau sur toutes les lumières du même luminaire.
+class _LightPointSection extends StatelessWidget {
+  final AppState state;
+  final NetPoint x;
+  final bool editable;
+  const _LightPointSection({required this.state, required this.x, required this.editable});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final ch = state.project.specs.lighting;
+    final pl = pointLightOf(ch, fix: x.fix, power: x.power, cct: x.cct, beam: x.beam);
+    final src = pl.source;
+    final same = state.project.points.where((o) => o.kind == NetKind.light && o.onCeiling && !o.hidden && (o.fix ?? ch.general) == src.id).length;
+    final room = state.project.room;
+    // tache de lumière au niveau du plan de travail (faisceau)
+    final drop = (room.height - 900).clamp(300, 3000).toDouble();
+    final spread = pl.beam == null ? null : (2 * drop * math.tan(pl.beam! / 2 * math.pi / 180)).round();
+    String cctName(int k) => k <= 2200 ? 'Ambrée' : k <= 2700 ? 'Chaude' : k <= 3000 ? 'Blanc chaud' : k <= 4000 ? 'Neutre' : 'Froide';
+    String beamName(int b) {
+      final i = src.beams.indexOf(b);
+      return src.beams.length == 1 || i == src.beams.length - 1 ? 'Large' : (i == 0 ? 'Concentré' : 'Moyen');
+    }
+
+    return _Section('Lumière', [
+      Row(children: [
+        ClipRRect(borderRadius: BorderRadius.circular(8), child: LightThumb(kind: src.shape, cct: pl.cct, width: 96, height: 62)),
+        const SizedBox(width: Tokens.s3),
+        Expanded(
+          child: Tooltip(
+            message: '${src.name}\n${pl.lumens} lm · ${pl.watts} W · IRC ${src.cri}${src.ugr == null ? '' : ' · UGR ${src.ugr}'}${pl.beam == null ? '' : ' · ${pl.beam}°'}',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(tr(src.label), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              Text(trp('{0} lm · {1} W', [pl.lumens, pl.watts]), style: t.bodySmall),
+              if (spread != null) Text(trp('Éclaire un cercle d’environ {0} cm sur le plan de travail', [(spread / 10).round()]), style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+            ]),
+          ),
+        ),
+      ]),
+      KxLabel(tr('Luminaire')),
+      Wrap(spacing: 6, runSpacing: 6, children: [
+        for (final s in [...lightSourcesFor('general'), ...lightSourcesFor('island')])
+          Tooltip(
+            message: tr(s.label),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: editable ? () => state.setPointLight(x.uid, fix: s.id) : null,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8), border: Border.all(color: s.id == src.id ? scheme.primary : scheme.outlineVariant, width: s.id == src.id ? 2 : 1)),
+                child: ClipRRect(borderRadius: BorderRadius.circular(6), child: LightThumb(kind: s.shape, cct: pl.cct, width: 52, height: 36)),
+              ),
+            ),
+          ),
+      ]),
+      KxLabel(tr('Intensité')),
+      KxChoices<String>(
+        segments: [for (final (k, l) in const [('min', 'Douce'), ('typical', 'Normale'), ('max', 'Forte')]) ButtonSegment(value: k, label: Text(tr(l)), tooltip: '${src.lm(k)} lm')],
+        selected: {pl.power},
+        onSelectionChanged: editable ? (v) => state.setPointLight(x.uid, power: v.first) : null,
+      ),
+      KxLabel(tr('Couleur de la lumière')),
+      KxChoices<int>(
+        segments: [
+          for (final k in src.ccts)
+            ButtonSegment(
+                value: k,
+                label: Text(tr(cctName(k))),
+                tooltip: '$k K',
+                icon: Container(width: 12, height: 12, decoration: BoxDecoration(color: Color(0xFF000000 | cctColor(k)), shape: BoxShape.circle, border: Border.all(color: Colors.black26)))),
+        ],
+        selected: {pl.cct},
+        onSelectionChanged: editable ? (v) => state.setPointLight(x.uid, cct: v.first) : null,
+      ),
+      if (src.beams.length > 1) ...[
+        KxLabel(tr('Faisceau')),
+        KxChoices<int>(
+          segments: [for (final b in src.beams) ButtonSegment(value: b, label: Text(tr(beamName(b))), tooltip: '$b°')],
+          selected: {pl.beam!},
+          onSelectionChanged: editable ? (v) => state.setPointLight(x.uid, beam: v.first) : null,
+        ),
+      ],
+      const SizedBox(height: Tokens.s3),
+      if (editable && same > 1)
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.tonalIcon(
+            key: const ValueKey('light_apply_all'),
+            icon: const Icon(Icons.done_all, size: 18),
+            label: Text(trp('Appliquer à toutes ({0} {1})', [same, tr(src.label).toLowerCase()])),
+            onPressed: () {
+              final n = state.applyLightToSameType(x.uid);
+              ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(trp('Réglages appliqués à {0} autre(s) lumière(s)', [n]))));
+            },
+          ),
+        ),
+    ]);
+  }
 }

@@ -181,6 +181,7 @@ void main() {
     e0.addOpening('door', 'D', s: 2600);
     final st = AppState(cat, project: Project.fromJson(proposeLayouts(e0).first.project.toJson()));
     st.setNetworks(true);
+    st.placeLighting(); // les points lumineux du plafond se posent depuis le menu Lumière
     for (final k in [NetKind.switchDouble, NetKind.usb, NetKind.tvSat]) {
       st.addPoint(k);
     }

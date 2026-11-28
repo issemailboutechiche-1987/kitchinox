@@ -3,6 +3,7 @@
 /// électroménager de chaque caisson (niches, découpes), quincaillerie automatique, estimation.
 library;
 
+import 'lighting.dart';
 import 'i18n_hook.dart';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -350,6 +351,8 @@ class ProjectSpecs {
   String gamme; // 'standard' : MDF, chiffré à la feuille ; 'moyen' : caissons Alvic, à l'article ; 'luxe' : contreplaqué latté, à l'article
   String mpCarcass; // moyenne gamme : caissons 'alvic' ou 'alvic_hydro'
   String mpDoor; // moyenne gamme : portes 'auto', 'pi' (poignée intégrée) ou 'plain' (sans)
+  String roomTone; // couleur des murs pour le calcul de l'éclairage : 'clair', 'moyen' ou 'fonce'
+  LightingChoice lighting; // luminaires choisis (menu Plafond)
 
   ProjectSpecs({
     this.carcassPanel = 'mdf_melamine_hydrofuge',
@@ -371,7 +374,9 @@ class ProjectSpecs {
     this.gamme = 'standard',
     this.mpCarcass = 'alvic',
     this.mpDoor = 'auto',
-  });
+    this.roomTone = 'clair',
+    LightingChoice? lighting,
+  }) : lighting = lighting ?? LightingChoice();
 
   Map<String, dynamic> toJson() => {
         'carcass_panel': carcassPanel,
@@ -393,6 +398,8 @@ class ProjectSpecs {
         'gamme': gamme,
         if (mpCarcass != 'alvic') 'mp_carcass': mpCarcass,
         if (mpDoor != 'auto') 'mp_door': mpDoor,
+        if (roomTone != 'clair') 'room_tone': roomTone,
+        'lighting': lighting.toJson(),
       };
 
   factory ProjectSpecs.fromJson(Map<String, dynamic> j) {
@@ -417,6 +424,8 @@ class ProjectSpecs {
       gamme: j['gamme'] as String? ?? d.gamme,
       mpCarcass: j['mp_carcass'] as String? ?? d.mpCarcass,
       mpDoor: j['mp_door'] as String? ?? d.mpDoor,
+      roomTone: j['room_tone'] as String? ?? d.roomTone,
+      lighting: LightingChoice.fromJson((j['lighting'] as Map?)?.cast<String, dynamic>()),
     );
   }
 }

@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
 import { RoomEnvironment } from './vendor/environments/RoomEnvironment.js';
 import { mergeGeometries } from './vendor/utils/BufferGeometryUtils.js';
-import { hdStart, hdState, hdStop, hdRunning } from './hd_render.js';
+import { hdStart, hdState, hdStop, hdRunning, disposePathTracer } from './hd_render.js';
 import { buildUsdz, openUsdz, arQuickLookSupported } from './ar_export.js';
 import { loadHdr } from './hdr_loader.js';
 import { buildFitting } from './fittings3d.js';
@@ -50,6 +50,7 @@ function setDpr(v) {
 }
 function gestureStart() {
   interacting = true;
+  if (rayOn && hdRunning()) hdStop(); // on bouge pendant le rendu photo : il s'arrête, la 3D reprend
   if (!lowRes) {
     lowRes = true;
     setDpr(gestureDpr());
@@ -129,7 +130,7 @@ function imageMat(key, opts = {}) {
   // laqué brillant : vernis qui reflète la pièce
   const m = opts.gloss
     ? new THREE.MeshPhysicalMaterial({ roughness: 0.16, metalness: 0, clearcoat: 0.9, clearcoatRoughness: 0.06 })
-    : new THREE.MeshStandardMaterial({ roughness: opts.rough ?? 0.5, metalness: 0 });
+    : new THREE.MeshStandardMaterial({ roughness: opts.rough ?? 0.42, metalness: 0 });
   if (src) m.map = src;
   return m;
 }
@@ -172,6 +173,7 @@ function buildRoom(d) {
     ground.rotation.x = -Math.PI / 2;
     ground.position.set(r.w * S / 2, -0.001, r.d * S / 2);
     ground.receiveShadow = true;
+    ground.userData.floor = true;
     g.add(ground);
     return g;
   }
@@ -194,7 +196,23 @@ function buildRoom(d) {
     floor.position.set(r.w * S / 2, 0, r.d * S / 2);
   }
   floor.receiveShadow = true;
+  floor.userData.floor = true; // masqué quand on regarde par en dessous (vue à 360°)
   g.add(floor);
+  // plafond : une face tournée vers le bas, donc invisible d'au-dessus (vue maison de poupée) et visible
+  // d'en dessous ou de l'intérieur : on y voit les spots et tout ce qui est au plafond
+  {
+    // rotation de +90° : la face regarde vers le bas ; le contour est pris tel quel (y du plan = z du monde)
+    const ceilGeo = d.floorPoly
+      ? new THREE.ShapeGeometry(new THREE.Shape(d.floorPoly.map(([x, y]) => new THREE.Vector2(x * S, y * S))))
+      : new THREE.PlaneGeometry(r.w * S, r.d * S);
+    const ceil = new THREE.Mesh(ceilGeo, new THREE.MeshStandardMaterial({ color: 0xf6f5f2, roughness: 0.9 }));
+    ceil.rotation.x = Math.PI / 2;
+    if (d.floorPoly) ceil.position.set(0, (r.h || 2600) * S, 0);
+    else ceil.position.set(r.w * S / 2, (r.h || 2600) * S, r.d * S / 2);
+    ceil.userData.ceiling = true;
+    ceil.receiveShadow = true;
+    g.add(ceil);
+  }
   // murs (avec ouvertures), 100 mm d'épaisseur vers l'extérieur
   for (const w of d.walls) {
     const shape = new THREE.Shape();
@@ -2248,6 +2266,37 @@ function at(o, x, y, z) {
 }
 
 /** Objet posé : groupe au centre de son emprise, tourné dos au mur. Le modèle glTF arrive plus tard. */
+// Luminaires posés (objets « Éclairage ») : une lumière et un halo, allumés la nuit (applyDaylight).
+let nightNow = 0;
+
+function addLamp(root, o) {
+  const at = new THREE.Vector3(0, o.h * (o.lamp.at ?? 0.5) * S, (o.d * (o.lamp.front ?? 0.5) - o.d / 2) * S);
+  const col = cctColor(o.lamp.cct || 2700);
+  const light = new THREE.PointLight(col, 0, 0, 2);
+  light.position.copy(at);
+  light.userData.lampLm = o.lamp.lm || 800;
+  root.add(light);
+  // halo : lueur douce autour de l'ampoule, visible seulement la nuit
+  const halo = new THREE.Mesh(
+    new THREE.SphereGeometry(Math.max(40, Math.min(160, o.w * 0.18)) * S, 20, 14),
+    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+  );
+  halo.position.copy(at);
+  halo.raycast = () => {};
+  halo.userData.lampHalo = true;
+  root.add(halo);
+  setLamp(light, halo);
+}
+
+function setLamp(light, halo) {
+  light.intensity = (7 * nightNow * light.userData.lampLm) / 4000;
+  light.visible = nightNow > 0;
+  if (halo) {
+    halo.material.opacity = 0.55 * nightNow;
+    halo.visible = nightNow > 0;
+  }
+}
+
 function buildObject(o, d) {
   const root = new THREE.Group();
   root.position.copy(P(o.x, o.y, o.z));
@@ -2256,6 +2305,7 @@ function buildObject(o, d) {
   const inner = new THREE.Group();
   inner.position.z = -o.d / 2 * S; // dos en z = 0 → recentré
   root.add(inner);
+  if (o.lamp) addLamp(root, o);
   if (o.kind === 'fixture') {
     inner.add(buildFixture(o, d));
   } else if (o.panels && o.panels.length) {
@@ -2420,7 +2470,9 @@ function buildNetPoint(p, d) {
       cyl(9, 18, plateGrey, 0, -20, 10);
       break;
     case 'light':
-      if (p.ceiling) {
+      if (p.ceiling && p.fix && p.fix !== 'bulb') {
+        buildCeilingFixture(m, p, d);
+      } else if (p.ceiling) {
         // point lumineux au plafond : douille et ampoule allumée
         const rose = new THREE.Mesh(new THREE.CylinderGeometry(50, 50, 12, 32), plateMat);
         rose.position.set(0, -6, 0);
@@ -2491,6 +2543,7 @@ function buildNetPoint(p, d) {
       plate();
   }
   if (p.ceiling) {
+    g.userData.ceilingPoint = true;
     g.position.copy(P(p.x, p.y, p.z));
   } else {
     // repère du mur : x le long du mur, z vers la pièce ; posé 1 mm devant la surface du mur
@@ -2499,6 +2552,94 @@ function buildNetPoint(p, d) {
   }
   g.userData.wallOf = p.wall || null;
   return g;
+}
+
+/** Couleur d'une lumière de [k] kelvins (aperçus du catalogue des luminaires). */
+function cctColor(k) {
+  return k <= 2200 ? 0xff9e44 : k <= 2700 ? 0xffd2a1 : k <= 3000 ? 0xffe4c4 : k <= 4000 ? 0xfff4e8 : 0xf4f8ff;
+}
+
+/**
+ * Luminaire du plafond choisi au menu Plafond (repère en mm, y vers le haut, plafond en y = 0) :
+ * spot, dark-light, projecteur sur rail, rail magnétique, dalle, plafonnier, suspension, suspension linéaire.
+ */
+function buildCeilingFixture(m, p, d) {
+  const white = new THREE.MeshStandardMaterial({ color: 0xf4f4f2, roughness: 0.5 });
+  const black = new THREE.MeshStandardMaterial({ color: 0x1d1f22, roughness: 0.45, metalness: 0.3 });
+  const glow = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: cctColor(p.cct || 3000), emissiveIntensity: 1.4 });
+  const add = (geo, mat, x, y, z, rx = 0) => {
+    const o = new THREE.Mesh(geo, mat);
+    o.position.set(x, y, z);
+    o.rotation.x = rx;
+    o.castShadow = false;
+    m.add(o);
+    return o;
+  };
+  const roomH = d?.room?.h || 2600;
+  switch (p.fix) {
+    case 'spot':
+      add(new THREE.CylinderGeometry(45, 45, 6, 32), white, 0, -3, 0);
+      add(new THREE.CylinderGeometry(30, 30, 2, 32), glow, 0, -7, 0);
+      break;
+    case 'darklight':
+      add(new THREE.CylinderGeometry(50, 50, 4, 32), black, 0, -2, 0);
+      add(new THREE.CylinderGeometry(16, 16, 2, 24), glow, 0, -3, 0);
+      break;
+    case 'track':
+    case 'magnetic': {
+      // rail continu (encastré ou en saillie) et ses projecteurs régulièrement espacés, légèrement inclinés
+      const len = p.len || 400, n = Math.max(1, p.heads || 1);
+      const g = new THREE.Group();
+      if (p.alongY) g.rotation.y = Math.PI / 2;
+      m.add(g);
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(len, 24, 26), black);
+      rail.position.set(0, -12, 0);
+      g.add(rail);
+      for (let i = 0; i < n; i++) {
+        const x = n === 1 ? 0 : -len / 2 + 150 + ((len - 300) * i) / (n - 1);
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 40, 12), black);
+        stem.position.set(x, -44, 0);
+        g.add(stem);
+        const head = new THREE.Group();
+        head.position.set(x, -64, 0);
+        head.rotation.x = 0.32; // tournés vers le plan de travail
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(34, 30, p.fix === 'track' ? 120 : 84, 24), black);
+        body.position.y = -40;
+        head.add(body);
+        const lens = new THREE.Mesh(new THREE.CylinderGeometry(26, 26, 2, 24), glow);
+        lens.position.y = -40 - (p.fix === 'track' ? 61 : 43);
+        head.add(lens);
+        g.add(head);
+      }
+      break;
+    }
+    case 'panel':
+      add(new THREE.BoxGeometry(600, 10, 600), white, 0, -5, 0);
+      add(new THREE.BoxGeometry(570, 2, 570), glow, 0, -11, 0);
+      break;
+    case 'ceiling':
+      add(new THREE.CylinderGeometry(200, 210, 60, 48), white, 0, -30, 0);
+      add(new THREE.CylinderGeometry(195, 195, 2, 48), glow, 0, -61, 0);
+      break;
+    case 'pendant': {
+      // suspension : 800 mm au-dessus du plan de l'îlot (plan à ~910 mm)
+      const drop = Math.max(300, roomH - 1710);
+      add(new THREE.CylinderGeometry(2, 2, drop, 8), black, 0, -drop / 2, 0);
+      add(new THREE.CylinderGeometry(40, 160, 180, 40, 1, true), black, 0, -drop - 90, 0);
+      add(new THREE.CylinderGeometry(150, 150, 2, 40), glow, 0, -drop - 178, 0);
+      break;
+    }
+    case 'linear': {
+      const len = p.len || 1200;
+      const drop = Math.max(300, roomH - 1710);
+      for (const x of [-len / 2 + 80, len / 2 - 80]) add(new THREE.CylinderGeometry(1.5, 1.5, drop, 6), black, x, -drop / 2, 0);
+      add(new THREE.BoxGeometry(len, 50, 60), black, 0, -drop - 25, 0);
+      add(new THREE.BoxGeometry(len - 20, 2, 44), glow, 0, -drop - 51, 0);
+      break;
+    }
+    default:
+      add(new THREE.CylinderGeometry(45, 45, 6, 32), white, 0, -3, 0);
+  }
 }
 
 function buildNetPoints(d) {
@@ -2952,7 +3093,27 @@ let rayExtra = null; // lumières et dalle ajoutées pour le mode
 let studioEnv = null; // environnement d'origine (RoomEnvironment)
 const hdris = new Map(); // nom → texture (ou promesse en cours)
 let envChoice = 'studio';
+// environnements (web/hdri) : studios photo et ciel (Poly Haven, CC0), pièce vide, ciel nuageux
+const HDRIS = ['studio_loft', 'studio_hall', 'ciel_verger', 'interieur', 'exterieur'];
 let envReflect = true;
+
+/** Coefficient qui ramène la luminance moyenne d'une HDRI vers 0,8 : un studio très lumineux et un ciel
+ *  doux éclairent pareil, seuls les reflets et la couleur changent. */
+function hdriNorm(t) {
+  const d = t.image?.data;
+  if (!d) return 1;
+  let sum = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4 * 97) {
+    const r = THREE.DataUtils.fromHalfFloat(d[i]), g = THREE.DataUtils.fromHalfFloat(d[i + 1]), b = THREE.DataUtils.fromHalfFloat(d[i + 2]);
+    const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    if (Number.isFinite(l)) {
+      sum += Math.min(l, 50); // le soleil ne fausse pas la moyenne
+      n++;
+    }
+  }
+  const mean = n ? sum / n : 1;
+  return Math.min(4, Math.max(0.05, 0.8 / Math.max(mean, 1e-3)));
+}
 
 function hdriTexture(name) {
   const h = hdris.get(name);
@@ -2960,6 +3121,7 @@ function hdriTexture(name) {
   if (!h) {
     const p = loadHdr(`hdri/${name}.hdr`)
       .then((t) => {
+        t.userData.norm = hdriNorm(t);
         hdris.set(name, t);
         rayDirty = true;
         updateEnv();
@@ -2980,7 +3142,7 @@ function updateEnv() {
   let env, k;
   if (hdr) {
     env = hdr;
-    k = rayOn ? 1.0 : envReflect ? 0.75 : 0.15;
+    k = (rayOn ? 1.0 : envReflect ? 0.85 : 0.15) * (hdr.userData.norm ?? 1);
   } else if (rayOn && raySky) {
     env = raySky;
     k = 0.9;
@@ -2988,6 +3150,7 @@ function updateEnv() {
     env = studioEnv;
     k = envReflect ? 0.45 : 0.12;
   }
+  k *= dayK; // la nuit, l'environnement s'éteint aussi
   if (scene.environment !== env || scene.environmentIntensity !== k) {
     scene.environment = env;
     scene.environmentIntensity = k;
@@ -2996,6 +3159,63 @@ function updateEnv() {
   }
 }
 let rayLightKey = '';
+
+// ------------------------------------------------------------------ jour ↔ nuit
+// d.daylight : 1 plein jour, 0 nuit. La lumière du jour (soleil, ciel, ambiance) baisse avec lui ;
+// sous 0,6 les luminaires de la pièce s'allument, à pleine puissance la nuit. Pas en présentation (studio).
+let dayK = 1;
+let nightGroup = null;
+let nightKey = '';
+
+function applyDaylight(d) {
+  const day = d.studio ? 1 : Math.min(1, Math.max(0, d.daylight ?? 0.7));
+  const f = 0.06 + 0.94 * day;
+  hemiLight.intensity *= f;
+  ambLight.intensity *= f;
+  fillLight.intensity *= f;
+  sun.intensity = 2.2 * day;
+  if (rayExtra) rayExtra.sun = sun.intensity;
+  if (dayK !== f) {
+    dayK = f;
+    updateEnv();
+  }
+  const night = Math.min(1, Math.max(0, (0.6 - day) / 0.6));
+  // luminaires posés : allumés selon la nuit
+  nightNow = night;
+  for (const { obj } of objectGroups.values()) {
+    obj.traverse((x) => {
+      if (x.isPointLight && x.userData.lampLm) setLamp(x, x.parent?.children.find((c) => c.userData.lampHalo));
+    });
+  }
+  const r = d.room || { w: 3600, d: 3000, h: 2600 };
+  const pts = (d.netPoints || []).filter((p) => p.ceiling && p.kind === 'light');
+  const at = [];
+  for (const p of pts) {
+    const below = p.fix === 'pendant' || p.fix === 'linear' ? Math.max(300, r.h - 1710) + 200 : 360;
+    const n = Math.max(1, p.heads || 1);
+    for (let i = 0; i < n; i++) {
+      const off = n === 1 ? 0 : -(p.len || 0) / 2 + 150 + (((p.len || 0) - 300) * i) / (n - 1);
+      at.push([p.x + (p.alongY ? 0 : off), p.y + (p.alongY ? off : 0), (p.lm || 800) / n, p.cct || 3000, below]);
+    }
+  }
+  if (!at.length) at.push([r.w / 2, r.d / 2, 4000, 3000, 360]);
+  const key = JSON.stringify([at, r.h]);
+  if (key !== nightKey) {
+    nightKey = key;
+    if (nightGroup) scene.remove(nightGroup);
+    nightGroup = new THREE.Group();
+    for (const [x, y, lm, k, below] of at) {
+      const l = new THREE.PointLight(cctColor(k), 0, 0, 2);
+      l.position.copy(P(x, y, r.h - below));
+      l.userData.lm = lm;
+      nightGroup.add(l);
+    }
+    scene.add(nightGroup);
+  }
+  // chaque point éclaire selon ses lumens (calcul selon les normes) : 4000 lm ≈ une cuisine de 12 m² bien éclairée
+  for (const l of nightGroup.children) l.intensity = (7 * night * l.userData.lm) / 4000;
+  nightGroup.visible = night > 0;
+}
 
 /**
  * Lumières du lancer de rayons : « soleil » (par les fenêtres), « plafonnier » (ampoules au plafond :
@@ -3071,9 +3291,7 @@ async function setRay(on) {
     setTimeout(() => rayRender(), 400); // première image fixe, dès l'entrée dans le mode
   } else {
     clearRayStill();
-    try {
-      rayPt?.dispose();
-    } catch (_) {}
+    disposePathTracer(rayPt);
     rayPt = null;
     clearRayLights();
     if (rayKeep) {
@@ -3109,6 +3327,19 @@ function updateWallVisibility() {
       if (o.userData.wallOf) o.visible = walls.get(o.userData.wallOf) ?? true;
     });
   }
+  // vus de dessus (caméra au-dessus du plafond), les luminaires du plafond flotteraient : on les cache
+  const ceilY = (data?.room?.h || 2600) * S;
+  groups.get('netPoints')?.obj.children.forEach((o) => {
+    if (o.userData.ceilingPoint) o.visible = cam.y < ceilY;
+  });
+  // caméra sous le sol : le sol, son ombre et la dalle s'effacent, on voit le plafond par en dessous
+  const below = cam.y < -0.01;
+  groups.get('room')?.obj.traverse((o) => {
+    if (o.userData.floor) o.visible = !below;
+  });
+  const ao = groups.get('ao')?.obj;
+  if (ao) ao.visible = !below && sun.castShadow;
+  if (rayExtra?.group?.children[0]) rayExtra.group.children[0].visible = !below;
 }
 
 // ------------------------------------------------------------------ lancer de rayons : image fixe
@@ -3143,7 +3374,7 @@ function hideRayStill(hint) {
   if (!rayStill) return;
   if (rayStill.img.style.display !== 'none') {
     rayStill.img.style.display = 'none';
-    if (hint) rayLabel('Vue modifiée : touchez « Actualiser » pour le lancer de rayons');
+    if (hint) rayLabel('Vue modifiée : touchez « Actualiser » pour le rendu photo');
   }
 }
 
@@ -3159,8 +3390,15 @@ function clearRayStill() {
 /** Calcule l'image fixe du lancer de rayons pour la vue actuelle (bouton « Actualiser »). */
 function rayRender() {
   if (!rayOn || !renderer || !scene || !host || hdRunning()) return false;
+  // caméra encore en mouvement (animation, inertie du geste) : on attend qu'elle soit posée
+  if (camAnim || interacting) {
+    setTimeout(() => rayRender(), 300);
+    return true;
+  }
   const o = rayOverlay();
-  const k = Math.min(window.devicePixelRatio || 1, 1.5);
+  // taille de la vue en points (pas en pixels Retina), plafonnée : l'image tient en une vingtaine de secondes
+  const cap = 1400 / Math.max(host.clientWidth, host.clientHeight, 1);
+  const k = Math.min(1, cap);
   const w = Math.max(320, Math.round(host.clientWidth * k)), h = Math.max(240, Math.round(host.clientHeight * k));
   o.img.style.display = 'none';
   const box = selBox;
@@ -3169,16 +3407,16 @@ function rayRender() {
   camera.updateMatrixWorld();
   updateWallVisibility();
   const cam = camera.matrixWorld.clone(), aspect = camera.aspect;
-  hdStart({ renderer, scene, camera, sun, hemi: hemiLight, ambient: ambLight, fill: fillLight, bg: data?.studio ? [0xffffff] : data?.bg, done: () => {
+  hdStart({ renderer, scene, camera, sun, hemi: hemiLight, ambient: ambLight, fill: fillLight, bg: data?.studio ? [0xffffff] : data?.bg, budget: 15000, done: () => {
     if (box) box.visible = true;
     resize();
     invalidate(true);
-  } }, w, h, 480);
+  } }, w, h, 600);
   clearInterval(rayPoll);
   rayPoll = setInterval(() => {
     const s = JSON.parse(hdState());
     if (s.running) {
-      rayLabel(`Lancer de rayons… ${Math.round((100 * s.k) / Math.max(1, s.n))} %`);
+      rayLabel(s.k ? `Rendu photo… ${Math.round((100 * s.k) / Math.max(1, s.n))} %` : 'Rendu photo : préparation…');
       return;
     }
     clearInterval(rayPoll);
@@ -3190,7 +3428,7 @@ function rayRender() {
       o.aspect = aspect;
       o.sig = rayDirtySig;
       rayLabel('');
-    } else rayLabel(s.error && s.error !== 'stop' ? 'Lancer de rayons impossible sur cet appareil' : '');
+    } else rayLabel(s.error && s.error !== 'stop' ? 'Rendu photo impossible sur cet appareil' : 'Vue modifiée : touchez « Actualiser » pour le rendu photo');
   }, 300);
   return true;
 }
@@ -3198,7 +3436,11 @@ function rayRender() {
 /** À chaque image : la vue ou la scène a changé depuis l'image fixe, la 3D habituelle reprend la main. */
 function checkRayStill() {
   if (!rayStill || rayStill.img.style.display === 'none') return;
-  if (!rayStill.cam.equals(camera.matrixWorld) || rayStill.aspect !== camera.aspect || rayStill.sig !== rayDirtySig) hideRayStill(true);
+  // petite tolérance : l'inertie de la caméra ou un arrondi ne doivent pas effacer l'image
+  const a = rayStill.cam.elements, b = camera.matrixWorld.elements;
+  let moved = Math.abs(rayStill.aspect - camera.aspect) > 1e-3;
+  for (let i = 0; i < 16 && !moved; i++) moved = Math.abs(a[i] - b[i]) > (i >= 12 ? 0.01 : 0.002);
+  if (moved || rayStill.sig !== rayDirtySig) hideRayStill(true);
 }
 
 /** Une passe du traceur ; faux si le rendu habituel doit dessiner l'image. */
@@ -3391,10 +3633,11 @@ function applyScene(d) {
   }
   const ao = groups.get('ao')?.obj;
   if (ao) ao.visible = shadowsOn;
-  envChoice = ['interieur', 'exterieur'].includes(d.hdri) ? d.hdri : 'studio';
+  envChoice = HDRIS.includes(d.hdri) ? d.hdri : 'studio';
   envReflect = d.reflect !== false;
   updateEnv();
   if (d.reflect === false) ambLight.intensity += 0.25; // la lumière douce de l'environnement compensée
+  applyDaylight(d);
   sideLight.position.set(target.x + 4, 2.6, target.z + 4);
   sideLight.target.position.copy(target);
   rimLight.position.set(target.x, 4, target.z - 5);
@@ -3421,7 +3664,123 @@ function applyScene(d) {
   const half = Math.max(r.w, r.d) * S;
   Object.assign(sun.shadow.camera, { left: -half, right: half, top: half, bottom: -half, near: 0.5, far: 20 });
   sun.shadow.camera.updateProjectionMatrix();
+  clipK = 0; // l'ancienne coupe qui suivait la caméra est remplacée par la coupe fixe (d.section)
+  sectionPlanes = sectionOf(d.section);
+  setOrtho(!!d.ortho);
   invalidate(true);
+}
+
+// ------------------------------------------------------------------ coupe, orthographique, vue de présentation
+
+// Coupe : un plan perpendiculaire au regard, qui suit la caméra. 0 = rien de coupé ; vers 1, le plan avance
+// dans la pièce et retire tout ce qui est devant lui (on voit chaque partie sans que l'autre la gêne).
+let clipK = 0;
+const clipPlane = new THREE.Plane();
+
+// Coupe fixe : réglée dans les vues 2D (vue du dessus : verticale ; vue de face : horizontale), elle reste
+// à sa place dans la pièce quand on tourne autour.
+let sectionPlanes = [];
+
+function sectionOf(sec) {
+  const out = [];
+  if (!sec) return out;
+  if (sec.v) {
+    // garder le côté « au-delà » de la ligne (x ou y du plan croissants) ; inversé : l'autre côté
+    const sgn = sec.v.flip ? -1 : 1;
+    const n = sec.v.axis === 'x' ? new THREE.Vector3(sgn, 0, 0) : new THREE.Vector3(0, 0, sgn);
+    out.push(new THREE.Plane(n, -sgn * sec.v.pos * S));
+  }
+  if (sec.h != null) out.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), sec.h * S));
+  return out;
+}
+
+function updateClip() {
+  if (!renderer) return;
+  if (sectionPlanes.length) {
+    if (renderer.clippingPlanes !== sectionPlanes) renderer.clippingPlanes = sectionPlanes;
+    return;
+  }
+  if (!clipK || !data?.room) {
+    if (renderer.clippingPlanes.length) renderer.clippingPlanes = [];
+    return;
+  }
+  const r = data.room;
+  const radius = Math.hypot(r.w, r.d, r.h || 2600) * S * 0.5;
+  const dir = controls.target.clone().sub(camera.position).normalize();
+  const at = controls.target.clone().addScaledVector(dir, -radius + 2 * radius * clipK);
+  clipPlane.setFromNormalAndCoplanarPoint(dir, at);
+  renderer.clippingPlanes = [clipPlane];
+}
+
+// Orthographique : un téléobjectif extrême (2°) placé loin, à la même taille d'image : les lignes parallèles
+// restent parallèles, sans changer la caméra (gestes, murs masqués, rendu et AR fonctionnent pareil).
+const ORTHO_FOV = 2;
+let perspFov = 38;
+
+function setOrtho(on) {
+  if (!camera || !controls) return;
+  const isOrtho = camera.fov <= ORTHO_FOV + 0.01;
+  if (on === isOrtho) return;
+  if (on) perspFov = camera.fov;
+  const f0 = camera.fov, f1 = on ? ORTHO_FOV : perspFov || 38;
+  const dir = camera.position.clone().sub(controls.target);
+  const k = Math.tan((f0 * Math.PI) / 360) / Math.tan((f1 * Math.PI) / 360);
+  camera.position.copy(controls.target).add(dir.multiplyScalar(k));
+  camera.fov = f1;
+  camera.far = on ? 4000 : 100;
+  if (!on) camera.near = 0.05;
+  controls.maxDistance = on ? 25 * k : 25;
+  controls.minDistance = on ? 0.8 * k : 0.8;
+  camAnim = null;
+  updateOrthoNear();
+  camera.updateProjectionMatrix();
+  controls.update();
+  invalidate(true);
+}
+
+/** En orthographique, le plan proche suit la distance (précision de la profondeur). */
+function updateOrthoNear() {
+  if (camera.fov > ORTHO_FOV + 0.01) return;
+  const d = camera.position.distanceTo(controls.target);
+  const near = Math.max(0.05, d - 30);
+  if (Math.abs(camera.near - near) > 0.5) {
+    camera.near = near;
+    camera.updateProjectionMatrix();
+  }
+}
+
+/**
+ * Vue de présentation (fiche, devis) : de trois quarts et en hauteur, face aux meubles (côté ouvert),
+ * toute la pièce dans le cadre au format [aspect]. Les murs côté caméra s'effacent.
+ */
+function presentationView(aspect) {
+  const d = data;
+  if (!d?.room) return;
+  const bb = new THREE.Box3();
+  for (const [key, v] of groups) if (key.startsWith('item:')) bb.expandByObject(v.obj);
+  if (bb.isEmpty()) bb.set(new THREE.Vector3(0, 0, 0), new THREE.Vector3(d.room.w * S, 2.4, d.room.d * S));
+  bb.expandByPoint(new THREE.Vector3(0, 0, 0)).expandByPoint(new THREE.Vector3(d.room.w * S, 0, d.room.d * S));
+  const c = bb.getCenter(new THREE.Vector3());
+  const [vx, vy] = d.studioDir || [0.44, 0.9];
+  const el = (38 * Math.PI) / 180;
+  camera.fov = 38;
+  camera.aspect = aspect;
+  camera.position.set(c.x + vx * Math.cos(el) * 8, c.y + Math.sin(el) * 8, c.z + vy * Math.cos(el) * 8);
+  for (let pass = 0; pass < 5; pass++) {
+    camera.lookAt(c);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+    let most = 0.01;
+    for (let k = 0; k < 8; k++) {
+      const v = new THREE.Vector3(k & 1 ? bb.max.x : bb.min.x, k & 2 ? bb.max.y : bb.min.y, k & 4 ? bb.max.z : bb.min.z).project(camera);
+      most = Math.max(most, Math.abs(v.x), Math.abs(v.y));
+    }
+    camera.position.sub(c).multiplyScalar(most / 0.92).add(c);
+  }
+  controls.target.copy(c);
+  camera.lookAt(c);
+  camera.updateMatrixWorld();
+  updateWallVisibility();
 }
 
 // ------------------------------------------------------------------ animation et murs masqués
@@ -3500,6 +3859,8 @@ function animate() {
     stats.frames++;
     checkRayStill();
     if (rayStep()) return; // lancer de rayons : le traceur dessine l'image
+    updateOrthoNear();
+    updateClip();
     renderer.render(scene, camera);
   } catch (err) {
     console.error('animate loop error:', err);
@@ -3624,6 +3985,68 @@ function onDouble(ev) {
 // ------------------------------------------------------------------ montage
 
 let sun;
+// ------------------------------------------------------------------ perte de la 3D (iPad : mémoire graphique pleine)
+// iPadOS peut retirer le contexte WebGL à la page : l'écran 3D devient vide. three.js tente de le récupérer ;
+// s'il ne revient pas, la vue 3D est entièrement reconstruite (même vue), sans relancer l'application.
+let lostTimer = 0;
+
+function onContextLost() {
+  (window.__kxlog || (() => {}))('3d', 'contexte WebGL perdu (mémoire graphique ?)');
+  clearTimeout(lostTimer);
+  lostTimer = setTimeout(() => {
+    const gl = renderer?.getContext();
+    if (gl?.isContextLost?.()) rebuildRenderer();
+  }, 2000);
+}
+
+function onContextRestored() {
+  clearTimeout(lostTimer);
+  (window.__kxlog || (() => {}))('3d', 'contexte WebGL rétabli');
+  shadowsDirty = true;
+  invalidate(true);
+}
+
+/** Recrée le moteur 3D dans le même hôte, puis la scène et la vue (caméra, cible). */
+function rebuildRenderer() {
+  const el = host;
+  if (!el || !renderer) return;
+  const pos = camera.position.clone(), target = controls.target.clone();
+  cancelAnimationFrame(raf);
+  clearRayStill();
+  disposePathTracer(rayPt);
+  rayPt = null;
+  rayOn = false;
+  rayKeep = null;
+  rayExtra = null;
+  rayLightKey = '';
+  try {
+    controls.dispose();
+  } catch (_) {}
+  try {
+    renderer.dispose();
+  } catch (_) {}
+  renderer.domElement.remove();
+  renderer = null;
+  groups.clear();
+  objectGroups.clear();
+  doors.length = 0;
+  selBox = null;
+  bgKey = null;
+  lookNow = 'real';
+  lastWalls = '';
+  lastStudio = null; // le mode studio se réapplique sur la nouvelle scène
+  nightGroup = null;
+  nightKey = '';
+  progress.clear();
+  init(el);
+  if (data) applyScene(data);
+  camera.position.copy(pos);
+  controls.target.copy(target);
+  controls.update();
+  invalidate(true);
+  (window.__kxlog || (() => {}))('3d', 'vue 3D reconstruite après la perte du contexte');
+}
+
 function init(el) {
   host = el;
   renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: !!window.kitchen3dPreserve });
@@ -3631,7 +4054,8 @@ function init(el) {
     const gl = renderer.getContext();
     const log = window.__kxlog || (() => {});
     log('3d', `WebGL ${renderer.capabilities.isWebGL2 ? 2 : 1}, textures max ${renderer.capabilities.maxTextureSize}, hôte ${el?.clientWidth}x${el?.clientHeight}`);
-    renderer.domElement.addEventListener('webglcontextlost', () => log('3d', 'contexte WebGL perdu (mémoire ?)'));
+    renderer.domElement.addEventListener('webglcontextlost', onContextLost);
+    renderer.domElement.addEventListener('webglcontextrestored', onContextRestored);
     if (gl.isContextLost && gl.isContextLost()) log('3d', 'contexte WebGL perdu dès le départ');
   }
   // Qualité d'affichage optimisée : Retina / iPad (plafonné à 2.5 pour netteté cristalline)
@@ -3661,7 +4085,8 @@ function init(el) {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.12;
-  controls.maxPolarAngle = Math.PI * 0.49;
+  // rotation libre à 360° : on peut passer sous la pièce pour voir le plafond et ses luminaires
+  controls.maxPolarAngle = Math.PI - 0.02;
   controls.minDistance = 0.8;
   controls.maxDistance = 25;
   // app affichée tournée d'un quart de tour (tablette tenue droite) : les gestes suivent l'image, pas l'écran
@@ -3771,6 +4196,7 @@ function handleShape(type) {
 
 let thumbRenderer = null;
 let thumbEnv = null; // reflets d'ambiance des vignettes (sans eux, le métal sort noir)
+let thumbIdle = 0;
 const thumbCache = new Map();
 
 /** Vignette PNG (data URL) d'un aménagement ou d'une petite pièce, dans son caisson-type, vue de trois quarts. */
@@ -3826,6 +4252,15 @@ function fittingThumb(json, w = 360, h = 270) {
     }
   });
   thumbCache.set(key, url);
+  // moteur des vignettes libéré quelques secondes après la dernière : il ne garde pas de mémoire graphique
+  clearTimeout(thumbIdle);
+  thumbIdle = setTimeout(() => {
+    thumbEnv?.dispose();
+    thumbEnv = null;
+    thumbRenderer?.dispose();
+    thumbRenderer?.forceContextLoss();
+    thumbRenderer = null;
+  }, 4000);
   return url;
 }
 
@@ -3953,16 +4388,39 @@ window.kitchen3d = {
     return rayRender();
   },
   /** Rendu HD : démarre (w × h pixels, n passes), avancement et image (JSON), arrêt. */
-  hdStart(w, h, n) {
+  hdStart(w, h, n, best) {
     if (!renderer || !scene || !host || !host.isConnected) return false;
     const box = selBox;
     if (box) box.visible = false;
+    // image de présentation (fiche, devis) : la meilleure vue de la pièce, sans coupe ; la vue revient ensuite
+    const keep = best ? { pos: camera.position.clone(), target: controls.target.clone(), fov: camera.fov, near: camera.near, far: camera.far, clip: clipK } : null;
+    if (best) {
+      clipK = 0;
+      updateClip();
+      camera.near = 0.05;
+      camera.far = 100;
+      presentationView(w / h);
+    } else updateClip();
     hdStart({ renderer, scene, camera, sun, hemi: hemiLight, ambient: ambLight, fill: fillLight, bg: data?.studio ? [0xffffff] : data?.bg, done: () => {
       if (box) box.visible = true;
+      if (keep) {
+        camera.position.copy(keep.pos);
+        controls.target.copy(keep.target);
+        Object.assign(camera, { fov: keep.fov, near: keep.near, far: keep.far });
+        clipK = keep.clip;
+        controls.update();
+        updateWallVisibility();
+      }
       resize();
       invalidate(true);
     } }, w, h, n);
     return true;
+  },
+  /** Coupe de la vue (0 : aucune … 1) et vue orthographique, sans reconstruire la scène. */
+  setCamera(clip, ortho) {
+    clipK = Math.min(1, Math.max(0, clip || 0));
+    setOrtho(!!ortho);
+    invalidate(true);
   },
   hdState() {
     return hdState();

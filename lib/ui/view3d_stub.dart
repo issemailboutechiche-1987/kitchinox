@@ -7,7 +7,8 @@ import 'app_state.dart';
 
 bool get webgl3dAvailable => false;
 Future<String?> getWeb3dSnapshotPng() async => null;
-Future<bool> startHdRender(int w, int h, int n) async => false;
+Future<bool> startHdRender(int w, int h, int n, {bool best = false}) async => false;
+void setCamera3d(double clip, bool ortho) {}
 Future<String?> hdRenderState() async => null;
 Future<void> stopHdRender() async {}
 

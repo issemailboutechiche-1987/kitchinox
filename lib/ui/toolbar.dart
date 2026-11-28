@@ -5,9 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../engine/engine.dart';
 import 'app_settings.dart';
-import 'scene_export.dart' show sceneBackgroundNames;
+import 'scene_export.dart' show sceneBackgroundNames, sceneBackgrounds;
 import 'ar_mode.dart' show showArSheet;
-import 'view3d.dart' show refreshRayRender;
 import 'app_state.dart';
 import 'client_ui.dart';
 import 'brands_ui.dart';
@@ -22,6 +21,9 @@ import 'diagnostic_pdf.dart';
 import 'header.dart';
 import 'kitchen_heights_dialog.dart';
 import 'kitchen_accessories_ui.dart';
+import 'lighting_ui.dart';
+import 'luxury_styles.dart';
+import 'view3d.dart' show setCamera3d;
 import 'hd_render.dart';
 import 'kx_choices.dart';
 import 'theme.dart';
@@ -106,12 +108,6 @@ class StepToolbar extends StatelessWidget {
             ),
           ],
           _boardTile(context),
-          ToolTile(
-            icon: Icons.view_in_ar_outlined,
-            label: tr('Voir en 3D'),
-            active: state.view == ViewMode.view3d,
-            onTap: () => state.setView(state.view == ViewMode.view3d ? ViewMode.plan : ViewMode.view3d),
-          ),
         ]);
         trailing.addAll([
           MmField(label: tr('Largeur'), value: room.width, onSubmit: (v) => state.updateRoom(width: v)),
@@ -192,6 +188,11 @@ class StepToolbar extends StatelessWidget {
           ),
           // réglages de la cuisine, en fin de barre
           _networksMenu(context),
+          ToolTile(
+              key: const ValueKey('tile_ceiling'),
+              icon: Icons.light_outlined,
+              label: tr('Plafond'),
+              onTap: () => showLightingDialog(context, state, onMessage)),
           if (state.engine.kitchen)
             ToolTile(icon: Icons.height, label: tr('Hauteurs & Crédence'), onTap: () => showKitchenHeightsDialog(context, state, onMessage)),
           if (state.engine.kitchen)
@@ -199,6 +200,11 @@ class StepToolbar extends StatelessWidget {
         ]);
       case PlanStep.style:
         tiles.addAll([
+          ToolTile(
+              key: const ValueKey('tile_luxury'),
+              icon: Icons.diamond_outlined,
+              label: tr('Luxury Kitchen'),
+              onTap: () => showLuxuryGallery(context, state, onMessage)),
           for (final (s, icon, label) in [
             (StyleSection.fronts, Icons.door_front_door_outlined, 'Façades'),
             if (state.engine.hasWorktop) (StyleSection.worktop, Icons.countertops_outlined, 'Plan de travail'),
@@ -325,6 +331,8 @@ class StepToolbar extends StatelessWidget {
           case 'toggle':
             state.setNetworks(!on);
             onMessage(on ? tr('Réseaux masqués') : tr('Réseaux posés d’après l’implantation : ils suivent les meubles (vue de face pour les cotes)'));
+          case 'lighting':
+            showLightingDialog(context, state, onMessage);
           case 'regen':
           case 'sync:appliances':
             state.regenerateNetworks(all: true);
@@ -355,40 +363,13 @@ class StepToolbar extends StatelessWidget {
             }
         }
       },
-      itemBuilder: (_) => [
-        CheckedPopupMenuItem(value: 'toggle', checked: on, child: Text(tr('Afficher les réseaux'))),
-        PopupMenuItem(
-            value: 'sync:appliances',
-            child: ListTile(
-                leading: const Icon(Icons.sync),
-                title: Text(tr('Positionner les réseaux sur les appareils')),
-                subtitle: Text(tr('eau, évacuation et 32A/gaz centrés sous les machines')))),
-        PopupMenuItem(
-            value: 'sync:snap_sink',
-            child: ListTile(
-                leading: const Icon(Icons.align_horizontal_center),
-                title: Text(tr('Aligner l’évier sur l’arrivée existante')),
-                subtitle: Text(tr('glisse le meuble face aux tuyaux d’attente')))),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-            value: 'exist:water',
-            child: ListTile(leading: Icon(Icons.water_drop_outlined), title: Text(tr('Arrivée d’eau existante')), subtitle: Text(tr('dans la pièce, avant travaux')))),
-        PopupMenuItem(
-            value: 'exist:drain',
-            child: ListTile(leading: Icon(Icons.south_outlined), title: Text(tr('Évacuation existante')), subtitle: Text(tr('pour vérifier la pente vers l’évier')))),
-        const PopupMenuDivider(),
-        CheckedPopupMenuItem(value: 'gas', checked: p.specs.hobEnergy == 'gas', child: Text(tr('Plaque au gaz'))),
-        CheckedPopupMenuItem(value: 'electric', checked: p.specs.hobEnergy == 'electric', child: Text(tr('Plaque électrique (32 A)'))),
-        const PopupMenuDivider(),
-        for (final k in NetKind.values)
-          PopupMenuItem(
-            value: 'add:${k.name}',
-            child: ListTile(
-              dense: true,
-              leading: SizedBox(width: 26, height: 26, child: CustomPaint(painter: _NetIcon(k))),
-              title: Text(trp('Ajouter : {0}', [tr(k.label)])),
-            ),
-          ),
+      // panneau compact : réglages en haut, puis la grille des points à ajouter (symboles normalisés)
+      itemBuilder: (menuCtx) => [
+        PopupMenuItem<String>(
+          enabled: false,
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+          child: _NetPanel(state: state, pick: (v) => Navigator.pop(menuCtx, v)),
+        ),
       ],
       child: IgnorePointer(child: ToolTile(icon: Icons.electrical_services_outlined, label: tr('Réseaux'), active: on, onTap: _noop)),
     );
@@ -684,13 +665,13 @@ class ViewSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final narrow = MediaQuery.sizeOf(context).width < 700;
-    Widget seg(ViewMode v, IconData icon, String label) {
-      final on = state.view == v;
+    Widget seg(ViewMode v, IconData icon, String label, {bool ceiling = false}) {
+      final on = state.view == v && (v != ViewMode.plan || state.ceilingPlan == ceiling);
       return Tooltip(
         message: tr(label),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () => state.setView(v),
+          onTap: () => state.setView(v, ceiling: ceiling),
           child: AnimatedContainer(
             duration: Tokens.fast,
             constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
@@ -720,6 +701,7 @@ class ViewSwitcher extends StatelessWidget {
         padding: const EdgeInsets.all(4),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           seg(ViewMode.plan, Icons.grid_view, 'Vue du dessus'),
+          seg(ViewMode.plan, Icons.light_outlined, 'Plafond', ceiling: true),
           seg(ViewMode.front, Icons.crop_portrait, 'Vue de face'),
           seg(ViewMode.view3d, Icons.view_in_ar_outlined, '3D'),
           if (state.view == ViewMode.front) ...[
@@ -772,13 +754,6 @@ class ViewSwitcher extends StatelessWidget {
               onPressed: state.toggleDecor,
               icon: const Icon(Icons.local_florist_outlined),
             ),
-            if (AppSettings.instance.look3d == 'ray')
-              IconButton(
-                key: const ValueKey('view_ray_refresh'),
-                tooltip: tr('Actualiser le lancer de rayons'),
-                icon: const Icon(Icons.refresh),
-                onPressed: refreshRayRender,
-              ),
             IconButton(
               key: const ValueKey('view_ar_button'),
               tooltip: tr('Voir dans ma pièce (AR)'),
@@ -787,61 +762,20 @@ class ViewSwitcher extends StatelessWidget {
             ),
             PopupMenuButton<String>(
               key: const ValueKey('view_display'),
-              tooltip: tr('Affichage : mode, fond, réseaux'),
+              tooltip: tr('Affichage : mode, lumière, fond, réseaux'),
               icon: const Icon(Icons.layers_outlined),
-              onSelected: (v) {
-                final s = AppSettings.instance;
-                if (v.startsWith('look:')) s.look3d = v.substring(5);
-                if (v.startsWith('bg:')) s.sceneBg = v.substring(3);
-                if (v == 'shadows') s.shadows3d = !s.shadows3d;
-                if (v.startsWith('light:')) s.rayLight = v.substring(6);
-                if (v.startsWith('hdri:')) s.hdri = v.substring(5);
-                if (v == 'reflect') s.reflect3d = !s.reflect3d;
-                if (v == 'ar') {
-                  showArSheet(context, state);
-                  return;
-                }
-                if (v == 'nets') {
-                  s.nets3d = !s.nets3d;
-                  if (s.nets3d && !state.project.networks) state.setNetworks(true);
-                }
-                s.save();
-                state.refresh();
-              },
-              itemBuilder: (_) {
-                final s = AppSettings.instance;
-                return [
-                  PopupMenuItem(enabled: false, height: 28, child: Text(tr('Mode d’affichage'), style: const TextStyle(fontWeight: FontWeight.w800))),
-                  CheckedPopupMenuItem(value: 'look:real', checked: s.look3d == 'real', child: Text(tr('Réaliste'))),
-                  CheckedPopupMenuItem(value: 'look:sketch', checked: s.look3d == 'sketch', child: Text(tr('Croquis (arêtes tracées)'))),
-                  CheckedPopupMenuItem(
-                      key: const ValueKey('view_xray'), value: 'look:xray', checked: s.look3d == 'xray', child: Text(tr('Transparent (prises et câbles cachés)'))),
-                  CheckedPopupMenuItem(
-                      key: const ValueKey('view_ray'), value: 'look:ray', checked: s.look3d == 'ray', child: Text(tr('Lancer de rayons (reflets et ombres réels)'))),
-                  const PopupMenuDivider(),
-                  if (s.look3d == 'ray') ...[
-                    PopupMenuItem(enabled: false, height: 28, child: Text(tr('Lumière du lancer de rayons'), style: const TextStyle(fontWeight: FontWeight.w800))),
-                    CheckedPopupMenuItem(value: 'light:soleil', checked: s.rayLight == 'soleil', child: Text(tr('Soleil (par les fenêtres)'))),
-                    CheckedPopupMenuItem(value: 'light:plafonnier', checked: s.rayLight == 'plafonnier', child: Text(tr('Plafonnier'))),
-                    CheckedPopupMenuItem(value: 'light:mixte', checked: s.rayLight == 'mixte', child: Text(tr('Soleil et plafonnier'))),
-                    const PopupMenuDivider(),
-                  ],
-                  PopupMenuItem(enabled: false, height: 28, child: Text(tr('Environnement (reflets)'), style: const TextStyle(fontWeight: FontWeight.w800))),
-                  CheckedPopupMenuItem(value: 'hdri:studio', checked: s.hdri == 'studio', child: Text(tr('Studio clair'))),
-                  CheckedPopupMenuItem(key: const ValueKey('view_hdri_in'), value: 'hdri:interieur', checked: s.hdri == 'interieur', child: Text(tr('Pièce intérieure (HDRI)'))),
-                  CheckedPopupMenuItem(value: 'hdri:exterieur', checked: s.hdri == 'exterieur', child: Text(tr('Ciel extérieur (HDRI)'))),
-                  const PopupMenuDivider(),
-                  CheckedPopupMenuItem(key: const ValueKey('view_shadows'), value: 'shadows', checked: s.shadows3d, child: Text(tr('Ombres'))),
-                  CheckedPopupMenuItem(key: const ValueKey('view_reflect'), value: 'reflect', checked: s.reflect3d, child: Text(tr('Reflets'))),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(key: const ValueKey('view_ar'), value: 'ar', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.view_in_ar), title: Text(tr('Voir dans ma pièce (AR)')))),
-                  const PopupMenuDivider(),
-                  CheckedPopupMenuItem(key: const ValueKey('view_nets3d'), value: 'nets', checked: s.nets3d, child: Text(tr('Réseaux : électricité, eau, gaz'))),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(enabled: false, height: 28, child: Text(tr('Fond de la scène'), style: const TextStyle(fontWeight: FontWeight.w800))),
-                  for (final e in sceneBackgroundNames.entries) CheckedPopupMenuItem(value: 'bg:${e.key}', checked: s.sceneBg == e.key, child: Text(tr(e.value))),
-                ];
-              },
+              padding: EdgeInsets.zero,
+              // panneau compact : chaque réglage s'applique tout de suite, le menu reste ouvert
+              itemBuilder: (menuCtx) => [
+                PopupMenuItem<String>(
+                  enabled: false,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  child: _DisplayPanel(state: state, openAr: () {
+                    Navigator.pop(menuCtx);
+                    showArSheet(context, state);
+                  }),
+                ),
+              ],
             ),
             IconButton(key: const ValueKey('view_hd'), tooltip: tr('Rendu HD'), onPressed: () => showHdRender(context, state, (m) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(m)))), icon: const Icon(Icons.auto_awesome_outlined)),
             IconButton(key: const ValueKey('view_studio'), tooltip: tr('Présentation sur fond blanc'), onPressed: () => state.setStudio('decor'), icon: const Icon(Icons.photo_camera_outlined)),
@@ -1109,4 +1043,258 @@ class _ProposalPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ProposalPainter o) => o.pr != pr;
+}
+
+/// Curseur Jour ↔ Nuit de la vue 3D : la lumière du jour baisse ; vers la nuit, les luminaires
+/// de la pièce (points lumineux du plafond, éclairages sous meubles) s'allument.
+class _DaylightSlider extends StatefulWidget {
+  final AppState state;
+  const _DaylightSlider({required this.state});
+  @override
+  State<_DaylightSlider> createState() => _DaylightSliderState();
+}
+
+class _DaylightSliderState extends State<_DaylightSlider> {
+  @override
+  Widget build(BuildContext context) {
+    final s = AppSettings.instance;
+    final color = Theme.of(context).colorScheme.onSurface;
+    return SizedBox(
+      width: 260,
+      child: Row(children: [
+        Icon(Icons.nightlight_outlined, size: 18, color: color),
+        Expanded(
+          child: Slider(
+            key: const ValueKey('view_daylight'),
+            value: s.daylight,
+            divisions: 20,
+            label: s.daylight == 0 ? tr('Nuit') : '${(s.daylight * 100).round()} %',
+            onChanged: (v) {
+              setState(() => s.daylight = v);
+              widget.state.refresh();
+            },
+            onChangeEnd: (_) => s.save(),
+          ),
+        ),
+        Icon(Icons.wb_sunny_outlined, size: 18, color: color),
+      ]),
+    );
+  }
+}
+
+/// Panneau Affichage de la vue 3D : mode, lumière (jour ↔ nuit), reflets, ombres, réseaux, fond.
+/// Compact, et chaque choix s'applique sans fermer le panneau.
+class _DisplayPanel extends StatefulWidget {
+  final AppState state;
+  final VoidCallback openAr;
+  const _DisplayPanel({required this.state, required this.openAr});
+  @override
+  State<_DisplayPanel> createState() => _DisplayPanelState();
+}
+
+class _DisplayPanelState extends State<_DisplayPanel> {
+  void _set(void Function(AppSettings s) f) {
+    final s = AppSettings.instance;
+    setState(() => f(s));
+    s.save();
+    widget.state.refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppSettings.instance;
+    final t = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    Widget label(String x) => Padding(padding: const EdgeInsets.only(top: 8, bottom: 4), child: Text(tr(x), style: t.labelMedium?.copyWith(color: scheme.onSurfaceVariant)));
+    Widget pick(String text, bool on, VoidCallback tap, {Key? key, IconData? icon}) => ChoiceChip(
+          key: key,
+          label: Text(tr(text)),
+          avatar: icon == null ? null : Icon(icon, size: 16),
+          selected: on,
+          showCheckmark: false,
+          visualDensity: VisualDensity.compact,
+          onSelected: (_) => tap(),
+        );
+    Widget flag(String text, bool on, VoidCallback tap, {Key? key}) =>
+        FilterChip(key: key, label: Text(tr(text)), selected: on, visualDensity: VisualDensity.compact, onSelected: (_) => tap());
+    return DefaultTextStyle(
+      style: t.bodyMedium!.copyWith(color: scheme.onSurface),
+      child: SizedBox(
+        width: 300,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          label('Mode d’affichage'),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            pick('Réaliste', s.look3d == 'real', () => _set((s) => s.look3d = 'real'), icon: Icons.view_in_ar_outlined),
+            pick('Croquis', s.look3d == 'sketch', () => _set((s) => s.look3d = 'sketch'), icon: Icons.draw_outlined),
+            pick('Transparent', s.look3d == 'xray', () => _set((s) => s.look3d = 'xray'), key: const ValueKey('view_xray'), icon: Icons.blur_on),
+          ]),
+          label('Lumière'),
+          _DaylightSlider(state: widget.state),
+          label('Caméra'),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            pick('Perspective', !s.ortho3d, () {
+              _set((s) => s.ortho3d = false);
+              setCamera3d(s.clip3d, false);
+            }, icon: Icons.videocam_outlined),
+            pick('Orthographique', s.ortho3d, () {
+              _set((s) => s.ortho3d = true);
+              setCamera3d(s.clip3d, true);
+            }, key: const ValueKey('view_ortho'), icon: Icons.crop_square),
+          ]),
+          label('Coupe (fixe dans la pièce)'),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            flag('Verticale', widget.state.cutV, () => setState(() => widget.state.setCut(v: !widget.state.cutV)), key: const ValueKey('view_cut_v')),
+            flag('Horizontale', widget.state.cutH, () => setState(() => widget.state.setCut(h: !widget.state.cutH)), key: const ValueKey('view_cut_h')),
+            if (widget.state.cutV) ...[
+              pick(widget.state.cutAxis == 'x' ? 'Coupe en largeur' : 'Coupe en profondeur',
+                  false, () => setState(() => widget.state.setCut(axis: widget.state.cutAxis == 'x' ? 'y' : 'x')), icon: Icons.rotate_90_degrees_ccw),
+              pick('Inverser', widget.state.cutFlip, () => setState(() => widget.state.setCut(flip: !widget.state.cutFlip)), icon: Icons.swap_horiz),
+            ],
+          ]),
+          if (widget.state.cutV || widget.state.cutH)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(tr('Glissez la poignée rouge : vue du dessus pour la coupe verticale, vue de face pour l’horizontale.'),
+                  style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+            ),
+          label('Environnement (reflets)'),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final (k, l) in const [
+              ('studio_loft', 'Loft lumineux'),
+              ('studio_hall', 'Studio photo'),
+              ('interieur', 'Pièce vide'),
+              ('ciel_verger', 'Plein air'),
+              ('exterieur', 'Ciel nuageux'),
+              ('studio', 'Neutre'),
+            ])
+              pick(l, s.hdri == k, () => _set((s) => s.hdri = k), key: k == 'interieur' ? const ValueKey('view_hdri_in') : null),
+          ]),
+          const SizedBox(height: 8),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            flag('Ombres', s.shadows3d, () => _set((s) => s.shadows3d = !s.shadows3d), key: const ValueKey('view_shadows')),
+            flag('Reflets', s.reflect3d, () => _set((s) => s.reflect3d = !s.reflect3d), key: const ValueKey('view_reflect')),
+            flag('Réseaux', s.nets3d, () {
+              _set((s) => s.nets3d = !s.nets3d);
+              if (s.nets3d && !widget.state.project.networks) widget.state.setNetworks(true);
+            }, key: const ValueKey('view_nets3d')),
+          ]),
+          label('Fond de la scène'),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final e in sceneBackgrounds.entries)
+              Tooltip(
+                message: tr(sceneBackgroundNames[e.key] ?? e.key),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => _set((s) => s.sceneBg = e.key),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                          begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [for (final c in [e.value.first, e.value.last]) Color(0xFF000000 | c)]),
+                      border: Border.all(color: s.sceneBg == e.key ? scheme.primary : scheme.outlineVariant, width: s.sceneBg == e.key ? 3 : 1),
+                    ),
+                  ),
+                ),
+              ),
+          ]),
+          const SizedBox(height: 6),
+          TextButton.icon(
+            key: const ValueKey('view_ar'),
+            style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+            onPressed: widget.openAr,
+            icon: const Icon(Icons.view_in_ar, size: 18),
+            label: Text(tr('Voir dans ma pièce (AR)')),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Panneau Réseaux : afficher, énergie de la plaque, actions (appareils, évier, éclairage), existant,
+/// et la grille des points à ajouter. Les explications longues sont dans les info-bulles.
+class _NetPanel extends StatelessWidget {
+  final AppState state;
+  final void Function(String v) pick;
+  const _NetPanel({required this.state, required this.pick});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = state.project;
+    final t = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    Widget label(String x) => Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 6),
+        child: Text(tr(x), style: t.labelMedium?.copyWith(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w700)));
+    Widget action(String v, IconData icon, String text, String tip, {Key? key}) => Tooltip(
+          message: tr(tip),
+          child: InkWell(
+            key: key,
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => pick(v),
+            child: Container(
+              width: 96,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: scheme.outlineVariant), color: scheme.surface),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(icon, size: 22, color: scheme.primary),
+                const SizedBox(height: 4),
+                Text(tr(text), textAlign: TextAlign.center, maxLines: 2, style: t.labelSmall?.copyWith(color: scheme.onSurface, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ),
+        );
+    return DefaultTextStyle(
+      style: t.bodyMedium!.copyWith(color: scheme.onSurface),
+      child: SizedBox(
+        width: 330,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(child: Text(tr('Afficher les réseaux'), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: scheme.onSurface))),
+            Switch(value: p.networks, onChanged: (_) => pick('toggle')),
+          ]),
+          label('Plaque de cuisson'),
+          KxChoices<String>(
+            segments: [
+              ButtonSegment(value: 'gas', label: Text(tr('Gaz')), icon: const Icon(Icons.local_fire_department_outlined)),
+              ButtonSegment(value: 'electric', label: Text(tr('Électrique 32 A')), icon: const Icon(Icons.bolt)),
+            ],
+            selected: {p.specs.hobEnergy},
+            onSelectionChanged: (v) => pick(v.first),
+          ),
+          label('Actions'),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            action('sync:appliances', Icons.sync, 'Sur les appareils', 'Positionner les réseaux sur les appareils : eau, évacuation et 32A/gaz centrés sous les machines'),
+            action('sync:snap_sink', Icons.align_horizontal_center, 'Aligner l’évier', 'Aligner l’évier sur l’arrivée existante : glisse le meuble face aux tuyaux d’attente'),
+            action('lighting', Icons.lightbulb_outline, 'Éclairage', 'Éclairage selon les normes : lumière nécessaire, points lumineux, rubans LED', key: const ValueKey('net_lighting')),
+          ]),
+          label('Déjà dans la pièce'),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            action('exist:water', Icons.water_drop_outlined, 'Arrivée d’eau', 'Arrivée d’eau existante : dans la pièce, avant travaux'),
+            action('exist:drain', Icons.south_outlined, 'Évacuation', 'Évacuation existante : pour vérifier la pente vers l’évier'),
+          ]),
+          label('Ajouter un point'),
+          Wrap(spacing: 4, runSpacing: 4, children: [
+            for (final k in NetKind.values)
+              Tooltip(
+                message: tr(k.label),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => pick('add:${k.name}'),
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: scheme.surfaceContainerHighest.withValues(alpha: 0.5)),
+                    padding: const EdgeInsets.all(8),
+                    child: CustomPaint(painter: _NetIcon(k)),
+                  ),
+                ),
+              ),
+          ]),
+        ]),
+      ),
+    );
+  }
 }
